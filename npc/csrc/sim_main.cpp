@@ -3,54 +3,63 @@
 #include <assert.h>
 #include <stdint.h>
 #include <memory>
+#include <nvboard.h>
 #include "Vtop.h"
 #include "verilated.h"
-//#include "verilated_fst_c.h"
 
+#if VM_TRACE_VCD
+#include "verilated_vcd_c.h"
+#endif
 
-int main(int argc, char** argv)
-{
-	// Create logs directory in case we have traces to put under it
-	Verilated::mkdir("logs");
+typedef TOP_NAME* top_ptr;
 
+void nvboard_bind_all_pins(TOP_NAME* top);
+
+static void single_cycle(top_ptr top) {
+	top->clk = 0; top->eval();
+	top->clk = 1; top->eval();
+}
+
+static void reset(top_ptr top, int n) {
+	top->rst = 1;
+	while (n -- > 0) single_cycle(top);
+	top->rst = 0;
+}
+
+int main(int argc, char** argv) {
 	const std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
 	contextp->debug(0); // Set debug level, 0 is off, 9 is highest
 	contextp->randReset(2); // Randomization reset policy
-	contextp->traceEverOn(true); // Verilator must compute traced signals
 	contextp->commandArgs(argc, argv); // Pass arguments so Verilated code can see them
-	
-	// "TOP" will be hierarchical name of the module.
-	const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
-	uint64_t sim_time = 10000;
-	while(contextp->time()<sim_time && !contextp->gotFinish())
-	{
-		contextp->timeInc(1);
+	const std::unique_ptr<TOP_NAME> top{new TOP_NAME{contextp.get(), "top"}};
 
-		int a = rand() & 1;		
-		int b = rand() & 1;		
-		top->a = a;
-		top->b = b;
-		top->eval();
-		// printf("a = %d, b = %d, f = %d, time = %lu\n", a, b, top->f, contextp->time());
-		assert(top->f == (a ^ b));
-	}
-
-	top->final();
-	// tfp->close();
-
-	// Coverage analysis
-#if VM_COVERAGE
-	Verilated::mkdir("logs");
-	contextp->converagep()->write("logs/coverage.dat");
+#if VM_TRACE_VCD
+	Verilated::mkdir("build/logs");
+	contextp->traceEverOn(true); // Verilator must compute traced signals
+	const std::unique_ptr<VerilatedVcdC>tfp{new VerilatedVcdC};
+	top->trace(tfp.get(), 99); // Trace 99 levels of hierarchy (or see below)
+	tfp->open("build/logs/simu_top.vcd");
+	printf("Start trace ...\n");
 #endif
 
-	// delete top;
-	// delete contextp;
-	//
-	
-	// Final simulation summary
-	contextp->statsPrintSummary();
+	nvboard_bind_all_pins(top.get());
+	nvboard_init();
 
-	return 0;
+	reset(top.get(), 10);
+
+	while(!contextp->gotFinish()) {
+		nvboard_update();
+#if VM_TRACE_VCD
+		contextp->timeInc(1);
+		top->clk = 0; top->eval();
+		tfp->dump(contextp->time());
+		contextp->timeInc(1);
+		top->clk = 1; top->eval();
+		tfp->dump(contextp->time());
+#else
+		single_cycle(top.get());
+#endif
+	}
 }
+
