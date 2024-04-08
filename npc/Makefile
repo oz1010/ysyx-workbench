@@ -1,15 +1,18 @@
-VERILATOR_FLAGS	:= --build -j 0 -cc --exe -x-assign fast -Wall --trace
+VERILATOR_FLAGS	:= --build -j 0 -cc --exe -x-assign fast -Wall
 
 C_SRC	:=	$(shell ls csrc/*.cpp)
 V_SRC	:=  $(shell ls vsrc/*.v)
 OBJ_DIR	:=	obj_dir
 TARGET	:=  obj_dir/Vtop
-TARGET_ARGS	:= +trace
+#TARGET_ARGS	:= +trace
 
 .PHONY: run clean
 
-all:
-	@echo "Write this Makefile by your self."
+ifdef TRACE
+VERILATOR_FLAGS += --trace
+endif
+
+all: ${TARGET}
 
 run: ${TARGET}
 	@rm -rf logs
