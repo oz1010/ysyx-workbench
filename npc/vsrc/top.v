@@ -2,18 +2,24 @@ module top(
   	input clk,
   	input rst,
   	//input [4:0] btn,
-	input [7:0] sw,
+	input [9:0] sw,
     output [15:0] ledr
   	//input a,
   	//input b,
   	//output f
 );
 
-led my_led(
-	.clk(clk),
-	.rst(rst),
-	.sw(sw),
-	.ledr(ledr)
+// led my_led(
+// 	.clk(clk),
+// 	.rst(rst),
+// 	.sw(sw[7:0]),
+// 	.ledr(ledr)
+// );
+
+mux42 my_mux(
+    .Y(sw[1:0]),
+    .X(sw[9:2]),
+    .F(ledr[1:0])
 );
 
 //assign f = a ^ b;
