@@ -52,16 +52,8 @@ __am_asm_trap:
   STORE t1, OFFSET_STATUS(sp)
   STORE t2, OFFSET_EPC(sp)
 
-
-  # 上下文已经保存所有寄存器，无需单独恢复a0 ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%B8%8B%E6%96%87
-  li a0, 1
-  STORE a0, 0(sp)
-
   mv a0, sp
   jal __am_irq_handle
-
-  /* sp可能在__am_irq_handle，需要先回复sp，可以完成上下文切换 */
-  mv sp, a0
 
   LOAD t1, OFFSET_STATUS(sp)
   LOAD t2, OFFSET_EPC(sp)

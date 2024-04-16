@@ -23,45 +23,14 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
-void isa_cpu_reg_display(const char *title, CPU_state *c) {
-  raw_stdout("%s registers:\n", title);
-  int i;
-  for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {
-    uint32_t reg_val = c->gpr[check_reg_idx(i)];
-    raw_stdout("%-16s0x%-14x%-16d\n", regs[i], reg_val, reg_val);
-  }
-}
-
 void isa_reg_display() {
   int i;
   for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {
     uint32_t reg_val = cpu.gpr[check_reg_idx(i)];
-    raw_stdout("%-16s0x%-14x%-16d\n", regs[i], reg_val, reg_val);
+    printf("%-16s0x%-14x%-16d\n", regs[i], reg_val, reg_val);
   }
-}
-
-const char* isa_reg_name(size_t idx) {
-  return regs[check_reg_idx(idx)];
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
-  int i;
-  for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {
-    uint32_t reg_val = cpu.gpr[check_reg_idx(i)];
-    if(strcmp(regs[i], s)==0){
-      *success = true;
-      return reg_val;
-    }
-  }
   return 0;
-}
-
-word_t *isa_get_cpu_gpr(size_t idx)
-{
-  return &cpu.gpr[check_reg_idx(idx)];
-}
-
-vaddr_t *isa_get_cpu_pc(void)
-{
-  return &cpu.pc;
 }

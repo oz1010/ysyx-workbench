@@ -22,7 +22,6 @@ endef
 define git_commit
 	-@flock $(LOCK_DIR) $(MAKE) -C $(YSYX_HOME) .git_commit MSG='$(1)'
 	-@sync $(LOCK_DIR)
-	-@echo "\33[1;42m++++++ STEP: $(1) ++++++ \33[0m"
 endef
 
 .git_commit:
@@ -43,4 +42,3 @@ _default:
 	@echo "Please run 'make' under subprojects."
 
 .PHONY: .git_commit .clean_index _default
-

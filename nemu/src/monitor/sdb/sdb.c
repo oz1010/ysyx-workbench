@@ -15,22 +15,18 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
-#include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
 #include "memory/vaddr.h"
-#include "memory/paddr.h"
-#include "trace.h"
-#include "device/mmio.h"
-#include "common/point_pool.h"
 
 static int is_batch_mode = false;
 
 void init_regex();
+void init_wp_pool();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
-char* rl_gets() {
+static char* rl_gets() {
   static char *line_read = NULL;
 
   if (line_read) {
@@ -69,16 +65,12 @@ static int cmd_info(char *args)
   {
     if (strcmp(args, "r") == 0)
       isa_reg_display();
-    else if (strcmp(args, "w") == 0)
-      show_point(POINT_ALL);
-    else if (strcmp(args, "b") == 0)
-      show_point(POINT_ALL);
     else
-      raw_stdout("Error format: info r/w/b\n");
+      printf("Error format: info r\n");
   }
   else
   {
-    raw_stdout("Miss args: info r/w/b\n");
+    printf("Miss args: info r\n");
   }
   return 0;
 }
@@ -86,7 +78,7 @@ static int cmd_info(char *args)
 static int cmd_x(char *args)
 {
   char *argv[2] = {0};
-  char *args_end = args + (args!=NULL?strlen(args):0);
+  char *args_end = args + strlen(args);
   int argc = 0;
   while (args<args_end && argc<2)
   {
@@ -101,188 +93,39 @@ static int cmd_x(char *args)
 
   if (argc < 1)
   {
-    raw_stdout("Miss args: x <ADDR> [LEN]\n");
+    printf("Miss args: x <LEN> [ADDR]\n");
     return 0;
   }
 
-  uint32_t len = 1;
-  vaddr_t addr = strtoul(argv[0], NULL, 16);
+  uint32_t len = strtoul(argv[0], NULL, 10);
+  vaddr_t addr = 0x80000000;
   size_t line_len = 16;
 
   if (argc > 1)
   {
-    len = strtoul(argv[1], NULL, 10);
+    addr = strtoul(argv[1], NULL, 16);
   }
-  mem_item_t *mem_item = find_mem_item(addr);
-  if (mem_item)
-  {
-    // read from physical memory
-    uint32_t i=0,j=0;
-    for (i=0; i<len; ) {
-      raw_stdout("0x%8x:", addr);
-      for (j=0; j<line_len&&i<len; ++i,++j){
-        word_t value = mem_item->read(mem_item, addr, 1) & 0xFF;
-        raw_stdout("%s%02x", (j!=0&&j%4==0?"   ":" "), value);
-        addr += 1;
-      }
-      if (j%line_len == 0)
-      raw_stdout("\n");
+  uint32_t i=0,j=0;
+  for (i=0; i<len; ) {
+    printf("0x%8x:", addr);
+    for (j=0; j<line_len&&i<len; ++i,++j){
+      word_t value = vaddr_ifetch(addr, 1) & 0xFF;
+      printf("%s%02x", (j!=0&&j%4==0?"   ":" "), value);
+      addr += 1;
     }
-    if (j%line_len != 0)
-      raw_stdout("\n");
-#ifdef CONFIG_RTC_MMIO
-  } else if (addr >= CONFIG_RTC_MMIO && addr <= CONFIG_RTC_MMIO) {
-    // read from rtc
-    uint64_t low = mmio_read(addr, 4);
-    uint64_t high = mmio_read(addr+4, 4);
-    raw_stdout("RTC value(us): %lu\n", (high<<32 | low));
-#endif
-  } else {
-    raw_stdout("Unknown addr %#x\n", addr);
+    if (j%line_len == 0)
+    printf("\n");
   }
 
-  return 0;
-}
+  if (j%line_len != 0)
+    printf("\n");
 
-static int cmd_p(char *args) {
-  bool success = true;
-  if (!args)
-  {
-    raw_stdout("miss args\n");
-    return 0;
-  }
-  word_t val = expr(args, &success);
-  if (success)
-  {
-    raw_stdout("val = %u\n", val);
-    raw_stdout("hex = %#x\n", val);
-  }
-  else
-    raw_stdout("expression is error\n");
-  return 0;
-}
-#ifdef CONFIG_WATCHPOINT
-static int cmd_w(char *args) {
-  if (!args){
-    raw_stdout("miss args\n");
-    return 0;
-  }
-
-  add_point(POINT_WATCH, args);
-  return 0;
-}
-#endif
-#ifdef CONFIG_BREAKPOINT
-static int cmd_b(char *args) {
-  if (!args){
-    raw_stdout("miss address\n");
-    return 0;
-  }
-
-  add_point(POINT_BREAK, args);
-  return 0;
-}
-#endif
-
-static int cmd_d(char *args) {
-  uint64_t id = 0;
-  if (args){
-    uint64_t input_id = strtoull(args, NULL, 10);
-    if (input_id == 0) {
-      raw_stdout("format: d [point id]\n");
-      return 0;
-    }
-    id = input_id;
-  }
-
-  if (id == 0) {
-    char answer[32] = "";
-    raw_stdout("Delete all of breakpoints/watchpoints? <y/n>: ");
-    int ret = scanf("%31s", answer);
-    (void)ret;
-    if (strcmp(answer, "y") != 0) {
-      raw_stdout("Canceled\n");
-      return 0;
-    }
-  }
-
-  delete_point(id);
   return 0;
 }
 
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
   return -1;
-}
-
-static int cmd_test(char *args) {
-  static uint32_t result;
-  static char buf[65536 + 128] = {};
-  const char* file_name = NULL;
-
-  if (!args) {
-    raw_stdout("miss test case, support: expr\n");
-    return 0;
-  }
-
-  char *args_end = args + strlen(args);
-  char *test_case = strtok(args, " ");
-  if (!test_case) {
-    raw_stdout("miss input test case\n");
-    return 0;
-  }
-  args = test_case + strlen(test_case) + 1;
-  if (args>=args_end){
-    args = NULL;
-  }
-
-  if (0==strcmp(test_case, "expr")){
-    if (args) {
-      file_name = args;
-    }
-
-    const char* nemu_home = getenv("NEMU_HOME");
-    if (!nemu_home) {
-      nemu_home = "/home/johnny/big-proj/mk-cpu-lesson-dev/NJU-ProjectN_nemu";
-    }
-
-    char file_path[1024] = {0};
-    if (file_name) {
-      strcat(file_path, file_name);
-    } else {
-      strcat(&file_path[strlen(file_path)], nemu_home);
-      strcat(&file_path[strlen(file_path)], "/tools/gen-expr/build/input");
-    }
-    
-  raw_stdout("load test expr file|%s\n", file_path);
-
-    FILE* fd = fopen(file_path, "rb");
-    if (!fd) {
-      raw_stdout("open file error, file|%s err|%s\n", file_path, strerror(errno));
-      return 0;
-    }
-
-    uint32_t cnt = 0;
-    uint32_t suc_cnt=0;
-    uint32_t err_cnt=0;
-    while( EOF != fscanf(fd, "%u %s\n", &result, buf)){
-      bool success = false;
-      ++cnt;
-      uint32_t expr_ret = expr(buf, &success);
-      if (!success || expr_ret!=result){
-        raw_stdout("case-%u failed: %u %u %lu\n", cnt, result, expr_ret, strlen(buf));
-        ++err_cnt;
-      } else {
-        ++suc_cnt;
-      }
-    }
-
-    raw_stdout("test expr case total|%u error|%u success|%u\n", cnt, err_cnt, suc_cnt);
-  }else{
-    raw_stdout("unknown test case|%s, support: expr.\n", test_case);
-  }
-
-  return 0;
 }
 
 static int cmd_help(char *args);
@@ -294,21 +137,12 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
-  { "si", "Step program until it reaches a different source line.", cmd_si},
-  { "info", "Generic command for showing things about the program being debugged.", cmd_info},
-  { "x", "Show the value of memory.", cmd_x},
-  { "p", "Print value of expression EXP.", cmd_p},
-#ifdef CONFIG_WATCHPOINT
-  {"w", "Set a watchpoint for EXPRESSION.", cmd_w},
-#endif
-#ifdef CONFIG_BREAKPOINT
-  {"b", "Set a breakpoint for PC.", cmd_b},
-#endif
-  { "d", "Delete a breakpoint or watchpoint.", cmd_d},
-  { "test", "Test program.", cmd_test},
+  {"si", "Step program until it reaches a different source line.", cmd_si},
+  {"info", "Generic command for showing things about the program being debugged.", cmd_info},
+  {"x", "Show the value of memory.", cmd_x},
   { "q", "Exit NEMU", cmd_q },
 
-  /* Add more commands */
+  /* TODO: Add more commands */
 
 };
 
@@ -322,17 +156,17 @@ static int cmd_help(char *args) {
   if (arg == NULL) {
     /* no argument given */
     for (i = 0; i < NR_CMD; i ++) {
-      raw_stdout("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+      printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
     }
   }
   else {
     for (i = 0; i < NR_CMD; i ++) {
       if (strcmp(arg, cmd_table[i].name) == 0) {
-        raw_stdout("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+        printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
         return 0;
       }
     }
-    raw_stdout("Unknown command '%s'\n", arg);
+    printf("Unknown command '%s'\n", arg);
   }
   return 0;
 }
@@ -342,28 +176,12 @@ void sdb_set_batch_mode() {
 }
 
 void sdb_mainloop() {
-#if CONFIG_DEBUG_MODULE
-  cpu_exec(-1);
-#else
   if (is_batch_mode) {
     cmd_c(NULL);
     return;
   }
 
-  static char last_str[1024] = "";
   for (char *str; (str = rl_gets()) != NULL; ) {
-
-    /* record last command string */
-    if (*str)
-    {
-      strcpy(last_str, str);
-    } 
-    else
-    {
-      if (strcmp(last_str, "si") == 0)
-        str = last_str;
-    }
-
     char *str_end = str + strlen(str);
 
     /* extract the first token as the command */
@@ -391,18 +209,14 @@ void sdb_mainloop() {
       }
     }
 
-    if (i == NR_CMD) { raw_stdout("Unknown command '%s'\n", cmd); }
+    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
   }
-#endif
 }
 
 void init_sdb() {
   /* Compile the regular expressions. */
   init_regex();
-  
-  /* Initialize the point pool. */
-  init_point_pool();
 
-  /* Initialize the trace */
-  trace_init();
+  /* Initialize the watchpoint pool. */
+  init_wp_pool();
 }

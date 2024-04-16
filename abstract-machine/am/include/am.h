@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "macro.h"
 #include ARCH_H // this macro is defined in $CFLAGS
                 // examples: "arch/x86-qemu.h", "arch/native.h", ...
 
@@ -19,7 +18,7 @@ typedef struct {
 } Area;
 
 // Arch-dependent processor context
-typedef struct concat(__GUEST_ISA__, _Context) Context;
+typedef struct Context Context;
 
 // An event of type @event, caused by @cause of pointer @ref
 typedef struct {
@@ -47,7 +46,6 @@ extern "C" {
 // ----------------------- TRM: Turing Machine -----------------------
 extern   Area        heap;
 void     putch       (char ch);
-int      getch       ();
 void     halt        (int code) __attribute__((__noreturn__));
 
 // -------------------- IOE: Input/Output Devices --------------------
@@ -75,34 +73,6 @@ bool     mpe_init    (void (*entry)());
 int      cpu_count   (void);
 int      cpu_current (void);
 int      atomic_xchg (int *addr, int newval);
-
-UNUSED_FUNC uint16_t swap_uint16(uint16_t val) 
-{
-    return ((val >> 8) & 0x00FF) |
-           ((val << 8) & 0xFF00);
-}
-
-UNUSED_FUNC uint32_t swap_uint32(uint32_t val)
-{
-    return ((val >> 24) & 0x000000FF) |
-           ((val >> 8)  & 0x0000FF00) |
-           ((val << 8)  & 0x00FF0000) |
-           ((val << 24) & 0xFF000000);
-}
-
-UNUSED_FUNC uint64_t swap_uint64(uint64_t val)
-{
-    return ((val >> 56) & 0x00000000000000FFULL) |
-           ((val >> 40) & 0x000000000000FF00ULL) |
-           ((val >> 24) & 0x0000000000FF0000ULL) |
-           ((val >> 8)  & 0x00000000FF000000ULL) |
-           ((val << 8)  & 0x000000FF00000000ULL) |
-           ((val << 24) & 0x0000FF0000000000ULL) |
-           ((val << 40) & 0x00FF000000000000ULL) |
-           ((val << 56) & 0xFF00000000000000ULL);
-}
-
-#define GET_MACHINE_CSR(name) ({uint32_t name;asm volatile("csrr %0, " #name : "=r"(name));name;})
 
 #ifdef __cplusplus
 }

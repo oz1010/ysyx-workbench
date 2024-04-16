@@ -14,58 +14,15 @@
 ***************************************************************************************/
 
 #include <isa.h>
-#include "trace.h"
-
-static inline word_t mstatus_normalize(word_t status) {
-  return (status & ~MSTATUS_MPP_MASK) | MSTATUS_MPP_M;
-}
-
-static inline word_t mstatus_trap(word_t status) {
-  status = (status & ~(MSTATUS_MIE | MSTATUS_MPIE)) |
-           ((status & MSTATUS_MIE) << 4);
-  return mstatus_normalize(status);
-}
-
-static inline word_t mstatus_mret(word_t status) {
-  status = (status & ~(MSTATUS_MIE | MSTATUS_MPIE)) |
-           ((status & MSTATUS_MPIE) >> 4) | MSTATUS_MPIE;
-  return mstatus_normalize(status);
-}
 
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
-  /* Trigger an interrupt/exception with ``NO''.
+  /* TODO: Trigger an interrupt/exception with ``NO''.
    * Then return the address of the interrupt/exception vector.
    */
 
-    /**
-   * ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#riscv32
-   * riscv32触发异常后硬件的响应过程如下:
-   * 
-   * 将当前PC值保存到mepc寄存
-   * 在mcause寄存器中设置异常号
-   * 从mtvec寄存器中取出异常入口地址
-   * 跳转到异常入口地址
-  */
-  cpu.csr[CSR_MSTATUS] = mstatus_trap(cpu.csr[CSR_MSTATUS]);
-  cpu.csr[CSR_MEPC] = epc;
-  /**
-   * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
-   *   Table 3.6: Machine cause register (mcause) values after trap.
-   *   1 ≥16 Designated for platform use
-  */
-  cpu.csr[CSR_MCAUSE] = NO; // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
-
-  ETRACE_LOG("mepc:0x%x mcause:0x%x mtvec:%x a5:0x%x", epc, NO, cpu.csr[CSR_MTVEC], cpu.gpr[15]);
-
-  Assert(cpu.csr[CSR_MTVEC], "register mtvec is null, must call cte_init in AM.");
-
-  return cpu.csr[CSR_MTVEC];
+  return 0;
 }
 
 word_t isa_query_intr() {
-  /**
-   * 将 PC 设为 mepc，将 mstatus.MPIE 复制到 MIE 字段来恢复之前的中断使能状态，并将特权模式设为 mstatus.MPP 的值。
-  */
-  cpu.csr[CSR_MSTATUS] = mstatus_mret(cpu.csr[CSR_MSTATUS]);
-  return cpu.csr[CSR_MEPC];
+  return INTR_EMPTY;
 }

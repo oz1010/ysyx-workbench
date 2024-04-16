@@ -21,8 +21,6 @@ $(warning $(COLOR_RED)Warning: .config does not exists!$(COLOR_END))
 $(warning $(COLOR_RED)To build the project, first run 'make menuconfig'.$(COLOR_END))
 endif
 
-CFG_NAME     ?= defconfig
-CONFIG_PATH  := configs
 Q            := @
 KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
@@ -34,10 +32,6 @@ CONF   := $(KCONFIG_PATH)/build/conf
 MCONF  := $(KCONFIG_PATH)/build/mconf
 FIXDEP := $(FIXDEP_PATH)/build/fixdep
 
-# 生成静态编译目标，用于make自动补全
-$(shell echo "DEFCONFIG_TARGETS := $(patsubst $(CONFIG_PATH)/%,%,$(wildcard $(CONFIG_PATH)/*_defconfig))" > $(NEMU_HOME)/.targets.inc)
-include $(NEMU_HOME)/.targets.inc
-
 $(CONF):
 	$(Q)$(MAKE) $(silent) -C $(KCONFIG_PATH) NAME=conf
 
@@ -47,22 +41,16 @@ $(MCONF):
 $(FIXDEP):
 	$(Q)$(MAKE) $(silent) -C $(FIXDEP_PATH)
 
-$(NEMU_HOME)/include/config/auto.conf: .config $(CONF)
-	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
-
 menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 	$(Q)$(MCONF) $(Kconfig)
 	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
 
 savedefconfig: $(CONF)
-	$(Q)$< $(silent) --$@=configs/$(CFG_NAME) $(Kconfig)
+	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)
 
-$(DEFCONFIG_TARGETS): $(CONF) $(FIXDEP)
-	$(Q)$< $(silent) --defconfig=$(CONFIG_PATH)/$@ $(Kconfig) && \
-		echo "# configuration written to .config"
+%defconfig: $(CONF) $(FIXDEP)
+	$(Q)$< $(silent) --defconfig=configs/$@ $(Kconfig)
 	$(Q)$< $(silent) --syncconfig $(Kconfig)
-
-.PHONY: menuconfig savedefconfig $(DEFCONFIG_TARGETS)
 
 .PHONY: menuconfig savedefconfig defconfig
 

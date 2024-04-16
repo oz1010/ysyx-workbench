@@ -11,7 +11,7 @@ AM_SRCS := riscv/spike/trm.c \
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(AM_HOME)/am/src/riscv/spike/linker.ld
-LDFLAGS   += --gc-sections
+LDFLAGS   += --gc-sections -e _start
 
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 .PHONY: $(AM_HOME)/am/src/riscv/spike/trm.c

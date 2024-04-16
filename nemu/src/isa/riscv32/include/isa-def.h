@@ -18,36 +18,10 @@
 
 #include <common.h>
 
-#define MSTATUS_MIE       (1u << 3)
-#define MSTATUS_MPIE      (1u << 7)
-#define MSTATUS_MPP_MASK  (3u << 11)
-#define MSTATUS_MPP_M     (3u << 11)
-
-/**
- * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
- *   CSR Address: [9:8]为权限等级，0--User-Level 1--Supervisor-Level 2--Hypervisor and VS 3--Machine-Level
- *   Table 2.5: Currently allocated RISC-V machine-level CSR addresses.
-*/
-enum {
-  /* Machine Trap Setup */
-  CSR_MSTATUS       = 0x300,  // mstatus寄存器 - 存放处理器的状态
-  CSR_MTVEC         = 0x305,  // mtvec寄存器 - 存放trap-handler基地址
-  /* Machine Trap Handling */
-  CSR_MEPC          = 0x341,  // mepc寄存器 - 存放触发异常的PC
-  CSR_MCAUSE        = 0x342,  // mcause寄存器 - 存放触发异常的原因
-
-  /* Machine Information Registers */
-  CSR_MVENDORID     = 0xf11, // Vendor ID, ysyx的ASCII码, 即0x79737978
-  CSR_MARCHID       = 0xf12, // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
-
-  CSR_COUNT         = 4096    // 查看csrrw中csr占12位推算需要占用4096个csr寄存器
-};
-
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
-  word_t csr[CSR_COUNT];
-} MUXDEF(CONFIG_RV64, riscv64_CPU_state, concat(__GUEST_ISA__, _CPU_state));
+} MUXDEF(CONFIG_RV64, riscv64_CPU_state, riscv32_CPU_state);
 
 // decode
 typedef struct {

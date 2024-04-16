@@ -16,33 +16,28 @@
 #include <isa.h>
 #include <memory/paddr.h>
 
-vaddr_t reset_pc = CONFIG_IMG_LOAD;
+// this is not consistent with uint8_t
+// but it is ok since we do not access the array directly
+static const uint32_t img [] = {
+  0x00000297,  // auipc t0,0
+  0x00028823,  // sb  zero,16(t0)
+  0x0102c503,  // lbu a0,16(t0)
+  0x00100073,  // ebreak (used as nemu_trap)
+  0xdeadbeef,  // some data
+};
 
 static void restart() {
   /* Set the initial program counter. */
-  cpu.pc = reset_pc;
+  cpu.pc = RESET_VECTOR;
 
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
-
-  /** https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E8%A7%A6%E5%8F%91%E8%87%AA%E9%99%B7%E6%93%8D%E4%BD%9C 让DiffTest支持异常响应机制
-   * 针对riscv32, 你需要将mstatus初始化为0x1800.
-   * 针对riscv64, 你需要将mstatus初始化为0xa00001800.
-   */
-  cpu.csr[CSR_MSTATUS] = MUXDEF(CONFIG_RV64, 0xa00001800, 0x1800);
-  /** https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
-   * 
-   */
-  cpu.csr[CSR_MVENDORID] = *(uint32_t *)"ysyx";
-  cpu.csr[CSR_MARCHID] = 0x15FDF47;
 }
 
 void init_isa() {
+  /* Load built-in image. */
+  memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
+
   /* Initialize this virtual computer system. */
   restart();
-}
-
-void set_pc(paddr_t addr) {
-    reset_pc = addr;
-    cpu.pc = addr;
 }

@@ -34,29 +34,10 @@ endif
 ARCH_SPLIT = $(subst -, ,$(ARCH))
 ISA        = $(word 1,$(ARCH_SPLIT))
 PLATFORM   = $(word 2,$(ARCH_SPLIT))
-GUEST_ISA  ?= $(ISA)
-
-### Include platform config
-ifneq ($(filter npc ysyxsoc,$(PLATFORM)),)
-	include 		$(NPC_HOME)/include/config/auto.conf
-	INC_PATH		+= ${NPC_HOME}/include
-endif
-
-ifeq ($(PLATFORM), nemu)
-	include 		$(NEMU_HOME)/include/config/auto.conf
-	INC_PATH		+= ${NEMU_HOME}/include
-endif
 
 ### Check if there is something to build
 ifeq ($(flavor SRCS), undefined)
   $(error Nothing to build)
-endif
-# 用户强行指定SKIP_AM_START即可
-# 或者当用户包含了start.S，SKIP_AM_START为true，不会包含默认start.S
-ifeq ($(filter %start.S, $(SRCS)),)
-    SKIP_AM_START ?= false
-else
-	SKIP_AM_START ?= true
 endif
 
 ### Checks end here
@@ -93,28 +74,19 @@ AR        = $(CROSS_COMPILE)ar
 OBJDUMP   = $(CROSS_COMPILE)objdump
 OBJCOPY   = $(CROSS_COMPILE)objcopy
 READELF   = $(CROSS_COMPILE)readelf
-SIZE      = size
 
 ### Compilation flags
-INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, $(LIBS))) $(AM_HOME)/../common/include
+INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, $(LIBS)))
 INCFLAGS += $(addprefix -I, $(INC_PATH))
 
 ARCH_H := arch/$(ARCH).h
-CFLAGS   += -Os -MMD -Wall -Werror $(INCFLAGS) \
-			-D__GUEST_ISA__=$(GUEST_ISA) \
+CFLAGS   += -O2 -MMD -Wall -Werror $(INCFLAGS) \
             -D__ISA__=\"$(ISA)\" -D__ISA_$(shell echo $(ISA) | tr a-z A-Z)__ \
             -D__ARCH__=$(ARCH) -D__ARCH_$(shell echo $(ARCH) | tr a-z A-Z | tr - _) \
             -D__PLATFORM__=$(PLATFORM) -D__PLATFORM_$(shell echo $(PLATFORM) | tr a-z A-Z | tr - _) \
             -DARCH_H=\"$(ARCH_H)\" \
             -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector \
             -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden
-KEEP_DEFINE += SKIP_AM_START=$(SKIP_AM_START)
-KEEP_DEFINE += CONFIG_FAST_LOAD=$(CONFIG_FAST_LOAD)
-ifeq ($(CONFIG_FAST_LOAD), y)
-    CFLAGS	+= -DCONFIG_FAST_LOAD=1
-endif
-# Default AM Debug Flag
-# CFLAGS += -O0 -g
 CXXFLAGS +=  $(CFLAGS) -ffreestanding -fno-rtti -fno-exceptions
 ASFLAGS  += -MMD $(INCFLAGS)
 LDFLAGS  += -z noexecstack
@@ -154,13 +126,12 @@ $(DST_DIR)/%.o: %.S
 
 ### Rule (recursive make): build a dependent library (am, klib, ...)
 $(LIBS): %:
-	@$(KEEP_DEFINE) $(MAKE) -s -C $(AM_HOME)/$* archive
+	@$(MAKE) -s -C $(AM_HOME)/$* archive
 
 ### Rule (link): objects (`*.o`) and libraries (`*.a`) -> `IMAGE.elf`, the final ELF binary to be packed into image (ld)
 $(IMAGE).elf: $(OBJS) $(LIBS)
 	@echo + LD "->" $(IMAGE_REL).elf
-	@$(LD) $(LDFLAGS) -o $(IMAGE).elf --start-group $(LINKAGE) --end-group --print-map >$(IMAGE).map
-	@$(SIZE) $@
+	@$(LD) $(LDFLAGS) -o $(IMAGE).elf --start-group $(LINKAGE) --end-group
 
 ### Rule (archive): objects (`*.o`) -> `ARCHIVE.a` (ar)
 $(ARCHIVE): $(OBJS)

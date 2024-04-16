@@ -1,16 +1,13 @@
 *
 !*/
 !*.h
-!*.hpp
 !*.c
 !*.cc
-!*.cpp
 !*.S
 !*.ld
 !*.sh
 !*.py
 !*.mk
-!*.md
 !Makefile
 !README
 !LICENSE

@@ -6,9 +6,8 @@
 #endif
 
 #include <ucontext.h>
-#include "macro.h"
 
-struct concat(__GUEST_ISA__, _Context) {
+struct Context {
   uintptr_t ksp;
   void *vm_head;
   ucontext_t uc;

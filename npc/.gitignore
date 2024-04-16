@@ -1,38 +1,12 @@
-
-# 禁用所有文件，适用于所有路径
 *.*
 *
-# 保留文件，适用于所有路径
-!scripts/*.tcl
+!*/
 !Makefile
 !*.mk
-!*.ld
-!*.[vchS]
+!*.[cSh]
+!*.v
 !*.cc
 !*.cpp
-!*.sdc
-!*.nxdc
-!*.py
-!*.sv
-!*.sby
 !.gitignore
-!Read.md
-!Kconfig
-!docs/
-!docs/*.md
-!docs/**/*.md
-# 保留所有文件夹
-!*/
-# 禁用文件夹
+!README.md
 build/
-verify/
-verify_basic/
-
-# 特定目录或文件规则
-include/config/
-include/generated/
-tools/nemu-diff/include/
-!.config
-.config.old
-!docs/
-vsrc/core/pipeline-chisel

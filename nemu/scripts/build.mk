@@ -10,9 +10,10 @@ endif
 WORK_DIR  = $(shell pwd)
 BUILD_DIR = $(WORK_DIR)/build
 
-INC_PATH := $(WORK_DIR)/include $(INC_PATH) $(WORK_DIR)/../common/include
+INC_PATH := $(WORK_DIR)/include $(INC_PATH)
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
+RUN_IMG	 = $(NEMU_HOME)/build/risc32/prog.bin
 
 # Compilation flags
 ifeq ($(CC),clang)
@@ -22,30 +23,27 @@ CXX := g++
 endif
 LD := $(CXX)
 INCLUDES = $(addprefix -I, $(INC_PATH))
-# CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
-# LDFLAGS := -O2 $(LDFLAGS)
-CFLAGS  := -g -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
-LDFLAGS := -g $(LDFLAGS)
+CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
+LDFLAGS := -O2 $(LDFLAGS)
 
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o) $(CXXSRC:%.cc=$(OBJ_DIR)/%.o)
 
 # Compilation patterns
-# @$(CC) $(CFLAGS) -E -MF /dev/null $< | clang-format > $@.i
-$(OBJ_DIR)/%.o: %.c $(FIXDEP)
+$(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -E -MF /dev/null $< | clang-format > $@.i
 	@$(CC) $(CFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
-$(OBJ_DIR)/%.o: %.cc $(FIXDEP)
+$(OBJ_DIR)/%.o: %.cc
 	@echo + CXX $<
 	@mkdir -p $(dir $@)
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
-$(IMG): image
-image:
-	@$(MAKE) -C $(NEMU_HOME)/resource/riscv32-bin
+$(RUN_IMG):
+	@$(MAKE) -C $(NEMU_HOME)/resource/risv32-bin
 
 # Depencies
 -include $(OBJS:.o=.d)
@@ -54,7 +52,7 @@ image:
 
 .PHONY: app clean
 
-app: $(BINARY) $(IMG)
+app: $(BINARY) $(RUN_IMG)
 
 $(BINARY):: $(OBJS) $(ARCHIVES)
 	@echo + LD $@

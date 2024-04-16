@@ -16,7 +16,6 @@
 #include <common.h>
 #include <utils.h>
 #include <device/alarm.h>
-#include <device/keyboard.h>
 #ifndef CONFIG_TARGET_AM
 #include <SDL2/SDL.h>
 #endif
@@ -43,9 +42,6 @@ void device_update() {
   last = now;
 
   IFDEF(CONFIG_HAS_VGA, vga_update_screen());
-#if defined(CONFIG_HAS_KEYBOARD) && !defined(CONFIG_TARGET_AM) && !defined(CONFIG_HAS_VGA)
-  terminal_keyboard_update();
-#endif
 
 #ifndef CONFIG_TARGET_AM
   SDL_Event event;
@@ -54,7 +50,7 @@ void device_update() {
       case SDL_QUIT:
         nemu_state.state = NEMU_QUIT;
         break;
-#if defined(CONFIG_HAS_KEYBOARD) && defined(CONFIG_HAS_VGA)
+#ifdef CONFIG_HAS_KEYBOARD
       // If a key was pressed
       case SDL_KEYDOWN:
       case SDL_KEYUP: {
