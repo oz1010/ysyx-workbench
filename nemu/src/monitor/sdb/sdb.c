@@ -123,6 +123,16 @@ static int cmd_x(char *args)
   return 0;
 }
 
+static int cmd_p(char *args) {
+  bool success = true;
+  word_t val = expr(args, &success);
+  if (success)
+    printf("val = %d\n", val);
+  else
+    printf("expression is error\n");
+  return 0;
+}
+
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
   return -1;
@@ -137,9 +147,10 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
-  {"si", "Step program until it reaches a different source line.", cmd_si},
-  {"info", "Generic command for showing things about the program being debugged.", cmd_info},
-  {"x", "Show the value of memory.", cmd_x},
+  { "si", "Step program until it reaches a different source line.", cmd_si},
+  { "info", "Generic command for showing things about the program being debugged.", cmd_info},
+  { "x", "Show the value of memory.", cmd_x},
+  { "p", "Print value of expression EXP.", cmd_p},
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
