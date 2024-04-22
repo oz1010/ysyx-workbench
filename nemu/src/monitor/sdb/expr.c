@@ -53,6 +53,9 @@ enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
+  TK_NEQ,
+  TK_DEREF,
+  TK_AND,
   TK_DECNUMBER,
   TK_HEXNUMBER,
   TK_REGVARIABLE,
@@ -75,10 +78,11 @@ static struct rule {
   {"\\(", '('},         // left parenthesis
   {"\\)", ')'},         // right parenthesis
   {"==", TK_EQ},        // equal
-  {"==", TK_EQ},        // number
+  {"!=", TK_NEQ},     // not equal
+  {"&&", TK_AND},     // logical and
 
-  {"[0-9]+", TK_DECNUMBER},   // decimal number, 123
   {"0x[0-9a-fA-F]+", TK_HEXNUMBER},   // hexadecimal number, 0x125
+  {"[0-9]+", TK_DECNUMBER},   // decimal number, 123
   {"\\$[a-zA-Z][0-9a-zA-Z]+", TK_REGVARIABLE},   // register variable name, $r0
 };
 
@@ -128,7 +132,7 @@ static bool make_token(char *e) {
         // Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
         //     i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
-        position += substr_len;
+                position += substr_len;
 
         /* TODO: Now a new token is recognized with rules[i]. Add codes
          * to record the token in the array `tokens'. For certain types
@@ -141,7 +145,13 @@ static bool make_token(char *e) {
 
         switch (rules[i].token_type) {
           case TK_NOTYPE: break;
+
           case TK_DECNUMBER: 
+          case TK_HEXNUMBER:
+          case TK_REGVARIABLE:
+          case TK_EQ:
+          case TK_NEQ:
+          case TK_AND:
             tokens[nr_token].type = rules[i].token_type;
             int len = MIN(substr_len, sizeof(tokens[nr_token].str));
             strncpy(tokens[nr_token].str, substr_start, len);
@@ -173,21 +183,45 @@ static bool make_token(char *e) {
   return true;
 }
 
+bool eval_variable(Token*tok, word_t*val){
+
+  bool success = false;
+
+  switch (tok->type){
+    case TK_DECNUMBER:
+    case TK_HEXNUMBER:
+      *val = strtoul(tok->str, NULL, tok->type == TK_DECNUMBER ? 10 : 16);
+      return true;
+
+    case TK_REGVARIABLE:
+      // must be $reg_name
+      *val = isa_reg_str2val(&tok->str[1], &success);
+      return success;
+  }
+
+  return success;
+}
+
 /*
   原始BNF
   <expr> ::= <number>    # 一个数是表达式
+  | <hexadecimal-number> # 以0x开头的十六进制数
+  | <reg_name>         # 以$开头的寄存器变量
   | "(" <expr> ")"     # 在表达式两边加个括号也是表达式
   | <expr> "+" <expr>  # 两个表达式相加也是表达式
   | <expr> "-" <expr>  # 接下来你全懂了
   | <expr> "*" <expr>
   | <expr> "/" <expr>
+  | <expr> "==" <expr>
+  | <expr> "!=" <expr>
+  | <expr> "&&" <expr>
   1. 消除回溯
   E ::= EL | n | (E)
-  L ::= +E | -E | *E | /E
+  L ::= +E | -E | *E | /E | ==E | !=E | &&E
   2. 消除左递归
   E ::= nG | (E)G
   G ::= LG | e
-  L ::= *nG | /nG | *E | /E | +E | -E
+  L ::= *nG | /nG | *E | /E | +E | -E | ==E | !=E | &&E
   */
 word_t eval_E(int *token_idx, bool *success);
 word_t eval_G(int *token_idx, bool *success, word_t pre_value);
@@ -197,7 +231,7 @@ word_t eval_G(int *token_idx, bool *success, word_t pre_value)
   TRACE(pre_value);
 
   // G ::= LG | e
-  // L ::= *nG | /nG | *E | /E | +E | -E
+  // L ::= *nG | /nG | *E | /E | +E | -E | ==E | !=E | &&E
   if ((*token_idx) < nr_token){
     word_t val;
     switch(tokens[*token_idx].type){
@@ -216,8 +250,8 @@ word_t eval_G(int *token_idx, bool *success, word_t pre_value)
       case (int)'*':
         *token_idx+=1;
         // 优先计算
-        if (*token_idx<nr_token && tokens[*token_idx].type == TK_DECNUMBER){
-          val = strtoul(tokens[*token_idx].str,NULL, 10);
+        if (*token_idx<nr_token && eval_variable(&tokens[*token_idx], &val))
+        {
           pre_value *= val;
 
           *token_idx+=1;
@@ -233,8 +267,8 @@ word_t eval_G(int *token_idx, bool *success, word_t pre_value)
       case (int)'/':
         *token_idx+=1;
         // 优先计算
-        if (*token_idx<nr_token && tokens[*token_idx].type == TK_DECNUMBER){
-          val = strtoul(tokens[*token_idx].str,NULL, 10);
+        if (*token_idx<nr_token && eval_variable(&tokens[*token_idx], &val))
+        {
           if (val == 0) {
             *success = false;
             Log("divid zero error at %d|%d %s.", *token_idx, tokens[*token_idx].type, tokens[*token_idx].str);
@@ -257,6 +291,24 @@ word_t eval_G(int *token_idx, bool *success, word_t pre_value)
         }
 
         return eval_G(token_idx, success, pre_value);
+
+      case TK_EQ:
+        *token_idx+=1;
+        val = eval_E(token_idx, success);
+        CHECK_SUCCESS();
+        return eval_G(token_idx, success, pre_value==val);
+      
+      case TK_NEQ:
+        *token_idx+=1;
+        val = eval_E(token_idx, success);
+        CHECK_SUCCESS();
+        return eval_G(token_idx, success, pre_value!=val);
+      
+      case TK_AND:
+        *token_idx+=1;
+        val = eval_E(token_idx, success);
+        CHECK_SUCCESS();
+        return eval_G(token_idx, success, pre_value&&val);
     }
   }
 
@@ -274,7 +326,10 @@ word_t eval_E(int *token_idx, bool *success)
   switch (tok->type)
   {
   case TK_DECNUMBER:
-    val = strtoul(tok->str,NULL, 10);
+  case TK_HEXNUMBER:
+  case TK_REGVARIABLE:
+    // val = strtoul(tok->str, NULL, tok->type == TK_DECNUMBER ? 10 : 16);
+    eval_variable(tok, &val);
     *token_idx += 1;
     return eval_G(token_idx, success, val);
   
@@ -299,6 +354,12 @@ word_t expr(char *e, bool *success) {
   }
 
   /* Insert codes to evaluate the expression. */
+  // // detect deref
+  // for(int i=0;i<nr_token; ++i) {
+  //   if (tokens[i].type=='*' && (i==0 || tokens[i-1].type == certain type))
+  //     tokens[i].type = TK_DEREF;
+  // }
+
   int token_idx = 0;
   return eval_E(&token_idx, success);
 }
