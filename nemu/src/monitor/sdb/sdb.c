@@ -24,6 +24,8 @@ static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+extern void add_wp(char *str);
+extern void show_wp();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -65,12 +67,14 @@ static int cmd_info(char *args)
   {
     if (strcmp(args, "r") == 0)
       isa_reg_display();
+    else if (strcmp(args, "w") == 0)
+      show_wp();
     else
-      printf("Error format: info r\n");
+      printf("Error format: info r/w\n");
   }
   else
   {
-    printf("Miss args: info r\n");
+    printf("Miss args: info r/w\n");
   }
   return 0;
 }
@@ -133,6 +137,15 @@ static int cmd_p(char *args) {
   return 0;
 }
 
+static int cmd_w(char *args) {
+  if (!args){
+    printf("miss args\n");
+  }
+
+  add_wp(args);
+  return 0;
+}
+
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
   return -1;
@@ -151,9 +164,10 @@ static struct {
   { "info", "Generic command for showing things about the program being debugged.", cmd_info},
   { "x", "Show the value of memory.", cmd_x},
   { "p", "Print value of expression EXP.", cmd_p},
+  { "w", "Set a watchpoint for EXPRESSION.", cmd_w},
   { "q", "Exit NEMU", cmd_q },
 
-  /* TODO: Add more commands */
+  /* Add more commands */
 
 };
 
