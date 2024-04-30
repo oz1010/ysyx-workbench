@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
@@ -82,7 +83,7 @@ static int cmd_info(char *args)
 static int cmd_x(char *args)
 {
   char *argv[2] = {0};
-  char *args_end = args + strlen(args);
+  char *args_end = args + (args!=NULL?strlen(args):0);
   int argc = 0;
   while (args<args_end && argc<2)
   {
@@ -129,9 +130,17 @@ static int cmd_x(char *args)
 
 static int cmd_p(char *args) {
   bool success = true;
+  if (!args)
+  {
+    printf("miss args\n");
+    return 0;
+  }
   word_t val = expr(args, &success);
   if (success)
-    printf("val = %d\n", val);
+  {
+    printf("val = %u\n", val);
+    printf("hex = %#x\n", val);
+  }
   else
     printf("expression is error\n");
   return 0;
@@ -140,6 +149,7 @@ static int cmd_p(char *args) {
 static int cmd_w(char *args) {
   if (!args){
     printf("miss args\n");
+    return 0;
   }
 
   add_wp(args);
@@ -149,6 +159,74 @@ static int cmd_w(char *args) {
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
   return -1;
+}
+
+static int cmd_test(char *args) {
+  static uint32_t result;
+  static char buf[65536 + 128] = {};
+  const char* file_name = "/home/johnny/big-proj/mk-cpu-lesson-dev/NJU-ProjectN_nemu/tools/gen-expr/input";
+
+  if (!args) {
+    printf("miss test case, support: expr\n");
+    return 0;
+  }
+
+  char *args_end = args + strlen(args);
+  char *test_case = strtok(args, " ");
+  if (!test_case) {
+    printf("miss input test case\n");
+    return 0;
+  }
+  args = test_case + strlen(test_case) + 1;
+  if (args>=args_end){
+    args = NULL;
+  }
+
+  if (0==strcmp(test_case, "expr")){
+    if (!args) {
+      printf("miss file name, use default file|%s\n", file_name);
+    }else {
+      file_name = args;
+    }
+
+    // const char* nemu_home = getenv("NEMU_HOME");
+    // if (!nemu_home) {
+    //   printf("miss set env $NEMU_HOME\n");
+    //   return 0;
+    // } else {
+    //   printf("get env $NEMU_HOME=%s\n", nemu_home);
+    // }
+
+    char file_path[1024] = {0};
+    strcat(file_path, file_name);
+    
+    FILE* fd = fopen(file_path, "rb");
+    if (!fd) {
+      printf("open file error, file|%s err|%s\n", file_path, strerror(errno));
+      return 0;
+    }
+
+    uint32_t cnt = 0;
+    uint32_t suc_cnt=0;
+    uint32_t err_cnt=0;
+    while( EOF != fscanf(fd, "%u %s\n", &result, buf)){
+      bool success = false;
+      ++cnt;
+      uint32_t expr_ret = expr(buf, &success);
+      if (!success || expr_ret!=result){
+        printf("case-%u failed: %u %u %lu\n", cnt, result, expr_ret, strlen(buf));
+        ++err_cnt;
+      } else {
+        ++suc_cnt;
+      }
+    }
+
+    printf("test expr case total|%u error|%u success|%u\n", cnt, err_cnt, suc_cnt);
+  }else{
+    printf("unknown test case|%s, support: expr.\n", test_case);
+  }
+
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -165,6 +243,7 @@ static struct {
   { "x", "Show the value of memory.", cmd_x},
   { "p", "Print value of expression EXP.", cmd_p},
   { "w", "Set a watchpoint for EXPRESSION.", cmd_w},
+  { "test", "Test program.", cmd_test},
   { "q", "Exit NEMU", cmd_q },
 
   /* Add more commands */

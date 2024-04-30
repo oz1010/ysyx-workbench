@@ -15,4 +15,7 @@
 
 NAME = gen-expr
 SRCS = gen-expr.c
-include $(NEMU_HOME)/scripts/build.mk
+include ../../scripts/build.mk
+
+gen_input: $(BINARY)
+	./build/$(NAME) 10000 > input

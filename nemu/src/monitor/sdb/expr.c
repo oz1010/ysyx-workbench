@@ -19,6 +19,7 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
+#include <macro.h>
 
 #define MIN(_a,_b) ((_a)<(_b)?(_a):(_b))
 #if 0
@@ -32,18 +33,18 @@
   return 0;\
 }while(0)
 #define CHECK_SUCCESS() do {if(!*success){return 0;}}while(0)
-#define CHECK_TOKEN(N) do{\
-  if ((*token_idx+N-1) >= nr_token){\
-    Log("token miss %d at %d(max_idx:%d).",(*token_idx+N-1), *token_idx, nr_token-1);\
+#define CHECK_TOKEN(IDX, N) do{\
+  if ((IDX+N-1) >= nr_token){\
+    Log("token miss %d at %d(max_idx:%d).",(IDX+N-1), IDX, nr_token-1);\
     *success = false;\
     return 0;\
   }\
 }while(0)
-#define EXPECT_TOKEN(CHAR) do{\
-  CHECK_TOKEN(1);\
+#define EXPECT_TOKEN(IDX, CHAR) do{\
+  CHECK_TOKEN(IDX, 1);\
   int v = (int)(CHAR);\
-  if (tokens[*token_idx].type != v){\
-    Log("token expect %d|%c at %d|%s.", v, (CHAR), *token_idx, tokens[*token_idx].str);\
+  if (tokens[IDX].type != v){\
+    Log("token expect %d|%c at %d|%s.", v, (CHAR), IDX, tokens[IDX].str);\
     *success = false;\
     return 0;\
   }\
@@ -60,6 +61,11 @@ enum {
   TK_HEXNUMBER,
   TK_REGVARIABLE,
 };
+
+typedef struct {
+  int type;
+  uint32_t priority;
+} op_prio_t;
 
 static struct rule {
   const char *regex;
@@ -82,7 +88,7 @@ static struct rule {
   {"&&", TK_AND},     // logical and
 
   {"0x[0-9a-fA-F]+", TK_HEXNUMBER},   // hexadecimal number, 0x125
-  {"[0-9]+", TK_DECNUMBER},   // decimal number, 123
+  {"[0-9]+[U|u]?", TK_DECNUMBER},   // decimal number, 123
   {"\\$[a-zA-Z][0-9a-zA-Z]+", TK_REGVARIABLE},   // register variable name, $r0
 };
 
@@ -112,7 +118,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[3*1024*1024] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -195,7 +201,12 @@ bool eval_variable(Token*tok, word_t*val){
 
     case TK_REGVARIABLE:
       // must be $reg_name
-      *val = isa_reg_str2val(&tok->str[1], &success);
+      if (strcmp(tok->str,"$pc")==0) {
+        success = true;
+        *val = (word_t)cpu.pc;
+      }
+      else
+        *val = isa_reg_str2val(&tok->str[1], &success);
       return success;
   }
 
@@ -223,133 +234,148 @@ bool eval_variable(Token*tok, word_t*val){
   G ::= LG | e
   L ::= *nG | /nG | *E | /E | +E | -E | ==E | !=E | &&E
   */
-word_t eval_E(int *token_idx, bool *success);
-word_t eval_G(int *token_idx, bool *success, word_t pre_value);
+bool check_parentheses(int begin, int end, bool *success) {  
+  int lparenth = 0;
+  int rparenth = 0;
+  int matched = 0;
 
-word_t eval_G(int *token_idx, bool *success, word_t pre_value)
-{
-  TRACE(pre_value);
+  for (int idx = begin; idx<=end; ++idx)
+  {
+    int type = tokens[idx].type;
+    if (type == '('){
+      ++lparenth;
+    }else if (type == ')'){
+      ++rparenth;
+    }
 
-  // G ::= LG | e
-  // L ::= *nG | /nG | *E | /E | +E | -E | ==E | !=E | &&E
-  if ((*token_idx) < nr_token){
-    word_t val;
-    switch(tokens[*token_idx].type){
-      case (int)'+': 
-        *token_idx+=1;
-        val = eval_E(token_idx, success);
-        CHECK_SUCCESS();
-        return eval_G(token_idx, success, pre_value+val);
-
-      case (int)'-':
-        *token_idx+=1;
-        val = eval_E(token_idx, success);
-        CHECK_SUCCESS();
-        return eval_G(token_idx, success, pre_value-val);
-
-      case (int)'*':
-        *token_idx+=1;
-        // 优先计算
-        if (*token_idx<nr_token && eval_variable(&tokens[*token_idx], &val))
-        {
-          pre_value *= val;
-
-          *token_idx+=1;
-          pre_value = eval_G(token_idx, success, pre_value);
-          CHECK_SUCCESS();
-        }else{
-          val = eval_E(token_idx, success);
-          CHECK_SUCCESS();
-          pre_value *= val;
-        }
-        return eval_G(token_idx, success, pre_value);
-
-      case (int)'/':
-        *token_idx+=1;
-        // 优先计算
-        if (*token_idx<nr_token && eval_variable(&tokens[*token_idx], &val))
-        {
-          if (val == 0) {
-            *success = false;
-            Log("divid zero error at %d|%d %s.", *token_idx, tokens[*token_idx].type, tokens[*token_idx].str);
-            return 0;
-          }
-          pre_value /= val;
-          
-          *token_idx+=1;
-          pre_value = eval_G(token_idx, success, pre_value);
-          CHECK_SUCCESS();
-        }else{
-          val = eval_E(token_idx, success);
-          CHECK_SUCCESS();
-          if (val == 0) {
-            *success = false;
-            Log("divid zero error at %d|%d %s.", *token_idx, tokens[*token_idx].type, tokens[*token_idx].str);
-            return 0;
-          }
-          pre_value /= val;
-        }
-
-        return eval_G(token_idx, success, pre_value);
-
-      case TK_EQ:
-        *token_idx+=1;
-        val = eval_E(token_idx, success);
-        CHECK_SUCCESS();
-        return eval_G(token_idx, success, pre_value==val);
-      
-      case TK_NEQ:
-        *token_idx+=1;
-        val = eval_E(token_idx, success);
-        CHECK_SUCCESS();
-        return eval_G(token_idx, success, pre_value!=val);
-      
-      case TK_AND:
-        *token_idx+=1;
-        val = eval_E(token_idx, success);
-        CHECK_SUCCESS();
-        return eval_G(token_idx, success, pre_value&&val);
+    if (lparenth==rparenth)
+    {
+      ++matched;
     }
   }
 
-  return pre_value;
-}
-word_t eval_E(int *token_idx, bool *success)
-{
-  TRACE(0);
-
-  CHECK_TOKEN(1);
-  
-  // E ::= nG | (E)G
-  Token *tok = &tokens[*token_idx];
-  word_t val = 0;
-  switch (tok->type)
-  {
-  case TK_DECNUMBER:
-  case TK_HEXNUMBER:
-  case TK_REGVARIABLE:
-    // val = strtoul(tok->str, NULL, tok->type == TK_DECNUMBER ? 10 : 16);
-    eval_variable(tok, &val);
-    *token_idx += 1;
-    return eval_G(token_idx, success, val);
-  
-  case (int)'(':
-    *token_idx += 1;
-    val = eval_E(token_idx, success);
-    CHECK_SUCCESS();
-    
-    EXPECT_TOKEN(')');
-    
-    *token_idx += 1;
-    return eval_G(token_idx, success, val);
+  if (lparenth!=rparenth){
+    Log("miss match parenteses at %d|'%s' %d|'%s'.", begin, tokens[begin].str, end, tokens[end].str);
+    *success=false;
+    return 0;
   }
 
-  TOKEN_EXCEPT();
+  return tokens[begin].type=='(' && matched == 1;
+}
+
+int find_low_op_pos(int begin, int end, bool *success) {
+  static op_prio_t op_prios[] = {
+    /* type   priority */
+    {'*',     6},
+    {'/',     6},
+    {'+',     7},
+    {'-',     7},
+    {TK_EQ,   10},
+    {TK_NEQ,  10},
+    {TK_AND,  14},
+  };
+  int pos = -1;
+  uint32_t priority = 0;
+
+  if (!*success){
+    return pos;
+  }
+
+  int lparenth = 0;
+  int rparenth = 0;
+  for (int idx=begin;idx<=end;++idx){
+    int type = tokens[idx].type;
+
+    if (type == '('){
+      ++lparenth;
+    }else if (type == ')'){
+      ++rparenth;
+    }
+
+    if (lparenth==rparenth)
+    {
+      // 注意算法优先级
+      // 先乘除，后加减
+      // 先左后右
+      // 找出匹配的最低优先级
+      for (int i=0; i<ARRLEN(op_prios); ++i) {
+        if (type == op_prios[i].type && priority<= op_prios[i].priority) {
+          pos = idx;
+          priority = op_prios[i].priority;
+          break;
+        }
+      }
+    }
+  }
+
+  if (lparenth!=rparenth){
+    Log("find op miss match parenteses at %d|'%s' %d|'%s'.", begin, tokens[begin].str, end, tokens[end].str);
+    *success=false;
+    return 0;
+  }
+
+  return pos;
+}
+
+word_t eval(int begin, int end, bool *success)
+{
+  if (begin>end){
+    Log("bad expression at %d|'%s' %d|'%s'.", begin, tokens[begin].str, end, tokens[end].str);
+    *success = false;
+    return 0;
+  } else if (begin==end){
+    word_t val = 0;
+    if (!eval_variable(&tokens[begin], &val)){
+      Log("get variable error at %d|'%s'.", begin, tokens[begin].str);
+      *success=false;
+    }
+    return val;
+  } else if (check_parentheses(begin, end, success)){
+    return eval(begin+1, end-1, success);
+  } else {
+    int op_pos = find_low_op_pos(begin, end, success);
+    if (op_pos<0) {
+      *success=false;
+      Log("miss low operator pos at %d|'%s' %d|'%s'.", begin, tokens[begin].str, end, tokens[end].str);
+      return 0;
+    }
+    CHECK_SUCCESS();
+
+    word_t val1 = eval(begin, op_pos-1, success);
+    word_t val2 = eval(op_pos+1, end, success);
+
+    word_t val = 0;
+    switch (tokens[op_pos].type)
+    {
+      case TK_EQ: val = val1==val2; break;
+      case TK_NEQ: val = val1!=val2; break;
+      case TK_AND: val = val1&&val2; break;
+      case '+': val = val1+val2; break;
+      case '-': val = val1-val2; break;
+      case '*': val = val1*val2; break;
+      case '/': 
+        if (val2==0){
+          Log("divide by zero error at %d|'%s'.", op_pos, tokens[op_pos].str);
+          *success=false;
+        }
+        val = val1/(val2==0?1:val2);
+        break;
+      default:
+        Log("unknown op error at %d|'%s' %d|'%s'.", begin, tokens[begin].str, end, tokens[end].str);
+        *success = false;
+        return 0;
+    }
+    // Log("%uu %s %uu = %u", val1, tokens[op_pos].str, val2, val);
+    return val;
+  }
+
+  Log("unknown error at %d|'%s' %d|'%s'.", begin, tokens[begin].str, end, tokens[end].str);
+  *success = false;
+  return 0;
 }
 
 word_t expr(char *e, bool *success) {
-  if (!make_token(e)) {
-    *success = false;
+  if (!(*success = make_token(e))) {
     return 0;
   }
 
@@ -360,6 +386,5 @@ word_t expr(char *e, bool *success) {
   //     tokens[i].type = TK_DEREF;
   // }
 
-  int token_idx = 0;
-  return eval_E(&token_idx, success);
+  return eval(0, nr_token-1, success);
 }
