@@ -115,7 +115,7 @@ bool scan_wp()
     word_t val = expr(node->expr_str, &success);
     if (success && val != node->expr_val){
       stop = true;
-      printf("Matched watchpoint %d: %s | %d=>%d.\n", node->NO, node->expr_str, node->expr_val, val);
+      printf("Matched watchpoint %d: %s | %u=>%u %#x=>%#x.\n", node->NO, node->expr_str, node->expr_val, val, node->expr_val, val);
       node->expr_val = val;
     }
     node = node->next;
