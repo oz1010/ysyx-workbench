@@ -18,4 +18,4 @@ SRCS = gen-expr.c
 include ../../scripts/build.mk
 
 gen_input: $(BINARY)
-	./build/$(NAME) 10000 > input
+	./build/$(NAME) 10000 > ./build/input

@@ -164,7 +164,7 @@ static int cmd_q(char *args) {
 static int cmd_test(char *args) {
   static uint32_t result;
   static char buf[65536 + 128] = {};
-  const char* file_name = "/home/johnny/big-proj/mk-cpu-lesson-dev/NJU-ProjectN_nemu/tools/gen-expr/input";
+  const char* file_name = NULL;
 
   if (!args) {
     printf("miss test case, support: expr\n");
@@ -183,23 +183,25 @@ static int cmd_test(char *args) {
   }
 
   if (0==strcmp(test_case, "expr")){
-    if (!args) {
-      printf("miss file name, use default file|%s\n", file_name);
-    }else {
+    if (args) {
       file_name = args;
     }
 
-    // const char* nemu_home = getenv("NEMU_HOME");
-    // if (!nemu_home) {
-    //   printf("miss set env $NEMU_HOME\n");
-    //   return 0;
-    // } else {
-    //   printf("get env $NEMU_HOME=%s\n", nemu_home);
-    // }
+    const char* nemu_home = getenv("NEMU_HOME");
+    if (!nemu_home) {
+      nemu_home = "/home/johnny/big-proj/mk-cpu-lesson-dev/NJU-ProjectN_nemu";
+    }
 
     char file_path[1024] = {0};
-    strcat(file_path, file_name);
+    if (file_name) {
+      strcat(file_path, file_name);
+    } else {
+      strcat(&file_path[strlen(file_path)], nemu_home);
+      strcat(&file_path[strlen(file_path)], "/tools/gen-expr/build/input");
+    }
     
+  printf("load test expr file|%s\n", file_path);
+
     FILE* fd = fopen(file_path, "rb");
     if (!fd) {
       printf("open file error, file|%s err|%s\n", file_path, strerror(errno));
