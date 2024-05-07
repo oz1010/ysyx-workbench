@@ -18,6 +18,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include "memory/vaddr.h"
 
 static int is_batch_mode = false;
 
@@ -47,8 +48,83 @@ static int cmd_c(char *args) {
   return 0;
 }
 
+static int cmd_si(char *args)
+{
+  uint64_t next = 1;
+  if (args)
+  {
+    next = strtoull(args, NULL, 10);
+  }
+  cpu_exec(next);
+  return 0;
+}
+
+static int cmd_info(char *args)
+{
+  if (args)
+  {
+    if (strcmp(args, "r") == 0)
+      isa_reg_display();
+    else
+      printf("Error format: info r\n");
+  }
+  else
+  {
+    printf("Miss args: info r\n");
+  }
+  return 0;
+}
+
+static int cmd_x(char *args)
+{
+  char *argv[2] = {0};
+  char *args_end = args + strlen(args);
+  int argc = 0;
+  while (args<args_end && argc<2)
+  {
+    argv[argc] = strtok(args, " ");
+    if (!argv[argc])
+    {
+      break;
+    }
+    args+= strlen(argv[argc]) + 1;
+    ++argc;
+  }
+
+  if (argc < 1)
+  {
+    printf("Miss args: x <LEN> [ADDR]\n");
+    return 0;
+  }
+
+  uint32_t len = strtoul(argv[0], NULL, 10);
+  vaddr_t addr = 0x80000000;
+  size_t line_len = 16;
+
+  if (argc > 1)
+  {
+    addr = strtoul(argv[1], NULL, 16);
+  }
+  uint32_t i=0,j=0;
+  for (i=0; i<len; ) {
+    printf("0x%8x:", addr);
+    for (j=0; j<line_len&&i<len; ++i,++j){
+      word_t value = vaddr_ifetch(addr, 1) & 0xFF;
+      printf("%s%02x", (j!=0&&j%4==0?"   ":" "), value);
+      addr += 1;
+    }
+    if (j%line_len == 0)
+    printf("\n");
+  }
+
+  if (j%line_len != 0)
+    printf("\n");
+
+  return 0;
+}
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_QUIT;
   return -1;
 }
 
@@ -61,6 +137,9 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
+  {"si", "Step program until it reaches a different source line.", cmd_si},
+  {"info", "Generic command for showing things about the program being debugged.", cmd_info},
+  {"x", "Show the value of memory.", cmd_x},
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */

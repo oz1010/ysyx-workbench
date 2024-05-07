@@ -24,6 +24,11 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+  int i;
+  for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {
+    uint32_t reg_val = cpu.gpr[check_reg_idx(i)];
+    printf("%-16s0x%-14x%-16d\n", regs[i], reg_val, reg_val);
+  }
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
