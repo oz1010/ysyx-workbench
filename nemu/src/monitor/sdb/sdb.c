@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
@@ -24,6 +25,8 @@ static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+extern void add_wp(char *str);
+extern void show_wp();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -65,12 +68,14 @@ static int cmd_info(char *args)
   {
     if (strcmp(args, "r") == 0)
       isa_reg_display();
+    else if (strcmp(args, "w") == 0)
+      show_wp();
     else
-      printf("Error format: info r\n");
+      printf("Error format: info r/w\n");
   }
   else
   {
-    printf("Miss args: info r\n");
+    printf("Miss args: info r/w\n");
   }
   return 0;
 }
@@ -78,7 +83,7 @@ static int cmd_info(char *args)
 static int cmd_x(char *args)
 {
   char *argv[2] = {0};
-  char *args_end = args + strlen(args);
+  char *args_end = args + (args!=NULL?strlen(args):0);
   int argc = 0;
   while (args<args_end && argc<2)
   {
@@ -123,9 +128,107 @@ static int cmd_x(char *args)
   return 0;
 }
 
+static int cmd_p(char *args) {
+  bool success = true;
+  if (!args)
+  {
+    printf("miss args\n");
+    return 0;
+  }
+  word_t val = expr(args, &success);
+  if (success)
+  {
+    printf("val = %u\n", val);
+    printf("hex = %#x\n", val);
+  }
+  else
+    printf("expression is error\n");
+  return 0;
+}
+
+static int cmd_w(char *args) {
+  if (!args){
+    printf("miss args\n");
+    return 0;
+  }
+
+  add_wp(args);
+  return 0;
+}
+
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
   return -1;
+}
+
+static int cmd_test(char *args) {
+  static uint32_t result;
+  static char buf[65536 + 128] = {};
+  const char* file_name = NULL;
+
+  if (!args) {
+    printf("miss test case, support: expr\n");
+    return 0;
+  }
+
+  char *args_end = args + strlen(args);
+  char *test_case = strtok(args, " ");
+  if (!test_case) {
+    printf("miss input test case\n");
+    return 0;
+  }
+  args = test_case + strlen(test_case) + 1;
+  if (args>=args_end){
+    args = NULL;
+  }
+
+  if (0==strcmp(test_case, "expr")){
+    if (args) {
+      file_name = args;
+    }
+
+    const char* nemu_home = getenv("NEMU_HOME");
+    if (!nemu_home) {
+      nemu_home = "/home/johnny/big-proj/mk-cpu-lesson-dev/NJU-ProjectN_nemu";
+    }
+
+    char file_path[1024] = {0};
+    if (file_name) {
+      strcat(file_path, file_name);
+    } else {
+      strcat(&file_path[strlen(file_path)], nemu_home);
+      strcat(&file_path[strlen(file_path)], "/tools/gen-expr/build/input");
+    }
+    
+  printf("load test expr file|%s\n", file_path);
+
+    FILE* fd = fopen(file_path, "rb");
+    if (!fd) {
+      printf("open file error, file|%s err|%s\n", file_path, strerror(errno));
+      return 0;
+    }
+
+    uint32_t cnt = 0;
+    uint32_t suc_cnt=0;
+    uint32_t err_cnt=0;
+    while( EOF != fscanf(fd, "%u %s\n", &result, buf)){
+      bool success = false;
+      ++cnt;
+      uint32_t expr_ret = expr(buf, &success);
+      if (!success || expr_ret!=result){
+        printf("case-%u failed: %u %u %lu\n", cnt, result, expr_ret, strlen(buf));
+        ++err_cnt;
+      } else {
+        ++suc_cnt;
+      }
+    }
+
+    printf("test expr case total|%u error|%u success|%u\n", cnt, err_cnt, suc_cnt);
+  }else{
+    printf("unknown test case|%s, support: expr.\n", test_case);
+  }
+
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -137,12 +240,15 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
-  {"si", "Step program until it reaches a different source line.", cmd_si},
-  {"info", "Generic command for showing things about the program being debugged.", cmd_info},
-  {"x", "Show the value of memory.", cmd_x},
+  { "si", "Step program until it reaches a different source line.", cmd_si},
+  { "info", "Generic command for showing things about the program being debugged.", cmd_info},
+  { "x", "Show the value of memory.", cmd_x},
+  { "p", "Print value of expression EXP.", cmd_p},
+  { "w", "Set a watchpoint for EXPRESSION.", cmd_w},
+  { "test", "Test program.", cmd_test},
   { "q", "Exit NEMU", cmd_q },
 
-  /* TODO: Add more commands */
+  /* Add more commands */
 
 };
 
