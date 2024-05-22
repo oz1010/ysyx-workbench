@@ -5,11 +5,28 @@
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
 size_t strlen(const char *s) {
-  panic("Not implemented");
+  size_t len = 0;
+
+  while(*s) {
+    ++len;
+    ++s;
+  }
+
+  return len;
 }
 
 char *strcpy(char *dst, const char *src) {
-  panic("Not implemented");
+  char *ret = dst;
+
+  while(*src)
+  {
+    *dst = *src;
+    ++dst;
+    ++src;
+  }
+  dst = '\0';
+
+  return ret;
 }
 
 char *strncpy(char *dst, const char *src, size_t n) {
@@ -17,11 +34,27 @@ char *strncpy(char *dst, const char *src, size_t n) {
 }
 
 char *strcat(char *dst, const char *src) {
-  panic("Not implemented");
+  size_t dst_len = strlen(dst);
+  char *ret = dst;
+
+  while(*src){
+    dst[dst_len] = *src;
+    ++dst;
+    ++src;
+  }
+  dst[dst_len] = '\0';
+
+  return ret;
 }
 
 int strcmp(const char *s1, const char *s2) {
-  panic("Not implemented");
+  while(*s1 && *s2 && *s1 == *s2)
+  {
+    ++s1;
+    ++s2;
+  }
+
+  return *s1 - *s2;
 }
 
 int strncmp(const char *s1, const char *s2, size_t n) {
@@ -29,7 +62,13 @@ int strncmp(const char *s1, const char *s2, size_t n) {
 }
 
 void *memset(void *s, int c, size_t n) {
-  panic("Not implemented");
+  int i;
+  char* dst = s;
+
+  for (i=0; i<n; ++i)
+    dst[i] = c;
+
+  return s;
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
@@ -41,7 +80,20 @@ void *memcpy(void *out, const void *in, size_t n) {
 }
 
 int memcmp(const void *s1, const void *s2, size_t n) {
-  panic("Not implemented");
+  const unsigned char *n1 = s1;
+  const unsigned char *n2 = s2;
+  int i;
+
+  for (i=0; i<n; ++i) {
+    if (n1[i] != n2[i]) {
+      break;
+    }
+  }
+
+  if (i==n)
+    return 0;
+  else
+    return n1[i] - n2[i];
 }
 
 #endif
