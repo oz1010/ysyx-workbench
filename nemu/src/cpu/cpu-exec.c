@@ -45,7 +45,6 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
-  printf("=== pc %#x\n", pc);
   s->pc = pc;
   s->snpc = pc;
   isa_exec_once(s);
@@ -80,6 +79,7 @@ static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
     exec_once(&s, cpu.pc);
+    // printf("current cpu pc: %#x\n", cpu.pc);
     g_nr_guest_inst ++;
     trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
