@@ -287,7 +287,20 @@ void sdb_mainloop() {
     return;
   }
 
+  static char last_str[1024] = "";
   for (char *str; (str = rl_gets()) != NULL; ) {
+
+    /* record last command string */
+    if (*str)
+    {
+      strcpy(last_str, str);
+    } 
+    else
+    {
+      if (strcmp(last_str, "si") == 0)
+        str = last_str;
+    }
+
     char *str_end = str + strlen(str);
 
     /* extract the first token as the command */
