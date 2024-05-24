@@ -3,11 +3,8 @@
 
 #include <isa.h>
 
-#define IRINGBUF_ITEM_MAX 16
-#define IRINGBUF_SHOW_SIZE 3
-#if (2*IRINGBUF_SHOW_SIZE>IRINGBUF_ITEM_MAX)
-#error "IRINGBUF_SHOW_SIZE is out of range"
-#endif
+#define IRINGBUF_ITEM_MAX 5
+#define IRINGBUF_NEXT_INST_SHOW 3
 
 #ifdef CONFIG_ITRACE
 #define IRINGBUF_INIT() iringbuf_init()
