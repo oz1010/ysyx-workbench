@@ -47,36 +47,34 @@ void iringbuf_update(vaddr_t addr, const char* str, bool err)
 void iringbuf_show()
 {
     IRingBufItem_t* item = iringbuf.header;
+    IRingBufItem_t* start = item->next;
+    IRingBufItem_t* end = start;
 
     if (!item->addr) {
         printf("No code execute.\n");
         return;
     }
 
-    // 找到需要打印的开始处
-    IRingBufItem_t* start = item;
-    for (int i=0; i<IRINGBUF_SHOW_SIZE; ++i)
-    {
-        if (!start->prev->addr)
-            break;
-        start = start->prev;
-    }
+    // 将近期运行过的指令都输出
+    printf(ANSI_FMT("Instruction trace:\n",ANSI_FG_GREEN));
+    item = start;
+    do{
+        printf("%s", (item==iringbuf.header?ANSI_FMT("  --> ",ANSI_FG_RED):"      "));
+        printf("%s\n", item->buf);
+        item = item->next;
+    }while(item != end);
 
     // 找到需要打印的结束处
-    IRingBufItem_t* end = item;
-    vaddr_t addr = item->addr;
-    for (int i=0; i<IRINGBUF_SHOW_SIZE; ++i)
+    IRingBufItem_t next_item;
+    item = &next_item;
+    vaddr_t addr = iringbuf.header->addr + 4;
+    if (IRINGBUF_NEXT_INST_SHOW)
+        printf("Instruction next:\n");
+    for (int i=0; i<IRINGBUF_NEXT_INST_SHOW; ++i)
     {
-        if (fmt_instruction(end, addr)!=0)
+        if (fmt_instruction(item, addr)!=0)
             break;
-        end = end->next;
         addr += 4;
-    }
-
-    printf(ANSI_FMT("Run context:\n",ANSI_FG_GREEN));
-    end = end->next;
-    for (item = start; item != end; item = item->next)
-    {
         printf("%s", (item==iringbuf.header?ANSI_FMT("  --> ",ANSI_FG_RED):"      "));
         printf("%s\n", item->buf);
     }
