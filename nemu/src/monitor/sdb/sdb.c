@@ -20,6 +20,7 @@
 #include <readline/history.h>
 #include "sdb.h"
 #include "memory/vaddr.h"
+#include "trace.h"
 
 static int is_batch_mode = false;
 
@@ -338,4 +339,7 @@ void init_sdb() {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
+
+  /* Initialize the iringbuf */
+  IRINGBUF_INIT();
 }
