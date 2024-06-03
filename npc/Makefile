@@ -6,11 +6,14 @@ VERILATOR = verilator
 VERILATOR_CFLAGS += -MMD --build -cc \
 					-O3 --x-assign fast --x-initial fast --noassert
 
-BUILD_DIR = ./build
+BUILD_DIR = $(NPC_HOME)/build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
+TST_TARGET = addi
+TST_DIR = $(NPC_HOME)/test/$(TST_TARGET)
+TST_BIN = $(BUILD_DIR)/test/$(TST_TARGET)/case.bin
 
-default: $(BIN)
+default: $(BIN) $(TST_BIN)
 
 $(shell mkdir -p $(BUILD_DIR))
 
@@ -22,6 +25,7 @@ $(shell mkdir -p $(BUILD_DIR))
 # project source
 VSRCS = $(shell find $(abspath ./vsrc) -name "*.v")
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+TSTFILES = $(shell find $(abspath $(TST_DIR)) -name "*.S")
 # CSRCS += $(SRC_AUTO_BIND)
 
 # # rules for NVBoard
@@ -45,15 +49,21 @@ $(BIN): $(VSRCS) $(CSRCS)
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
+$(TST_BIN): $(TSTFILES)
+	@make -C $(TST_DIR)
+
 all: default
 
-run: $(BIN)
-	@$^ 
+run: $(TST_BIN) $(BIN)
+	@$(BIN)
+
+objdump: $(TST_BIN)
+	@make objdump -C $(TST_DIR)
 
 clean:
-	rm -rf $(BUILD_DIR) 
+	rm -rf $(BUILD_DIR)
 
-.PHONY: default all clean run
+.PHONY: default all clean run objdump
 
 
 
