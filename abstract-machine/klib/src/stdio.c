@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <klib-macros.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
@@ -48,7 +49,7 @@ int printf(const char *fmt, ...) {
 }
 
 int vsprintf(char *out, const char *fmt, va_list ap) {
-  panic("Not implemented");
+  vsnprintf(out, SIZE_MAX, fmt, ap);
 }
 
 int sprintf(char *out, const char *fmt, ...) {
@@ -57,8 +58,31 @@ int sprintf(char *out, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 
-  ret = 0;
-  while(*fmt != '\0')
+  ret = vsprintf(out, fmt, ap);
+
+  va_end(ap);
+
+  return ret;
+}
+
+int snprintf(char *out, size_t n, const char *fmt, ...) {
+  int ret = -1;
+
+  va_list ap;
+  va_start(ap, fmt);
+
+  ret = vsnprintf(out, n, fmt, ap);
+
+  va_end(ap);
+
+  return ret;
+}
+
+int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
+  size_t ret = 0;
+  size_t max_size = n > 0 ? n - 1 : 0;
+
+  while(*fmt != '\0' && ret < max_size)
   {
     char c = *fmt++;
     switch (c)
@@ -70,6 +94,7 @@ int sprintf(char *out, const char *fmt, ...) {
       {
         char* str = va_arg(ap, char*);
         size_t len = strlen(str);
+        len = len > (max_size - ret) ? (max_size - ret) : len;
         memcpy(out, str, len);
         out += len;
         ret += len;
@@ -82,6 +107,7 @@ int sprintf(char *out, const char *fmt, ...) {
         int num = va_arg(ap, int);
         int_to_string(num, str);
         size_t len = strlen(str);
+        len = len > (max_size - ret) ? (max_size - ret) : len;
         memcpy(out, str, len);
         out += len;
         ret += len;
@@ -111,19 +137,12 @@ int sprintf(char *out, const char *fmt, ...) {
     }
   }
 
-  va_end(ap);
-
-  *out = '\0';
+  if (n > 0) {
+    *out++ = '\0';
+    ++ret;
+  }
 
   return ret;
-}
-
-int snprintf(char *out, size_t n, const char *fmt, ...) {
-  panic("Not implemented");
-}
-
-int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
-  panic("Not implemented");
 }
 
 #endif
