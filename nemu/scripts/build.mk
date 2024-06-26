@@ -13,7 +13,7 @@ BUILD_DIR = $(WORK_DIR)/build
 INC_PATH := $(WORK_DIR)/include $(INC_PATH)
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
-RUN_IMG	 = $(NEMU_HOME)/build/risc32/prog.bin
+RUN_IMG	 ?= $(NEMU_HOME)/build/risc32/prog.bin
 
 # Compilation flags
 ifeq ($(CC),clang)

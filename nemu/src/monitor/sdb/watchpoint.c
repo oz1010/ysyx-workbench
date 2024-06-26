@@ -116,7 +116,7 @@ bool scan_wp()
     if (success && val != node->expr_val){
       stop = true;
       printf("Matched watchpoint %d: %s | %u=>%u %#x=>%#x.\n", node->NO, node->expr_str, node->expr_val, val, node->expr_val, val);
-      node->expr_val = val;
+      // node->expr_val = val;
     }
     node = node->next;
   }
