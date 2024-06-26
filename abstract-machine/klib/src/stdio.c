@@ -45,11 +45,21 @@ void int_to_string(int num, char *str)
 }
 
 int printf(const char *fmt, ...) {
-  panic("Not implemented");
+  static char buf[1024];
+  int ret = -1;
+
+  va_list ap;
+  va_start(ap, fmt);
+  ret = vsnprintf(buf, sizeof(buf)/sizeof(buf[0]), fmt, ap);
+  va_end(ap);
+
+  putstr(buf);
+
+  return ret;
 }
 
 int vsprintf(char *out, const char *fmt, va_list ap) {
-  vsnprintf(out, SIZE_MAX, fmt, ap);
+  return vsnprintf(out, SIZE_MAX, fmt, ap);
 }
 
 int sprintf(char *out, const char *fmt, ...) {
