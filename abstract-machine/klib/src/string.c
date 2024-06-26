@@ -38,11 +38,11 @@ char *strcat(char *dst, const char *src) {
   char *ret = dst;
 
   while(*src){
-    dst[dst_len] = *src;
+    dst[dst_len++] = *src;
     ++dst;
     ++src;
   }
-  dst[dst_len] = '\0';
+  dst[dst_len++] = '\0';
 
   return ret;
 }
