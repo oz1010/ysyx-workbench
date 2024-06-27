@@ -39,7 +39,6 @@ char *strcat(char *dst, const char *src) {
 
   while(*src){
     dst[dst_len++] = *src;
-    ++dst;
     ++src;
   }
   dst[dst_len++] = '\0';
