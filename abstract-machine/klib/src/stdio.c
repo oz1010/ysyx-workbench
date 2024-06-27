@@ -20,28 +20,51 @@ void reverse(char* str, int length)
   }
 }
 
-void int_to_string(int num, char *str)
+// 无符号32位数字转字符串，返回值为字符串长度
+size_t uint32_to_string(uint32_t num, size_t base, char *str)
 {
-  int i=0;
-  bool is_negative = false;
+  uint32_t left = num % base;
+  size_t idx = 0;
 
-  if (num < 0)
+  // 基数最大为16
+  if (base > 16 || base < 2)
   {
-    is_negative = true;
-    num = -num;
+    panic("the base of int_to_hex_string is error");
   }
 
-  do {
-    str[i++] = (num % 10) + '0';
-    num /= 10;
-  } while (num != 0);
+  // 若数值超过基数，需要先递归
+  if (num >= base)
+  {
+    idx = uint32_to_string((num/base), base, str);
+  }
+    
+  // 向str输出字符
+  if (left<10)
+    str[idx] = left + '0';
+  else
+    str[idx] = left - 10 + 'a';
 
-  if (is_negative)
-    str[i++] = '-';
+  str[idx+1] = '\0';
+  return idx + 1;
+}
 
-  str[i] = '\0';
+// 有符号整数转字符串，返回值为字符串长度
+size_t int_to_string(int num, size_t base, char *str)
+{
+  size_t len = 0;
+  uint32_t n = num;
+  
+  if (num < 0)
+  {
+    n = -num;
+    str[len] = '-';
+    ++len;
+    ++str;
+  }
 
-  reverse(str, i);
+  len += uint32_to_string(n, base, str);
+
+  return len;
 }
 
 int printf(const char *fmt, ...) {
@@ -98,7 +121,8 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
     switch (c)
     {
     case '%':
-      switch (*fmt++)
+      char select_c = *fmt++;
+      switch (select_c)
       {
       case 's':
       {
@@ -115,12 +139,31 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       {
         char str[32] = {0};
         int num = va_arg(ap, int);
-        int_to_string(num, str);
-        size_t len = strlen(str);
+        size_t len = int_to_string(num, 10, str);
         len = len > (max_size - ret) ? (max_size - ret) : len;
         memcpy(out, str, len);
         out += len;
         ret += len;
+        break;
+      }
+      
+      case 'x':
+      {
+        char str[32] = {0};
+        uint32_t num = (uint32_t)va_arg(ap, int);
+        size_t len = uint32_to_string(num, 16, str);
+        len = len > (max_size - ret) ? (max_size - ret) : len;
+        memcpy(out, str, len);
+        out += len;
+        ret += len;
+        break;
+      }
+
+      case 'c':
+      {
+        char input_c = (char)va_arg(ap, int);
+        *out++ = input_c;
+        ++ret;
         break;
       }
 
@@ -130,6 +173,9 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         break;
       
       default:
+        putstr("Found unsupported char '");
+        putch(select_c);
+        putstr("'\n");
         panic("Not implemented");
         break;
       }
