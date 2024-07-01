@@ -31,6 +31,10 @@ void isa_reg_display() {
   }
 }
 
+const char* isa_reg_name(size_t idx) {
+  return regs[check_reg_idx(idx)];
+}
+
 word_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {

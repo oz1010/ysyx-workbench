@@ -18,7 +18,26 @@
 #include "../local-include/reg.h"
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  return false;
+  // cpu.pc = RESET_VECTOR;
+  // cpu.gpr[0] = 0;
+  if (memcmp(cpu.gpr, ref_r->gpr, sizeof(ref_r->gpr)) != 0)
+  {
+    int i = 0;
+    for (i=0; i<sizeof(ref_r->gpr); ++i)  {
+      if (cpu.gpr[i]!=ref_r->gpr[i]) {
+        break;
+      }
+    }
+    printf("Found register is different, %s(0x%x 0x%x) PC(0x%x)\n", isa_reg_name(i), cpu.gpr[i], ref_r->gpr[i], pc);
+    return false;
+  } else if (cpu.pc != ref_r->pc) {
+    printf("Found PC is different, PC(0x%x 0x%x)\n", cpu.pc, ref_r->pc);
+    return false;
+  }
+
+  printf("All thing is OK, PC 0x%x\n", pc);
+
+  return true;
 }
 
 void isa_difftest_attach() {
