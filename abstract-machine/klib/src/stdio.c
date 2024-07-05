@@ -111,6 +111,22 @@ int snprintf(char *out, size_t n, const char *fmt, ...) {
   return ret;
 }
 
+// 当字符串长度低于限长时，使用0补全
+void add_zero_prefix(char *str, size_t *str_len, int limit_len)
+{
+  size_t len = *str_len;
+  if (len < limit_len) 
+  {
+    size_t mv_len = limit_len - len;
+    char tmp_str[32] = {0};
+    memcpy(&tmp_str[mv_len], &str[0], len);
+    memset(&tmp_str[0], '0', mv_len);
+    len += mv_len;
+    memcpy(&str[0], &tmp_str[0], len);
+  }
+  *str_len = len;
+}
+
 int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
   size_t ret = 0;
   size_t max_size = n > 0 ? n - 1 : 0;
@@ -121,6 +137,32 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
     switch (c)
     {
     case '%':
+    {
+      bool zero_prifex = false;
+      int limit_len = 0;
+
+      // 是否0补位解析
+      if (*fmt == '0') {
+        ++fmt;
+        zero_prifex = true;
+      }
+
+      // 限位数解析
+      const char* start_fmt = fmt;
+      while(limit_len>=0 && *fmt>='0' && *fmt<='9') {
+        limit_len = limit_len*10 + *fmt - '0';
+        ++fmt;
+      }
+      if (limit_len < 0) {
+        putstr("Found too long limit \"");
+        while(start_fmt<fmt) {
+          putch(*start_fmt);
+          ++start_fmt;
+        }
+        putstr("\"\n");
+        panic("Not implemented");
+      }
+
       char select_c = *fmt++;
       switch (select_c)
       {
@@ -140,6 +182,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         char str[32] = {0};
         int num = va_arg(ap, int);
         size_t len = int_to_string(num, 10, str);
+        if (zero_prifex) add_zero_prefix(str, &len, limit_len);
         len = len > (max_size - ret) ? (max_size - ret) : len;
         memcpy(out, str, len);
         out += len;
@@ -152,6 +195,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         char str[32] = {0};
         uint32_t num = (uint32_t)va_arg(ap, int);
         size_t len = uint32_to_string(num, 16, str);
+        if (zero_prifex) add_zero_prefix(str, &len, limit_len);
         len = len > (max_size - ret) ? (max_size - ret) : len;
         memcpy(out, str, len);
         out += len;
@@ -180,6 +224,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         break;
       }
       break;
+    }
 
     case '\\':
       *out++ = *fmt++;
