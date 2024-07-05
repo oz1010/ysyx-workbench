@@ -9,15 +9,14 @@ static AM_TIMER_RTC_T sys_rtc = {
   .month  = 0,
   .year   = 1900,
 };
-static AM_TIMER_UPTIME_T sys_uptime = { 0 };
 
 void __am_timer_init() {
 }
 
 void __am_timer_uptime(AM_TIMER_UPTIME_T *uptime) {
-  // TODO 模拟时间计数
-  sys_uptime.us += 50;
-  *uptime = sys_uptime;
+  // uint64_t low = inl(RTC_ADDR);
+  // uint64_t high = inl(RTC_ADDR+4);
+  uptime->us = *(volatile uint64_t*)RTC_ADDR;
 }
 
 void __am_timer_rtc(AM_TIMER_RTC_T *rtc) {
