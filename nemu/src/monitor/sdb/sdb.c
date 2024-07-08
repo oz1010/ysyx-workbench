@@ -20,7 +20,9 @@
 #include <readline/history.h>
 #include "sdb.h"
 #include "memory/vaddr.h"
+#include "memory/paddr.h"
 #include "trace.h"
+#include "device/mmio.h"
 
 static int is_batch_mode = false;
 
@@ -99,32 +101,42 @@ static int cmd_x(char *args)
 
   if (argc < 1)
   {
-    printf("Miss args: x <LEN> [ADDR]\n");
+    printf("Miss args: x <ADDR> [LEN]\n");
     return 0;
   }
 
-  uint32_t len = strtoul(argv[0], NULL, 10);
-  vaddr_t addr = 0x80000000;
+  uint32_t len = 1;
+  vaddr_t addr = strtoul(argv[0], NULL, 16);
   size_t line_len = 16;
 
   if (argc > 1)
   {
-    addr = strtoul(argv[1], NULL, 16);
+    len = strtoul(argv[1], NULL, 10);
   }
-  uint32_t i=0,j=0;
-  for (i=0; i<len; ) {
-    printf("0x%8x:", addr);
-    for (j=0; j<line_len&&i<len; ++i,++j){
-      word_t value = vaddr_ifetch(addr, 1) & 0xFF;
-      printf("%s%02x", (j!=0&&j%4==0?"   ":" "), value);
-      addr += 1;
+  if (addr >= PMEM_LEFT && addr <= PMEM_RIGHT)
+  {
+    // read from physical memory
+    uint32_t i=0,j=0;
+    for (i=0; i<len; ) {
+      printf("0x%8x:", addr);
+      for (j=0; j<line_len&&i<len; ++i,++j){
+        word_t value = vaddr_ifetch(addr, 1) & 0xFF;
+        printf("%s%02x", (j!=0&&j%4==0?"   ":" "), value);
+        addr += 1;
+      }
+      if (j%line_len == 0)
+      printf("\n");
     }
-    if (j%line_len == 0)
-    printf("\n");
+    if (j%line_len != 0)
+      printf("\n");
+  } else if (addr >= CONFIG_RTC_MMIO && addr <= CONFIG_RTC_MMIO) {
+    // read from rtc
+    uint64_t low = mmio_read(addr, 4);
+    uint64_t high = mmio_read(addr+4, 4);
+    printf("RTC value(us): %lu\n", (high<<32 | low));
+  } else {
+    printf("Unknown addr %#x\n", addr);
   }
-
-  if (j%line_len != 0)
-    printf("\n");
 
   return 0;
 }
