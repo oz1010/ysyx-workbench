@@ -39,7 +39,7 @@ void iringbuf_update(vaddr_t addr, const char* str, bool err)
     iringbuf.header = iringbuf.header->next;
     IRingBufItem_t* item = iringbuf.header;
     item->addr = addr;
-    strncpy(item->buf, str, sizeof(item->buf));
+    strncpy(item->buf, str, sizeof(item->buf) - 1);
     if (err)
         iringbuf.erritem = item;
 }
