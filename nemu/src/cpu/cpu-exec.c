@@ -18,6 +18,7 @@
 #include <cpu/difftest.h>
 #include <locale.h>
 #include "trace.h"
+#include "common/point_pool.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -40,10 +41,10 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
 #endif
 #ifdef CONFIG_WATCHPOINT
-  if (nemu_state.state==NEMU_RUNNING && scan_wp()) nemu_state.state = NEMU_STOP;
+  if (nemu_state.state==NEMU_RUNNING && scan_point(POINT_WATCH)) nemu_state.state = NEMU_STOP;
 #endif
 #ifdef CONFIG_BREAKPOINT
-  if (nemu_state.state==NEMU_RUNNING && scan_bp()) nemu_state.state = NEMU_STOP;
+  if (nemu_state.state==NEMU_RUNNING && scan_point(POINT_BREAK)) nemu_state.state = NEMU_STOP;
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
