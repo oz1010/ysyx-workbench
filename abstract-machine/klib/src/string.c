@@ -16,21 +16,18 @@ size_t strlen(const char *s) {
 }
 
 char *strcpy(char *dst, const char *src) {
-  return strncpy(dst, src, SIZE_MAX);
+  return strncpy(dst, src, strlen(src) + 1);
 }
 
 char *strncpy(char *dst, const char *src, size_t n) {
-  char *ret = dst;
+  size_t i;
 
-  while(*src && n-->0)
-  {
-    *dst = *src;
-    ++dst;
-    ++src;
-  }
-  dst = '\0';
+  for (i=0; i<n&&src[i]!='\0'; ++i)
+    dst[i] = src[i];
+  for (; i<n; ++i)
+    dst[i] = '\0';
 
-  return ret;
+  return dst;
 }
 
 char *strcat(char *dst, const char *src) {
