@@ -33,6 +33,7 @@ static bool g_print_step = false;
 
 void device_update();
 extern bool scan_wp();
+extern bool scan_bp();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
@@ -40,6 +41,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #endif
 #ifdef CONFIG_WATCHPOINT
   if (nemu_state.state==NEMU_RUNNING && scan_wp()) nemu_state.state = NEMU_STOP;
+#endif
+#ifdef CONFIG_BREAKPOINT
+  if (nemu_state.state==NEMU_RUNNING && scan_bp()) nemu_state.state = NEMU_STOP;
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
