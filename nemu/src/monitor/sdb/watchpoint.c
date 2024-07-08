@@ -88,7 +88,7 @@ void add_wp(char *str)
   word_t val = expr(str, &success);
   if (success){
     WP* wp = new_wp();
-    strncpy(wp->expr_str, str, sizeof(wp->expr_str));
+    strncpy(wp->expr_str, str, sizeof(wp->expr_str) - 1);
     wp->expr_val = val;
     printf("watchpoint %d: %s\n", wp->NO, wp->expr_str);
   }
