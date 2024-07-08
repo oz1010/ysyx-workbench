@@ -155,6 +155,10 @@ config WATCHPOINT
   bool "Enable watchpoint scan"
   default "false"
 
+config BREAKPOINT
+  bool "Enable breakpoint scan"
+  default "false"
+
 config DIFFTEST
   depends on TARGET_NATIVE_ELF
   bool "Enable differential testing"

@@ -27,9 +27,12 @@
 static int is_batch_mode = false;
 
 void init_regex();
-void init_wp_pool();
+extern void init_wp_pool();
+extern void init_bp_pool();
 extern void add_wp(char *str);
+extern void add_bp(paddr_t addr);
 extern void show_wp();
+extern void show_bp();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -73,12 +76,14 @@ static int cmd_info(char *args)
       isa_reg_display();
     else if (strcmp(args, "w") == 0)
       show_wp();
+    else if (strcmp(args, "b") == 0)
+      show_bp();
     else
-      printf("Error format: info r/w\n");
+      printf("Error format: info r/w/b\n");
   }
   else
   {
-    printf("Miss args: info r/w\n");
+    printf("Miss args: info r/w/b\n");
   }
   return 0;
 }
@@ -166,6 +171,18 @@ static int cmd_w(char *args) {
   }
 
   add_wp(args);
+  return 0;
+}
+
+static int cmd_b(char *args) {
+  if (!args){
+    printf("miss address\n");
+    return 0;
+  }
+
+  vaddr_t addr = strtoul(args, NULL, 16);
+
+  add_bp(addr);
   return 0;
 }
 
@@ -258,6 +275,7 @@ static struct {
   { "x", "Show the value of memory.", cmd_x},
   { "p", "Print value of expression EXP.", cmd_p},
   { "w", "Set a watchpoint for EXPRESSION.", cmd_w},
+  { "b", "Set a breakpoint for PC.", cmd_b},
   { "test", "Test program.", cmd_test},
   { "q", "Exit NEMU", cmd_q },
 
@@ -351,6 +369,9 @@ void init_sdb() {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
+  
+  /* Initialize the breakpoint pool. */
+  init_bp_pool();
 
   /* Initialize the iringbuf */
   IRINGBUF_INIT();
