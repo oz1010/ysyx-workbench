@@ -23,16 +23,11 @@
 #include "memory/paddr.h"
 #include "trace.h"
 #include "device/mmio.h"
+#include "common/point_pool.h"
 
 static int is_batch_mode = false;
 
 void init_regex();
-extern void init_wp_pool();
-extern void init_bp_pool();
-extern void add_wp(char *str);
-extern void add_bp(paddr_t addr);
-extern void show_wp();
-extern void show_bp();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -75,9 +70,9 @@ static int cmd_info(char *args)
     if (strcmp(args, "r") == 0)
       isa_reg_display();
     else if (strcmp(args, "w") == 0)
-      show_wp();
+      show_point(POINT_ALL);
     else if (strcmp(args, "b") == 0)
-      show_bp();
+      show_point(POINT_ALL);
     else
       printf("Error format: info r/w/b\n");
   }
@@ -170,7 +165,7 @@ static int cmd_w(char *args) {
     return 0;
   }
 
-  add_wp(args);
+  add_point(POINT_WATCH, args);
   return 0;
 }
 
@@ -180,9 +175,33 @@ static int cmd_b(char *args) {
     return 0;
   }
 
-  vaddr_t addr = strtoul(args, NULL, 16);
+  add_point(POINT_BREAK, args);
+  return 0;
+}
 
-  add_bp(addr);
+static int cmd_d(char *args) {
+  uint64_t id = 0;
+  if (args){
+    uint64_t input_id = strtoull(args, NULL, 10);
+    if (input_id == 0) {
+      printf("format: d [point id]\n");
+      return 0;
+    }
+    id = input_id;
+  }
+
+  if (id == 0) {
+    char answer[32] = "";
+    printf("Delete all of breakpoints/watchpoints? <y/n>: ");
+    int ret = scanf("%31s", answer);
+    (void)ret;
+    if (strcmp(answer, "y") != 0) {
+      printf("Canceled\n");
+      return 0;
+    }
+  }
+
+  delete_point(id);
   return 0;
 }
 
@@ -276,6 +295,7 @@ static struct {
   { "p", "Print value of expression EXP.", cmd_p},
   { "w", "Set a watchpoint for EXPRESSION.", cmd_w},
   { "b", "Set a breakpoint for PC.", cmd_b},
+  { "d", "Delete a breakpoint or watchpoint.", cmd_d},
   { "test", "Test program.", cmd_test},
   { "q", "Exit NEMU", cmd_q },
 
@@ -366,12 +386,9 @@ void sdb_mainloop() {
 void init_sdb() {
   /* Compile the regular expressions. */
   init_regex();
-
-  /* Initialize the watchpoint pool. */
-  init_wp_pool();
   
-  /* Initialize the breakpoint pool. */
-  init_bp_pool();
+  /* Initialize the point pool. */
+  init_point_pool();
 
   /* Initialize the iringbuf */
   IRINGBUF_INIT();
