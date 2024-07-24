@@ -124,8 +124,13 @@ config CC_ASAN
   default n
 endmenu
 
-menu "Testing and Debugging"
+menuconfig DEBUG_SYSTEM
+  bool "Testing and Debugging"
+  default n
+  help
+    Provide debug mode for application.
 
+if DEBUG_SYSTEM
 
 config TRACE
   bool "Enable tracer"
@@ -167,6 +172,33 @@ config DIFFTEST
     Enable differential testing with a reference design.
     Note that this will significantly reduce the performance of NEMU.
 
+config DTRACE
+  depends on DEVICE
+  bool "Enable device tracer"
+  default n
+  help
+    Enable record information of every device.
+    Note that maybe significantly reduce the performance of NEMU.
+
+menuconfig DTRACE_OPTIONS
+  depends on DTRACE
+  bool "Device tracer options"
+  default n
+
+if DTRACE_OPTIONS
+
+config DTRACE_START_ADDR1
+  hex "Set start address of device tracer limit 1"
+  default 0xa0000000
+
+config DTRACE_END_ADDR1
+  hex "Set end address of device tracer limit 1"
+  default 0xa0000000
+
+endif # DTRACE_OPTIONS
+
+endif # DEBUG_SYSTEM
+
 choice
   prompt "Reference design"
   default DIFFTEST_REF_SPIKE if ISA_riscv
@@ -198,7 +230,6 @@ config DIFFTEST_REF_NAME
   default "kvm" if DIFFTEST_REF_KVM
   default "spike" if DIFFTEST_REF_SPIKE
   default "none"
-endmenu
 
 if MODE_SYSTEM
 source "src/memory/Kconfig"
