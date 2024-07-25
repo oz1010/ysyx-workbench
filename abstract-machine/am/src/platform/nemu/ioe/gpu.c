@@ -32,12 +32,12 @@ void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
   uint32_t *fb = (uint32_t *)(uintptr_t)FB_ADDR;
   uint32_t *color_buf = (uint32_t *)ctl->pixels;
 
-  // for (uint32_t y=0; y<ctl->h; ++y)
-  //   memcpy(&fb[(ctl->y+y)*screen_width + ctl->x], &color_buf[y*ctl->w], ctl->w*sizeof(color_buf[0]));
-  
   for (uint32_t y=0; y<ctl->h; ++y)
-    for (uint32_t x=0; x<ctl->w; ++x)
-      fb[(ctl->y+y)*screen_width + x + ctl->x] = color_buf[y*ctl->w + x];
+    memcpy(&fb[(ctl->y+y)*screen_width + ctl->x], &color_buf[y*ctl->w], ctl->w*sizeof(color_buf[0]));
+  
+  // for (uint32_t y=0; y<ctl->h; ++y)
+  //   for (uint32_t x=0; x<ctl->w; ++x)
+  //     fb[(ctl->y+y)*screen_width + x + ctl->x] = color_buf[y*ctl->w + x];
 
   if (ctl->sync) {
     outl(SYNC_ADDR, 1);
