@@ -16,7 +16,7 @@ static void record_trace_vcd(VerilatedVcdC* tfp, VerilatedContext* contextp) {
 #define RECORD_TRACE_VCD()
 #endif
 
-#define MEMORY_SIZE (4*1024)
+#define MEMORY_SIZE (4*1024*1024)
 
 typedef TOP_NAME* top_ptr;
 
