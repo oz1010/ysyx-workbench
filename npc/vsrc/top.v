@@ -16,13 +16,13 @@ wire [4:0] rd = data[11:7];
 
 wire inst_addi = (data[6:0]==7'b0010011) && (data[14:12]==3'b000);
 wire inst_ebreak = data==32'h00100073;
-wire inst_invalid = !rst && !inst_addi && !inst_ebreak;
+wire inst_invalid = !(rst || inst_addi || inst_ebreak);
 
 wire regs_wen[31:0];
 wire [31:0] regs_output[31:0];
 wire [31:0] regs_input[31:0];
 
-PC32 pc(clk, rst, addr+1, addr);
+PC32 pc(clk, rst, addr+4, addr);
 
 genvar i;
 generate

@@ -20,10 +20,12 @@ static void record_trace_vcd(VerilatedVcdC* tfp, VerilatedContext* contextp) {
 
 typedef TOP_NAME* top_ptr;
 
-uint32_t memory[MEMORY_SIZE] = {0};
+uint8_t memory[MEMORY_SIZE] = {0};
 void load_memory(const char* fpath);
 
 int main(int argc, char** argv) {
+	printf("Start NPC ...\n");
+
 	const std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
 	contextp->debug(0); // Set debug level, 0 is off, 9 is highest
 	contextp->randReset(2); // Randomization reset policy
@@ -50,12 +52,22 @@ int main(int argc, char** argv) {
 	}
 	top->rst = 0;
 
+	// 输入需要仿真的程序位置
+	char bin_path[256] = {0};
+	size_t bin_path_size = 0;
+	char default_bin_path[] = "npc/build/test/addi/case.bin";
+	printf("Input bin file path (default: %s):\n", default_bin_path);
+	char input_c;
+	while(bin_path_size<(sizeof(bin_path)-1) && (input_c = getchar())!='\n')
+		bin_path[bin_path_size++] = input_c;
+	bin_path[bin_path_size]='\0';
+
 	// 加载内存程序
 	const uint64_t sim_time = MEMORY_SIZE;
 	uint32_t* regs = &top->out_regs[0];
 	uint32_t base_addr = regs[32];
 	uint32_t data = 0;
-	load_memory("build/test/addi/case.bin");
+	load_memory(bin_path_size>0 ? bin_path : default_bin_path);
 
 	while(contextp->time()<sim_time && !contextp->gotFinish()) {
 		// 模拟从内存读数据
@@ -66,7 +78,7 @@ int main(int argc, char** argv) {
 				printf("simulator read out of memory\n");
 				break;
 			}
-			data = memory[idx];
+			data = *((uint32_t*)&memory[idx]);
 			if (!data)
 			{
 				printf("simulator read NULL memory\n");
@@ -89,12 +101,15 @@ int main(int argc, char** argv) {
 
 void load_memory(const char* fpath)
 {
-	const char* npc_home = getenv("NPC_HOME");
-	assert(npc_home && "Miss set NPC_HOME");
-
 	char file_path[1024] = {0};
-	strcat(&file_path[strlen(file_path)], npc_home);
-	strcat(&file_path[strlen(file_path)], "/");
+
+	if (fpath[0]!='/')
+	{
+		const char* npc_home = getenv("NPC_HOME");
+		assert(npc_home && "Miss set NPC_HOME");
+		strcat(&file_path[strlen(file_path)], npc_home);
+		strcat(&file_path[strlen(file_path)], "/../");
+	}
 	strcat(&file_path[strlen(file_path)], fpath);
 
 	printf("Load memory from file %s\n", file_path);
