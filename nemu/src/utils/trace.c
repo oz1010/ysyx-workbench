@@ -1,10 +1,13 @@
 #include <stdlib.h>
-#include <assert.h>
 #include "trace.h"
 #include "cpu/ifetch.h"
 #include "memory/paddr.h"
 
 IRingBuf_t iringbuf;
+
+#ifndef assert
+#include <assert.h>
+#endif
 
 void insert_before(IRingBufItem_t* pos, IRingBufItem_t* item);
 int fmt_instruction(IRingBufItem_t* item, vaddr_t addr);
