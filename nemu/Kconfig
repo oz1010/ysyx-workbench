@@ -124,6 +124,28 @@ config CC_ASAN
   default n
 endmenu
 
+menuconfig DEBUG_MODULE_SYSTEM
+  bool "RISC-V Debug Module"
+  depends on ISA_riscv
+  default n
+  help
+    Provide debug module for RISC-V
+
+if DEBUG_MODULE_SYSTEM
+  config DEBUG_MODULE
+    bool "Enable DM"
+    default y
+    help
+      Enable RISC-V debug module
+    
+  config DM_PORT
+    int "Listening port for DM"
+    depends on DEBUG_MODULE
+    default 51234
+    help
+      Setting listening port for DM
+endif # DEBUG_MODULE_SYSTEM
+
 menuconfig DEBUG_SYSTEM
   bool "Testing and Debugging"
   default n

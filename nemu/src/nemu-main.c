@@ -19,6 +19,7 @@ void init_monitor(int, char *[]);
 void am_init_monitor();
 void engine_start();
 int is_exit_status_bad();
+extern int init_dm(int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. */
@@ -27,6 +28,9 @@ int main(int argc, char *argv[]) {
 #else
   init_monitor(argc, argv);
 #endif
+
+  /* Start debug module */
+  init_dm(argc, argv);
 
   /* Start engine. */
   engine_start();

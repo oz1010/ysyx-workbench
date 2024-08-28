@@ -18,6 +18,10 @@
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 
+#include "generated/autoconf.h"
+#include "dm/dm.h"
+extern CPU_state cpu;
+
 #define R(i) gpr(i)
 #define Mr vaddr_read
 #define Mw vaddr_write
@@ -160,5 +164,10 @@ static int decode_exec(Decode *s) {
 
 int isa_exec_once(Decode *s) {
   s->isa.inst.val = inst_fetch(&s->snpc, 4);
-  return decode_exec(s);
+
+  IFDEF(CONFIG_DEBUG_MODULE, dm_update(0, s, &cpu));
+  int ret = decode_exec(s);
+  IFDEF(CONFIG_DEBUG_MODULE, dm_update(1, s, &cpu));
+
+  return ret;
 }
