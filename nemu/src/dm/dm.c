@@ -104,7 +104,7 @@ typedef struct _dm_debug_registers_s{
 
 static dm_debug_info_t dm_debug_info = {0};
 
-void init_dm_debug_info(dm_debug_info_t *info)
+void init_dm_debug_info(dm_debug_info_t *info, dm_debug_status_t status)
 {
     memset(info, 0, sizeof(dm_debug_info_t));
     
@@ -127,20 +127,18 @@ void init_dm_debug_info(dm_debug_info_t *info)
      *   When the TAP is reset, IR must default to 00001
      */
     info->ir = 0b00001;
+
+    info->status = status;
 }
 
 int init_dm(int argc, char *argv[])
 {
 #if CONFIG_DEBUG_MODULE
-    dm_debug_info.status = dmds_init;
-
-    init_dm_debug_info(&dm_debug_info);
+    init_dm_debug_info(&dm_debug_info, dmds_mus_mode);
 
     init_dm_interface();
 
     init_dm_network();
-
-    dm_debug_info.status = dmds_mus_mode;
 #endif
     return 0;
 }
@@ -252,6 +250,8 @@ void dm_update(int period, Decode *s, CPU_state *c)
                     case DMM_BODY_TLR_RESET:
                     case DMM_BODY_RESET:
                     {
+                        init_dm_debug_info(&dm_debug_info, dmds_mus_mode);
+
                         uint32_t status_ok = 0;
                         dmm_package_body(&resp_msg, &status_ok, sizeof(status_ok));
                         LOG_DEBUG("dm parse msg cmd_type:%s resp:%u", cmd_type==DMM_BODY_TLR_RESET?"TLR_RESET":"RESET", status_ok);
