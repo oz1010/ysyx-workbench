@@ -106,59 +106,136 @@ typedef enum _dmr_idx_e {
     dmri_count,
 } dmr_idx_t;
 
+/**
+ * 3.12.1 Debug Module Status (dmstatus, at 0x11)
+ */
+typedef struct _dmi_dmstatus_s {
+    /**
+     * R 2
+     */
+    uint32_t    version:4;
+    /**
+     * R Preset
+     */
+    uint32_t    confstrptrvalid:1;
+    /**
+     * R Preset
+     */
+    uint32_t    hasresethaltreq:1;
+    /**
+     * R 0
+     */
+    uint32_t    authbusy:1;
+    /**
+     * R Preset
+     */
+    uint32_t    authenticated:1;
+    /**
+     * R -
+     */
+    uint32_t    anyhalted:1;
+    /**
+     * R -
+     */
+    uint32_t    allhalted:1;
+    /**
+     * R -
+     */
+    uint32_t    anyrunning:1;
+    /**
+     * R -
+     */
+    uint32_t    allrunning:1;
+    /**
+     * R -
+     */
+    uint32_t    anyunavail:1;
+    /**
+     * R -
+     */
+    uint32_t    allunavail:1;
+    /**
+     * R -
+     */
+    uint32_t    anynonexistent:1;
+    /**
+     * R -
+     */
+    uint32_t    allnonexistent:1;
+    /**
+     * R -
+     */
+    uint32_t    anyresumeack:1;
+    /**
+     * R -
+     */
+    uint32_t    allresumeack:1;
+    /**
+     * R -
+     */
+    uint32_t    anyhavereset:1;
+    /**
+     * R -
+     */
+    uint32_t    allhavereset:1;
+    uint32_t    rsv0:2;
+    /**
+     * R Preset
+     */
+    uint32_t    impebreak:1;
+    uint32_t    rsv1:9;
+} dmi_dmstatus_t;
+
+/**
+ * 3.12.2 Debug Module Control (dmcontrol, at 0x10)
+ */
+typedef struct _dmi_dmcontrol_s {
+    uint32_t    dmactive:1;
+    uint32_t    ndmreset:1;
+    /**
+     * W1
+     */
+    uint32_t    clrresethaltreq:1;
+    /**
+     * W1
+     */
+    uint32_t    setresethaltreq:1;
+    uint32_t    rsv0:2;
+    uint32_t    hartselhi:10;
+    uint32_t    hartsello:10;
+    uint32_t    hasel:1;
+    uint32_t    rsv1:1;
+    /**
+     * W1
+     */
+    uint32_t    ackhavereset:1;
+    uint32_t    hartreset:1;
+    /**
+     * W1
+     */
+    uint32_t    resumereq:1;
+    /**
+     * W1
+     */
+    uint32_t    haltreq:1;
+} dmi_dmcontrol_t;
+
 typedef struct _dmr_map_item_s {
     dmr_idx_t idx;      // 寄存器索引
     uint32_t phy_addr;  // 映射的寄存器物理地址
 } dmr_map_item_t;
 
-// dm通信消息体类型，参考jtag_command_type枚举
-typedef enum {
-    DMM_BODY_UNKNOWN        = 0,
-	DMM_BODY_SCAN           = 1,
-	DMM_BODY_TLR_RESET      = 2,
-	DMM_BODY_RUNTEST        = 3,
-	DMM_BODY_RESET          = 4,
-	DMM_BODY_PATHMOVE       = 6,
-	DMM_BODY_SLEEP          = 7,
-	DMM_BODY_STABLECLOCKS   = 8,
-	DMM_BODY_TMS            = 9,
-
-    DMM_BODY_TYPE_MAX
-} dm_msg_body_type_t;
 // dm通信消息头部
 typedef struct _dm_msg_header_s
 {
     uint32_t prefix;    // 消息前缀
-    // dm_msg_body_type_t body_type; // 消息体类型
     int32_t num_bytes;   // 消息体字节长度
-    // int32_t num_bits;    // 消息体位长度
     union {
         int32_t count;  // 已经接收消息体总长度，当长度小于0时，说明之前未解析到消息头部
         int client_fd;  // 消息客户端文件描述符。接收完成后，count没有其他用处。
     };
     uint32_t postfix;   // 消息后缀
 } dm_msg_header_t;
-// dm通信消息，访问寄存器
-// ref. RISC-V External Debug Support Version 0.13.2, 3.6.1.1 Access Register, P13
-typedef struct _dm_msg_access_register_s
-{
-    uint32_t regno : 16;
-    uint32_t write;
-    uint32_t transfer;
-    uint32_t postexec;
-    uint32_t w;
-    // uint32_t w;
-    // uint32_t w;
-    // uint32_t w;
-} dm_msg_access_register_t;
-// // dm通信消息命令
-// typedef struct _dm_msg_cmd_s
-// {
-//     uint8_t rw;         // 0--读，1--写
-//     uint8_t cmdtype;    // 0--访问寄存器，1--内存
-//     uint32_t reg_idx;   // 寄存器索引
-//     uint32_t reg_val;   // 寄存器值
-// } dm_msg_cmd_t;
 /**
  * dm通信消息
  * 基本请求格式：命令类型(1) | 请求数据(xx)
@@ -175,9 +252,9 @@ typedef struct _dm_msg_s
     };
 } dm_msg_t;
 
-int init_dm_interface();
-int dmi_read(dmr_idx_t idx, uint32_t *val);
-int dmi_write(dmr_idx_t idx, uint32_t val);
+int init_dm_interface(void);
+int dmi_execute(uint32_t addr, uint32_t in_val, uint32_t *out_val, uint32_t op);
+int dmi_update_status(void);
 
 static inline int dmm_package_body(dm_msg_t *msg, const void *data, int data_bytes
 )
