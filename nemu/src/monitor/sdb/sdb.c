@@ -30,7 +30,7 @@ static int is_batch_mode = false;
 void init_regex();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
-static char* rl_gets() {
+char* rl_gets() {
   static char *line_read = NULL;
 
   if (line_read) {
@@ -333,6 +333,9 @@ void sdb_set_batch_mode() {
 }
 
 void sdb_mainloop() {
+#if CONFIG_DEBUG_MODULE
+  cpu_exec(-1);
+#else
   if (is_batch_mode) {
     cmd_c(NULL);
     return;
@@ -381,6 +384,7 @@ void sdb_mainloop() {
 
     if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
   }
+#endif
 }
 
 void init_sdb() {
