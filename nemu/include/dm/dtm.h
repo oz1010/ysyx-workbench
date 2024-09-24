@@ -5,6 +5,8 @@
 #include "cpu/decode.h"
 #include "cpu/cpu.h"
 
+#define     DTM_ENABLE_DEBUG_LOG        false
+
 // 4.8 Core Debug Registers, maximum of register address is 0x7b3
 #define DM_DTMCS_ABITS_MAX              12
 #define DM_DTMCS_ABITS_MASK             (DM_DTMCS_ABITS_MAX-1)
@@ -17,10 +19,16 @@
  */
 #define DIV_ROUND_UP(m, n)	(((m) + (n) - 1) / (n))
 
-#define DM_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
-#define DM_REG(S, N) DM_REGISTER(dm_reg_##S##_t, dtmri_##S, N, dtm_ctx.regs)
-#define DM_R(N) DM_REG(N, r_##N)
-// dm_reg_dmi_t *r_dmi = (dm_reg_dmi_t *)&dtm_ctx.regs[dtmri_dmi];
+#define DTM_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
+#define DTM_REG(S, N) DTM_REGISTER(dtm_reg_##S##_t, dtm_ri_##S, N, dtm_ctx.regs)
+#define DTM_R(N) DTM_REG(N, r_##N)
+
+#if DTM_ENABLE_DEBUG_LOG
+#define DTM_DEBUG(format, ...) LOG_DEBUG("(dtm) " format, ## __VA_ARGS__)
+#else
+#define DTM_DEBUG(format, ...)
+#endif
+#define DTM_ERROR(format, ...) LOG_ERROR("(dtm) " format, ## __VA_ARGS__)
 
 /**
  * The type of the @c jtag_command_container contained by a
@@ -48,25 +56,25 @@ enum jtag_command_type {
  * Table 6.1: JTAG DTM TAP Registers
  */
 typedef enum _dtm_regs_idx_e {
-    dtmri_bypass        = 0x00,     // BYPASS
-    dtmri_idcode        = 0x01,     // IDCODE
-    dtmri_dtmcs         = 0x10,     // DTM Control and Status (dtmcs)
-    dtmri_dmi           = 0x11,     // Debug Module Interface Access (dmi)
-    dtmri_bypass_12           ,     // Reserved (BYPASS)
-    dtmri_bypass_13           ,     // Reserved (BYPASS)
-    dtmri_bypass_14           ,     // Reserved (BYPASS)
-    dtmri_bypass_15           ,     // Reserved (BYPASS)
-    dtmri_bypass_16           ,     // Reserved (BYPASS)
-    dtmri_bypass_17           ,     // Reserved (BYPASS)
-    dtmri_bypass_1f     = 0x1F,     // BYPASS 0x1F
-    dtmri_count
+    dtm_ri_bypass       = 0x00,     // BYPASS
+    dtm_ri_idcode       = 0x01,     // IDCODE
+    dtm_ri_dtmcs        = 0x10,     // DTM Control and Status (dtmcs)
+    dtm_ri_dmi          = 0x11,     // Debug Module Interface Access (dmi)
+    dtm_ri_bypass_12          ,     // Reserved (BYPASS)
+    dtm_ri_bypass_13          ,     // Reserved (BYPASS)
+    dtm_ri_bypass_14          ,     // Reserved (BYPASS)
+    dtm_ri_bypass_15          ,     // Reserved (BYPASS)
+    dtm_ri_bypass_16          ,     // Reserved (BYPASS)
+    dtm_ri_bypass_17          ,     // Reserved (BYPASS)
+    dtm_ri_bypass_1f    = 0x1F,     // BYPASS 0x1F
+    dtm_ri_count
 } dtm_regs_idx_t;
-static_assert((dtmri_count&(dtmri_count-1))==0, "must be equal to a power of 2");
+static_assert((dtm_ri_count&(dtm_ri_count-1))==0, "must be equal to a power of 2");
 
 /**
  * 6.1.4 DTM Control and Status (dtmcs, at 0x10)
  */
-typedef struct _dm_reg_dtmcs_s {
+typedef struct _dtm_reg_dtmcs_s {
     /**
      * R 1
      * 0: Version described in spec version 0.11.
@@ -129,12 +137,12 @@ typedef struct _dm_reg_dtmcs_s {
      * 0
      */
     const uint32_t rsv1:14;
-} dm_reg_dtmcs_t;
+} dtm_reg_dtmcs_t;
 
 /**
  * 6.1.5 Debug Module Interface Access (dmi, at 0x11)
  */
-typedef struct _dm_reg_dmi_s {
+typedef struct _dtm_reg_dmi_s {
     /**
      * RW 0
      * When the debugger writes this field, it has the following meaning:
@@ -170,38 +178,14 @@ typedef struct _dm_reg_dmi_s {
      * Address used for DMI access. In Update-DR this value is used to access the DM over the DMI.
      */
     uint64_t    address:DM_DTMCS_ABITS_MAX;
-} dm_reg_dmi_t;
-
-typedef enum _dm_debug_status_e {
-    dmds_none,
-    dmds_init,
-    dmds_mus_mode,
-
-    dmds_resuming,
-    dmds_halting,
-    dmds_halted_waiting,
-
-    dmds_command_start,
-    dmds_command_transfer,
-    dmds_command_done,
-    dmds_command_progbuf,
-
-    dmds_error_detected,
-    dmds_error_wait,
-
-    dmds_quick_access_halt,
-    dmds_quick_access_resume,
-    dmds_quick_access_exec,
-} dm_debug_status_t;
+} dtm_reg_dmi_t;
 
 typedef struct _dm_debug_delay_cmd_s {
     uint8_t *resp_addr;
-    dm_reg_dmi_t *scan;
+    dtm_reg_dmi_t *scan;
 } dm_debug_delay_cmd_t;
 
 int dtm_init(int argc, char *argv[]);
-dm_debug_status_t dtm_get_dm_debug_status();
-int dtm_dm_valid();
 void dtm_update(int period, Decode *s, CPU_state *c);
 
 #endif
