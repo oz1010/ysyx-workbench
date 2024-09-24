@@ -19,7 +19,7 @@
 #include <cpu/decode.h>
 
 #include "generated/autoconf.h"
-#include "dm/dm.h"
+#include "dm/dtm.h"
 extern CPU_state cpu;
 
 #define R(i) gpr(i)
@@ -165,9 +165,9 @@ static int decode_exec(Decode *s) {
 int isa_exec_once(Decode *s) {
   s->isa.inst.val = inst_fetch(&s->snpc, 4);
 
-  IFDEF(CONFIG_DEBUG_MODULE, dm_update(0, s, &cpu));
+  IFDEF(CONFIG_DEBUG_MODULE, dtm_update(0, s, &cpu));
   int ret = decode_exec(s);
-  IFDEF(CONFIG_DEBUG_MODULE, dm_update(1, s, &cpu));
+  IFDEF(CONFIG_DEBUG_MODULE, dtm_update(1, s, &cpu));
 
   return ret;
 }
