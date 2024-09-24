@@ -2,13 +2,13 @@
 #include "debug.h"
 
 #define DMI_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
-#define DMI_REG(S, N) DMI_REGISTER(dmi_##S##_t, dmri_##S, N, dmi_registers)
+#define DMI_REG(S, N) DMI_REGISTER(dm_reg_##S##_t, dm_ri_##S, N, dmi_registers)
 #define DMI_R(N) DMI_REG(N, r_##N)
 
-static uint32_t dmi_registers[dmri_count] = {0};
-static uint32_t dmi_registers_last[dmri_count] = {0};
+static uint32_t dmi_registers[dm_ri_count] = {0};
+static uint32_t dmi_registers_last[dm_ri_count] = {0};
 
-static void init_dmi_regs(void)
+static void dmi_init_regs(void)
 {
     memset(&dmi_registers, 0, sizeof(dmi_registers));
 
@@ -17,29 +17,29 @@ static void init_dmi_regs(void)
     r_dmstatus->authenticated = 1;
 }
 
-static void sync_dmi_regs(void)
+static void dmi_sync_regs(void)
 {
     memcpy(&dmi_registers_last[0], &dmi_registers[0], sizeof(dmi_registers));
 }
 
-int init_dm_interface()
+int dmi_init()
 {
-    init_dmi_regs();
+    dmi_init_regs();
 
-    sync_dmi_regs();
+    dmi_sync_regs();
     return 0;
 }
 
-int dmi_read(dmr_idx_t idx, uint32_t *val)
+int dmi_read(dm_regs_idx_t idx, uint32_t *val)
 {
-    assert(idx<dmri_count && "reading reg idx is out of range");
+    assert(idx<dm_ri_count && "reading reg idx is out of range");
     *val = dmi_registers[idx];
     return 0;
 }
 
-int dmi_write(dmr_idx_t idx, uint32_t val)
+int dmi_write(dm_regs_idx_t idx, uint32_t val)
 {
-    assert(idx<dmri_count && "writing reg idx is out of range");
+    assert(idx<dm_ri_count && "writing reg idx is out of range");
     dmi_registers[idx] = val;
     return 0;
 }
@@ -102,7 +102,7 @@ int dmi_execute(uint32_t addr, uint32_t in_val, uint32_t *out_val, uint32_t op)
 
 int dmi_update_status(void)
 {
-    for (uint32_t i=0; i<dmri_count; ++i)
+    for (uint32_t i=0; i<dm_ri_count; ++i)
     {
         if (0 != memcmp(&dmi_registers[i], &dmi_registers_last[i], sizeof(dmi_registers[i])))
         {
@@ -110,6 +110,6 @@ int dmi_update_status(void)
         }
     }
     
-    sync_dmi_regs();
+    dmi_sync_regs();
     return 0;
 }
