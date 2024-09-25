@@ -11,7 +11,7 @@
 /**
  * ref. RISC-V External Debug Support Version 0.13.2
  */
-typedef enum _dm_regs_idx_e {
+typedef enum {
     // Abstract Data 0 - 11, P30
     dm_ri_data0 = 0x04,
     dm_ri_data1,
@@ -100,7 +100,7 @@ typedef enum _dm_regs_idx_e {
     dm_ri_count,
 } dm_regs_idx_t;
 
-typedef enum _dm_debug_status_e {
+typedef enum {
     dm_ds_none,                 // 非调试状态，也没有开启调试模块
     dm_ds_init,                 // 非调试状态，正在初始化调试模块
     dm_ds_mus_mode,             // 非调试状态，核正在正常运行
@@ -125,118 +125,198 @@ typedef enum _dm_debug_status_e {
 /**
  * 3.12.1 Debug Module Status (dmstatus, at 0x11)
  */
-typedef struct _dm_reg_dmstatus_s {
-    /**
-     * R 2
-     */
-    uint32_t    version:4;
-    /**
-     * R Preset
-     */
-    uint32_t    confstrptrvalid:1;
-    /**
-     * R Preset
-     */
-    uint32_t    hasresethaltreq:1;
-    /**
-     * R 0
-     */
-    uint32_t    authbusy:1;
-    /**
-     * R Preset
-     */
-    uint32_t    authenticated:1;
-    /**
-     * R -
-     */
-    uint32_t    anyhalted:1;
-    /**
-     * R -
-     */
-    uint32_t    allhalted:1;
-    /**
-     * R -
-     */
-    uint32_t    anyrunning:1;
-    /**
-     * R -
-     */
-    uint32_t    allrunning:1;
-    /**
-     * R -
-     */
-    uint32_t    anyunavail:1;
-    /**
-     * R -
-     */
-    uint32_t    allunavail:1;
-    /**
-     * R -
-     */
-    uint32_t    anynonexistent:1;
-    /**
-     * R -
-     */
-    uint32_t    allnonexistent:1;
-    /**
-     * R -
-     */
-    uint32_t    anyresumeack:1;
-    /**
-     * R -
-     */
-    uint32_t    allresumeack:1;
-    /**
-     * R -
-     */
-    uint32_t    anyhavereset:1;
-    /**
-     * R -
-     */
-    uint32_t    allhavereset:1;
-    uint32_t    rsv0:2;
-    /**
-     * R Preset
-     */
-    uint32_t    impebreak:1;
-    uint32_t    rsv1:9;
+typedef union {
+    struct {
+        /**
+         * R 2
+         */
+        uint32_t    version:4;
+        /**
+         * R Preset
+         */
+        uint32_t    confstrptrvalid:1;
+        /**
+         * R Preset
+         */
+        uint32_t    hasresethaltreq:1;
+        /**
+         * R 0
+         */
+        uint32_t    authbusy:1;
+        /**
+         * R Preset
+         */
+        uint32_t    authenticated:1;
+        /**
+         * R -
+         */
+        uint32_t    anyhalted:1;
+        /**
+         * R -
+         */
+        uint32_t    allhalted:1;
+        /**
+         * R -
+         */
+        uint32_t    anyrunning:1;
+        /**
+         * R -
+         */
+        uint32_t    allrunning:1;
+        /**
+         * R -
+         */
+        uint32_t    anyunavail:1;
+        /**
+         * R -
+         */
+        uint32_t    allunavail:1;
+        /**
+         * R -
+         */
+        uint32_t    anynonexistent:1;
+        /**
+         * R -
+         */
+        uint32_t    allnonexistent:1;
+        /**
+         * R -
+         */
+        uint32_t    anyresumeack:1;
+        /**
+         * R -
+         */
+        uint32_t    allresumeack:1;
+        /**
+         * R -
+         */
+        uint32_t    anyhavereset:1;
+        /**
+         * R -
+         */
+        uint32_t    allhavereset:1;
+        uint32_t    rsv0:2;
+        /**
+         * R Preset
+         */
+        uint32_t    impebreak:1;
+        uint32_t    rsv1:9;
+    };
+
+    uint32_t raw_value;
 } dm_reg_dmstatus_t;
 
 /**
  * 3.12.2 Debug Module Control (dmcontrol, at 0x10)
  */
-typedef struct _dm_reg_dmcontrol_s {
-    uint32_t    dmactive:1;
-    uint32_t    ndmreset:1;
-    /**
-     * W1
-     */
-    uint32_t    clrresethaltreq:1;
-    /**
-     * W1
-     */
-    uint32_t    setresethaltreq:1;
-    uint32_t    rsv0:2;
-    uint32_t    hartselhi:10;
-    uint32_t    hartsello:10;
-    uint32_t    hasel:1;
-    uint32_t    rsv1:1;
-    /**
-     * W1
-     */
-    uint32_t    ackhavereset:1;
-    uint32_t    hartreset:1;
-    /**
-     * W1
-     */
-    uint32_t    resumereq:1;
-    /**
-     * W1
-     */
-    uint32_t    haltreq:1;
+typedef union {
+    struct {
+        uint32_t    dmactive:1;
+        uint32_t    ndmreset:1;
+        /**
+         * W1
+         */
+        uint32_t    clrresethaltreq:1;
+        /**
+         * W1
+         */
+        uint32_t    setresethaltreq:1;
+        uint32_t    rsv0:2;
+        uint32_t    hartselhi:10;
+        uint32_t    hartsello:10;
+        uint32_t    hasel:1;
+        uint32_t    rsv1:1;
+        /**
+         * W1
+         */
+        uint32_t    ackhavereset:1;
+        uint32_t    hartreset:1;
+        /**
+         * W1
+         */
+        uint32_t    resumereq:1;
+        /**
+         * W1
+         */
+        uint32_t    haltreq:1;
+    };
+
+    uint32_t raw_value;
 } dm_reg_dmcontrol_t;
 
-typedef struct _dm_reg_map_item_s {
+/**
+ * 3.12.7 Abstract Command (command, at 0x17)
+ */
+typedef union {
+    struct {
+        /**
+         * W
+         */
+        uint32_t control:24;
+        /**
+         * 0 Access Register Command
+         * 1 Quick Access
+         * 2 Access Memory Command
+         * W
+         */
+        uint32_t cmdtype:8;
+    };
+
+    /**
+     * 3.6.1.1 Access Register
+     */
+    struct {
+        uint32_t regno:16;
+        uint32_t write:1;
+        uint32_t transfer:1;
+        uint32_t postexec:1;
+        uint32_t aarpostincrement:1;
+        uint32_t aarsize:1;
+        uint32_t reserve0:1;
+
+        /**
+         * type is 0
+         * W
+         */
+        uint32_t cmdtype:8;
+    } reg;
+    
+    /**
+     * 3.6.1.2 Quick Access
+     */
+    struct {
+        uint32_t reserve0:24;
+
+        /**
+         * type is 1
+         * W
+         */
+        uint32_t cmdtype:8;
+    } quick;
+    
+    /**
+     * 3.6.1.3 Access Memory
+     */
+    struct {
+        uint32_t reserve0:14;
+        uint32_t target_specific:2;
+        uint32_t write:1;
+        uint32_t reserve1:2;
+        uint32_t aampostincrement:1;
+        uint32_t aamsize:3;
+        uint32_t aamvirtual:1;
+
+        /**
+         * type is 2
+         * W
+         */
+        uint32_t cmdtype:8;
+    } memory;
+
+    uint32_t raw_value;
+} dm_reg_command_t;
+
+typedef struct {
     dm_regs_idx_t idx;      // 寄存器索引
     uint32_t phy_addr;      // 映射的寄存器物理地址
 } dm_reg_map_item_t;

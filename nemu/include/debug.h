@@ -21,20 +21,20 @@
 #include <utils.h>
 
 #define LOG_ERROR(format, ...) \
-    _Log(ANSI_FMT("[E] %s:%d %s | " format, ANSI_FG_RED) "\n", \
+    _log_with_timestamp(ANSI_FMT("[E] %s:%d %s | " format, ANSI_FG_RED) "\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define LOG_WARNING(format, ...) \
-    _Log(ANSI_FMT("[W] %s:%d %s | " format, ANSI_FG_YELLOW) "\n", \
+    _log_with_timestamp(ANSI_FMT("[W] %s:%d %s | " format, ANSI_FG_YELLOW) "\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define LOG_INFO(format, ...) \
-    _Log(ANSI_FMT("[I] %s:%d %s | " format, ANSI_FG_GREEN) "\n", \
+    _log_with_timestamp(ANSI_FMT("[I] %s:%d %s | " format, ANSI_FG_GREEN) "\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define LOG_DEBUG(format, ...) \
-    _Log(ANSI_FMT("[D] %s:%d %s | " format, ANSI_NONE) "\n", \
+    _log_with_timestamp(ANSI_FMT("[D] %s:%d %s | " format, ANSI_NONE) "\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
 #define Log(format, ...) \
-    _Log(ANSI_FMT("[%s:%d %s] " format, ANSI_FG_BLUE) "\n", \
+    _log_with_timestamp(ANSI_FMT("[%s:%d %s] " format, ANSI_FG_BLUE) "\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
 #define Assert(cond, format, ...) \
