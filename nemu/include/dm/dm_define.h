@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#define DM_ARRAY_SIZE(A) (sizeof(A)/sizeof(A[0]))
+
 /**
  * ref. RISC-V External Debug Support Version 0.13.2
  */
@@ -97,6 +99,28 @@ typedef enum _dm_regs_idx_e {
 
     dm_ri_count,
 } dm_regs_idx_t;
+
+typedef enum _dm_debug_status_e {
+    dm_ds_none,                 // 非调试状态，也没有开启调试模块
+    dm_ds_init,                 // 非调试状态，正在初始化调试模块
+    dm_ds_mus_mode,             // 非调试状态，核正在正常运行
+
+    dm_ds_halting,              // 暂停/恢复状态，正在处理暂停请求或断点中断
+    dm_ds_halted_waiting,       // 暂停/恢复状态，等待暂停处理
+    dm_ds_resuming,             // 暂停/恢复状态，正在处理恢复请求
+
+    dm_ds_command_start,        // 访问寄存器抽象命令状态，开始命令执行
+    dm_ds_command_transfer,     // 访问寄存器抽象命令状态，传输数据
+    dm_ds_command_done,         // 访问寄存器抽象命令状态，完成命令执行
+    dm_ds_command_progbuf,      // 程序缓存执行状态，执行抽象命令
+
+    dm_ds_error_detected,       // 抽象命令错误状态，检测到错误
+    dm_ds_error_wait,           // 抽象命令错误状态，等待错误处理
+
+    dm_ds_quick_access_halt,    // 快速访问抽象命令状态，暂停处理
+    dm_ds_quick_access_resume,  // 快速访问抽象命令状态，恢复处理
+    dm_ds_quick_access_exec,    // 程序缓存执行状态，执行快速访问命令
+} dm_debug_status_t;
 
 /**
  * 3.12.1 Debug Module Status (dmstatus, at 0x11)
