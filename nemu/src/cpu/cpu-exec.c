@@ -38,7 +38,7 @@ extern bool scan_bp();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
-  if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
+  if (ITRACE_COND) { _log_raw("%s\n", _this->logbuf); }
 #endif
 #ifdef CONFIG_WATCHPOINT
   if (nemu_state.state==NEMU_RUNNING && scan_point(POINT_WATCH)) nemu_state.state = NEMU_STOP;

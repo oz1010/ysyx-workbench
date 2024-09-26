@@ -46,3 +46,13 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   }
   return 0;
 }
+
+word_t *isa_get_cpu_gpr(size_t idx)
+{
+  return &cpu.gpr[check_reg_idx(idx)];
+}
+
+vaddr_t *isa_get_cpu_pc(void)
+{
+  return &cpu.pc;
+}
