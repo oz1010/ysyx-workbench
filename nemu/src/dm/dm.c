@@ -7,6 +7,8 @@
 #define DM_R(N) DECLARE_REG(dm, N, r_##N, ctx->regs)
 #define CD_R(N) DECLARE_REG(cd, N, r_##N, cpu.csr)
 
+#define DM_RI_STR_ITEM(N) [dm_ri_##N] = #N
+
 static int dm_handle_dmcontrol(dm_ctx_t *ctx);
 static int dm_handle_abstractcs(dm_ctx_t *ctx);
 static int dm_handle_command(dm_ctx_t *ctx);
@@ -18,6 +20,71 @@ const dm_handle_reg_func_t dm_handle_reg_funcs[dm_ri_count] = {
     [dm_ri_abstractcs] = dm_handle_abstractcs,
     [dm_ri_command] = dm_handle_command,
 };
+
+static const char * dm_ri_strs[dm_ri_count] = {
+    DM_RI_STR_ITEM(data0),
+    DM_RI_STR_ITEM(data1),
+    DM_RI_STR_ITEM(data2),
+    DM_RI_STR_ITEM(data3),
+    DM_RI_STR_ITEM(data4),
+    DM_RI_STR_ITEM(data5),
+    DM_RI_STR_ITEM(data6),
+    DM_RI_STR_ITEM(data7),
+    DM_RI_STR_ITEM(data8),
+    DM_RI_STR_ITEM(data9),
+    DM_RI_STR_ITEM(data10),
+    DM_RI_STR_ITEM(data11),
+    DM_RI_STR_ITEM(dmcontrol),
+    DM_RI_STR_ITEM(dmstatus),
+    DM_RI_STR_ITEM(hartinfo),
+    DM_RI_STR_ITEM(haltsum1),
+    DM_RI_STR_ITEM(hawindowsel),
+    DM_RI_STR_ITEM(hawindow),
+    DM_RI_STR_ITEM(abstractcs),
+    DM_RI_STR_ITEM(command),
+    DM_RI_STR_ITEM(abstractauto),
+    DM_RI_STR_ITEM(confstrptr0),
+    DM_RI_STR_ITEM(confstrptr1),
+    DM_RI_STR_ITEM(confstrptr2),
+    DM_RI_STR_ITEM(confstrptr3),
+    DM_RI_STR_ITEM(nextdm),
+    DM_RI_STR_ITEM(progbuf0),
+    DM_RI_STR_ITEM(progbuf1),
+    DM_RI_STR_ITEM(progbuf2),
+    DM_RI_STR_ITEM(progbuf3),
+    DM_RI_STR_ITEM(progbuf4),
+    DM_RI_STR_ITEM(progbuf5),
+    DM_RI_STR_ITEM(progbuf6),
+    DM_RI_STR_ITEM(progbuf7),
+    DM_RI_STR_ITEM(progbuf8),
+    DM_RI_STR_ITEM(progbuf9),
+    DM_RI_STR_ITEM(progbuf10),
+    DM_RI_STR_ITEM(progbuf11),
+    DM_RI_STR_ITEM(progbuf12),
+    DM_RI_STR_ITEM(progbuf13),
+    DM_RI_STR_ITEM(progbuf14),
+    DM_RI_STR_ITEM(progbuf15),
+    DM_RI_STR_ITEM(authdata),
+    DM_RI_STR_ITEM(haltsum2),
+    DM_RI_STR_ITEM(haltsum3),
+    DM_RI_STR_ITEM(sbaddress3),
+    DM_RI_STR_ITEM(sbcs),
+    DM_RI_STR_ITEM(sbaddress0),
+    DM_RI_STR_ITEM(sbaddress1),
+    DM_RI_STR_ITEM(sbaddress2),
+    DM_RI_STR_ITEM(sbdata0),
+    DM_RI_STR_ITEM(sbdata1),
+    DM_RI_STR_ITEM(sbdata2),
+    DM_RI_STR_ITEM(sbdata3),
+    DM_RI_STR_ITEM(haltsum0),
+};
+
+static const char* dm_ri_2_str(uint32_t idx)
+{
+    const char* ret_str = dm_ri_strs[idx%dm_ri_count];
+
+    return (idx >= dm_ri_count || !ret_str) ? "" : ret_str;
+}
 
 static int dm_access_cpu_gprs(uint32_t write, int reg_idx, word_t *reg_value)
 {
@@ -97,14 +164,14 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
 static inline int dm_read(dm_ctx_t *ctx, uint32_t addr, uint32_t *val)
 {
     *val = ctx->regs[ctx->addr];
-    // DM_REPEAT("read [%#x] => %#.8x", addr, *val);
+    // DM_REPEAT("read [%#x '%s'] => %#.8x", addr, dm_ri_2_str(addr), *val);
     return 0;
 }
 
 static inline int dm_write(dm_ctx_t *ctx, uint32_t addr, uint32_t val)
 {
     ctx->regs[ctx->addr] = val;
-    DM_REPEAT("write [%#x] <= %#.8x", addr, val);
+    DM_REPEAT("write [%#x '%s'] <= %#.8x", addr, dm_ri_2_str(addr), val);
     return 0;
 }
 
