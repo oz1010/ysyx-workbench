@@ -2,17 +2,20 @@
 #include "dm/dm.h"
 #include "isa.h"
 
-#define DM_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
-#define DM_REG(S, N) DM_REGISTER(dm_reg_##S##_t, dm_ri_##S, N, ctx->regs)
-#define DM_R(N) DM_REG(N, r_##N)
+#define DECLARE_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
+#define DECLARE_REG(PREFIX, S, N, RS) DECLARE_REGISTER(PREFIX##_reg_##S##_t, PREFIX##_ri_##S, N, RS)
+#define DM_R(N) DECLARE_REG(dm, N, r_##N, ctx->regs)
+#define CD_R(N) DECLARE_REG(cd, N, r_##N, cpu.csr)
 
 static int dm_handle_dmcontrol(dm_ctx_t *ctx);
+static int dm_handle_abstractcs(dm_ctx_t *ctx);
 static int dm_handle_command(dm_ctx_t *ctx);
 
 static dm_ctx_t dm_ctx_list[DM_CTX_MAX] = {0};
 dm_ctx_t *cur_dm_ctx = NULL;
 const dm_handle_reg_func_t dm_handle_reg_funcs[dm_ri_count] = {
     [dm_ri_dmcontrol] = dm_handle_dmcontrol,
+    [dm_ri_abstractcs] = dm_handle_abstractcs,
     [dm_ri_command] = dm_handle_command,
 };
 
@@ -27,6 +30,30 @@ static int dm_access_cpu_gprs(uint32_t write, int reg_idx, word_t *reg_value)
     return 0;
 }
 
+static int dm_access_cpu_csrs(uint32_t write, int reg_idx, word_t *reg_value)
+{
+    if (reg_idx < 0x7b0) {
+        DM_ERROR("unsupport %s reg address %#.4x", write?"write":"read", reg_idx);
+        return 0;
+    }
+
+    uint32_t regno = reg_idx - 0x7b0;
+
+    if (regno == cd_ri_dcsr) {
+        CD_R(dcsr);
+        if (write)
+            r_dcsr->raw_value = *reg_value;
+        else
+            *reg_value = r_dcsr->raw_value;
+    } else if (regno == cd_ri_dpc && !write) {
+        CD_R(dpc);
+        *reg_value = r_dpc->raw_value;
+    } else {
+        DM_ERROR("unsupport %s cpu csrs %#.4x", write?"write":"read", regno);
+    }
+    return 0;
+}
+
 static inline void dm_sync_regs(dm_ctx_t *ctx)
 {
     memcpy(&ctx->last_regs[0], &ctx->regs[0], sizeof(ctx->regs));
@@ -36,9 +63,12 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
 {
     memset(ctx->regs, 0, sizeof(ctx->regs));
 
+    DM_R(abstractcs);
+    r_abstractcs->datacount = 1;
+
     DM_R(dmstatus);
     r_dmstatus->version = 2;
-    r_dmstatus->authenticated = 1;
+    r_dmstatus->authenticated = 1; 
 
 #if DM_CTX_DEBUG_INIT_HALTED
     r_dmstatus->allrunning = 0;
@@ -53,6 +83,13 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
 #endif
 
     dm_sync_regs(ctx);
+
+    CD_R(dcsr);
+    r_dcsr->xdebugver = 4;
+    r_dcsr->cause = 3;
+
+    CD_R(dpc);
+    r_dpc->raw_value = CONFIG_MBASE;
 
     return 0;
 }
@@ -98,7 +135,8 @@ static void dm_trans_debug_status(dm_ctx_t *ctx)
 static int dm_handle_dmcontrol(dm_ctx_t *ctx)
 {
     DM_R(dmcontrol);
-    uint32_t hartsel = r_dmcontrol->hartselhi << 10 | r_dmcontrol->hartsello;
+    dm_reg_dmcontrol_t *w_val = (dm_reg_dmcontrol_t *)&ctx->val;
+    uint32_t hartsel = w_val->hartselhi << 10 | w_val->hartsello;
 
     // 调试器在启动时会使用最大值进行探测，返回最大支持的掩码即可
     if (hartsel == 0xFFFFF)
@@ -120,6 +158,21 @@ static int dm_handle_dmcontrol(dm_ctx_t *ctx)
     return 0;
 }
 
+static int dm_handle_abstractcs(dm_ctx_t *ctx)
+{
+    DM_R(abstractcs);
+    dm_reg_abstractcs_t *w_val = (dm_reg_abstractcs_t *)&ctx->val;
+    dm_reg_abstractcs_t *last_val = (dm_reg_abstractcs_t *)&ctx->last_val;
+
+    if (w_val->cmderr) {
+        last_val->cmderr = 0;
+    }
+
+    r_abstractcs->raw_value = last_val->raw_value;
+
+    return 0;
+}
+
 static int dm_handle_command(dm_ctx_t *ctx)
 {
     if (ctx->op != DM_ACCESS_OP_WRITE)
@@ -134,6 +187,14 @@ static int dm_handle_command(dm_ctx_t *ctx)
         // Access Register Command
         case 0:
         {
+            // 3.6.1.1 Access Register
+            // 若访问宽度不满足要求，则需要设置abstractcs.cmderr
+            if (r_command->reg.aarsize != 2) {
+                DM_R(abstractcs);
+                r_abstractcs->cmderr = DM_ABSTRACTCS_CMDERR_NOT_SUPPORTED;
+                return 0;
+            }
+
             uint32_t regno = r_command->reg.regno;
             if (r_command->reg.transfer==1) {
                 /**
@@ -143,6 +204,7 @@ static int dm_handle_command(dm_ctx_t *ctx)
                  * 0x1020 - 0x103f Floating point registers
                  */
                 if (regno < 0x1000) {
+                    dm_access_cpu_csrs(r_command->reg.write, regno, &ctx->regs[dm_ri_data0]);
                     DM_DEBUG("%s cpu csr, regno %#.4x", r_command->reg.write?"write":"read", regno);
                 } else if (regno < 0x1020) {
                     dm_access_cpu_gprs(r_command->reg.write, regno-0x1000, &ctx->regs[dm_ri_data0]);
@@ -227,9 +289,10 @@ int dm_execute(dm_ctx_t *ctx, uint32_t addr, uint32_t *val, uint32_t op)
     // 写入dm的寄存器
     if (ctx->op == DM_ACCESS_OP_WRITE)
     {
+        dm_read(ctx, ctx->addr, &ctx->last_val);
         dm_write(ctx, ctx->addr, ctx->val);
 
-        // dm在执行写寄存器后，调用对应的处理函数
+        // dm寄存器处理函数
         dm_handle_reg_func_t handle_reg_func = ctx->handle_reg_funcs[ctx->addr];
         if (handle_reg_func)
         {

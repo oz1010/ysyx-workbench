@@ -1,6 +1,7 @@
 #include "dm/dm.h"
 #include "dm/dm_interface.h"
 #include "debug.h"
+#include "isa.h"
 
 #define DMI_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
 #define DMI_REG(S, N) DMI_REGISTER(dm_reg_##S##_t, dm_ri_##S, N, dmi_registers)
@@ -26,4 +27,14 @@ int dmi_update_status(void)
 dm_debug_status_t dmi_get_debug_status(void)
 {
     return dm_get_debug_status(cur_dm_ctx);
+}
+
+int dmi_update_core_debug_register(int period)
+{
+    uint32_t *csr = &cpu.csr[0];
+    
+    // 按最简单的方式更新状态
+    csr[cd_ri_dpc] = cpu.pc;
+
+    return 0;
 }
