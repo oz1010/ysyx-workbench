@@ -57,6 +57,10 @@ typedef struct _dm_ctx_s
      */
     uint32_t val;
     /**
+     * 读取待访问的地址的数据
+     */
+    uint32_t last_val;
+    /**
      * 操作符。1--读；2--写；其他--重复之前的动作
      */
     uint32_t op;

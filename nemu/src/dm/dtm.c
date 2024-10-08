@@ -156,6 +156,9 @@ void dtm_update(int period, Decode *s, CPU_state *c)
 {
     dtm_msg_t recv_msg;
     int handle_ret = 0;
+    
+    // 更新核心调试寄存器
+    dmi_update_core_debug_register(period);
 
     // 执行指令前
     if (period == 0)
