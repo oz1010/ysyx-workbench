@@ -139,9 +139,12 @@ uint64_t get_time();
 */
 #define _log_raw(...)                                   \
   do {                                                  \
+    extern bool log_enable();                           \
     extern FILE* log_fp;                                \
-    fprintf(log_fp, __VA_ARGS__);                       \
-    fflush(log_fp);                                     \
+    if (log_fp && (log_fp!=stdout)) {                   \
+      fprintf(log_fp, __VA_ARGS__);                     \
+      fflush(log_fp);                                   \
+    }                                                   \
     fprintf(stdout, __VA_ARGS__);                       \
     fflush(stdout);                                     \
   } while (0)
