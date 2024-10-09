@@ -352,7 +352,7 @@ static int dm_handle_dmcontrol(dm_ctx_t *ctx)
         DM_ERROR("found invalid core id %#.8x", hartsel);
     }
 
-    r_dmcontrol->hasel = 0;
+    r_dmcontrol->hasel = hartsel;
 
     return 0;
 }
