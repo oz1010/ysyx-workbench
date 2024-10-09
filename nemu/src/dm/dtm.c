@@ -231,6 +231,8 @@ void dtm_update(int period, Decode *s, CPU_state *c)
                     case JTAG_TLR_RESET:
                     case JTAG_RESET:
                     {
+                        dm_init();
+                        dmi_init();
                         dtm_ctx_init(&dtm_ctx);
                         DTM_DEBUG("parse msg cmd_type:%s", cmd_type==JTAG_TLR_RESET?"TLR_RESET":"RESET");
                         break;

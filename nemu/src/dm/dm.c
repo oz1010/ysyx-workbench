@@ -1,6 +1,9 @@
 #include "debug.h"
 #include "dm/dm.h"
 #include "isa.h"
+#include "memory/paddr.h"
+#include "memory/vaddr.h"
+#include "device/mmio.h"
 
 #define DECLARE_REGISTER(T, I, N, RS) T*N=(T*)&RS[(I)];(void)N
 #define DECLARE_REG(PREFIX, S, N, RS) DECLARE_REGISTER(PREFIX##_reg_##S##_t, PREFIX##_ri_##S, N, RS)
@@ -118,6 +121,134 @@ static int dm_access_cpu_csrs(uint32_t write, int reg_idx, word_t *reg_value)
     } else {
         DM_ERROR("unsupport %s cpu csrs %#.4x", write?"write":"read", regno);
     }
+    return 0;
+}
+
+static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *arg0, uint32_t *arg1, uint32_t *arg2)
+{
+    uint32_t write = cmd->memory.write;
+    paddr_t addr = *arg1;
+    uint8_t *val = (uint8_t *)arg0;
+    int access_len = 4;
+
+    for (int i=0; i<size; i+=access_len) {
+        access_len = size - i;
+        access_len = access_len > 4 ? 4 : access_len;
+
+        if (addr >= PMEM_LEFT && addr <= PMEM_RIGHT) {
+            if (write) {
+                vaddr_write(addr, access_len, *arg0);
+            } else {
+                word_t mem_val = vaddr_read(addr, access_len);
+                memcpy(arg0, &mem_val, access_len);
+            }
+        } else if (addr >= CONFIG_RTC_MMIO && addr <= CONFIG_RTC_MMIO) {
+            if (write) {
+                mmio_write(addr, access_len, *arg0);
+            } else {
+                word_t mem_val = mmio_read(addr, access_len);
+                memcpy(arg0, &mem_val, access_len);
+            }
+        } else {
+            DM_ERROR("unknown addr %#.8x", addr);
+            return DM_ABSTRACTCS_CMDERR_BUS;
+        }
+
+        val += access_len;
+        addr += access_len;
+        arg0 = (uint32_t *)val;
+    }
+
+    if (cmd->memory.aampostincrement) {
+        *arg1 = addr;
+    }
+
+    return DM_ABSTRACTCS_CMDERR_NONE;
+}
+
+static int dm_handle_command_access_register(dm_ctx_t *ctx)
+{
+    DM_R(command);
+    DM_R(abstractcs);
+
+    // 3.6.1.1 Access Register
+    // 若访问宽度不满足要求，则需要设置abstractcs.cmderr
+    if (r_command->reg.aarsize != 2) {
+        r_abstractcs->cmderr = DM_ABSTRACTCS_CMDERR_NOT_SUPPORTED;
+        // DM_ERROR("unsupport access register command size %#x", r_command->reg.aarsize);
+        return 0;
+    }
+
+    uint32_t regno = r_command->reg.regno;
+    if (r_command->reg.transfer==1) {
+        /**
+         * Table 3.3: Abstract Register Numbers
+         * 0x0000 - 0x0fff CSRs. The \PC" can be accessed here through dpc.
+         * 0x1000 - 0x101f GPRs
+         * 0x1020 - 0x103f Floating point registers
+         */
+        if (regno < 0x1000) {
+            dm_access_cpu_csrs(r_command->reg.write, regno, &ctx->regs[dm_ri_data0]);
+            DM_DEBUG("%s cpu csr, regno %#.4x", r_command->reg.write?"write":"read", regno);
+        } else if (regno < 0x1020) {
+            dm_access_cpu_gprs(r_command->reg.write, regno-0x1000, &ctx->regs[dm_ri_data0]);
+            DM_DEBUG("%s cpu gpr, regno %#.4x value %#.8x", r_command->reg.write?"write":"read", regno, ctx->regs[dm_ri_data0]);
+        } else if (regno < 0x1040) {
+            DM_DEBUG("%s cpu fpr, regno %#.4x", r_command->reg.write?"write":"read", regno);
+        } else {
+            DM_ERROR("unknown regno %#.4x", regno);
+        }
+    }
+    
+    return 0;
+}
+
+static int dm_handle_command_access_memory(dm_ctx_t *ctx)
+{
+    DM_R(command);
+    DM_R(abstractcs);
+    uint32_t *arg0 = &ctx->regs[dm_ri_data0];
+    uint32_t *arg1 = &ctx->regs[dm_ri_data1];
+    uint32_t *arg2 = &ctx->regs[dm_ri_data2];
+    uint32_t size = 0;
+
+    switch(r_command->memory.aamsize)
+    {
+        case DM_COMMAND_MEMORY_AAMSIZE_8bits:
+            size = 1;
+            break;
+
+        case DM_COMMAND_MEMORY_AAMSIZE_16bits:
+            size = 2;
+            break;
+
+        case DM_COMMAND_MEMORY_AAMSIZE_32bits:
+            size = 4;
+            break;
+        
+        case DM_COMMAND_MEMORY_AAMSIZE_64bits:
+            size = 8;
+            arg0 = &ctx->regs[dm_ri_data0];
+            arg1 = &ctx->regs[dm_ri_data2];
+            break;
+        
+        case DM_COMMAND_MEMORY_AAMSIZE_128bits:
+            size = 16;
+            arg0 = &ctx->regs[dm_ri_data0];
+            arg1 = &ctx->regs[dm_ri_data4];
+            break;
+
+        default:
+            r_abstractcs->cmderr = DM_ABSTRACTCS_CMDERR_NOT_SUPPORTED;
+            DM_ERROR("unsupport command access memory size %#x", r_command->memory.aamsize);
+            break;
+    }
+
+    int access_err = dm_access_cpu_memory(r_command, size, arg0, arg1, arg2);
+    if (access_err != DM_ABSTRACTCS_CMDERR_NONE) {
+        r_abstractcs->cmderr = access_err;
+    }
+
     return 0;
 }
 
@@ -254,47 +385,21 @@ static int dm_handle_command(dm_ctx_t *ctx)
         // Access Register Command
         case 0:
         {
-            // 3.6.1.1 Access Register
-            // 若访问宽度不满足要求，则需要设置abstractcs.cmderr
-            if (r_command->reg.aarsize != 2) {
-                DM_R(abstractcs);
-                r_abstractcs->cmderr = DM_ABSTRACTCS_CMDERR_NOT_SUPPORTED;
-                return 0;
-            }
-
-            uint32_t regno = r_command->reg.regno;
-            if (r_command->reg.transfer==1) {
-                /**
-                 * Table 3.3: Abstract Register Numbers
-                 * 0x0000 - 0x0fff CSRs. The \PC" can be accessed here through dpc.
-                 * 0x1000 - 0x101f GPRs
-                 * 0x1020 - 0x103f Floating point registers
-                 */
-                if (regno < 0x1000) {
-                    dm_access_cpu_csrs(r_command->reg.write, regno, &ctx->regs[dm_ri_data0]);
-                    DM_DEBUG("%s cpu csr, regno %#.4x", r_command->reg.write?"write":"read", regno);
-                } else if (regno < 0x1020) {
-                    dm_access_cpu_gprs(r_command->reg.write, regno-0x1000, &ctx->regs[dm_ri_data0]);
-                    DM_DEBUG("%s cpu gpr, regno %#.4x value %#.8x", r_command->reg.write?"write":"read", regno, ctx->regs[dm_ri_data0]);
-                } else if (regno < 0x1040) {
-                    DM_DEBUG("%s cpu fpr, regno %#.4x", r_command->reg.write?"write":"read", regno);
-                } else {
-                    DM_ERROR("unknown regno %#.4x", regno);
-                }
-            }
-
+            dm_handle_command_access_register(ctx);
             break;
         }
         
         // Quick Access
         case 1:
         {
+            DM_ERROR("unimplement quick access");
             break;
         }
         
         // Access Memory Command
         case 2:
         {
+            dm_handle_command_access_memory(ctx);
             break;
         }
 
@@ -382,7 +487,7 @@ int dm_update_status(dm_ctx_t *ctx)
         if (0 == memcmp(&ctx->regs[i], &ctx->last_regs[i], sizeof(ctx->regs[i])))
             continue;
         
-        DM_DEBUG("register modify [%#x]%#.8x => %#.8x", i, ctx->last_regs[i], ctx->regs[i]);
+        // DM_DEBUG("register modify [%#x]%#.8x => %#.8x", i, ctx->last_regs[i], ctx->regs[i]);
     }
     
     dm_sync_regs(ctx);

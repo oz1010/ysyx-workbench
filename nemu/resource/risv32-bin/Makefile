@@ -14,7 +14,7 @@ ${BUILD_DIR}:
 
 # ${CC} -ffreestanding -nostdlib -static -Wl,-Ttext=0 -O2 -o $@ $<
 ${TAGET}: a.c
-	@${CC} -march=rv32i -mabi=ilp32 -ffreestanding -nostdlib -static -Wl,-Ttext=0 -O2 -o $@ $<
+	@${CC} -march=rv32i -mabi=ilp32 -ffreestanding -nostdlib -static -Wl,-Ttext=0 -O2 -g -o $@ $<
 
 # ${OBJDUMP} -M no-aliases -d $<
 objdump: ${TAGET}
