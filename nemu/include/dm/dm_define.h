@@ -328,7 +328,7 @@ typedef union {
         uint32_t transfer:1;
         uint32_t postexec:1;
         uint32_t aarpostincrement:1;
-        uint32_t aarsize:1;
+        uint32_t aarsize:3;
         uint32_t reserve0:1;
 
         /**
