@@ -150,8 +150,9 @@ static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *
                 memcpy(arg0, &mem_val, access_len);
             }
         } else {
-            DM_ERROR("unknown addr %#.8x", addr);
-            return DM_ABSTRACTCS_CMDERR_BUS;
+            DM_ERROR("unknown %s memory addr %#.8x skiped", write?"write":"read", addr);
+            // return DM_ABSTRACTCS_CMDERR_BUS;
+            return DM_ABSTRACTCS_CMDERR_NONE;
         }
 
         val += access_len;
