@@ -360,6 +360,15 @@ typedef union {
         uint32_t write:1;
         uint32_t reserve1:2;
         uint32_t aampostincrement:1;
+
+        /**
+         * 3.6.1.3 Access Memory
+         * 0: Access the lowest 8 bits of the memory location.
+         * 1: Access the lowest 16 bits of the memory location.
+         * 2: Access the lowest 32 bits of the memory location.
+         * 3: Access the lowest 64 bits of the memory location.
+         * 4: Access the lowest 128 bits of the memory location.
+         */
         uint32_t aamsize:3;
         uint32_t aamvirtual:1;
 
@@ -372,6 +381,12 @@ typedef union {
 
     uint32_t raw_value;
 } dm_reg_command_t;
+
+#define DM_COMMAND_MEMORY_AAMSIZE_8bits             0
+#define DM_COMMAND_MEMORY_AAMSIZE_16bits            1
+#define DM_COMMAND_MEMORY_AAMSIZE_32bits            2
+#define DM_COMMAND_MEMORY_AAMSIZE_64bits            3
+#define DM_COMMAND_MEMORY_AAMSIZE_128bits           4
 
 typedef struct {
     dm_regs_idx_t idx;      // 寄存器索引
