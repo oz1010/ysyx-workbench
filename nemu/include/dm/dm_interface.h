@@ -14,5 +14,6 @@ int dmi_execute(uint32_t addr, uint32_t *val, uint32_t op);
 int dmi_update_status(void);
 dm_debug_status_t dmi_get_debug_status(void);
 int dmi_update_core_debug_register(int period);
+int dmi_check_ebreak(uint32_t inst);
 
 #endif

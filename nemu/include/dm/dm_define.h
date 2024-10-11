@@ -262,6 +262,22 @@ typedef union {
 } dm_reg_dmcontrol_t;
 
 /**
+ * 3.12.3 Hart Info (hartinfo, at 0x12)
+ */
+typedef union {
+    struct {
+        uint32_t    dataaddr:12;
+        uint32_t    datasize:4;
+        uint32_t    dataaccess:1;
+        uint32_t    reserve0:3;
+        uint32_t    nscratch:4;
+        uint32_t    reserve1:8;
+    };
+
+    uint32_t raw_value;
+} dm_reg_hartinfo_t;
+
+/**
  * 3.12.6 Abstract Control and Status (abstractcs, at 0x16)
  */
 typedef union {
@@ -428,6 +444,12 @@ typedef union {
 
     uint32_t raw_value;
 } cd_reg_dcsr_t;
+
+#define CD_DCSR_CAUSE_EBREAK            1
+#define CD_DCSR_CAUSE_BREAKPOINT_EX     2
+#define CD_DCSR_CAUSE_HALTREQ           3
+#define CD_DCSR_CAUSE_STEP              4
+#define CD_DCSR_CAUSE_RESET             5
 
 /**
  * 4.8.2 Debug PC (dpc, at 0x7b1)
