@@ -41,7 +41,19 @@
 
 struct _dm_ctx_s;
 
-typedef int (*dm_handle_reg_func_t)(struct _dm_ctx_s *ctx);
+typedef int (*dm_handle_reg_func_t)(void *arg);
+
+/**
+ * 触发器基本信息
+ */
+typedef struct _tm_trigger_info_s
+{
+    /**
+     * Bit N corresponds to type N. If the bit is set, then that type is 
+     * supported by the currently selected trigger.
+     */
+    uint32_t info;
+} tm_trigger_info_t;
 
 /**
  * 调试模块上下文
@@ -85,6 +97,26 @@ typedef struct _dm_ctx_s
      * dm自身的调试状态
      */
     dm_debug_status_t debug_status;
+
+    /**
+     * ref. The RISC-V Instruction Set Manual Volume II - Privileged Architecture
+     *   2.2 CSR Listing
+     *     Machine-Level CSRs
+     */
+    uint32_t csr_regs[0x1000];
+
+    // /**
+    //  * tm触发器寄存器
+    //  */
+    // uint32_t tm_regs[16];
+    /**
+     * tm触发器数组
+    */
+    tm_trigger_info_t tm_triggers[TM_TRIGER_COUNT];
+    /**
+     * tm当前选择的触发器
+     */
+    tm_trigger_info_t *cur_trigger;
 } dm_ctx_t;
 
 int dm_init(void);

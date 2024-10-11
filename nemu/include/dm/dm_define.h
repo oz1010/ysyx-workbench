@@ -9,21 +9,45 @@
 #define DM_ARRAY_SIZE(A) (sizeof(A)/sizeof(A[0]))
 
 /**
+ * ref. The RISC-V Instruction Set Manual Volume II - Privileged Architecture
+ *   2.2 CSR Listing
+ */
+#define std_ri_mstatus                      0x300
+#define std_ri_misa                         0x301
+
+/**
  * ref. RISC-V External Debug Support Version 0.13.2 
  *   4.8 Core Debug Registers
  */
-enum {
-    // 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
-    cd_ri_dcsr = 0,
-    // 4.8.2 Debug PC (dpc, at 0x7b1)
-    cd_ri_dpc,
-    // 4.8.3 Debug Scratch Register 0 (dscratch0, at 0x7b2)
-    cd_ri_dscratch0,
-    // 4.8.4 Debug Scratch Register 1 (dscratch1, at 0x7b3)
-    cd_ri_dscratch1,
+// 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
+#define cd_ri_dcsr                          0x7b0
+// 4.8.2 Debug PC (dpc, at 0x7b1)
+#define cd_ri_dpc                           0x7b1
+// 4.8.3 Debug Scratch Register 0 (dscratch0, at 0x7b2)
+#define cd_ri_dscratch0                     0x7b0
+// 4.8.4 Debug Scratch Register 1 (dscratch1, at 0x7b3)
+#define cd_ri_dscratch1                     0x7b0
 
-    cd_ri_count,
-};
+/**
+ * ref. RISC-V External Debug Support Version 0.13.2 
+ *   5.2 Trigger Registers
+ */
+#define tm_ri_tselect                       0x7a0
+#define tm_ri_tdata1                        0x7a1
+#define tm_ri_mcontrol                      0x7a1
+#define tm_ri_icount                        0x7a1
+#define tm_ri_itrigger                      0x7a1
+#define tm_ri_etrigger                      0x7a1
+#define tm_ri_tdata2                        0x7a2
+#define tm_ri_tdata3                        0x7a3
+#define tm_ri_textra32                      0x7a3
+#define tm_ri_textra64                      0x7a3
+#define tm_ri_tinfo                         0x7a4
+#define tm_ri_tcontrol                      0x7a5
+#define tm_ri_mcontext                      0x7a8
+#define tm_ri_scontext                      0x7aa
+
+#define TM_TRIGER_COUNT                     6
 
 /**
  * ref. RISC-V External Debug Support Version 0.13.2
@@ -410,6 +434,93 @@ typedef struct {
 } dm_reg_map_item_t;
 
 /**
+ * 3.1.6 Machine Status Registers (mstatus and mstatush)
+ *   0x300
+ */
+typedef union {
+    struct {
+        uint32_t            reserve0:1;
+        uint32_t            sie:1;
+        uint32_t            reserve1:1;
+        uint32_t            mie:1;
+        uint32_t            reserve2:1;
+        uint32_t            spie:1;
+        uint32_t            ube:1;
+        uint32_t            mpie:1;
+        uint32_t            spp:1;
+
+        /**
+         * 3.1.6.6 Extension Context Status in mstatus Register
+         *   Status --  FS and VS Meaning
+         *   0 --       Off
+         *   1 --       Initial
+         *   2 --       Clean
+         *   3 --       Dirty
+         */
+        uint32_t            vs:2;
+
+        uint32_t            mpp:2;
+
+        /**
+         * 3.1.6.6 Extension Context Status in mstatus Register
+         *   Status --  FS and VS Meaning
+         *   0 --       Off
+         *   1 --       Initial
+         *   2 --       Clean
+         *   3 --       Dirty
+         */
+        uint32_t            fs:2;
+
+        /**
+         * 3.1.6.6 Extension Context Status in mstatus Register
+         *   Status --  XS Meaning
+         *   0 --       All off
+         *   1 --       None dirty or clean, some on
+         *   2 --       None dirty, some clean
+         *   3 --       Some dirty
+         */
+        uint32_t            xs:2;
+
+        uint32_t            mprv:1;
+        uint32_t            sum:1;
+        uint32_t            mxr:1;
+        uint32_t            tvm:1;
+        uint32_t            tw:1;
+        uint32_t            tsr:1;
+        uint32_t            reserve3:8;
+        uint32_t            sd:1;
+    };
+
+    uint32_t raw_value;
+} std_reg_mstatus_t;
+
+/**
+ * 3.1.1 Machine ISA Register misa
+ *   0x301
+ */
+typedef union {
+    struct {
+        uint32_t        extensions:26;
+        uint32_t        reserve0:4;
+
+        /**
+         * The MXL (Machine XLEN) field encodes the native base integer ISA width
+         * MXL --   XLEN
+         * 1 --     32
+         * 2 --     64
+         * 3 --     128
+         */
+        uint32_t        mxl:2;
+    };
+
+    uint32_t raw_value;
+} std_reg_misa_t;
+
+#define STD_MISA_MXL_32             1
+#define STD_MISA_MXL_64             2
+#define STD_MISA_MXL_128            3
+
+/**
  * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
  */
 typedef union {
@@ -457,5 +568,200 @@ typedef union {
 typedef union {
     uint32_t raw_value;
 } cd_reg_dpc_t;
+
+/**
+ * 5.2.1 Trigger Select (tselect, at 0x7a0)
+ */
+typedef union {
+    struct {
+        uint32_t    index;
+    };
+    
+    uint32_t raw_value;
+} tm_reg_tselect_t;
+
+/**
+ * 5.2.2 Trigger Data 1 (tdata1, at 0x7a1)
+ */
+typedef union {
+    struct {
+        uint32_t    data:27;
+        uint32_t    dmode:1;
+
+        /**
+         * 0: There is no trigger at this tselect.
+         * 1: The trigger is a legacy SiFive address match trigger. These should not be implemented and aren’t further documented here.
+         * 2: The trigger is an address/data match trigger. The remaining bits in this register act as described in mcontrol.
+         * 3: The trigger is an instruction count trigger. The remaining bits in this register act as described in icount.
+         * 4: The trigger is an interrupt trigger. The remaining bits in this register act as described in itrigger.
+         * 5: The trigger is an exception trigger. The remaining bits in this register act as described in etrigger.
+         * 15: This trigger exists (so enumeration shouldn’t terminate), but is not currently available.
+         * Other values are reserved for future use.
+         */
+        uint32_t    type:4;
+    };
+    
+    uint32_t raw_value;
+} tm_reg_tdata1_t;
+
+#define TM_TDATA1_NONE                      0
+#define TM_TDATA1_LEGACY_SIFIVE             1
+#define TM_TDATA1_ADDR_OR_DATA              2
+#define TM_TDATA1_ICOUNT                    3
+#define TM_TDATA1_INTERRUPT                 4
+#define TM_TDATA1_EXCEPTION                 5
+#define TM_TDATA1_EXISTS                    15
+
+#define TM_TDATA1_MASK_NONE                 (1<<TM_TDATA1_NONE)
+#define TM_TDATA1_MASK_LEGACY_SIFIVE        (1<<TM_TDATA1_LEGACY_SIFIVE)
+#define TM_TDATA1_MASK_ADDR_OR_DATA         (1<<TM_TDATA1_ADDR_OR_DATA)
+#define TM_TDATA1_MASK_ICOUNT               (1<<TM_TDATA1_ICOUNT)
+#define TM_TDATA1_MASK_INTERRUPT            (1<<TM_TDATA1_INTERRUPT)
+#define TM_TDATA1_MASK_EXCEPTION            (1<<TM_TDATA1_EXCEPTION)
+#define TM_TDATA1_MASK_EXISTS               (1<<TM_TDATA1_EXISTS)
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+        uint32_t            load:1;
+        uint32_t            store:1;
+        uint32_t            execute:1;
+        uint32_t            u:1;
+        uint32_t            s:1;
+        uint32_t            reserve0:1;
+        uint32_t            m:1;
+        uint32_t            match:4;
+        uint32_t            chain:1;
+        uint32_t            action:4;
+        uint32_t            sizelo:2;
+        uint32_t            timing:1;
+        uint32_t            select:1;
+        uint32_t            hit:1;
+        /*
+        This field only exists if XLEN is greater than 32
+        // uint32_t            sizehi:2;
+        // uint32_t            reserve1:30;
+        */
+        uint32_t            maskmax:6;
+        uint32_t            dmode:1;
+        uint32_t            type:4;
+    };
+    
+    uint32_t raw_value;
+} tm_reg_mcontrol_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_icount_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_itrigger_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_etrigger_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_tdata2_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_tdata3_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_textra32_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_textra64_t;
+
+/**
+ * 5.2.5 Trigger Info (tinfo, at 0x7a4)
+ */
+typedef union {
+    struct {
+        uint32_t        info:16;
+    };
+    
+    uint32_t raw_value;
+} tm_reg_tinfo_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_tcontrol_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_mcontext_t;
+
+/**
+ * 
+ */
+typedef union {
+    struct {
+    };
+    
+    uint32_t raw_value;
+} tm_reg_scontext_t;
+
 
 #endif
