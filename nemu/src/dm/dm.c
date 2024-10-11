@@ -12,6 +12,11 @@
 
 #define DM_RI_STR_ITEM(N) [dm_ri_##N] = #N
 
+#define DM_DMSTATUS_SET(S, V) do{       \
+    r_dmstatus->all##S = (V);            \
+    r_dmstatus->any##S = (V);            \
+}while(0)
+
 static int dm_handle_dmcontrol(dm_ctx_t *ctx);
 static int dm_handle_abstractcs(dm_ctx_t *ctx);
 static int dm_handle_command(dm_ctx_t *ctx);
@@ -262,6 +267,9 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
 {
     memset(ctx->regs, 0, sizeof(ctx->regs));
 
+    DM_R(hartinfo);
+    r_hartinfo->nscratch = 0;
+
     DM_R(abstractcs);
     r_abstractcs->datacount = 1;
 
@@ -270,15 +278,11 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
     r_dmstatus->authenticated = 1; 
 
 #if DM_CTX_DEBUG_INIT_HALTED
-    r_dmstatus->allrunning = 0;
-    r_dmstatus->anyrunning = 0;
-    r_dmstatus->allhalted = 1;
-    r_dmstatus->anyhalted = 1;
+    DM_DMSTATUS_SET(running, 0);
+    DM_DMSTATUS_SET(halted, 1);
 #else
-    r_dmstatus->allrunning = 1;
-    r_dmstatus->anyrunning = 1;
-    r_dmstatus->allhalted = 0;
-    r_dmstatus->anyhalted = 0;
+    DM_DMSTATUS_SET(running, 1);
+    DM_DMSTATUS_SET(halted, 0);
 #endif
 
     dm_sync_regs(ctx);
@@ -310,15 +314,72 @@ static inline int dm_write(dm_ctx_t *ctx, uint32_t addr, uint32_t val)
 // TODO dm调试状态迁移
 static void dm_trans_debug_status(dm_ctx_t *ctx)
 {
+    CD_R(dcsr);
+    DM_R(dmcontrol);
+    DM_R(dmstatus);
+    DM_R(abstractcs);
     dm_debug_status_t last_debug_status = dm_ds_none;
 
     while(last_debug_status != ctx->debug_status)
     {
+        if (r_abstractcs->cmderr != 0) {
+            ctx->debug_status = dm_ds_error_wait;
+        }
+
         switch(ctx->debug_status)
         {
+            case dm_ds_error_wait:
+            {
+                DM_DEBUG("current is error wait");
+
+                if (r_abstractcs->cmderr == 0) {
+                    ctx->debug_status = dm_ds_halted_waiting;
+                    DM_DEBUG("current is error wait, => halted waiting");
+                }
+                break;
+            }
+
             case dm_ds_halted_waiting:
             {
-                // DM_DEBUG("current is halted");
+                // DM_DEBUG("current is halted waiting");
+
+                if (r_dmstatus->allhalted == 1 &&
+                    r_abstractcs->busy == 0 &&
+                    r_abstractcs->cmderr == 0 &&
+                    r_dmcontrol->resumereq == 1
+                ) {
+                    r_dmcontrol->resumereq = 0;
+                    DM_DMSTATUS_SET(resumeack, 1);
+                    ctx->debug_status = dm_ds_resuming;
+
+                    DM_DEBUG("current is halted waiting, => resuming");
+                    DM_DEBUG("status: step:%u cause:%u dcsr:%x", r_dcsr->step, r_dcsr->cause, r_dcsr->raw_value);
+                }
+                break;
+            }
+
+            case dm_ds_resuming:
+            {
+                DM_DEBUG("current is resuming");
+
+                if (r_dmstatus->allrunning == 0 &&
+                    r_abstractcs->busy == 0 &&
+                    r_abstractcs->cmderr == 0
+                ) {
+                    DM_DMSTATUS_SET(running, 1);
+                    ctx->debug_status = dm_ds_mus_mode;
+                    
+                    DM_DEBUG("current is resuming, => mus mode");
+                }
+                break;
+            }
+
+            case dm_ds_mus_mode:
+            {
+                DM_DEBUG("current is mus mode");
+
+                DM_DMSTATUS_SET(running, 1);
+                ctx->debug_status = dm_ds_mus_mode;
                 break;
             }
 
@@ -334,8 +395,11 @@ static void dm_trans_debug_status(dm_ctx_t *ctx)
 static int dm_handle_dmcontrol(dm_ctx_t *ctx)
 {
     DM_R(dmcontrol);
+    DM_R(dmstatus);
+    dm_reg_dmcontrol_t *last_val = (dm_reg_dmcontrol_t *)&ctx->last_val;
     dm_reg_dmcontrol_t *w_val = (dm_reg_dmcontrol_t *)&ctx->val;
     uint32_t hartsel = w_val->hartselhi << 10 | w_val->hartsello;
+    uint32_t last_hartsel = last_val->hartselhi << 10 | last_val->hartsello;
 
     // 调试器在启动时会使用最大值进行探测，返回最大支持的掩码即可
     if (hartsel == 0xFFFFF)
@@ -352,7 +416,12 @@ static int dm_handle_dmcontrol(dm_ctx_t *ctx)
         DM_ERROR("found invalid core id %#.8x", hartsel);
     }
 
-    r_dmcontrol->hasel = hartsel;
+    r_dmcontrol->hasel = 0;
+
+    uint32_t cur_hartsel = r_dmcontrol->hartselhi << 10 | r_dmcontrol->hartsello;
+    if (last_hartsel != cur_hartsel) {
+        DM_DEBUG("switch current from hart[%u] to hart[%u]", last_hartsel, cur_hartsel);
+    }
 
     return 0;
 }
@@ -474,9 +543,6 @@ int dm_execute(dm_ctx_t *ctx, uint32_t addr, uint32_t *val, uint32_t op)
         }
     }
 
-    // 更新dm状态
-    dm_update_status(ctx);
-
     return 0;
 }
 
@@ -491,10 +557,10 @@ int dm_update_status(dm_ctx_t *ctx)
         // DM_DEBUG("register modify [%#x]%#.8x => %#.8x", i, ctx->last_regs[i], ctx->regs[i]);
     }
     
-    dm_sync_regs(ctx);
-
     // dm调试状态进行迁移
     dm_trans_debug_status(ctx);
+
+    dm_sync_regs(ctx);
 
     return 0;
 }
@@ -508,5 +574,27 @@ int dm_select(uint32_t ctx_idx)
 {
     assert(ctx_idx < DM_CTX_MAX && "dm select ctx_idx is too large");
     cur_dm_ctx = &dm_ctx_list[ctx_idx];
+    return 0;
+}
+
+int dm_check_ebreak(dm_ctx_t *ctx, uint32_t inst)
+{
+    CD_R(dcsr);
+    DM_R(dmstatus);
+
+    /**
+     * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
+     *   使用ebreak实现单步调试
+     */
+    if (r_dcsr->ebreakm == 1 &&
+        inst == 0x00100073
+    ) {
+        r_dcsr->cause = CD_DCSR_CAUSE_EBREAK;
+        DM_DMSTATUS_SET(running, 0);
+        DM_DMSTATUS_SET(halted, 1);
+        ctx->debug_status = dm_ds_halted_waiting;
+        DM_DEBUG("ebreak => halted waiting");
+    }
+
     return 0;
 }

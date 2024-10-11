@@ -163,6 +163,9 @@ void dtm_update(int period, Decode *s, CPU_state *c)
     // 执行指令前
     if (period == 0)
     {
+        // 当遇到ebreak指令时，可能需要切换到调试状态
+        dmi_check_ebreak(s->isa.inst.val);
+
         while(dtm_dm_valid()) {
             dtm_msg_reset(&recv_msg);
             if (dtmn_msg_queue_pop(&dtmn_msg_queue, &recv_msg) != 0) {
@@ -244,9 +247,6 @@ void dtm_update(int period, Decode *s, CPU_state *c)
                         break;
                     }
                 }
-
-                // 执行完dtm命令后，更新dmi状态
-                dmi_update_status();
             }
 
             // 直接回复消息
@@ -257,6 +257,9 @@ void dtm_update(int period, Decode *s, CPU_state *c)
                 return;
             }
             // DTM_DEBUG("send done, ret:%d", send_ret);
+
+            // 执行完dtm命令后，更新dm状态
+            dmi_update_status();
         }
     }
     // 执行指令后

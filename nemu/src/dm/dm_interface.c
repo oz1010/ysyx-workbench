@@ -38,3 +38,8 @@ int dmi_update_core_debug_register(int period)
 
     return 0;
 }
+
+int dmi_check_ebreak(uint32_t inst)
+{
+    return dm_check_ebreak(cur_dm_ctx, inst);
+}
