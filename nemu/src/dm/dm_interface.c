@@ -31,10 +31,11 @@ dm_debug_status_t dmi_get_debug_status(void)
 
 int dmi_update_core_debug_register(int period)
 {
-    uint32_t *csr = &cpu.csr[0];
+    extern int dm_access_cpu_csr(uint32_t write, int reg_idx, word_t *reg_value);
+    extern CPU_state *cur_cpu;
     
     // 按最简单的方式更新状态
-    csr[cd_ri_dpc] = cpu.pc;
+    dm_access_cpu_csr(1, cd_ri_dpc, &cur_cpu->pc);
 
     return 0;
 }
