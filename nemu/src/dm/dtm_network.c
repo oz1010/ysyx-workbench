@@ -221,6 +221,8 @@ static void *dtmn_server_thread(void *arg)
             continue;
         }
 
+        LOG_INFO("DM server found new client(%d)", client_fd);
+
         while(dtmn_data_handle(client_fd) > 0);
     }
     
