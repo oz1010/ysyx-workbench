@@ -163,9 +163,20 @@ static int decode_exec(Decode *s) {
 }
 
 int isa_exec_once(Decode *s) {
-  s->isa.inst.val = inst_fetch(&s->snpc, 4);
+#if CONFIG_DEBUG_MODULE
+  // read instruction before debug
+  vaddr_t snpc1 = s->snpc;
+  s->isa.inst.val = inst_fetch(&snpc1, 4);
+  dtm_update(0, s, &cpu);
 
-  IFDEF(CONFIG_DEBUG_MODULE, dtm_update(0, s, &cpu));
+  // read instruction before execution
+  vaddr_t snpc2 = s->snpc;
+  s->isa.inst.val = inst_fetch(&snpc2, 4);
+  s->snpc = snpc2;
+#else
+  s->isa.inst.val = inst_fetch(&s->snpc, 4);
+#endif
+
   int ret = decode_exec(s);
   IFDEF(CONFIG_DEBUG_MODULE, dtm_update(1, s, &cpu));
 
