@@ -226,7 +226,9 @@ static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *
                 memcpy(arg0, &mem_val, access_len);
             }
         } else if (addr == 0x7ffffffc && !write) {
+            *arg0 = 0;
             DM_DEBUG("gdb connected target, addr %#.8x", addr);
+            return DM_ABSTRACTCS_CMDERR_NONE;
         } else if (addr < DM_ARRAY_SIZE(ctx->access_memory)) {
             if (write) {
                 // memcpy(&ctx->access_memory[addr], arg0, access_len);
