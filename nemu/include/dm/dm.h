@@ -136,6 +136,6 @@ int dm_execute(dm_ctx_t *ctx, uint32_t addr, uint32_t *val, uint32_t op);
 int dm_update_status(dm_ctx_t *ctx);
 dm_debug_status_t dm_get_debug_status(dm_ctx_t *ctx);
 int dm_select(uint32_t ctx_idx);
-int dm_check_ebreak(dm_ctx_t *ctx, uint32_t inst);
+int dm_prepare_status(dm_ctx_t *ctx, uint32_t inst);
 
 #endif

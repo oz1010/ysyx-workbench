@@ -29,6 +29,13 @@ dm_debug_status_t dmi_get_debug_status(void)
     return dm_get_debug_status(cur_dm_ctx);
 }
 
+bool dmi_is_hart_running(void)
+{
+    dm_reg_dmstatus_t *r_dmstatus = (dm_reg_dmstatus_t *)&cur_dm_ctx->regs[dm_ri_dmstatus];
+
+    return r_dmstatus->allrunning == 1;
+}
+
 int dmi_update_core_debug_register(int period)
 {
     extern int dm_access_cpu_csr(uint32_t write, int reg_idx, word_t *reg_value);
@@ -40,7 +47,8 @@ int dmi_update_core_debug_register(int period)
     return 0;
 }
 
-int dmi_check_ebreak(uint32_t inst)
+int dmi_prepare_status(uint32_t inst)
 {
-    return dm_check_ebreak(cur_dm_ctx, inst);
+    // 当遇到ebreak指令时，可能需要切换到调试状态
+    return dm_prepare_status(cur_dm_ctx, inst);
 }
