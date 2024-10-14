@@ -137,13 +137,35 @@ if DEBUG_MODULE_SYSTEM
     default y
     help
       Enable RISC-V debug module
+
+  config DTM_LOG
+    bool "Enable DTM log"
+    depends on DEBUG_MODULE
+    default n
+    help
+      Enable the log of RISC-V debug transport module
+      
+  config DM_LOG
+    bool "Enable DM log"
+    depends on DEBUG_MODULE
+    default n
+    help
+      Enable the log of RISC-V debug module
     
+  config DM_IO_LOG
+    bool "Enable DM-IO log"
+    depends on DEBUG_MODULE && DM_LOG
+    default n
+    help
+      Enable the IO log of RISC-V debug module
+
   config DM_PORT
     int "Listening port for DM"
     depends on DEBUG_MODULE
     default 51234
     help
       Setting listening port for DM
+    
 endif # DEBUG_MODULE_SYSTEM
 
 menuconfig DEBUG_SYSTEM
