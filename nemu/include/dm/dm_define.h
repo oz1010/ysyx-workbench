@@ -49,6 +49,8 @@
 
 #define TM_TRIGER_COUNT                     6
 
+#define DM_ACCESS_MEMORY_MAX                100
+
 /**
  * ref. RISC-V External Debug Support Version 0.13.2
  */
