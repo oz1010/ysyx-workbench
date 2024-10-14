@@ -707,6 +707,9 @@ int dm_check_ebreak(dm_ctx_t *ctx, uint32_t inst)
     CD_R(dcsr);
     DM_R(dmstatus);
 
+    word_t cur_pc = 0;
+    dm_access_cpu_csr(0, cd_ri_dpc, &cur_pc);
+
     /**
      * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
      *   使用ebreak实现单步调试
@@ -718,7 +721,7 @@ int dm_check_ebreak(dm_ctx_t *ctx, uint32_t inst)
         DM_DMSTATUS_SET(running, 0);
         DM_DMSTATUS_SET(halted, 1);
         ctx->debug_status = dm_ds_halted_waiting;
-        DM_DEBUG("ebreak => halted waiting");
+        DM_DEBUG("pc:%#.8x found ebreak, => halted waiting", cur_pc);
     }
 
     return 0;
