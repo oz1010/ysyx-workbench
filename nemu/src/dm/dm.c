@@ -205,6 +205,7 @@ static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *
     paddr_t addr = *arg1;
     uint8_t *val = (uint8_t *)arg0;
     int access_len = 4;
+    dm_ctx_t *ctx = cur_dm_ctx;
 
     for (int i=0; i<size; i+=access_len) {
         access_len = size - i;
@@ -223,6 +224,13 @@ static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *
             } else {
                 word_t mem_val = mmio_read(addr, access_len);
                 memcpy(arg0, &mem_val, access_len);
+            }
+        } else if (addr < DM_ARRAY_SIZE(ctx->access_memory)) {
+            if (write) {
+                // memcpy(&ctx->access_memory[addr], arg0, access_len);
+                DM_ERROR("unsupport write memory addr %#.8x skiped", addr);
+            } else {
+                memcpy(arg0, &ctx->access_memory[addr], access_len);
             }
         } else {
             DM_ERROR("unknown %s memory addr %#.8x skiped", write?"write":"read", addr);

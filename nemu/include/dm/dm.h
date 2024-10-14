@@ -117,6 +117,11 @@ typedef struct _dm_ctx_s
      * tm当前选择的触发器
      */
     tm_trigger_info_t *cur_trigger;
+
+    /**
+     * 可访问内存部分
+     */
+    uint8_t access_memory[DM_ACCESS_MEMORY_MAX];
 } dm_ctx_t;
 
 int dm_init(void);
