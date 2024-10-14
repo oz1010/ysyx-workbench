@@ -1,6 +1,7 @@
 #ifndef __DM_H__
 #define __DM_H__
 
+#include "generated/autoconf.h"
 #include "dm/dm_define.h"
 
 #define     DM_CTX_MAX                  1
@@ -12,7 +13,13 @@
 #define     DM_ACCESS_OP_READ           1
 #define     DM_ACCESS_OP_WRITE          2
 
-#if DM_ENABLE_DEBUG_LOG
+#if CONFIG_DM_IO_LOG
+#define DM_IO_DEBUG(format, ...) LOG_DEBUG("(dm io) " format, ## __VA_ARGS__)
+#else
+#define DM_IO_DEBUG(format, ...)
+#endif
+
+#if COMFIG_DM_LOG
 #define DM_DEBUG(format, ...) LOG_DEBUG("(dm) " format, ## __VA_ARGS__)
 #else
 #define DM_DEBUG(format, ...)

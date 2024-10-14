@@ -96,7 +96,7 @@ static const char * dm_ri_strs[dm_ri_count] = {
     DM_RI_STR_ITEM(haltsum0),
 };
 
-static const char* dm_ri_2_str(uint32_t idx)
+const char* dm_ri_2_str(uint32_t idx)
 {
     const char* ret_str = dm_ri_strs[idx%dm_ri_count];
 
@@ -225,6 +225,8 @@ static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *
                 word_t mem_val = mmio_read(addr, access_len);
                 memcpy(arg0, &mem_val, access_len);
             }
+        } else if (addr == 0x7ffffffc && !write) {
+            DM_DEBUG("gdb connected target, addr %#.8x", addr);
         } else if (addr < DM_ARRAY_SIZE(ctx->access_memory)) {
             if (write) {
                 // memcpy(&ctx->access_memory[addr], arg0, access_len);
@@ -379,14 +381,14 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
 static inline int dm_read(dm_ctx_t *ctx, uint32_t addr, uint32_t *val)
 {
     *val = ctx->regs[ctx->addr];
-    // DM_REPEAT("read [%#x '%s'] => %#.8x", addr, dm_ri_2_str(addr), *val);
+    // DM_IO_DEBUG("read [%#x '%s'] => %#.8x", addr, dm_ri_2_str(addr), *val);
     return 0;
 }
 
 static inline int dm_write(dm_ctx_t *ctx, uint32_t addr, uint32_t val)
 {
     ctx->regs[ctx->addr] = val;
-    DM_REPEAT("write [%#x '%s'] <= %#.8x", addr, dm_ri_2_str(addr), val);
+    DM_IO_DEBUG("write [%#x '%s'] <= %#.8x", addr, dm_ri_2_str(addr), val);
     return 0;
 }
 
