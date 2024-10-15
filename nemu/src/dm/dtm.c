@@ -58,9 +58,10 @@ int dtm_init(int argc, char *argv[])
     return 0;
 }
 
-int dtm_dm_valid()
+int dtm_is_dm_loop()
 {
-    return dmi_get_debug_status() > dm_ds_mus_mode;
+    // return dmi_get_debug_status() > dm_ds_mus_mode;
+    return !dmi_is_hart_running();
 }
 
 void dtm_dm_dump_data(const char *title, uint8_t *data, int32_t size)
@@ -163,10 +164,9 @@ void dtm_update(int period, Decode *s, CPU_state *c)
     // 执行指令前
     if (period == 0)
     {
-        // 当遇到ebreak指令时，可能需要切换到调试状态
-        dmi_check_ebreak(s->isa.inst.val);
+        dmi_prepare_status(s->isa.inst.val);
 
-        while(dtm_dm_valid()) {
+        while(dtm_is_dm_loop()) {
             dtm_msg_reset(&recv_msg);
             if (dtmn_msg_queue_pop(&dtmn_msg_queue, &recv_msg) != 0) {
                 usleep(10000);

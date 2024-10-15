@@ -702,7 +702,7 @@ int dm_select_trigger(uint32_t trigger_idx)
     return 0;
 }
 
-int dm_check_ebreak(dm_ctx_t *ctx, uint32_t inst)
+int dm_prepare_status(dm_ctx_t *ctx, uint32_t inst)
 {
     CD_R(dcsr);
     DM_R(dmstatus);
