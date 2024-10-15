@@ -56,10 +56,27 @@ typedef int (*dm_handle_reg_func_t)(void *arg);
 typedef struct _tm_trigger_info_s
 {
     /**
+     * used
+     */
+    bool used;
+
+    /**
      * Bit N corresponds to type N. If the bit is set, then that type is 
      * supported by the currently selected trigger.
      */
     uint32_t info;
+
+    union {
+        struct {
+            uint32_t control;
+        } common;
+
+        struct {
+            uint32_t control;
+            uint32_t addr;
+        } breakpoint;
+    };
+
 } tm_trigger_info_t;
 
 /**
@@ -129,6 +146,11 @@ typedef struct _dm_ctx_s
      * 可访问内存部分
      */
     uint8_t access_memory[DM_ACCESS_MEMORY_MAX];
+
+    /**
+     * 当前所处执行周期
+     */
+    dm_exec_inst_period_t exec_inst_period;
 } dm_ctx_t;
 
 int dm_init(void);

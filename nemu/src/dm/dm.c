@@ -148,6 +148,7 @@ static int dm_access_csr_trigger(uint32_t write, int reg_idx, word_t *reg_value)
 {
     TM_R(tselect);
     TM_R(tinfo);
+    tm_trigger_info_t *cur_trigger = cur_dm_ctx->cur_trigger;
 
     switch(reg_idx)
     {
@@ -161,6 +162,33 @@ static int dm_access_csr_trigger(uint32_t write, int reg_idx, word_t *reg_value)
 
         case tm_ri_mcontrol:
             DM_DEBUG("mcontrol %s value %#.8x", write?"write":"read", *reg_value);
+            if (write) {
+                if (*reg_value == 0) {
+                    DM_DEBUG("clear trigger address:%#.8x", cur_trigger->breakpoint.addr);
+                    uint32_t last_info = cur_trigger->info;
+                    memset(cur_trigger, 0, sizeof(tm_trigger_info_t));
+                    cur_trigger->info = last_info;
+                } else {
+                    if (cur_trigger->used) {
+                        DM_ERROR("current trigger is used, address:%#.8x", cur_trigger->breakpoint.addr);
+                        return 0;
+                    }
+
+                    TM_R(tdata2);
+                    cur_trigger->used = true;
+                    cur_trigger->breakpoint.control = *reg_value;
+                    cur_trigger->breakpoint.addr = r_tdata2->raw_value;
+                    DM_DEBUG("create new trigger address:%#.8x", cur_trigger->breakpoint.addr);
+                }
+            }
+            break;
+
+        case tm_ri_tdata2:
+            DM_DEBUG("tdata2 %s value %#.8x", write?"write":"read", *reg_value);
+            break;
+
+        case tm_ri_tinfo:
+            DM_DEBUG("tinfo %s value %#.8x", write?"write":"read", *reg_value);
             break;
 
         default:
@@ -710,18 +738,20 @@ int dm_prepare_status(dm_ctx_t *ctx, uint32_t inst)
     word_t cur_pc = 0;
     dm_access_cpu_csr(0, cd_ri_dpc, &cur_pc);
 
-    /**
-     * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
-     *   使用ebreak实现单步调试
-     */
-    if (r_dcsr->ebreakm == 1 &&
-        inst == 0x00100073
-    ) {
-        r_dcsr->cause = CD_DCSR_CAUSE_EBREAK;
-        DM_DMSTATUS_SET(running, 0);
-        DM_DMSTATUS_SET(halted, 1);
-        ctx->debug_status = dm_ds_halted_waiting;
-        DM_DEBUG("pc:%#.8x found ebreak, => halted waiting", cur_pc);
+    if (ctx->exec_inst_period == DM_EXEC_INST_BEFORE) {
+        /**
+         * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
+         *   使用ebreak实现单步调试
+         */
+        if (r_dcsr->ebreakm == 1 &&
+            inst == 0x00100073
+        ) {
+            r_dcsr->cause = CD_DCSR_CAUSE_EBREAK;
+            DM_DMSTATUS_SET(running, 0);
+            DM_DMSTATUS_SET(halted, 1);
+            ctx->debug_status = dm_ds_halted_waiting;
+            DM_DEBUG("pc:%#.8x found ebreak, => halted waiting", cur_pc);
+        }
     }
 
     return 0;

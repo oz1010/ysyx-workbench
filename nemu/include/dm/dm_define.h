@@ -52,6 +52,14 @@
 #define DM_ACCESS_MEMORY_MAX                100
 
 /**
+ * DM执行指令周期枚举
+ */
+typedef enum {
+    DM_EXEC_INST_BEFORE,
+    DM_EXEC_INST_AFTER,
+} dm_exec_inst_period_t;
+
+/**
  * ref. RISC-V External Debug Support Version 0.13.2
  */
 typedef enum {
