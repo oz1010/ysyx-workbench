@@ -375,7 +375,7 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
     r_dcsr->cause = 3;
 
     CD_R(dpc);
-    r_dpc->raw_value = CONFIG_MBASE;
+    r_dpc->raw_value = cur_cpu->pc;
 
     return 0;
 }
