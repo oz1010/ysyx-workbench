@@ -60,19 +60,26 @@ typedef struct _tm_trigger_info_s
      */
     bool used;
 
-    /**
-     * Bit N corresponds to type N. If the bit is set, then that type is 
-     * supported by the currently selected trigger.
-     */
-    uint32_t info;
-
     union {
+        struct
+        {
+            uint32_t id;
+        };
+        
         struct {
-            uint32_t control;
+            uint32_t tselect;
+            uint32_t tdata[3];
+
+            /**
+             * Bit N corresponds to type N. If the bit is set, then that type is 
+             * supported by the currently selected trigger.
+             */
+            uint32_t tinfo;
         } common;
 
         struct {
-            uint32_t control;
+            uint32_t id;
+            uint32_t mcontrol;
             uint32_t addr;
         } breakpoint;
     };

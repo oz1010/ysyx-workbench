@@ -164,21 +164,22 @@ static int dm_access_csr_trigger(uint32_t write, int reg_idx, word_t *reg_value)
             DM_DEBUG("mcontrol %s value %#.8x", write?"write":"read", *reg_value);
             if (write) {
                 if (*reg_value == 0) {
-                    DM_DEBUG("clear trigger address:%#.8x", cur_trigger->breakpoint.addr);
-                    uint32_t last_info = cur_trigger->info;
+                    DM_DEBUG("clear trigger id:%u address:%#.8x", cur_trigger->id, cur_trigger->breakpoint.addr);
+                    tm_trigger_info_t last_trigger = *cur_trigger;
                     memset(cur_trigger, 0, sizeof(tm_trigger_info_t));
-                    cur_trigger->info = last_info;
+                    cur_trigger->common.tinfo = last_trigger.common.tinfo;
+                    cur_trigger->id = last_trigger.id;
                 } else {
                     if (cur_trigger->used) {
-                        DM_ERROR("current trigger is used, address:%#.8x", cur_trigger->breakpoint.addr);
+                        DM_ERROR("current trigger is used, id:%u address:%#.8x", cur_trigger->id, cur_trigger->breakpoint.addr);
                         return 0;
                     }
 
                     TM_R(tdata2);
                     cur_trigger->used = true;
-                    cur_trigger->breakpoint.control = *reg_value;
+                    cur_trigger->breakpoint.mcontrol = *reg_value;
                     cur_trigger->breakpoint.addr = r_tdata2->raw_value;
-                    DM_DEBUG("create new trigger address:%#.8x", cur_trigger->breakpoint.addr);
+                    DM_DEBUG("create new trigger id:%u address:%#.8x", cur_trigger->id, cur_trigger->breakpoint.addr);
                 }
             }
             break;
@@ -400,7 +401,7 @@ static inline int dm_init_regs(dm_ctx_t *ctx)
 
     CD_R(dcsr);
     r_dcsr->xdebugver = 4;
-    r_dcsr->cause = 3;
+    r_dcsr->cause = CD_DCSR_CAUSE_HALTREQ;
 
     CD_R(dpc);
     r_dpc->raw_value = cur_cpu->pc;
@@ -598,9 +599,10 @@ static int dm_init_csr(dm_ctx_t *ctx)
 {
     // trigger
     for (size_t i=0; i<DM_ARRAY_SIZE(ctx->tm_triggers); ++i) {
-        dm_select_trigger(i);
         tm_trigger_info_t *trigger = &ctx->tm_triggers[i];
-        trigger->info = TM_TDATA1_MASK_ADDR_OR_DATA;
+        trigger->common.tinfo = TM_TDATA1_MASK_ADDR_OR_DATA;
+        trigger->id = i;
+        dm_select_trigger(i);
     }
     dm_select_trigger(0);
 
@@ -617,9 +619,10 @@ int dm_init(void)
 
     for (size_t i=0; i<DM_ARRAY_SIZE(dm_ctx_list); ++i)
     {
-        dm_select(i);
         dm_ctx_t *ctx = &dm_ctx_list[i];
         memset(ctx, 0, sizeof(dm_ctx_t));
+        dm_select(i);
+
         dm_init_regs(ctx);
         dm_sync_regs(ctx);
         dm_init_csr(ctx);
@@ -716,15 +719,14 @@ int dm_select_trigger(uint32_t trigger_idx)
     assert(trigger_idx < TM_TRIGER_COUNT && "dm trigger select idx is too large");
 
     // switch to new trigger, need to copy its information
-    cur_dm_ctx->cur_trigger = &cur_dm_ctx->tm_triggers[trigger_idx];
+    tm_trigger_info_t *trigger = &cur_dm_ctx->tm_triggers[trigger_idx];
+    cur_dm_ctx->cur_trigger = trigger;
     
+    TM_R(tselect);
+    memcpy(r_tselect, &trigger->common, sizeof(cur_dm_ctx->cur_trigger->common));
+    assert(r_tselect->index == trigger_idx && "dm trigger id is error");
+
     TM_R(tinfo);
-    r_tinfo->info = cur_dm_ctx->cur_trigger->info;
-    
-    TM_R(tdata1);
-    if (r_tinfo->info&TM_TDATA1_MASK_ADDR_OR_DATA) {
-        r_tdata1->type = TM_TDATA1_ADDR_OR_DATA;
-    }
     assert((r_tinfo->info&(~TM_TDATA1_MASK_ADDR_OR_DATA))==0 && "dm trigger tinfo unsupport other type");
 
     return 0;
@@ -740,10 +742,36 @@ int dm_prepare_status(dm_ctx_t *ctx, uint32_t inst)
 
     if (ctx->exec_inst_period == DM_EXEC_INST_BEFORE) {
         /**
-         * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
-         *   使用ebreak实现单步调试
+         * 5.2.9 Match Control (mcontrol, at 0x7a1)
+         *   breakpoint匹配中，最高优先级priority 4
          */
-        if (r_dcsr->ebreakm == 1 &&
+        for (int i=0; i<DM_ARRAY_SIZE(ctx->tm_triggers); ++i) {
+            tm_trigger_info_t *trigger = &ctx->tm_triggers[i];
+            if (!trigger->used) {
+                continue;
+            }
+
+            const tm_reg_mcontrol_t *mcontrol = (const tm_reg_mcontrol_t *)&trigger->breakpoint.mcontrol;
+            if (ctx->debug_status == dm_ds_mus_mode &&
+                mcontrol->hit == 0 &&
+                mcontrol->timing == 0 &&
+                mcontrol->action == TM_MCONTROL_ACTION_ENTER_DEBUG_MODE &&
+                cur_pc == trigger->breakpoint.addr
+            ) {
+                r_dcsr->cause = CD_DCSR_CAUSE_BREAKPOINT_EX;
+                DM_DMSTATUS_SET(running, 0);
+                DM_DMSTATUS_SET(halted, 1);
+                ctx->debug_status = dm_ds_halted_waiting;
+                DM_DEBUG("pc:%#.8x found breakpoint, trigger id:%u, => halted waiting", cur_pc, trigger->id);
+            }
+        }
+        
+        /**
+         * 4.8.1 Debug Control and Status (dcsr, at 0x7b0)
+         *   使用ebreak实现单步调试，priority 3
+         */
+        if (ctx->debug_status == dm_ds_mus_mode &&
+            r_dcsr->ebreakm == 1 &&
             inst == 0x00100073
         ) {
             r_dcsr->cause = CD_DCSR_CAUSE_EBREAK;
