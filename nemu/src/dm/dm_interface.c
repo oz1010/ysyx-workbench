@@ -36,19 +36,16 @@ bool dmi_is_hart_running(void)
     return r_dmstatus->allrunning == 1;
 }
 
-int dmi_update_core_debug_register(int period)
+int dmi_prepare_status(dm_exec_inst_period_t period, uint32_t inst)
 {
+    // 按最简单的方式更新PC
     extern int dm_access_cpu_csr(uint32_t write, int reg_idx, word_t *reg_value);
     extern CPU_state *cur_cpu;
-    
-    // 按最简单的方式更新状态
     dm_access_cpu_csr(1, cd_ri_dpc, &cur_cpu->pc);
 
-    return 0;
-}
+    // 根据情况判断是否需要切换到调试状态
+    cur_dm_ctx->exec_inst_period = period;
+    dm_prepare_status(cur_dm_ctx, inst);
 
-int dmi_prepare_status(uint32_t inst)
-{
-    // 当遇到ebreak指令时，可能需要切换到调试状态
-    return dm_prepare_status(cur_dm_ctx, inst);
+    return 0;
 }

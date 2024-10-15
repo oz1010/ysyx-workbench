@@ -153,19 +153,17 @@ uint8_t *dtm_dm_parse_scan_msg(uint8_t *buff, dtm_msg_t *resp_msg)
     return body_data;
 }
 
-void dtm_update(int period, Decode *s, CPU_state *c)
+void dtm_update(dm_exec_inst_period_t period, Decode *s, CPU_state *c)
 {
     dtm_msg_t recv_msg;
     int handle_ret = 0;
     
-    // 更新核心调试寄存器
-    dmi_update_core_debug_register(period);
+    // 根据情况切换到调试状态，比如ebreak或breakpoint
+    dmi_prepare_status(period, s->isa.inst.val);
 
     // 执行指令前
-    if (period == 0)
+    if (period == DM_EXEC_INST_BEFORE)
     {
-        dmi_prepare_status(s->isa.inst.val);
-
         while(dtm_is_dm_loop()) {
             dtm_msg_reset(&recv_msg);
             if (dtmn_msg_queue_pop(&dtmn_msg_queue, &recv_msg) != 0) {

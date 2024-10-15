@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "cpu/decode.h"
 #include "cpu/cpu.h"
+#include "dm/dm_define.h"
 
 #define     DTM_ENABLE_DEBUG_LOG        false
 
@@ -186,6 +187,6 @@ typedef struct _dm_debug_delay_cmd_s {
 } dm_debug_delay_cmd_t;
 
 int dtm_init(int argc, char *argv[]);
-void dtm_update(int period, Decode *s, CPU_state *c);
+void dtm_update(dm_exec_inst_period_t period, Decode *s, CPU_state *c);
 
 #endif
