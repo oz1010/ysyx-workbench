@@ -644,7 +644,16 @@ typedef union {
         uint32_t            m:1;
         uint32_t            match:4;
         uint32_t            chain:1;
+
+        /**
+         * Value -- Description
+         * 0 --     Raise a breakpoint exception. (Used when software wants to use the trigger module without an external debugger attached.)
+         * 1 --     Enter Debug Mode. (Only supported when the trigger’s dmode is 1.)
+         * 2-5 --   Reserved for use by the trace specification.
+         * other -- Reserved for future use.
+         */
         uint32_t            action:4;
+    
         uint32_t            sizelo:2;
         uint32_t            timing:1;
         uint32_t            select:1;
@@ -661,6 +670,9 @@ typedef union {
     
     uint32_t raw_value;
 } tm_reg_mcontrol_t;
+
+#define TM_MCONTROL_ACTION_RAISE_BREAKPOINT     0
+#define TM_MCONTROL_ACTION_ENTER_DEBUG_MODE     1
 
 /**
  * 
