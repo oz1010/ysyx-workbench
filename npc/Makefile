@@ -3,8 +3,8 @@ NXDC_FILES = constr/top.nxdc
 INC_PATH ?=
 
 VERILATOR = verilator
-VERILATOR_CFLAGS += -MMD --build -cc \
-					-O3 --x-assign fast --x-initial fast --noassert
+VERILATOR_CFLAGS += -MMD --build -cc
+VERILATOR_CFLAGS += -O3 --x-assign fast --x-initial fast --noassert
 
 BUILD_DIR = $(NPC_HOME)/build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
@@ -12,8 +12,11 @@ BIN = $(BUILD_DIR)/$(TOPNAME)
 TST_TARGET = addi
 TST_DIR = $(NPC_HOME)/test/$(TST_TARGET)
 TST_BIN = $(BUILD_DIR)/test/$(TST_TARGET)/case.bin
+PROG_DIR = $(NEMU_HOME)/resource/risv32-bin
+PROG_IMG = $(NEMU_HOME)/build/risc32/prog.bin
+ARGS ?= --log="build/npc-test.log" $(PROG_IMG)
 
-default: $(BIN) $(TST_BIN)
+default: $(BIN) $(TST_BIN) $(PROG_IMG)
 
 $(shell mkdir -p $(BUILD_DIR))
 
@@ -23,8 +26,11 @@ $(shell mkdir -p $(BUILD_DIR))
 # 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # project source
+INC_PATH += $(abspath ./include)
+INC_PATH += $(NPC_HOME)/../common/include
 VSRCS = $(shell find $(abspath ./vsrc) -name "*.v")
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+CSRCS += $(shell find $(NPC_HOME)/../common/src/dm -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 TSTFILES = $(shell find $(abspath $(TST_DIR)) -name "*.S")
 # CSRCS += $(SRC_AUTO_BIND)
 
@@ -33,7 +39,8 @@ TSTFILES = $(shell find $(abspath $(TST_DIR)) -name "*.S")
 
 # rules for verilator
 INCFLAGS = $(addprefix -I, $(INC_PATH))
-CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+# CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+CXXFLAGS += -g -O0 $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 
 # open trace with 'make TRACE=1'
 ifdef TRACE
@@ -41,8 +48,12 @@ VERILATOR_CFLAGS += --trace
 #CXXFLAGS += -DTRACE=1
 endif
 
+# Include rules for menuconfig
+include $(NPC_HOME)/scripts/config.mk
+
 # $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 $(BIN): $(VSRCS) $(CSRCS)
+	@echo "CSRCS is $(CSRCS)"
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
@@ -52,10 +63,13 @@ $(BIN): $(VSRCS) $(CSRCS)
 $(TST_BIN): $(TSTFILES)
 	@make -C $(TST_DIR)
 
+$(PROG_IMG):
+	@make -C $(PROG_DIR)
+
 all: default
 
-run: $(TST_BIN) $(BIN)
-	@$(BIN)
+run: default
+	@$(BIN) $(ARGS)
 
 objdump: $(TST_BIN)
 	@make objdump -C $(TST_DIR)
