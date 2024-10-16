@@ -1,16 +1,23 @@
 *.*
 *
 !*/
+!/common/**
 !/nemu/*
 !/nexus-am/*
 !/nanos-lite/*
 !/navy-apps/*
 !/npc/*
-!/npc/csrc/*
+!/npc/csrc/*.cpp
 !/npc/vsrc/*
+!/npc/include/*.h
 !Makefile
 !README.md
 !.gitignore
 !init.sh
 /fceux-am
 # /am-kernels
+npc/.config
+npc/.config.old
+npc/include/config
+npc/include/generated
+
