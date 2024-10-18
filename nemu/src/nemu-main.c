@@ -14,12 +14,43 @@
 ***************************************************************************************/
 
 #include <common.h>
+#include "dm/cpu_interface.h"
+#include "dm/dm_define.h"
+#include "memory/vaddr.h"
 
 void init_monitor(int, char *[]);
 void am_init_monitor();
 void engine_start();
 int is_exit_status_bad();
-extern int dtm_init(int argc, char *argv[]);
+extern int dtm_init(cpu_opt_t *cpu_opt);
+
+static word_t * rv_get_gpr(CPU_state *c, size_t idx)
+{
+	assert(idx<DM_ARRAY_SIZE(c->gpr) && "get gpr is out of range");
+	return &c->gpr[idx];
+}
+
+static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
+{
+	const uint32_t addr = pc - CONFIG_MBASE;
+
+  assert(size<=4 && "access memory size is greater than 4");
+
+	if (addr <= CONFIG_MSIZE) {
+		// 内存区域
+		if (write) {
+			vaddr_write(pc, size, *(uint32_t *)data);
+		} else {
+      word_t mem_val = vaddr_read(pc, size);
+      memcpy(data, &mem_val, 4);
+		}
+	} else {
+		LOG_ERROR("%s memory is out of range, pc:%#x addr:%#x size:%u check:%d CONFIG_MSIZE:%u", write?"write":"read", pc, addr, size, (addr <= CONFIG_MSIZE), CONFIG_MSIZE);
+		assert(0);
+	}
+
+	return 0;
+}
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. */
@@ -30,7 +61,14 @@ int main(int argc, char *argv[]) {
 #endif
 
   /* Start debug module */
-  dtm_init(argc, argv);
+  extern CPU_state *cur_cpu;
+  extern CPU_state cpu;
+  cur_cpu = &cpu;
+  cpu_opt_t rv_cpu_opt = {
+    .get_gpr = rv_get_gpr,
+    .access_mem = rv_access_mem,
+  };
+  dtm_init(&rv_cpu_opt);
 
   /* Start engine. */
   engine_start();
