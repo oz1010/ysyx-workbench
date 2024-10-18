@@ -12,8 +12,8 @@ BIN = $(BUILD_DIR)/$(TOPNAME)
 TST_TARGET = addi
 TST_DIR = $(NPC_HOME)/test/$(TST_TARGET)
 TST_BIN = $(BUILD_DIR)/test/$(TST_TARGET)/case.bin
-PROG_DIR = $(NEMU_HOME)/resource/risv32-bin
-PROG_IMG = $(NEMU_HOME)/build/risc32/prog.bin
+PROG_DIR = $(NPC_HOME)/resource/risv32-bin
+PROG_IMG = $(NPC_HOME)/build/risc32/prog.bin
 ARGS ?= --log="build/npc-test.log" $(PROG_IMG)
 
 default: $(BIN) $(TST_BIN) $(PROG_IMG)
