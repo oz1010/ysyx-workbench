@@ -58,10 +58,14 @@ static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *da
 
 	return 0;
 }
-static uint32_t inst_fetch(vaddr_t pc)
+uint32_t inst_fetch(vaddr_t pc)
 {
 	const uint32_t addr = pc - CONFIG_MBASE;
-	Assert(addr<DM_ARRAY_SIZE(memory), "pc:%#.8x is out of range", pc);
+	
+	if (addr>(DM_ARRAY_SIZE(memory)-sizeof(uint32_t))) {
+		LOG_ERROR("pc:%#.8x is out of range", pc);
+		return 0;
+	}
 
 	return *(uint32_t *)&memory[addr];
 }
@@ -189,8 +193,13 @@ void load_memory(const char* fpath)
 		Assert(npc_home, "Miss set NPC_HOME");
 		strcat(&file_path[strlen(file_path)], npc_home);
 		strcat(&file_path[strlen(file_path)], "/../");
+		strcat(&file_path[strlen(file_path)], fpath);
 	}
-	strcat(&file_path[strlen(file_path)], fpath);
+	else
+	{
+		strcat(&file_path[strlen(file_path)], fpath);
+		// memcpy(file_path, fpath, strlen(fpath));
+	}
 
 	LOG_INFO("Load memory from file %s", file_path);
 	size_t membytes = CONFIG_MSIZE*sizeof(memory[0]);

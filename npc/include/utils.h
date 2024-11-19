@@ -123,6 +123,9 @@ uint64_t get_time();
 #define ANSI_NONE       "\33[0m"
 
 #define ANSI_FMT(str, fmt) fmt str ANSI_NONE
+
+#define FMT_WORD MUXDEF(CONFIG_ISA64, "0x%016" "x", "0x%08" "x")
+
 /*
 #define _log_raw(...) IFDEF(CONFIG_TARGET_NATIVE_ELF,   \
   do {                                                  \

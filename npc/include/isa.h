@@ -23,4 +23,6 @@ typedef struct {
   vaddr_t pc;
 } CPU_state;
 
+extern unsigned char isa_logo[];
+
 #endif

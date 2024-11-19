@@ -13,10 +13,10 @@ TST_TARGET = addi
 TST_DIR = $(NPC_HOME)/test/$(TST_TARGET)
 TST_BIN = $(BUILD_DIR)/test/$(TST_TARGET)/case.bin
 PROG_DIR = $(NPC_HOME)/resource/risv32-bin
-PROG_IMG = $(NPC_HOME)/build/risc32/prog.bin
-ARGS ?= --log="build/npc-test.log" $(PROG_IMG)
+IMG ?= $(NPC_HOME)/build/risc32/prog.bin
+ARGS ?= --log="build/npc-test.log" $(IMG)
 
-default: $(BIN) $(TST_BIN) $(PROG_IMG)
+default: $(BIN) $(TST_BIN) $(IMG)
 
 $(shell mkdir -p $(BUILD_DIR))
 
@@ -63,7 +63,7 @@ $(BIN): $(VSRCS) $(CSRCS)
 $(TST_BIN): $(TSTFILES)
 	@make -C $(TST_DIR)
 
-$(PROG_IMG):
+$(IMG):
 	@make -C $(PROG_DIR)
 
 all: default
