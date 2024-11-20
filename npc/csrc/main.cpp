@@ -58,6 +58,15 @@ static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *da
 
 	return 0;
 }
+static void statistic()
+{
+  	IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
+	#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") "u"
+	Log("host time spent = " NUMBERIC_FMT " us", npc_ctx.timer);
+	Log("total guest instructions = " NUMBERIC_FMT, npc_ctx.nr_guest_inst);
+	if (npc_ctx.timer > 0) Log("simulation frequency = " NUMBERIC_FMT " inst/s", npc_ctx.nr_guest_inst * 1000000 / npc_ctx.timer);
+	else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+}
 uint32_t inst_fetch(vaddr_t pc)
 {
 	const uint32_t addr = pc - CONFIG_MBASE;
@@ -128,6 +137,7 @@ int main(int argc, char** argv) {
 #endif
 
 	// 初始化参数
+	npc_ctx.state = NPC_RUNNING;
 	const uint64_t sim_time = CONFIG_MSIZE;
 	uint32_t* regs = &top->out_regs[0];
 	uint32_t* pc = &regs[32];
@@ -135,16 +145,10 @@ int main(int argc, char** argv) {
 	uint32_t data = 0;
 	load_memory(arg_img_file ? arg_img_file : def_img_file);
 
-	while(contextp->time()<sim_time && !contextp->gotFinish()) {
+	while(contextp->time()<sim_time && !contextp->gotFinish() && npc_ctx.state==NPC_RUNNING) {
 		// 模拟从内存读数据
 		clk = !clk;
 		if (clk) {
-			// uint32_t idx = regs[32] - base_addr;
-			// if (idx >= (sizeof(memory)/sizeof(memory[0]))){
-			// 	LOG_INFO("simulator read out of memory\n");
-			// 	break;
-			// }
-			// data = *((uint32_t*)&memory[idx]);
 			data = inst_fetch(*pc);
 			if (!data)
 			{
@@ -168,19 +172,39 @@ int main(int argc, char** argv) {
 #else
   			data = inst_fetch(*pc);
 #endif
+			npc_ctx.nr_guest_inst++;
 		}
 
+		uint64_t timer_start = get_time();
 		// 电路仿真
 		top->clk = clk;
 		top->data = data;
 		contextp->timeInc(1);
 		top->eval();
 		RECORD_TRACE_VCD();
+		uint64_t timer_end = get_time();
+		npc_ctx.timer += timer_end - timer_start;
 
 		IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, data, cur_cpu));
 	}
 
-	return 0;
+	switch (npc_ctx.state) {
+		case NPC_RUNNING: npc_ctx.state = NPC_STOP; break;
+
+		case NPC_END:
+		case NPC_ABORT:
+		Log("nemu: %s at pc = " FMT_WORD,
+			(npc_ctx.state == NPC_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
+			(npc_ctx.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
+				ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
+			npc_ctx.halt_pc);
+			// fall through
+    	case NPC_QUIT: statistic();
+	}
+
+	int good = (npc_ctx.state == NPC_END && npc_ctx.halt_ret == 0 || (npc_ctx.state == NPC_QUIT));
+
+	return !good;
 }
 
 void load_memory(const char* fpath)

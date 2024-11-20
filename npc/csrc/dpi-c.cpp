@@ -6,15 +6,18 @@
 
 extern CPU_state *cur_cpu;
 extern uint32_t inst_fetch(vaddr_t pc);
+npc_context_t npc_ctx = { .state = NPC_STOP, };
+
+void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret) {
+    // difftest_skip_ref();
+  npc_ctx.state = state;
+  npc_ctx.halt_pc = pc;
+  npc_ctx.halt_ret = halt_ret;
+}
 
 void exit_simu(int code)
 {
-    if (code == 0) {
-        LOG_INFO("Normal exit simu with %d, pc:%#.8x", code, cur_cpu->pc);
-    } else {
-        LOG_ERROR("Error exit simu with %d, pc:%#.8x", code, cur_cpu->pc);
-    }
-    exit(code);
+    set_npc_state(NPC_END, cur_cpu->pc, code);
 }
 
 void invalid_inst(int thispc, int inst)
@@ -38,5 +41,5 @@ void invalid_inst(int thispc, int inst)
         "If it is the second case, remember:\n"
         "* The machine is always right!\n"
         "* Every line of untested code is always wrong!\n\n", ANSI_FG_RED), isa_logo);
-    exit(-1);
+    set_npc_state(NPC_ABORT, thispc, -1);
 }
