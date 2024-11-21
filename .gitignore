@@ -7,9 +7,11 @@
 !/nanos-lite/*
 !/navy-apps/*
 !/npc/*
-!/npc/csrc/*.cpp
+!/npc/csrc/**/*.cpp
 !/npc/vsrc/*
 !/npc/include/*.h
+!/npc/include/cpu/*.h
+!/npc/include/memory/*.h
 !Makefile
 !README.md
 !.gitignore

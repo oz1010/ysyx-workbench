@@ -6,7 +6,8 @@
 #include <getopt.h>
 #include "Vtop.h"
 #include "verilated.h"
-
+#include "cpu/cpu-exec.h"
+#include "memory/paddr.h"
 #include "dm/dtm.h"
 
 #if VM_TRACE_VCD
@@ -19,12 +20,6 @@ static void record_trace_vcd(VerilatedVcdC* tfp, VerilatedContext* contextp) {
 #define RECORD_TRACE_VCD()
 #endif
 
-uint8_t memory[CONFIG_MSIZE] = {0};
-void load_memory(const char* fpath);
-
-cpu_opt_t rv_cpu_opt;
-CPU_state rv_cpu_list[1];
-extern CPU_state *cur_cpu;
 FILE *log_fp = NULL;
 
 static char def_img_file[] = "npc/build/test/addi/case.bin";
@@ -35,59 +30,23 @@ static int arg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
 void init_log(const char *log_file);
 int parse_args(int argc, char *argv[]);
 
-static word_t * rv_get_gpr(CPU_state *c, size_t idx)
-{
-	assert(idx<DM_ARRAY_SIZE(c->gpr) && "get gpr is out of range");
-	return &c->gpr[idx];
-}
-static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
-{
-	const uint32_t addr = pc - CONFIG_MBASE;
-
-	if (addr <= CONFIG_MSIZE) {
-		// 内存区域
-		if (write) {
-			memcpy(&memory[addr], data, size);
-		} else {
-			memcpy(data, &memory[addr], size);
-		}
-	} else {
-		LOG_ERROR("%s memory is out of range, pc:%#x addr:%#x size:%u check:%d CONFIG_MSIZE:%u", write?"write":"read", pc, addr, size, (addr <= CONFIG_MSIZE), CONFIG_MSIZE);
-		assert(0);
-	}
-
-	return 0;
-}
 static void statistic()
 {
   	IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
-	#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") "u"
+	#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") "lu"
 	Log("host time spent = " NUMBERIC_FMT " us", npc_ctx.timer);
 	Log("total guest instructions = " NUMBERIC_FMT, npc_ctx.nr_guest_inst);
 	if (npc_ctx.timer > 0) Log("simulation frequency = " NUMBERIC_FMT " inst/s", npc_ctx.nr_guest_inst * 1000000 / npc_ctx.timer);
 	else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
-uint32_t inst_fetch(vaddr_t pc)
-{
-	const uint32_t addr = pc - CONFIG_MBASE;
-	
-	if (addr>(DM_ARRAY_SIZE(memory)-sizeof(uint32_t))) {
-		LOG_ERROR("pc:%#.8x is out of range", pc);
-		return 0;
-	}
-
-	return *(uint32_t *)&memory[addr];
-}
 
 void assert_fail_msg() {
 //   isa_reg_display();
 //   statistic();
-	LOG_ERROR("assert failed, current pc:%#.8x", cur_cpu->pc);
+	LOG_ERROR("assert failed, current pc:%#.8x", cpu.pc);
 }
 
 int main(int argc, char** argv) {
-	cur_cpu = &rv_cpu_list[0];
-
 	parse_args(argc, argv);
 
 	LOG_INFO("Start NPC ...");
@@ -129,12 +88,9 @@ int main(int argc, char** argv) {
 	// 	bin_path[bin_path_size++] = input_c;
 	// bin_path[bin_path_size]='\0';
 
-#if CONFIG_DEBUG_MODULE
-	// 初始化调试模块
-	rv_cpu_opt.get_gpr = rv_get_gpr;
-	rv_cpu_opt.access_mem = rv_access_mem;
-	dtm_init(&rv_cpu_opt);
-#endif
+	/* 软件模块初始化 */
+	init_cpu();
+	init_memory();
 
 	// 初始化参数
 	npc_ctx.state = NPC_RUNNING;
@@ -152,20 +108,20 @@ int main(int argc, char** argv) {
 			data = inst_fetch(*pc);
 			if (!data)
 			{
-				panic("simulator read NULL memory\n");
+				panic("simulator read NULL mem data\n");
 				break;
 			}
 			// LOG_DEBUG("=> pc %#x data %#x\n", regs[32], data);
 		}
-		cur_cpu->pc = *pc;
-		memcpy(&cur_cpu->gpr[0], &regs[0], sizeof(regs[0])*32);
+		cpu.pc = *pc;
+		memcpy(&cpu.gpr[0], &regs[0], sizeof(regs[0])*32);
 
 		// LOG_DEBUG("pc %#x clk %u data %#x x0 %#x a0 %#x a1 %#x\n", regs[32], clk, data, regs[0], regs[10], regs[11]);
 		if (clk) {
 #if CONFIG_DEBUG_MODULE
 		  	// read instruction before debug
 			data = inst_fetch(*pc);
-			dtm_update(DM_EXEC_INST_BEFORE, data, cur_cpu);
+			dtm_update(DM_EXEC_INST_BEFORE, data, &cpu);
 
 			// read instruction before execution
 			data = inst_fetch(*pc);
@@ -185,7 +141,7 @@ int main(int argc, char** argv) {
 		uint64_t timer_end = get_time();
 		npc_ctx.timer += timer_end - timer_start;
 
-		IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, data, cur_cpu));
+		IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, data, &cpu));
 	}
 
 	switch (npc_ctx.state) {
@@ -205,35 +161,6 @@ int main(int argc, char** argv) {
 	int good = (npc_ctx.state == NPC_END && npc_ctx.halt_ret == 0 || (npc_ctx.state == NPC_QUIT));
 
 	return !good;
-}
-
-void load_memory(const char* fpath)
-{
-	char file_path[1024] = {0};
-
-	if (fpath[0]!='/')
-	{
-		const char* npc_home = getenv("NPC_HOME");
-		Assert(npc_home, "Miss set NPC_HOME");
-		strcat(&file_path[strlen(file_path)], npc_home);
-		strcat(&file_path[strlen(file_path)], "/../");
-		strcat(&file_path[strlen(file_path)], fpath);
-	}
-	else
-	{
-		strcat(&file_path[strlen(file_path)], fpath);
-		// memcpy(file_path, fpath, strlen(fpath));
-	}
-
-	LOG_INFO("Load memory from file %s", file_path);
-	size_t membytes = CONFIG_MSIZE*sizeof(memory[0]);
-	unsigned char* pmemstart = (unsigned char*)&memory[0];
-	unsigned char* pmemend = pmemstart + membytes;
-	FILE* fd = fopen(file_path, "rb");
-	Assert(fd, "open file:%s failed", file_path);
-
-	size_t readsize = fread(pmemstart, 1, membytes, fd);
-	LOG_INFO("Load memory from file total size %lu", readsize);
 }
 
 int parse_args(int argc, char *argv[]) {

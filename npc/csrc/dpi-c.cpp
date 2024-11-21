@@ -3,9 +3,9 @@
 #include "Vtop__Dpi.h"
 #include "debug.h"
 #include "isa.h"
+#include "cpu/cpu-exec.h"
+#include "memory/paddr.h"
 
-extern CPU_state *cur_cpu;
-extern uint32_t inst_fetch(vaddr_t pc);
 npc_context_t npc_ctx = { .state = NPC_STOP, };
 
 void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret) {
@@ -17,7 +17,7 @@ void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret) {
 
 void exit_simu(int code)
 {
-    set_npc_state(NPC_END, cur_cpu->pc, code);
+    set_npc_state(NPC_END, cpu.pc, code);
 }
 
 void invalid_inst(int thispc, int inst)
