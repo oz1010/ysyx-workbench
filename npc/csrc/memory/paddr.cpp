@@ -4,6 +4,8 @@
 #include "common.h"
 
 uint8_t raw_memory[CONFIG_MSIZE] = {0};
+char def_img_file[] = "npc/build/test/addi/case.bin";
+char *cfg_img_file = NULL;
 
 void load_memory(const char* fpath)
 {
@@ -37,6 +39,8 @@ void init_memory()
 {
     IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
     LOG_INFO("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
+
+    load_memory(cfg_img_file ? cfg_img_file : def_img_file);
 }
 
 int read_memory(paddr_t addr, int len, void *data)
