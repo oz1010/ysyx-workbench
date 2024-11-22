@@ -5,6 +5,7 @@
 
 extern CPU_state cpu;
 
-void init_cpu();
+void cpu_exec(uint64_t n);
+void init_cpu(int argc, char *argv[]);
 
 #endif
