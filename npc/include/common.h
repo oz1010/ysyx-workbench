@@ -16,19 +16,34 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <generated/autoconf.h>
+#include <macro.h>
 #include <stdint.h>
+
+#ifdef CONFIG_TARGET_AM
+#include <klib.h>
+#else
+#include <assert.h>
 #include <stdlib.h>
-#include "macro.h"
-#include "generated/autoconf.h"
+#endif
+
+#if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul
+#define PMEM64 1
+#endif
 
 typedef MUXDEF(CONFIG_ISA64, uint64_t, uint32_t) word_t;
+typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;
+#define FMT_WORD MUXDEF(CONFIG_ISA64, "0x%016" PRIx64, "0x%08" PRIx32)
+
 typedef word_t vaddr_t;
-typedef word_t paddr_t;
+typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
+#define FMT_PADDR MUXDEF(PMEM64, "0x%016" PRIx64, "0x%08" PRIx32)
+typedef uint16_t ioaddr_t;
+
+#include <debug.h>
 
 #define CONFIG_MBASE 0x80000000
 #define CONFIG_MSIZE 0x8000000
-
-// #define PMEM_LEFT ((paddr_t)CONFIG_MBASE)
-// #define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
+#define PRIx32 "x"
 
 #endif
