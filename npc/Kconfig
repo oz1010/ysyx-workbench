@@ -275,10 +275,10 @@ config DIFFTEST_REF_NAME
   default "spike" if DIFFTEST_REF_SPIKE
   default "none"
 
-# if MODE_SYSTEM
+if MODE_SYSTEM
 # source "src/memory/Kconfig"
-# source "src/device/Kconfig"
-# endif
+source "csrc/device/Kconfig"
+endif
 
 
 menu "Miscellaneous"

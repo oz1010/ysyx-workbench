@@ -1,0 +1,20 @@
+# ver 20230128
+# require clang-format 14 or later
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# MaxEmptyLinesToKeep in first line we get newline before AccessModifier format and avoid bug
+# MaxEmptyLinesToKeep: 0
+BasedOnStyle: Google
+# sort cause troubles
+SortIncludes: false
+SortUsingDeclarations: false
+ColumnLimit: 100
+IndentWidth: 4
+UseTab: Never
+TabWidth: 4
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+BreakBeforeBraces: Allman
+PackConstructorInitializers: Never

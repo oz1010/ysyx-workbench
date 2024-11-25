@@ -46,4 +46,7 @@ typedef uint16_t ioaddr_t;
 #define CONFIG_MSIZE 0x8000000
 #define PRIx32 "x"
 
+#define __GUEST_ISA__ riscv32
+#define ITRACE_COND false
+
 #endif

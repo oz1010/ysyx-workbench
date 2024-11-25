@@ -1,3 +1,4 @@
+
 *.*
 *
 !*/
@@ -8,10 +9,14 @@
 !/navy-apps/*
 !/npc/*
 !/npc/csrc/**/*.cpp
+!/npc/csrc/**/*.h
 !/npc/vsrc/*
 !/npc/include/*.h
+!/npc/include/common/*.h
 !/npc/include/cpu/*.h
 !/npc/include/memory/*.h
+!/npc/include/device/*.h
+!/npc/csrc/**/Kconfig
 !Makefile
 !README.md
 !.gitignore

@@ -20,11 +20,18 @@
 
 #define PMEM_LEFT  ((paddr_t)CONFIG_MBASE)
 #define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
+#define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
 
 void load_memory(const char* fpath);
 void init_memory();
 int read_memory(paddr_t addr, int len, void *data);
 int write_memory(paddr_t addr, int len, void *data);
-uint32_t inst_fetch(vaddr_t addr);
+
+static inline bool in_pmem(paddr_t addr) {
+  return addr - CONFIG_MBASE < CONFIG_MSIZE;
+}
+
+word_t paddr_read(paddr_t addr, int len);
+void paddr_write(paddr_t addr, int len, word_t data);
 
 #endif
