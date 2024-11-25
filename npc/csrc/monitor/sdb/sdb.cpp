@@ -22,7 +22,7 @@
 #include "sdb.h"
 #include "memory/vaddr.h"
 #include "memory/paddr.h"
-// #include "trace.h"
+#include "trace.h"
 #include "device/mmio.h"
 #include "common/point_pool.h"
 #include "generated/autoconf.h"
@@ -463,6 +463,6 @@ void init_sdb()
     /* Initialize the point pool. */
     init_point_pool();
 
-    // /* Initialize the iringbuf */
-    // IRINGBUF_INIT();
+    /* Initialize the iringbuf */
+    IRINGBUF_INIT();
 }

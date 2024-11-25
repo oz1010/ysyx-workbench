@@ -9,6 +9,7 @@
 !/navy-apps/*
 !/npc/*
 !/npc/csrc/**/*.cpp
+!/npc/csrc/**/*.cc
 !/npc/csrc/**/*.h
 !/npc/vsrc/*
 !/npc/include/*.h
