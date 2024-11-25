@@ -64,12 +64,54 @@ static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *da
 }
 
 static void exec_once(/*Decode *s, vaddr_t pc*/) {
+	// 更新cpu信息
+	for(int i=0; i<32; ++i)
+		cpu.gpr[i] = top->rootp->top__DOT__regs_output[i];
+	cpu.pc = top->rootp->addr;
+
+	// 从内存读数据
+	top->clk = 1;
+	uint32_t data = inst_fetch(cpu.pc);
+	if (!data)
+	{
+		panic("simulator read NULL mem data\n");
+		npc_ctx.state = NPC_ABORT;
+		return;
+	}
+	top->data = data;
+		
+#if CONFIG_DEBUG_MODULE
+	// read instruction before debug
+	data = inst_fetch(cpu.pc);
+	dtm_update(DM_EXEC_INST_BEFORE, data, &cpu);
+
+	// read instruction before execution
+	data = inst_fetch(cpu.pc);
+#else
+	data = inst_fetch(cpu.pc);
+#endif
+
+	// 电路仿真
+	top->contextp()->timeInc(1);
+	top->eval();
+	RECORD_TRACE_VCD();
+
+	IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, data, &cpu));
+
+	top->clk = 0;
+	top->contextp()->timeInc(1);
+	top->eval();
+	RECORD_TRACE_VCD();
 }
 
 static void execute(uint64_t n) {
-    for (;n > 0; n --) {
-
-    }
+    for(; n>0; --n) {
+		exec_once();
+		npc_ctx.nr_guest_inst++;
+		// trace_and_difftest(&s, cpu.pc);
+		if (top->contextp()->gotFinish() || npc_ctx.state!=NPC_RUNNING) break;
+		// IFDEF(CONFIG_DEVICE, device_update());
+	}
 }
 
 void assert_fail_msg() {
@@ -81,69 +123,34 @@ void assert_fail_msg() {
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n)
 {
-    const uint64_t sim_time = CONFIG_MSIZE;
-    while(top->contextp()->time()<sim_time && !top->contextp()->gotFinish() && npc_ctx.state==NPC_STOP) {
-        for(int i=0; i<32; ++i)
-            cpu.gpr[i] = top->rootp->top__DOT__regs_output[i];
-        cpu.pc = top->rootp->addr;
+	switch(npc_ctx.state) 
+	{
+		case NPC_END: case NPC_ABORT:
+			LOG_ERROR("Program execution has ended. To restart the program, exit NPC and run again.");
+			return;
+		
+		default: npc_ctx.state = NPC_RUNNING;
+	}
 
-		// 模拟从内存读数据
-		top->clk = !top->clk;
-		if (top->clk) {
-			switch(npc_ctx.state) 
-			{
-				case NPC_END: case NPC_ABORT:
-					LOG_ERROR("Program execution has ended. To restart the program, exit NPC and run again.");
-					return;
-				
-				default: npc_ctx.state = NPC_RUNNING;
-			}
+	uint64_t timer_start = get_time();
 
-			uint32_t data = inst_fetch(cpu.pc);
-			if (!data)
-			{
-				panic("simulator read NULL mem data\n");
-				break;
-			}
-            top->data = data;
-			
-#if CONFIG_DEBUG_MODULE
-		  	// read instruction before debug
-			data = inst_fetch(cpu.pc);
-			dtm_update(DM_EXEC_INST_BEFORE, data, &cpu);
+	execute(n);
 
-			// read instruction before execution
-			data = inst_fetch(cpu.pc);
-#else
-  			data = inst_fetch(cpu.pc);
-#endif
-			npc_ctx.nr_guest_inst++;
-		}
+	uint64_t timer_end = get_time();
+	npc_ctx.timer += timer_end - timer_start;
 
-		uint64_t timer_start = get_time();
-		// 电路仿真
-		top->contextp()->timeInc(1);
-		top->eval();
-		RECORD_TRACE_VCD();
-		uint64_t timer_end = get_time();
-		npc_ctx.timer += timer_end - timer_start;
+	switch (npc_ctx.state) {
+		case NPC_RUNNING: npc_ctx.state = NPC_STOP; break;
 
-		if (top->clk) {
-			IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, data, &cpu));
-			switch (npc_ctx.state) {
-				case NPC_RUNNING: npc_ctx.state = NPC_STOP; break;
-
-				case NPC_END:
-				case NPC_ABORT:
-				Log("nemu: %s at pc = " FMT_WORD,
-					(npc_ctx.state == NPC_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
-					(npc_ctx.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
-						ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
-					npc_ctx.halt_pc);
-					// fall through
-				case NPC_QUIT: statistic();
-			}
-		}
+		case NPC_END:
+		case NPC_ABORT:
+		Log("nemu: %s at pc = " FMT_WORD,
+			(npc_ctx.state == NPC_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
+			(npc_ctx.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
+				ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
+			npc_ctx.halt_pc);
+			// fall through
+		case NPC_QUIT: statistic();
 	}
 }
 
@@ -172,7 +179,7 @@ void init_cpu(int argc, char *argv[]) {
 #endif
 
     // 上电复位
-	uint32_t clk = 1;
+	uint32_t clk = 0;
 	top->rst = 1;
 	for (int i=0; i<10; ++i) {
 		clk = !clk;
