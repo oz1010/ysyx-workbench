@@ -41,6 +41,7 @@ TSTFILES = $(shell find $(abspath $(TST_DIR)) -name "*.S")
 INCFLAGS = $(addprefix -I, $(INC_PATH))
 # CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 CXXFLAGS += -g -O0 $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+LDFLAGS += -lreadline
 
 # open trace with 'make TRACE=1'
 ifdef TRACE

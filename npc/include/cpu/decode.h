@@ -13,25 +13,17 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __MEMORY_PADDR_H__
-#define __MEMORY_PADDR_H__
+#ifndef __CPU_DECODE_H__
+#define __CPU_DECODE_H__
 
-#include <common.h>
+#include "isa.h"
 
-#define PMEM_LEFT  ((paddr_t)CONFIG_MBASE)
-#define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
-#define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
-
-void load_memory(const char* fpath);
-void init_memory();
-int read_memory(paddr_t addr, int len, void *data);
-int write_memory(paddr_t addr, int len, void *data);
-
-static inline bool in_pmem(paddr_t addr) {
-  return addr - CONFIG_MBASE < CONFIG_MSIZE;
-}
-
-word_t paddr_read(paddr_t addr, int len);
-void paddr_write(paddr_t addr, int len, word_t data);
+typedef struct {
+  vaddr_t pc;
+  vaddr_t snpc; // static next pc
+  vaddr_t dnpc; // dynamic next pc, jump to here
+  IFDEF(CONFIG_ITRACE, char logbuf[128]);
+  uint32_t inst;
+} Decode;
 
 #endif
