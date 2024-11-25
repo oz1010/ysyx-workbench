@@ -80,7 +80,7 @@ int write_memory(paddr_t addr, int len, void *data)
 {
     const uint32_t idx = addr - CONFIG_MBASE;
 	
-	if (addr>(ARRAY_SIZE(raw_memory)-len)) {
+	if (idx>(ARRAY_SIZE(raw_memory)-len)) {
 		LOG_ERROR("addr:%#.8x is out of range", addr);
 		return -1;
 	}

@@ -10,6 +10,8 @@
 #include "Vtop___024root.h"
 #include "isa.h"
 #include "dm/cpu_interface.h"
+#include "dm/dm_define.h"
+#include "dm/dtm.h"
 #include "debug.h"
 #include "memory/vaddr.h"
 #include "memory/paddr.h"
@@ -36,7 +38,6 @@ std::unique_ptr<VerilatedContext> contextp;
 std::unique_ptr<TOP_NAME> top;
 std::unique_ptr<VerilatedVcdC> tfp;
 
-cpu_opt_t rv_cpu_opt;
 CPU_state cpu;
 static bool g_print_step = false;
 
@@ -52,21 +53,22 @@ static void statistic()
     else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
-static word_t * rv_get_gpr(CPU_state *c, size_t idx)
+word_t * rv_get_gpr(CPU_state *c, size_t idx)
 {
     assert(idx<ARRAY_SIZE(c->gpr) && "get gpr is out of range");
     return &c->gpr[idx];
 }
-static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
+int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
 {
     const uint32_t idx = pc - CONFIG_MBASE;
 
     if (idx <= CONFIG_MSIZE) {
         // 内存区域
         if (write) {
-            write_memory(pc, size, data);
+            vaddr_write(pc, size, *(uint32_t *)data);
         } else {
-            read_memory(pc, size, data);
+            word_t mem_val = vaddr_read(pc, size);
+            memcpy(data, &mem_val, 4);
         }
     } else {
         LOG_ERROR("%s memory is out of range, pc:%#x idx:%#x size:%u check:%d CONFIG_MSIZE:%u", write?"write":"read", pc, idx, size, (idx <= CONFIG_MSIZE), CONFIG_MSIZE);
@@ -93,6 +95,8 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 }
 
 static void exec_once(Decode *s, vaddr_t _pc) {
+    word_t data;
+
     // 更新cpu信息
     for(int i=0; i<32; ++i)
         cpu.gpr[i] = top->rootp->top__DOT__regs_output[i];
@@ -106,7 +110,7 @@ static void exec_once(Decode *s, vaddr_t _pc) {
 #endif
 
     // read instruction before execution
-    word_t data = vaddr_ifetch(cpu.pc, 4);
+    data = vaddr_ifetch(cpu.pc, 4);
     s->snpc = top->rootp->addr + 4;
 
     // 电路仿真
@@ -199,13 +203,6 @@ void cpu_exec(uint64_t n)
 }
 
 void init_cpu(int argc, char *argv[]) {
-#if CONFIG_DEBUG_MODULE
-    // 初始化调试模块
-    rv_cpu_opt.get_gpr = rv_get_gpr;
-    rv_cpu_opt.access_mem = rv_access_mem;
-    dtm_init(&rv_cpu_opt);
-#endif
-
     contextp = std::make_unique<VerilatedContext>();
     contextp->debug(0); // Set debug level, 0 is off, 9 is highest
     contextp->randReset(2); // Randomization reset policy

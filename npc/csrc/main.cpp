@@ -9,12 +9,26 @@
 
 void init_monitor(int argc, char* argv[]);
 void sdb_mainloop();
+word_t * rv_get_gpr(CPU_state *c, size_t idx);
+int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data);
 
 int main(int argc, char** argv)
 {
     printf("Start NPC ...\n");
 
     init_monitor(argc, argv);
+
+#if CONFIG_DEBUG_MODULE
+    // 初始化调试模块
+    extern CPU_state* cur_cpu;
+    extern CPU_state cpu;
+    cur_cpu = &cpu;
+    cpu_opt_t rv_cpu_opt = {
+        .get_gpr = rv_get_gpr,
+        .access_mem = rv_access_mem,
+    };
+    dtm_init(&rv_cpu_opt);
+#endif
 
 #ifdef CONFIG_TARGET_AM
     cpu_exec(-1);
