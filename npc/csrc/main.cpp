@@ -6,11 +6,13 @@
 #include "cpu/cpu-exec.h"
 #include "memory/paddr.h"
 #include "dm/dtm.h"
+#include "utils.h"
 
 void init_monitor(int argc, char* argv[]);
 void sdb_mainloop();
 word_t * rv_get_gpr(CPU_state *c, size_t idx);
 int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data);
+int is_exit_status_bad();
 
 int main(int argc, char** argv)
 {
@@ -37,5 +39,5 @@ int main(int argc, char** argv)
     sdb_mainloop();
 #endif
 
-    return !(npc_ctx.state == NPC_END && npc_ctx.halt_ret == 0 || (npc_ctx.state == NPC_QUIT));
+    return is_exit_status_bad();
 }

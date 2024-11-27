@@ -13,30 +13,14 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __ISA_H__
-#define __ISA_H__
+#include "utils.h"
 
-#include "common.h"
+npc_context_t npc_ctx = {
+    .state = NPC_STOP,
+};
 
-typedef struct {
-  word_t gpr[32];
-  vaddr_t pc;
-} CPU_state;
-
-// monitor
-extern unsigned char isa_logo[];
-
-// reg
-extern CPU_state cpu;
-void isa_reg_display();
-const char* isa_reg_name(size_t idx);
-word_t isa_reg_str2val(const char *s, bool *success);
-vaddr_t *isa_get_cpu_pc(void);
-
-// memory
-
-// difftest
-bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
-void isa_difftest_attach();
-
-#endif
+int is_exit_status_bad()
+{
+    int good = (npc_ctx.state == NPC_END && npc_ctx.halt_ret == 0 || (npc_ctx.state == NPC_QUIT));
+    return !good;
+}

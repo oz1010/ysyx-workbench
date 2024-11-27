@@ -7,7 +7,7 @@ BUILD_DIR	?= $(NPC_HOME)/build/risc32
 TAGET		:= $(BUILD_DIR)/prog
 BINARY		:= ${TAGET}.bin
 
-all: ${BUILD_DIR} ${BINARY}
+all: ${BUILD_DIR} ${BINARY} objdump
 
 ${BUILD_DIR}:
 	@mkdir -p $@
@@ -18,7 +18,7 @@ ${TAGET}: a.c
 
 # ${OBJDUMP} -M no-aliases -d $<
 objdump: ${TAGET}
-	@${OBJDUMP} -M no-aliases -d $<
+	@${OBJDUMP} -M no-aliases -d $< >${TAGET}.hex
 
 # riscv64-linux-gnu-objcopy -O binary -S build/bin/prog prog.bin
 ${BINARY}: ${TAGET}

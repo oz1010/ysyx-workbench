@@ -18,6 +18,7 @@
 #include "cpu/decode.h"
 #include "common/point_pool.h"
 #include "trace.h"
+#include "cpu/difftest.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -110,7 +111,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc)
     {
         IFDEF(CONFIG_ITRACE, puts(_this->logbuf));
     }
-    IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+    if (npc_ctx.state == NPC_RUNNING) {
+        IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+    }
 
     IRINGBUF_UPDATE(MUXDEF(CONFIG_ISA_x86, _this->snpc, _this->pc), _this->logbuf,
                     npc_ctx.state == NPC_RUNNING);
@@ -121,7 +124,6 @@ static void exec_once(Decode *s, vaddr_t _pc)
     word_t data;
 
     // 更新cpu信息
-    for (int i = 0; i < 32; ++i) cpu.gpr[i] = top->rootp->top__DOT__regs_output[i];
     cpu.pc = top->rootp->addr;
     s->pc = top->rootp->addr;
 
@@ -150,6 +152,7 @@ static void exec_once(Decode *s, vaddr_t _pc)
     top->eval();
     RECORD_TRACE_VCD();
 
+    memcpy(&cpu.gpr[0], &top->rootp->top__DOT__regs_output.m_storage[0], sizeof(cpu.gpr));
     s->dnpc = top->rootp->addr;
     cpu.pc = s->dnpc;
 #ifdef CONFIG_ITRACE
@@ -273,6 +276,8 @@ void init_cpu(int argc, char *argv[])
         top->eval();
     }
     top->rst = 0;
+
+    cpu.pc = top->rootp->addr;
 }
 
 const char *regs[] = {"$0", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0", "s1", "a0",
