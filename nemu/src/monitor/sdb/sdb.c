@@ -129,11 +129,13 @@ static int cmd_x(char *args)
     }
     if (j%line_len != 0)
       printf("\n");
+#ifdef CONFIG_RTC_MMIO
   } else if (addr >= CONFIG_RTC_MMIO && addr <= CONFIG_RTC_MMIO) {
     // read from rtc
     uint64_t low = mmio_read(addr, 4);
     uint64_t high = mmio_read(addr+4, 4);
     printf("RTC value(us): %lu\n", (high<<32 | low));
+#endif
   } else {
     printf("Unknown addr %#x\n", addr);
   }
