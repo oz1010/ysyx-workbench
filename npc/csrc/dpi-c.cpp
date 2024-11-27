@@ -7,10 +7,6 @@
 #include "memory/paddr.h"
 #include "memory/vaddr.h"
 
-npc_context_t npc_ctx = {
-    .state = NPC_STOP,
-};
-
 void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret)
 {
     // difftest_skip_ref();

@@ -23,6 +23,20 @@ typedef struct {
   vaddr_t pc;
 } CPU_state;
 
+// monitor
 extern unsigned char isa_logo[];
+
+// reg
+extern CPU_state cpu;
+void isa_reg_display();
+const char* isa_reg_name(size_t idx);
+word_t isa_reg_str2val(const char *s, bool *success);
+vaddr_t *isa_get_cpu_pc(void);
+
+// memory
+
+// difftest
+bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
+void isa_difftest_attach();
 
 #endif
