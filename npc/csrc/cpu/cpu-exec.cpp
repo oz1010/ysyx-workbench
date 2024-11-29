@@ -121,49 +121,49 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc)
 
 static void exec_once(Decode *s, vaddr_t _pc)
 {
-    word_t data;
+    word_t inst;
 
     // 更新cpu信息
-    cpu.pc = top->rootp->addr;
-    s->pc = top->rootp->addr;
+    cpu.pc = top->rootp->top__DOT__pc;
+    s->pc = top->rootp->top__DOT__pc;
 
 #if CONFIG_DEBUG_MODULE
     // read instruction before debug
-    data = vaddr_ifetch(cpu.pc, 4);
-    dtm_update(DM_EXEC_INST_BEFORE, data, &cpu);
+    inst = vaddr_ifetch(cpu.pc, 4);
+    dtm_update(DM_EXEC_INST_BEFORE, inst, &cpu);
 #endif
 
     // read instruction before execution
-    data = vaddr_ifetch(cpu.pc, 4);
-    s->snpc = top->rootp->addr + 4;
+    inst = vaddr_ifetch(cpu.pc, 4);
+    s->snpc = top->rootp->top__DOT__pc + 4;
 
     // 电路仿真
-    s->inst = data;
-    top->data = data;
+    s->inst = inst;
+    top->inst = inst;
     top->clk = 1;
     top->contextp()->timeInc(1);
     top->eval();
     RECORD_TRACE_VCD();
 
-    IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, data, &cpu));
+    IFDEF(CONFIG_DEBUG_MODULE, dtm_update(DM_EXEC_INST_AFTER, inst, &cpu));
 
     top->clk = 0;
     top->contextp()->timeInc(1);
     top->eval();
     RECORD_TRACE_VCD();
 
-    memcpy(&cpu.gpr[0], &top->rootp->top__DOT__regs_output.m_storage[0], sizeof(cpu.gpr));
-    s->dnpc = top->rootp->addr;
+    memcpy(&cpu.gpr[0], &top->rootp->top__DOT__x.m_storage[0], sizeof(cpu.gpr));
+    s->dnpc = top->rootp->top__DOT__pc;
     cpu.pc = s->dnpc;
 #ifdef CONFIG_ITRACE
     char *p = s->logbuf;
     p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
     int ilen = s->snpc - s->pc;
     int i;
-    uint8_t *inst = (uint8_t *)&(s->inst);
+    uint8_t *inst_byte = (uint8_t *)&(s->inst);
     for (i = ilen - 1; i >= 0; i--)
     {
-        p += snprintf(p, 4, " %02x", inst[i]);
+        p += snprintf(p, 4, " %02x", inst_byte[i]);
     }
     int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
     int space_len = ilen_max - ilen;
@@ -277,7 +277,7 @@ void init_cpu(int argc, char *argv[])
     }
     top->rst = 0;
 
-    cpu.pc = top->rootp->addr;
+    cpu.pc = top->rootp->top__DOT__pc;
 }
 
 const char *regs[] = {"$0", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0", "s1", "a0",
