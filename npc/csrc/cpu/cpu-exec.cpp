@@ -111,9 +111,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc)
     {
         IFDEF(CONFIG_ITRACE, puts(_this->logbuf));
     }
-    if (npc_ctx.state == NPC_RUNNING) {
-        IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
-    }
+    IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
     IRINGBUF_UPDATE(MUXDEF(CONFIG_ISA_x86, _this->snpc, _this->pc), _this->logbuf,
                     npc_ctx.state == NPC_RUNNING);
