@@ -51,3 +51,12 @@ void invalid_inst(int thispc, int inst)
              isa_logo);
     set_npc_state(NPC_ABORT, thispc, -1);
 }
+
+void Mw(int addr, int len, int data) {
+    _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    vaddr_write(addr, len, data);
+}
+
+int Mr(int addr, int len) {
+    return vaddr_read(addr, len);
+}
