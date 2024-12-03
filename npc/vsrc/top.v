@@ -145,7 +145,7 @@ wire inst_lw        =   (opcode==7'b00000_11) && (funct3==3'b010);
 wire inst_sw        =   (opcode==7'b01000_11) && (funct3==3'b010);
 wire inst_addi      =   (opcode==7'b00100_11) && (funct3==3'b000);
 // wire inst_slti       =   (opcode==7'b00000_00);
-// wire inst_sltiu       =   (opcode==7'b00000_00);
+wire inst_sltiu     =   (opcode==7'b00100_11) && (funct3==3'b011);
 // wire inst_xori       =   (opcode==7'b00000_00);
 // wire inst_ori       =   (opcode==7'b00000_00);
 // wire inst_andi       =   (opcode==7'b00000_00);
@@ -191,11 +191,15 @@ wire inst_invalid   =   !(
                             inst_jal ||
                             inst_lw ||
                             inst_sw ||
+                            inst_sltiu ||
                             rst
                         );
 assign pc_jump      =   (inst_jal);
 assign pc_jump_addr =   {32{pc_jump}} & adder_output;
-wire modify_rd      =   (inst_lw);
+wire modify_rd      =   (
+        inst_lw ||
+        inst_sltiu
+    );
 reg [31:0] modify_rd_val;
 
 generate
@@ -207,11 +211,11 @@ generate
                                 inst_addi || 
                                 inst_auipc ||
                                 inst_jal ||
-                                inst_lw
+                                modify_rd
                             );
         assign regs_input[i] = ({32{!pc_jump & !modify_rd}} & {32{i==rd}} & adder_output) | 
                                 ({32{pc_jump & !modify_rd}} & {32{i==rd}} & snpc) |
-                                ({32{modify_rd}} & modify_rd_val);
+                                ({32{modify_rd}} & {32{i==rd}} & modify_rd_val);
     end
 endgenerate
 
@@ -244,6 +248,7 @@ adder32 adder(1'b0, add_a, add_b, carray, adder_output);
 always @(posedge clk) begin
     if (inst_ebreak) begin exit_simu(a[0]); end
     if (inst_lw) begin modify_rd_val <= Mr(adder_output, 4); end
+    if (inst_sltiu) begin modify_rd_val <= {{31{1'b0}}, (src1 < ext_immI)}; end
     if (inst_sw) begin Mw(adder_output, 4, src2); end
     if (inst_invalid) begin invalid_inst(pc, inst); end
 end

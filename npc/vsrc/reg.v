@@ -6,7 +6,8 @@ module Reg #(WIDTH = 1, RESET_VAL = 0) (
     output reg [WIDTH-1:0] dout,
     input wen
 );
-    always @(posedge clk) begin
+    // 数据写入在下降沿
+    always @(negedge clk) begin
         if (rst) dout <= RESET_VAL;
         else if (wen) dout <= din;
     end
