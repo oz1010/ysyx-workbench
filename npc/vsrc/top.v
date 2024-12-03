@@ -125,12 +125,63 @@ MuxKey #(32, 5, 32) src2R(src2, rs2, {
 });
 
 // instruction
+// wire inst_lui       =   (opcode==7'b00000_00);
 wire inst_auipc     =   (opcode==7'b00101_11);
 wire inst_jal       =   (opcode==7'b11011_11);
+// wire inst_jalr       =   (opcode==7'b00000_00);
+// wire inst_beq       =   (opcode==7'b00000_00);
+// wire inst_bne       =   (opcode==7'b00000_00);
+// wire inst_blt       =   (opcode==7'b00000_00);
+// wire inst_bge       =   (opcode==7'b00000_00);
+// wire inst_bltu       =   (opcode==7'b00000_00);
+// wire inst_bgeu       =   (opcode==7'b00000_00);
+// wire inst_lb       =   (opcode==7'b00000_00);
+// wire inst_lh       =   (opcode==7'b00000_00);
 wire inst_lw        =   (opcode==7'b00000_11) && (funct3==3'b010);
+// wire inst_lbu       =   (opcode==7'b00000_00);
+// wire inst_lhu       =   (opcode==7'b00000_00);
+// wire inst_sb       =   (opcode==7'b00000_00);
+// wire inst_sh       =   (opcode==7'b00000_00);
 wire inst_sw        =   (opcode==7'b01000_11) && (funct3==3'b010);
 wire inst_addi      =   (opcode==7'b00100_11) && (funct3==3'b000);
+// wire inst_slti       =   (opcode==7'b00000_00);
+// wire inst_sltiu       =   (opcode==7'b00000_00);
+// wire inst_xori       =   (opcode==7'b00000_00);
+// wire inst_ori       =   (opcode==7'b00000_00);
+// wire inst_andi       =   (opcode==7'b00000_00);
+// wire inst_slli       =   (opcode==7'b00000_00);
+// wire inst_srli       =   (opcode==7'b00000_00);
+// wire inst_srai       =   (opcode==7'b00000_00);
+// wire inst_add       =   (opcode==7'b00000_00);
+// wire inst_sub       =   (opcode==7'b00000_00);
+// wire inst_sll       =   (opcode==7'b00000_00);
+// wire inst_slt       =   (opcode==7'b00000_00);
+// wire inst_sltu       =   (opcode==7'b00000_00);
+// wire inst_xor       =   (opcode==7'b00000_00);
+// wire inst_srl       =   (opcode==7'b00000_00);
+// wire inst_sra       =   (opcode==7'b00000_00);
+// wire inst_or       =   (opcode==7'b00000_00);
+// wire inst_and       =   (opcode==7'b00000_00);
+// wire inst_fence       =   (opcode==7'b00000_00);
+// wire inst_fence_i       =   (opcode==7'b00000_00);
+// wire inst_ecall       =   (opcode==7'b00000_00);
 wire inst_ebreak    =   inst==32'h00100073;
+// wire inst_csrrw       =   (opcode==7'b00000_00);
+// wire inst_csrrs       =   (opcode==7'b00000_00);
+// wire inst_csrrc       =   (opcode==7'b00000_00);
+// wire inst_csrrwi       =   (opcode==7'b00000_00);
+// wire inst_csrrsi       =   (opcode==7'b00000_00);
+// wire inst_csrrci       =   (opcode==7'b00000_00);
+// wire inst_mul       =   (opcode==7'b00000_00);
+// wire inst_mulh       =   (opcode==7'b00000_00);
+// wire inst_mulhsu       =   (opcode==7'b00000_00);
+// wire inst_mulhu       =   (opcode==7'b00000_00);
+// wire inst_div       =   (opcode==7'b00000_00);
+// wire inst_divu       =   (opcode==7'b00000_00);
+// wire inst_rem       =   (opcode==7'b00000_00);
+// wire inst_remu       =   (opcode==7'b00000_00);
+// wire inst_lui       =   (opcode==7'b00000_00);
+
 wire inst_invalid   =   !(
                             inst_addi || 
                             inst_ebreak || 
