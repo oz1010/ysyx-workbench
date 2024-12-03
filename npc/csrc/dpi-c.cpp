@@ -53,10 +53,12 @@ void invalid_inst(int thispc, int inst)
 }
 
 void Mw(int addr, int len, int data) {
-    _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    // _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     vaddr_write(addr, len, data);
 }
 
 int Mr(int addr, int len) {
-    return vaddr_read(addr, len);
+    int data = vaddr_read(addr, len);
+    // _log_raw("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    return data;
 }

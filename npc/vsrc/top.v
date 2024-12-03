@@ -127,18 +127,23 @@ MuxKey #(32, 5, 32) src2R(src2, rs2, {
 // instruction
 wire inst_auipc     =   (opcode==7'b00101_11);
 wire inst_jal       =   (opcode==7'b11011_11);
+wire inst_lw        =   (opcode==7'b00000_11) && (funct3==3'b010);
 wire inst_sw        =   (opcode==7'b01000_11) && (funct3==3'b010);
 wire inst_addi      =   (opcode==7'b00100_11) && (funct3==3'b000);
 wire inst_ebreak    =   inst==32'h00100073;
-wire inst_invalid   =   !(rst || 
+wire inst_invalid   =   !(
                             inst_addi || 
                             inst_ebreak || 
                             inst_auipc ||
                             inst_jal ||
-                            inst_sw
+                            inst_lw ||
+                            inst_sw ||
+                            rst
                         );
 assign pc_jump      =   (inst_jal);
 assign pc_jump_addr =   {32{pc_jump}} & adder_output;
+wire modify_rd      =   (inst_lw);
+reg [31:0] modify_rd_val;
 
 generate
     for (i=0; i<32; ++i) begin : gen_regs
@@ -146,10 +151,12 @@ generate
                             (
                                 inst_addi || 
                                 inst_auipc ||
-                                inst_jal
+                                inst_jal ||
+                                inst_lw
                             );
-        assign regs_input[i] = ({32{!pc_jump}} & {32{i==rd}} & adder_output) | 
-                                ({32{pc_jump}} & {32{i==rd}} & snpc);
+        assign regs_input[i] = ({32{!pc_jump & !modify_rd}} & {32{i==rd}} & adder_output) | 
+                                ({32{pc_jump & !modify_rd}} & {32{i==rd}} & snpc) |
+                                ({32{modify_rd}} & modify_rd_val);
     end
 endgenerate
 
@@ -162,11 +169,13 @@ wire [31:0] ext_immS = {{20{immS[11]}}, immS};
 wire [31:0] add_a = ({32{inst_addi}} & src1) | 
                     ({32{inst_auipc}} & pc) |
                     ({32{inst_jal}} & pc) |
+                    ({32{inst_lw}} & src1) |
                     ({32{inst_sw}} & src1) |
                     0;
 wire [31:0] add_b = ({32{inst_addi}} & ext_immI) |
                     ({32{inst_auipc}} & immU) |
                     ({32{inst_jal}} & ext_immJ) |
+                    ({32{inst_lw}} & ext_immI) |
                     ({32{inst_sw}} & ext_immS) |
                     0;
 wire carray;
@@ -175,9 +184,9 @@ adder32 adder(1'b0, add_a, add_b, carray, adder_output);
 
 always @(posedge clk) begin
     if (inst_ebreak) begin exit_simu(a[0]); end
+    if (inst_lw) begin modify_rd_val <= Mr(adder_output, 4); end
     if (inst_sw) begin Mw(adder_output, 4, src2); end
     if (inst_invalid) begin invalid_inst(pc, inst); end
-    // a[0] <= Mr()
 end
 
 endmodule
