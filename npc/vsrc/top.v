@@ -129,7 +129,7 @@ MuxKey #(32, 5, 32) src2R(src2, rs2, {
 wire inst_auipc     =   (opcode==7'b00101_11);
 wire inst_jal       =   (opcode==7'b11011_11);
 // wire inst_jalr       =   (opcode==7'b00000_00);
-// wire inst_beq       =   (opcode==7'b00000_00);
+wire inst_beq       =   (opcode==7'b11000_11) && (funct3==3'b000);
 // wire inst_bne       =   (opcode==7'b00000_00);
 // wire inst_blt       =   (opcode==7'b00000_00);
 // wire inst_bge       =   (opcode==7'b00000_00);
@@ -183,18 +183,19 @@ wire inst_ebreak    =   inst==32'h00100073;
 // wire inst_lui       =   (opcode==7'b00000_00);
 
 wire inst_invalid   =   !(
-                            inst_add || 
-                            inst_sub || 
-                            inst_addi || 
-                            inst_ebreak || 
                             inst_auipc ||
                             inst_jal ||
+                            inst_beq ||
+                            inst_addi || 
                             inst_lw ||
                             inst_sw ||
+                            inst_add || 
+                            inst_sub || 
                             inst_sltiu ||
+                            inst_ebreak || 
                             rst
                         );
-assign pc_jump      =   (inst_jal);
+assign pc_jump      =   (inst_jal || ((src1==src2) && inst_beq));
 assign pc_jump_addr =   {32{pc_jump}} & adder_output;
 wire modify_rd      =   (
         inst_lw ||
@@ -210,7 +211,7 @@ generate
                                 inst_sub || 
                                 inst_addi || 
                                 inst_auipc ||
-                                inst_jal ||
+                                pc_jump ||
                                 modify_rd
                             );
         assign regs_input[i] = ({32{!pc_jump & !modify_rd}} & {32{i==rd}} & adder_output) | 
@@ -223,6 +224,7 @@ endgenerate
 wire [31:0] ext_immI = {{20{immI[11]}}, immI};
 wire [31:0] ext_immJ = {{11{immJ[20]}}, immJ};
 wire [31:0] ext_immS = {{20{immS[11]}}, immS};
+wire [31:0] ext_immB = {{19{immB[12]}}, immB};
 
 // ALU
 wire [31:0] add_a = ({32{inst_add}} & src1) | 
@@ -232,6 +234,7 @@ wire [31:0] add_a = ({32{inst_add}} & src1) |
                     ({32{inst_jal}} & pc) |
                     ({32{inst_lw}} & src1) |
                     ({32{inst_sw}} & src1) |
+                    ({32{inst_beq}} & pc) |
                     0;
 wire [31:0] add_b = ({32{inst_add}} & src2) |
                     ({32{inst_sub}} & src2) |
@@ -240,6 +243,7 @@ wire [31:0] add_b = ({32{inst_add}} & src2) |
                     ({32{inst_jal}} & ext_immJ) |
                     ({32{inst_lw}} & ext_immI) |
                     ({32{inst_sw}} & ext_immS) |
+                    ({32{inst_beq}} & ext_immB) |
                     0;
 wire carray;
 wire [31:0] adder_output;
