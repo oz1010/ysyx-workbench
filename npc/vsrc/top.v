@@ -250,7 +250,7 @@ wire [31:0] add_a = ({32{inst_add}} & src1) |
                     ({32{inst_bne}} & pc) |
                     0;
 wire [31:0] add_b = ({32{inst_add}} & src2) |
-                    ({32{inst_sub}} & src2) |
+                    ({32{inst_sub}} & (-src2)) |
                     ({32{inst_addi}} & ext_immI) |
                     ({32{inst_auipc}} & immU) |
                     ({32{inst_jal}} & ext_immJ) |
