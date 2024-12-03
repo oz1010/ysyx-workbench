@@ -152,7 +152,7 @@ wire inst_addi      =   (opcode==7'b00100_11) && (funct3==3'b000);
 // wire inst_slli       =   (opcode==7'b00000_00);
 // wire inst_srli       =   (opcode==7'b00000_00);
 // wire inst_srai       =   (opcode==7'b00000_00);
-// wire inst_add       =   (opcode==7'b00000_00);
+wire inst_add       =   (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0000000);
 // wire inst_sub       =   (opcode==7'b00000_00);
 // wire inst_sll       =   (opcode==7'b00000_00);
 // wire inst_slt       =   (opcode==7'b00000_00);
@@ -183,6 +183,7 @@ wire inst_ebreak    =   inst==32'h00100073;
 // wire inst_lui       =   (opcode==7'b00000_00);
 
 wire inst_invalid   =   !(
+                            inst_add || 
                             inst_addi || 
                             inst_ebreak || 
                             inst_auipc ||
@@ -200,6 +201,7 @@ generate
     for (i=0; i<32; ++i) begin : gen_regs
         assign regs_wen[i] = (i==rd) && 
                             (
+                                inst_add || 
                                 inst_addi || 
                                 inst_auipc ||
                                 inst_jal ||
@@ -217,13 +219,15 @@ wire [31:0] ext_immJ = {{11{immJ[20]}}, immJ};
 wire [31:0] ext_immS = {{20{immS[11]}}, immS};
 
 // ALU
-wire [31:0] add_a = ({32{inst_addi}} & src1) | 
+wire [31:0] add_a = ({32{inst_add}} & src1) | 
+                    ({32{inst_addi}} & src1) | 
                     ({32{inst_auipc}} & pc) |
                     ({32{inst_jal}} & pc) |
                     ({32{inst_lw}} & src1) |
                     ({32{inst_sw}} & src1) |
                     0;
-wire [31:0] add_b = ({32{inst_addi}} & ext_immI) |
+wire [31:0] add_b = ({32{inst_add}} & src2) |
+                    ({32{inst_addi}} & ext_immI) |
                     ({32{inst_auipc}} & immU) |
                     ({32{inst_jal}} & ext_immJ) |
                     ({32{inst_lw}} & ext_immI) |
