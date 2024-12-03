@@ -130,7 +130,7 @@ wire inst_auipc     =   (opcode==7'b00101_11);
 wire inst_jal       =   (opcode==7'b11011_11);
 wire inst_jalr      =   (opcode==7'b11001_11) && (funct3==3'b000);
 wire inst_beq       =   (opcode==7'b11000_11) && (funct3==3'b000);
-// wire inst_bne       =   (opcode==7'b00000_00);
+wire inst_bne       =   (opcode==7'b11000_11) && (funct3==3'b001);
 // wire inst_blt       =   (opcode==7'b00000_00);
 // wire inst_bge       =   (opcode==7'b00000_00);
 // wire inst_bltu       =   (opcode==7'b00000_00);
@@ -187,6 +187,7 @@ wire inst_invalid   =   !(
                             inst_jal ||
                             inst_jalr ||
                             inst_beq ||
+                            inst_bne ||
                             inst_addi || 
                             inst_lw ||
                             inst_sw ||
@@ -199,7 +200,9 @@ wire inst_invalid   =   !(
 assign pc_jump      =   (
     inst_jal ||
     inst_jalr || 
-    ((src1==src2) && inst_beq));
+    (inst_beq && src1==src2) ||
+    (inst_bne && src1!=src2)
+    );
 assign pc_jump_addr =   {32{pc_jump}} & (
     ({32{!inst_jalr}} & adder_output) | 
     ({32{inst_jalr}} & (adder_output & ~1))
@@ -218,7 +221,8 @@ generate
                                 inst_sub || 
                                 inst_addi || 
                                 inst_auipc ||
-                                pc_jump ||
+                                inst_jal ||
+                                inst_jalr ||
                                 modify_rd
                             );
         assign regs_input[i] = ({32{!pc_jump & !modify_rd}} & {32{i==rd}} & adder_output) | 
@@ -243,6 +247,7 @@ wire [31:0] add_a = ({32{inst_add}} & src1) |
                     ({32{inst_lw}} & src1) |
                     ({32{inst_sw}} & src1) |
                     ({32{inst_beq}} & pc) |
+                    ({32{inst_bne}} & pc) |
                     0;
 wire [31:0] add_b = ({32{inst_add}} & src2) |
                     ({32{inst_sub}} & src2) |
@@ -253,6 +258,7 @@ wire [31:0] add_b = ({32{inst_add}} & src2) |
                     ({32{inst_lw}} & ext_immI) |
                     ({32{inst_sw}} & ext_immS) |
                     ({32{inst_beq}} & ext_immB) |
+                    ({32{inst_bne}} & ext_immB) |
                     0;
 wire carray;
 wire [31:0] adder_output;
