@@ -111,8 +111,8 @@ uint8_t *dtm_dm_parse_scan_msg(uint8_t *buff, dtm_msg_t *resp_msg)
             // val = &info->regs[DMIRI_BYPASS];
             val = (void *)"1";
             debug_info_size += snprintf(&debug_info[debug_info_size], sizeof(debug_info)-debug_info_size,
-                "[%d] ir:%#.2x bits:%02d resp:%#.8x\t",
-                i, ctx->ir, num_bits, *(uint32_t *)val);
+                "[%d] ir:%#.2x bits:%02d resp:%#.2x\t",
+                i, ctx->ir, num_bits, *(char *)val);
         } else {
 
             // 当ir为dmi时，将此时的值赋值给对应的寄存器
