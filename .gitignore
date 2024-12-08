@@ -20,6 +20,7 @@
 !/npc/csrc/**/Kconfig
 !/npc/scripts/*.mk
 !/npc/resource/riscv32-bin/*
+!/npc/tools/kconfig/**
 !Makefile
 !README.md
 !.gitignore
