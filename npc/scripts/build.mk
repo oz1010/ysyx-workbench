@@ -45,7 +45,7 @@ $(OBJ_DIR)/%.o: %.cc
 	$(call call_fixdep, $(@:.o=.d), $@)
 
 $(RUN_IMG):
-	@$(MAKE) -C $(NPC_HOME)/resource/risv32-bin
+	@$(MAKE) -C $(NPC_HOME)/resource/riscv32-bin
 
 # Depencies
 -include $(OBJS:.o=.d)

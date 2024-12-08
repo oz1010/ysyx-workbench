@@ -12,7 +12,7 @@ BIN = $(BUILD_DIR)/$(TOPNAME)
 TST_TARGET = addi
 TST_DIR = $(NPC_HOME)/test/$(TST_TARGET)
 TST_BIN = $(BUILD_DIR)/test/$(TST_TARGET)/case.bin
-PROG_DIR = $(NPC_HOME)/resource/risv32-bin
+PROG_DIR = $(NPC_HOME)/resource/riscv32-bin
 IMG ?= $(NPC_HOME)/build/risc32/prog.bin
 RUN_ARGS ?= --log="build/npc-test.log"
 RUN_ARGS += -b

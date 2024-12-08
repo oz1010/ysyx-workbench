@@ -19,6 +19,7 @@
 !/npc/include/device/*.h
 !/npc/csrc/**/Kconfig
 !/npc/scripts/*.mk
+!/npc/resource/riscv32-bin/*
 !Makefile
 !README.md
 !.gitignore
