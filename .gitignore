@@ -18,6 +18,7 @@
 !/npc/include/memory/*.h
 !/npc/include/device/*.h
 !/npc/csrc/**/Kconfig
+!/npc/scripts/*.mk
 !Makefile
 !README.md
 !.gitignore
