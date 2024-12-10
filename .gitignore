@@ -23,6 +23,7 @@
 !/npc/tools/kconfig/*
 !/npc/tools/kconfig/lxdialog/*
 !/npc/tools/fixdep/*.c
+!/npc/test/addi/*
 !Makefile
 !README.md
 !.gitignore
