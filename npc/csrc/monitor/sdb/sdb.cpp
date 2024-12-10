@@ -140,6 +140,7 @@ static int cmd_x(char *args)
         if (j % line_len != 0)
             printf("\n");
     }
+#if DEVICE
     else if (addr >= CONFIG_RTC_MMIO && addr <= CONFIG_RTC_MMIO)
     {
         // read from rtc
@@ -147,6 +148,7 @@ static int cmd_x(char *args)
         uint64_t high = mmio_read(addr + 4, 4);
         printf("RTC value(us): %lu\n", (high << 32 | low));
     }
+#endif
     else
     {
         printf("Unknown addr %#x\n", addr);
@@ -267,10 +269,10 @@ static int cmd_test(char *args)
             file_name = args;
         }
 
-        const char *nemu_home = getenv("NEMU_HOME");
-        if (!nemu_home)
+        const char *home_str = getenv("NPC_HOME");
+        if (!home_str)
         {
-            nemu_home = "/home/johnny/big-proj/mk-cpu-lesson-dev/NJU-ProjectN_nemu";
+            home_str = "/root/project/ysyx-dev/ysyx-workbench/npc";
         }
 
         char file_path[1024] = {0};
@@ -280,7 +282,7 @@ static int cmd_test(char *args)
         }
         else
         {
-            strcat(&file_path[strlen(file_path)], nemu_home);
+            strcat(&file_path[strlen(file_path)], home_str);
             strcat(&file_path[strlen(file_path)], "/tools/gen-expr/build/input");
         }
 
