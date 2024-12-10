@@ -20,7 +20,9 @@
 !/npc/csrc/**/Kconfig
 !/npc/scripts/*.mk
 !/npc/resource/riscv32-bin/*
-!/npc/tools/kconfig/**
+!/npc/tools/kconfig/*
+!/npc/tools/kconfig/lxdialog/*
+!/npc/tools/fixdep/*.c
 !Makefile
 !README.md
 !.gitignore
