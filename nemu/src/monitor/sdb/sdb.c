@@ -160,7 +160,7 @@ static int cmd_p(char *args) {
     printf("expression is error\n");
   return 0;
 }
-
+#ifdef CONFIG_WATCHPOINT
 static int cmd_w(char *args) {
   if (!args){
     printf("miss args\n");
@@ -170,7 +170,8 @@ static int cmd_w(char *args) {
   add_point(POINT_WATCH, args);
   return 0;
 }
-
+#endif
+#ifdef CONFIG_BREAKPOINT
 static int cmd_b(char *args) {
   if (!args){
     printf("miss address\n");
@@ -180,6 +181,7 @@ static int cmd_b(char *args) {
   add_point(POINT_BREAK, args);
   return 0;
 }
+#endif
 
 static int cmd_d(char *args) {
   uint64_t id = 0;
@@ -295,8 +297,12 @@ static struct {
   { "info", "Generic command for showing things about the program being debugged.", cmd_info},
   { "x", "Show the value of memory.", cmd_x},
   { "p", "Print value of expression EXP.", cmd_p},
-  { "w", "Set a watchpoint for EXPRESSION.", cmd_w},
-  { "b", "Set a breakpoint for PC.", cmd_b},
+#ifdef CONFIG_WATCHPOINT
+  {"w", "Set a watchpoint for EXPRESSION.", cmd_w},
+#endif
+#ifdef CONFIG_BREAKPOINT
+  {"b", "Set a breakpoint for PC.", cmd_b},
+#endif
   { "d", "Delete a breakpoint or watchpoint.", cmd_d},
   { "test", "Test program.", cmd_test},
   { "q", "Exit NEMU", cmd_q },
