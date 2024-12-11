@@ -27,7 +27,7 @@
 !/npc/test/addi/*
 !/npc/src/**/Kconfig
 !/npc/src/**/*.cpp
-!/npc/src/**/*.cpp
+!/npc/src/**/*.cc
 !/npc/src/**/*.c
 !/npc/src/**/*.h
 !/npc/**/filelist.mk
