@@ -13,7 +13,6 @@ BUILD_DIR = $(WORK_DIR)/build
 INC_PATH := $(WORK_DIR)/include $(INC_PATH) $(WORK_DIR)/../common/include
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
-RUN_IMG	 ?= $(NEMU_HOME)/build/risc32/prog.bin
 
 # Compilation flags
 ifeq ($(CC),clang)
@@ -44,8 +43,8 @@ $(OBJ_DIR)/%.o: %.cc
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
-$(RUN_IMG):
-	@$(MAKE) -C $(NEMU_HOME)/resource/risv32-bin
+$(IMG):
+	@$(MAKE) -C $(NEMU_HOME)/resource/riscv32-bin
 
 # Depencies
 -include $(OBJS:.o=.d)
@@ -54,7 +53,7 @@ $(RUN_IMG):
 
 .PHONY: app clean
 
-app: $(BINARY) $(RUN_IMG)
+app: $(BINARY) $(IMG)
 
 $(BINARY):: $(OBJS) $(ARCHIVES)
 	@echo + LD $@
