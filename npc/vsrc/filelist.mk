@@ -17,7 +17,9 @@ VGEN_DIR    = $(WORK_DIR)/build/vgen
 VMOD_NAME	= top
 VERILATOR   = verilator
 
-VSRCS-y     = vsrc/top.v vsrc/adder.v vsrc/reg.v vsrc/muxkey.v vsrc/isa/riscv32/inst.cpp vsrc/isa/riscv32/logo.cpp vsrc/dpi-c.cpp
+VCSR_CPPS   = $(shell find -L vsrc -name *.cpp)
+VCSR_VS     = $(shell find -L vsrc -name *.v)
+VSRCS-y     += $(VCSR_VS) $(VCSR_CPPS)
 VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic

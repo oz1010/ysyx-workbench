@@ -11,8 +11,6 @@
 !/npc/csrc/**/*.cpp
 !/npc/csrc/**/*.cc
 !/npc/csrc/**/*.h
-!/npc/vsrc/*
-!/npc/vsrc/**/*.cpp
 !/npc/include/*.h
 !/npc/include/common/*.h
 !/npc/include/cpu/*.h
@@ -25,12 +23,14 @@
 !/npc/tools/kconfig/lxdialog/*
 !/npc/tools/fixdep/*.c
 !/npc/test/addi/*
+!/npc/**/filelist.mk
 !/npc/src/**/Kconfig
 !/npc/src/**/*.cpp
 !/npc/src/**/*.cc
 !/npc/src/**/*.c
 !/npc/src/**/*.h
-!/npc/**/filelist.mk
+!/npc/vsrc/**/*.v
+!/npc/vsrc/**/*.cpp
 !/npc/src/am-bin.S
 !Makefile
 !README.md
@@ -43,3 +43,4 @@ npc/.config.old
 npc/include/config
 npc/include/generated
 
+/am-kernels
