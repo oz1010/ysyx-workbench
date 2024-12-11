@@ -14,7 +14,7 @@
 #**************************************************************************************/
 
 ifneq ($(CONFIG_ITRACE)$(CONFIG_IQUEUE),)
-CCSRC = src/utils/disasm.cc
+SRCS-y += src/utils/disasm.cc
 # CXXFLAGS += $(shell llvm-config --cxxflags) -fPIE
 CXXFLAGS += -I/usr/lib/llvm-14/include -fno-exceptions -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -fPIE
 # CXXFLAGS += -D__STDC_FORMAT_MACROS

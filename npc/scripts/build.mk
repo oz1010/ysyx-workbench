@@ -30,9 +30,12 @@ LDFLAGS := -g $(LDFLAGS)
 VERILATOR_CFLAGS += $(INCLUDES)
 
 OBJS =
-OBJS += $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
-OBJS += $(CCSRC:%.cc=$(OBJ_DIR)/%.o)
-OBJS += $(CSRC:%.c=$(OBJ_DIR)/%.o)
+OBJS += $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(filter %.cpp,$(SRCS)))
+OBJS += $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter %.cc,$(SRCS)))
+OBJS += $(patsubst %.c,$(OBJ_DIR)/%.o,$(filter %.c,$(SRCS)))
+# OBJS += $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
+# OBJS += $(CCSRC:%.cc=$(OBJ_DIR)/%.o)
+# OBJS += $(CSRC:%.c=$(OBJ_DIR)/%.o)
 
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c
