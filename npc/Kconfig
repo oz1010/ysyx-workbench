@@ -280,8 +280,8 @@ config DIFFTEST_REF_NAME
   default "none"
 
 if MODE_SYSTEM
-source "csrc/memory/Kconfig"
-source "csrc/device/Kconfig"
+source "src/memory/Kconfig"
+source "src/device/Kconfig"
 endif
 
 

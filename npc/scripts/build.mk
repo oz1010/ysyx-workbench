@@ -10,10 +10,9 @@ endif
 WORK_DIR  = $(shell pwd)
 BUILD_DIR = $(WORK_DIR)/build
 
-INC_PATH := $(WORK_DIR)/include $(INC_PATH)
+INC_PATH := $(WORK_DIR)/../common/include $(WORK_DIR)/include $(INC_PATH)
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
-RUN_IMG	 ?= $(NPC_HOME)/build/risc32/prog.bin
 
 # Compilation flags
 ifeq ($(CC),clang)
@@ -25,10 +24,15 @@ LD := $(CXX)
 INCLUDES = $(addprefix -I, $(INC_PATH))
 # CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 # LDFLAGS := -O2 $(LDFLAGS)
-CFLAGS  := -g -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
+CFLAGS  := -g -MMD -Wall $(INCLUDES) $(CFLAGS)
 LDFLAGS := -g $(LDFLAGS)
 
-OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o) $(CXXSRC:%.cc=$(OBJ_DIR)/%.o)
+VERILATOR_CFLAGS += $(INCLUDES)
+
+OBJS =
+OBJS += $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
+OBJS += $(CCSRC:%.cc=$(OBJ_DIR)/%.o)
+OBJS += $(CSRC:%.c=$(OBJ_DIR)/%.o)
 
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c
@@ -39,13 +43,27 @@ $(OBJ_DIR)/%.o: %.c
 	$(call call_fixdep, $(@:.o=.d), $@)
 
 $(OBJ_DIR)/%.o: %.cc
+	@echo + CX $<
+	@mkdir -p $(dir $@)
+	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
+	$(call call_fixdep, $(@:.o=.d), $@)
+
+$(OBJ_DIR)/%.o: %.cpp
 	@echo + CXX $<
 	@mkdir -p $(dir $@)
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
-$(RUN_IMG):
+$(IMG):
 	@$(MAKE) -C $(NPC_HOME)/resource/riscv32-bin
+
+$(VOBJS): $(VSRCS)
+	@echo + CV $<
+	@mkdir -p $(dir $@)
+	@$(VERILATOR) $(VERILATOR_CFLAGS) \
+		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
+		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
+		$^
 
 # Depencies
 -include $(OBJS:.o=.d)
@@ -54,11 +72,11 @@ $(RUN_IMG):
 
 .PHONY: app clean
 
-app: $(BINARY) $(RUN_IMG)
+app: $(BINARY) $(IMG)
 
-$(BINARY):: $(OBJS) $(ARCHIVES)
+$(BINARY):: $(VOBJS) $(OBJS) $(ARCHIVES)
 	@echo + LD $@
 	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(ARCHIVES) $(LIBS)
 
 clean:
-	-rm -rf $(BUILD_DIR)
+	-rm -rf $(VGEN_DIR) $(BUILD_DIR)

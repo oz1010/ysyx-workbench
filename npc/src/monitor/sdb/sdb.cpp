@@ -175,7 +175,7 @@ static int cmd_p(char *args)
         printf("expression is error\n");
     return 0;
 }
-
+#ifdef CONFIG_WATCHPOINT
 static int cmd_w(char *args)
 {
     if (!args)
@@ -187,7 +187,8 @@ static int cmd_w(char *args)
     add_point(POINT_WATCH, args);
     return 0;
 }
-
+#endif
+#ifdef CONFIG_BREAKPOINT
 static int cmd_b(char *args)
 {
     if (!args)
@@ -199,6 +200,7 @@ static int cmd_b(char *args)
     add_point(POINT_BREAK, args);
     return 0;
 }
+#endif
 
 static int cmd_d(char *args)
 {

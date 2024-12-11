@@ -2,7 +2,7 @@ TOOLCHAIN	:=	riscv64-linux-gnu-
 CC			:=	${TOOLCHAIN}gcc
 OBJDUMP		:=	${TOOLCHAIN}objdump
 OBJCOPY		:=	${TOOLCHAIN}objcopy
-BUILD_DIR	?= $(NPC_HOME)/build/riscv32
+BUILD_DIR	?=	$(NPC_HOME)/build/riscv32-bin
 
 TAGET		:= $(BUILD_DIR)/prog
 BINARY		:= ${TAGET}.bin
