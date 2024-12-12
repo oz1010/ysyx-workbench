@@ -22,10 +22,8 @@ CXX := g++
 endif
 LD := $(CXX)
 INCLUDES = $(addprefix -I, $(INC_PATH))
-# CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
-# LDFLAGS := -O2 $(LDFLAGS)
-CFLAGS  := -g -MMD -Wall $(INCLUDES) $(CFLAGS)
-LDFLAGS := -g $(LDFLAGS)
+CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
+LDFLAGS := -O2 $(LDFLAGS)
 
 VERILATOR_CFLAGS += $(INCLUDES)
 

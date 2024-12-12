@@ -20,7 +20,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc)
 {
     if (memcmp(cpu.gpr, ref_r->gpr, sizeof(ref_r->gpr)) != 0)
     {
-        int i = 0;
+        uint32_t i = 0;
         for (i = 0; i < sizeof(ref_r->gpr); ++i)
         {
             if (cpu.gpr[i] != ref_r->gpr[i])
