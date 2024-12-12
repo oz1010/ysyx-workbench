@@ -1,0 +1,58 @@
+# 参考 https://hub.docker.com/r/docker4cn/ubuntu
+# 构建方法：docker build -f base-images-ubuntu22.04 --target=base22.04 -t base-image-ubuntu:22.04-ustc .
+# FROM docker4cn/ubuntu:22.04-ustc
+FROM ubuntu:22.04 AS base22.04
+
+# 替换国内镜像源
+ENV TZ='Asia/Shanghai'
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends apt-transport-https ca-certificates tzdata && \
+    sed -i "s@http://.*.ubuntu.com@https://mirrors.ustc.edu.cn@g" /etc/apt/sources.list && \
+    rm -rf /var/apt/cache/*
+
+# 安装基本工具
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends sudo zsh git make locales vim ssh && \
+    rm -rf /var/lib/apt/lists/*
+
+# 若发现默认ubuntu用户则删除
+RUN if [ `ls -l /home | grep -w "ubuntu" | wc -l` -gt 0 ]; then userdel ubuntu; else echo "skip delete user 'ubuntu'"; fi
+# 配置用户dxl
+RUN groupadd -g 1000 dxl && \
+    useradd -u 1000 -g 1000 -ms /bin/zsh dxl && \
+    usermod -aG sudo dxl && \
+    echo "dxl:123456" | chpasswd
+ADD zsh/oh-my-zsh.tgz /home/dxl
+COPY ssh/id_rsa /home/dxl/.ssh/id_rsa
+COPY ssh/id_rsa.pub /home/dxl/.ssh/id_rsa.pub
+RUN chmod 700 /home/dxl/.ssh/id_rsa && \
+    chmod 700 /home/dxl/.ssh/id_rsa.pub && \
+    echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /home/dxl/.ssh/config && \
+    echo "dxl ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dxl
+RUN sudo chown -R dxl:dxl /home/dxl
+USER dxl
+RUN sudo localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG zh_CN.utf8
+COPY zsh/.zshrc /home/dxl/.zshrc
+# WORKDIR /home/dxl/project
+# 配置用户root
+USER root
+RUN echo "root:123456" | chpasswd
+ADD zsh/oh-my-zsh.tgz /root
+COPY ssh/id_rsa /root/.ssh/id_rsa
+COPY ssh/id_rsa.pub /root/.ssh/id_rsa.pub
+RUN chmod 700 /root/.ssh/id_rsa && \
+    chmod 700 /root/.ssh/id_rsa.pub && \
+    echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
+# RUN sudo chown -R root:root /root
+RUN sudo localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV LANG zh_CN.utf8
+COPY zsh/.zshrc /root/.zshrc
+# WORKDIR /root/project
+
+# 配置ssh
+EXPOSE 22
+RUN sed -i "s@#Port 22@Port 22@g" /etc/ssh/sshd_config && \
+    sed -i "s@#PermitRootLogin prohibit-password@PermitRootLogin yes@g" /etc/ssh/sshd_config && \
+    sed -i "s@#PasswordAuthentication yes@PasswordAuthentication yes@g" /etc/ssh/sshd_config && \
+    service ssh start

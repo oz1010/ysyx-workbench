@@ -32,6 +32,7 @@
 !/npc/vsrc/**/*.v
 !/npc/vsrc/**/*.cpp
 !/npc/src/am-bin.S
+!/build_container/*
 !Makefile
 !README.md
 !.gitignore
