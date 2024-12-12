@@ -62,6 +62,7 @@ size_t load_img(const char* fpath)
 
     size_t readsize = fread(pmemstart, 1, membytes, fd);
     LOG_INFO("Load memory from file total size %lu", readsize);
+    (void)pmemend;
     return readsize;
 }
 
