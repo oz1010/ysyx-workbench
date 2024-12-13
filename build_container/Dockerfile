@@ -21,6 +21,8 @@ RUN apt-get update && \
 #   ref. https://ysyx.oscc.cc/docs/ics-pa/2.2.html#%E8%BF%90%E8%A1%8C%E7%AC%AC%E4%B8%80%E4%B8%AAc%E7%A8%8B%E5%BA%8F
 RUN sed -i 's|\(^# include <gnu/stubs-ilp32.h>$\)|//\1|' /usr/riscv64-linux-gnu/include/gnu/stubs.h
 
+# 安装verilator 5.030
+ADD extra/verilator-5.030.tgz /usr/local
 
 # 配置用户信息
 RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
