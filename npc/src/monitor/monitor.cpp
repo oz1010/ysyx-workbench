@@ -13,36 +13,18 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <stdint.h>
-#include <memory>
-#include <getopt.h>
-#include "cpu/cpu-exec.h"
-#include "memory/paddr.h"
-#include "dm/dtm.h"
-// #include <isa.h>
-// #include <memory/paddr.h>
-// #include <generated/autoconf.h>
-// #include <utils.h>
+#include <isa.h>
+#include <memory/paddr.h>
+#include <generated/autoconf.h>
+#include <utils.h>
 
-// void init_rand();
-// void init_log(const char *log_file);
-// void init_mem();
+void init_rand();
+void init_log(const char *log_file);
+void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
-// void init_device();
+void init_device();
 void init_sdb();
 void init_disasm(const char *triple);
-void sdb_set_batch_mode();
-
-FILE *log_fp = NULL;
-static char def_img_file[] = "npc/build/test/addi/case.bin";
-static char *cfg_img_file = NULL;
-static char *cfg_log_file = NULL;
-int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
-static char *cfg_difftest_so_file = NULL;
-static int cfg_difftest_port = 1234;
 
 static void welcome()
 {
@@ -64,45 +46,61 @@ static void welcome()
     printf("For help, type \"help\"\n");
 }
 
-// #ifndef CONFIG_TARGET_AM
-// #include <getopt.h>
+#ifndef CONFIG_TARGET_AM
+#include <getopt.h>
 
-// static char *log_file = NULL;
-// static char *diff_so_file = NULL;
-// static char *img_file = NULL;
-// static int difftest_port = 1234;
+void sdb_set_batch_mode();
 
-// static long load_img() {
-//   if (img_file == NULL) {
-//     Log("No image is given. Use the default build-in image.");
-//     return 4096; // built-in image size
-//   }
+extern uint8_t raw_memory[CONFIG_MSIZE];
+static char *cfg_img_file = NULL;
+static char *cfg_log_file = NULL;
+int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
+static char *cfg_difftest_so_file = NULL;
+static int cfg_difftest_port = 1234;
 
-//   FILE *fp = fopen(img_file, "rb");
-//   Assert(fp, "Can not open '%s'", img_file);
+static size_t load_img()
+{
+    if (cfg_img_file == NULL)
+    {
+        Log("No image is given. Use the default build-in image.");
+        return 4096;  // built-in image size
+    }
 
-//   fseek(fp, 0, SEEK_END);
-//   long size = ftell(fp);
+    const char *fpath = cfg_img_file;
+    char file_path[1024] = {0};
 
-//   Log("The image is %s, size = %ld", img_file, size);
+    if (fpath[0] != '/')
+    {
+        const char *npc_home = getenv("NPC_HOME");
+        Assert(npc_home, "Miss set NPC_HOME");
+        strcat(&file_path[strlen(file_path)], npc_home);
+        strcat(&file_path[strlen(file_path)], "/../");
+        strcat(&file_path[strlen(file_path)], fpath);
+    }
+    else
+    {
+        strcat(&file_path[strlen(file_path)], fpath);
+    }
 
-//   fseek(fp, 0, SEEK_SET);
-//   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
-//   assert(ret == 1);
+    LOG_INFO("Load memory from file %s", file_path);
+    size_t membytes = CONFIG_MSIZE * sizeof(raw_memory[0]);
+    unsigned char *pmemstart = (unsigned char *)&raw_memory[0];
+    unsigned char *pmemend = pmemstart + membytes;
+    FILE *fd = fopen(file_path, "rb");
+    Assert(fd, "open file:%s failed", file_path);
 
-//   fclose(fp);
-//   return size;
-// }
+    size_t readsize = fread(pmemstart, 1, membytes, fd);
+    LOG_INFO("Load memory from file total size %lu", readsize);
+    (void)pmemend;
+    return readsize;
+}
 
 static int parse_args(int argc, char *argv[])
 {
     const struct option table[] = {
-        {"batch", no_argument, NULL, 'b'},
-        {"port", required_argument, NULL, 'p'},
-        {"log", required_argument, NULL, 'l'},
-        {"diff", required_argument, NULL, 'd'},
-        {"help", no_argument, NULL, 'h'},
-        {0, 0, NULL, 0},
+        {"batch", no_argument, NULL, 'b'},     {"port", required_argument, NULL, 'p'},
+        {"log", required_argument, NULL, 'l'}, {"diff", required_argument, NULL, 'd'},
+        {"help", no_argument, NULL, 'h'},      {0, 0, NULL, 0},
     };
     int o;
     while ((o = getopt_long(argc, argv, "-hl:d:p:b", table, NULL)) != -1)
@@ -137,18 +135,6 @@ static int parse_args(int argc, char *argv[])
     return 0;
 }
 
-void init_log(const char *log_file)
-{
-    log_fp = stdout;
-    if (log_file != NULL)
-    {
-        FILE *fp = fopen(log_file, "w");
-        Assert(fp, "Can not open '%s'", log_file);
-        log_fp = fp;
-    }
-    LOG_INFO("Log is written to %s", log_file ? log_file : "stdout");
-}
-
 void init_monitor(int argc, char *argv[])
 {
     /* Perform some global initialization. */
@@ -156,26 +142,23 @@ void init_monitor(int argc, char *argv[])
     /* Parse arguments. */
     parse_args(argc, argv);
 
-    //   /* Set random seed. */
-    //   init_rand();
+    /* Set random seed. */
+    init_rand();
 
     /* Open the log file. */
     init_log(cfg_log_file);
 
-    /* 软件模块初始化 */
-    init_cpu(argc, argv);
-
     /* Initialize memory. */
-    init_memory();
+    init_mem();
 
-    //   /* Initialize devices. */
-    //   IFDEF(CONFIG_DEVICE, init_device());
+    /* Initialize devices. */
+    IFDEF(CONFIG_DEVICE, init_device());
 
-    //   /* Perform ISA dependent initialization. */
-    //   init_isa();
+    /* Perform ISA dependent initialization. */
+    init_isa(argc, argv);
 
     /* Load the image to memory. This will overwrite the built-in image. */
-    size_t img_size = load_img(cfg_img_file ? cfg_img_file : def_img_file);
+    size_t img_size = load_img();
 
     /* Initialize differential testing. */
     init_difftest(cfg_difftest_so_file, img_size, cfg_difftest_port);
@@ -194,21 +177,23 @@ void init_monitor(int argc, char *argv[])
     /* Display welcome message. */
     welcome();
 }
-// #else // CONFIG_TARGET_AM
-// static long load_img() {
-//   extern char bin_start, bin_end;
-//   size_t size = &bin_end - &bin_start;
-//   Log("img size = %ld", size);
-//   memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
-//   return size;
-// }
+#else  // CONFIG_TARGET_AM
+static size_t load_img()
+{
+    extern char bin_start, bin_end;
+    size_t size = &bin_end - &bin_start;
+    Log("img size = %ld", size);
+    memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
+    return size;
+}
 
-// void am_init_monitor() {
-//   init_rand();
-//   init_mem();
-//   init_isa();
-//   load_img();
-//   IFDEF(CONFIG_DEVICE, init_device());
-//   welcome();
-// }
-// #endif
+void am_init_monitor()
+{
+    init_rand();
+    init_mem();
+    init_isa();
+    load_img();
+    IFDEF(CONFIG_DEVICE, init_device());
+    welcome();
+}
+#endif

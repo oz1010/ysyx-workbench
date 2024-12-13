@@ -29,6 +29,7 @@
 !/npc/src/**/*.cc
 !/npc/src/**/*.c
 !/npc/src/**/*.h
+!/npc/vsrc/**/*.h
 !/npc/vsrc/**/*.v
 !/npc/vsrc/**/*.cpp
 !/npc/src/am-bin.S

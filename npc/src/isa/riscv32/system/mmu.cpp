@@ -13,17 +13,10 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __CPU_DECODE_H__
-#define __CPU_DECODE_H__
+#include <isa.h>
+#include <memory/vaddr.h>
+#include <memory/paddr.h>
 
-#include "isa.h"
-
-typedef struct Decode{
-  vaddr_t pc;
-  vaddr_t snpc; // static next pc
-  vaddr_t dnpc; // dynamic next pc, jump to here
-  ISADecodeInfo isa;
-  IFDEF(CONFIG_ITRACE, char logbuf[128]);
-} Decode;
-
-#endif
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
+  return MEM_RET_FAIL;
+}

@@ -16,7 +16,7 @@
 #include <dlfcn.h>
 
 #include "isa.h"
-#include "cpu/cpu-exec.h"
+#include "cpu/cpu.h"
 #include "memory/paddr.h"
 #include "utils.h"
 #include "generated/autoconf.h"

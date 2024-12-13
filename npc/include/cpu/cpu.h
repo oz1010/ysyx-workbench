@@ -13,17 +13,17 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __CPU_DECODE_H__
-#define __CPU_DECODE_H__
+#ifndef __CPU_CPU_H__
+#define __CPU_CPU_H__
 
-#include "isa.h"
+#include <common.h>
 
-typedef struct Decode{
-  vaddr_t pc;
-  vaddr_t snpc; // static next pc
-  vaddr_t dnpc; // dynamic next pc, jump to here
-  ISADecodeInfo isa;
-  IFDEF(CONFIG_ITRACE, char logbuf[128]);
-} Decode;
+void cpu_exec(uint64_t n);
+
+void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
+void invalid_inst(vaddr_t thispc);
+
+#define NPCTRAP(thispc, code) set_npc_state(NPC_END, thispc, code)
+#define INV(thispc) invalid_inst(thispc)
 
 #endif

@@ -17,7 +17,6 @@
 #define __SDB_H__
 
 #include <common.h>
-#include "cpu/cpu-exec.h"
 
 word_t expr(char *e, bool *success);
 

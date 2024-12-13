@@ -17,7 +17,6 @@
 #include "isa.h"
 #include "common/list.h"
 #include "common/point_pool.h"
-#include "cpu/cpu-exec.h"
 
 #define NR_POINT_MAX 32
 #define WP_STR_BUF_MAX 64

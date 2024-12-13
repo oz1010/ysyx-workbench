@@ -13,17 +13,16 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __CPU_DECODE_H__
-#define __CPU_DECODE_H__
+#include <isa.h>
 
-#include "isa.h"
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
+  /* TODO: Trigger an interrupt/exception with ``NO''.
+   * Then return the address of the interrupt/exception vector.
+   */
 
-typedef struct Decode{
-  vaddr_t pc;
-  vaddr_t snpc; // static next pc
-  vaddr_t dnpc; // dynamic next pc, jump to here
-  ISADecodeInfo isa;
-  IFDEF(CONFIG_ITRACE, char logbuf[128]);
-} Decode;
+  return 0;
+}
 
-#endif
+word_t isa_query_intr() {
+  return INTR_EMPTY;
+}

@@ -39,4 +39,5 @@ VCXX_OPT += $(if $(CONFIG_CC_OPT),$(call remove_quote,$(CONFIG_CC_OPT)),-O0)
 VCXXFLAGS += $(if $(CONFIG_CC_DEBUG),-O0 -ggdb3,$(VCXX_OPT))
 VCXXFLAGS += $(addprefix -I,$(INC_PATH))
 VCXXFLAGS += -DTOP_NAME="\"V$(VMOD_NAME)\""
+VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)

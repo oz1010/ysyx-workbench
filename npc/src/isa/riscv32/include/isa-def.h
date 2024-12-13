@@ -13,17 +13,23 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __CPU_DECODE_H__
-#define __CPU_DECODE_H__
+#ifndef __ISA_RISCV_H__
+#define __ISA_RISCV_H__
 
-#include "isa.h"
+#include <common.h>
 
-typedef struct Decode{
+typedef struct {
+  word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
-  vaddr_t snpc; // static next pc
-  vaddr_t dnpc; // dynamic next pc, jump to here
-  ISADecodeInfo isa;
-  IFDEF(CONFIG_ITRACE, char logbuf[128]);
-} Decode;
+} MUXDEF(CONFIG_RV64, riscv64_CPU_state, riscv32_CPU_state);
+
+// decode
+typedef struct {
+  union {
+    uint32_t val;
+  } inst;
+} MUXDEF(CONFIG_RV64, riscv64_ISADecodeInfo, riscv32_ISADecodeInfo);
+
+#define isa_mmu_check(vaddr, len, type) (MMU_DIRECT)
 
 #endif
