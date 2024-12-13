@@ -1,10 +1,22 @@
+/***************************************************************************************
+* Copyright (c) 2014-2022 Zihao Yu, Nanjing University
+*
+* NEMU is licensed under Mulan PSL v2.
+* You can use this software according to the terms and conditions of the Mulan PSL v2.
+* You may obtain a copy of Mulan PSL v2 at:
+*          http://license.coscl.org.cn/MulanPSL2
+*
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+*
+* See the Mulan PSL v2 for more details.
+***************************************************************************************/
 
-#include <stdint.h>
-#include "memory/host.h"
-#include "memory/paddr.h"
-#include "common.h"
-#include "device/mmio.h"
-#include "cpu/cpu-exec.h"
+#include <memory/host.h>
+#include <memory/paddr.h>
+#include <device/mmio.h>
+#include <isa.h>
 
 #define out_of_bound(ADDR)                                                                        \
     do                                                                                            \
@@ -36,37 +48,7 @@ static void pmem_write(paddr_t addr, int len, word_t data)
     host_write(guest_to_host(addr), len, data);
 }
 
-size_t load_img(const char* fpath)
-{
-    char file_path[1024] = {0};
-
-    if (fpath[0] != '/')
-    {
-        const char* npc_home = getenv("NPC_HOME");
-        Assert(npc_home, "Miss set NPC_HOME");
-        strcat(&file_path[strlen(file_path)], npc_home);
-        strcat(&file_path[strlen(file_path)], "/../");
-        strcat(&file_path[strlen(file_path)], fpath);
-    }
-    else
-    {
-        strcat(&file_path[strlen(file_path)], fpath);
-    }
-
-    LOG_INFO("Load memory from file %s", file_path);
-    size_t membytes = CONFIG_MSIZE * sizeof(raw_memory[0]);
-    unsigned char* pmemstart = (unsigned char*)&raw_memory[0];
-    unsigned char* pmemend = pmemstart + membytes;
-    FILE* fd = fopen(file_path, "rb");
-    Assert(fd, "open file:%s failed", file_path);
-
-    size_t readsize = fread(pmemstart, 1, membytes, fd);
-    LOG_INFO("Load memory from file total size %lu", readsize);
-    (void)pmemend;
-    return readsize;
-}
-
-void init_memory()
+void init_mem()
 {
     IFDEF(CONFIG_MEM_RANDOM, memset(raw_memory, rand(), CONFIG_MSIZE));
     LOG_INFO("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);

@@ -3,17 +3,10 @@
 #include "Vtop__Dpi.h"
 #include "debug.h"
 #include "isa.h"
-#include "cpu/cpu-exec.h"
 #include "memory/paddr.h"
 #include "memory/vaddr.h"
 
-void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret)
-{
-    // difftest_skip_ref();
-    npc_ctx.state = state;
-    npc_ctx.halt_pc = pc;
-    npc_ctx.halt_ret = halt_ret;
-}
+extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 
 void exit_simu(int code)
 {

@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 #include <isa.h>
-// #include <cpu/cpu.h>
+#include <cpu/cpu.h>
 #include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>

@@ -20,7 +20,6 @@
  */
 #include <regex.h>
 #include <macro.h>
-#include "cpu/cpu-exec.h"
 
 #define MIN(_a, _b) ((_a) < (_b) ? (_a) : (_b))
 #if 0

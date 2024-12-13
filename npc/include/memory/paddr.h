@@ -27,8 +27,7 @@ uint8_t* guest_to_host(paddr_t paddr);
 /* convert the host virtual address in NEMU to guest physical address in the guest program */
 paddr_t host_to_guest(uint8_t *haddr);
 
-size_t load_img(const char* fpath);
-void init_memory();
+void init_mem();
 int read_memory(paddr_t addr, int len, void *data);
 int write_memory(paddr_t addr, int len, void *data);
 
