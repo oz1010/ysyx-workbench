@@ -47,10 +47,12 @@ void invalid_inst(int thispc, int inst)
 
 void Mw(int addr, int len, int data) {
     // _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    addr &= ~0x3u; // 读写地址四字节对齐
     vaddr_write(addr, len, data);
 }
 
 int Mr(int addr, int len) {
+    addr &= ~0x3u; // 读写地址四字节对齐
     int data = vaddr_read(addr, len);
     // _log_raw("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     return data;
