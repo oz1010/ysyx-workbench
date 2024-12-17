@@ -28,9 +28,7 @@
 #define MAX_INST_TO_PRINT 10
 
 CPU_state cpu = {};
-uint64_t g_nr_guest_inst = 0;
-// static uint64_t g_timer = 0; // unit: us
-static bool g_print_step = false;
+
 
 void device_update();
 extern bool scan_wp();
@@ -39,10 +37,10 @@ extern bool scan_bp();
 void trace_and_difftest(Decode *_this, vaddr_t dnpc)
 {
 #ifdef CONFIG_ITRACE_COND
-    if (ITRACE_COND)
-    {
-        _log_raw("%s\n", _this->logbuf);
-    }
+    // if (ITRACE_COND)
+    // {
+    //     _log_raw("%s\n", _this->logbuf);
+    // }
 #endif
 #ifdef CONFIG_WATCHPOINT
     if (npc_ctx.state == NPC_RUNNING && scan_point(POINT_WATCH))
@@ -52,7 +50,7 @@ void trace_and_difftest(Decode *_this, vaddr_t dnpc)
     if (npc_ctx.state == NPC_RUNNING && scan_point(POINT_BREAK))
         npc_ctx.state = NPC_STOP;
 #endif
-    if (g_print_step)
+    if (npc_ctx.print_step)
     {
         IFDEF(CONFIG_ITRACE, puts(_this->logbuf));
     }
@@ -103,7 +101,7 @@ static void execute(uint64_t n)
     {
         exec_once(&s, cpu.pc);
         // printf("current cpu pc: %#x\n", cpu.pc);
-        g_nr_guest_inst++;
+        npc_ctx.nr_guest_inst++;
         trace_and_difftest(&s, cpu.pc);
         if (npc_ctx.state != NPC_RUNNING)
             break;
@@ -134,7 +132,7 @@ void assert_fail_msg()
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n)
 {
-    g_print_step = (n < MAX_INST_TO_PRINT);
+    npc_ctx.print_step = (n < MAX_INST_TO_PRINT);
     switch (npc_ctx.state)
     {
         case NPC_END:

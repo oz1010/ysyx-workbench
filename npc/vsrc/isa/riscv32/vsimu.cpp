@@ -73,7 +73,7 @@ int exec_vsimu(Decode *s)
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_SIMU);
 
     // 电路仿真
-    top->inst = s->isa.inst.val;
+    // top->inst = s->isa.inst.val;
     top->clk = 1;
     top->contextp()->timeInc(1);
     top->eval();

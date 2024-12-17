@@ -5,6 +5,7 @@
 #include "isa.h"
 #include "memory/paddr.h"
 #include "memory/vaddr.h"
+#include "generated/autoconf.h"
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 
@@ -45,15 +46,19 @@ void invalid_inst(int thispc, int inst)
     set_npc_state(NPC_ABORT, thispc, -1);
 }
 
-void Mw(int addr, int len, int data) {
+void write_raw_mem(int addr, int len, int data) {
     // _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     addr &= ~0x3u; // 读写地址四字节对齐
-    vaddr_write(addr, len, data);
+    paddr_write(addr, len, data);
 }
 
-int Mr(int addr, int len) {
+int read_raw_mem(int addr, int len) {
     addr &= ~0x3u; // 读写地址四字节对齐
-    int data = vaddr_read(addr, len);
+    int data = paddr_read(addr, len);
     // _log_raw("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     return data;
+}
+
+int get_reset_pc() {
+    return CONFIG_MBASE;
 }

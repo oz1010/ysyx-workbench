@@ -41,3 +41,4 @@ VCXXFLAGS += $(addprefix -I,$(INC_PATH))
 VCXXFLAGS += -DTOP_NAME="\"V$(VMOD_NAME)\""
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
+VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/cpu
