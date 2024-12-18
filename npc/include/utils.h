@@ -35,6 +35,7 @@ typedef struct {
   /* for statistic */
   uint64_t timer;
   uint64_t nr_guest_inst;
+  bool print_step;
 } npc_context_t;
 
 extern npc_context_t npc_ctx;
