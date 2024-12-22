@@ -1,5 +1,6 @@
 import "DPI-C" function void exit_simu(input int code);
 import "DPI-C" function void invalid_inst(input int pc, input int inst);
+import "DPI-C" function int fetch_inst(input int addr);
 import "DPI-C" function void write_raw_mem(input int addr, input int len, input int inst);
 import "DPI-C" function int read_raw_mem(input int addr, input int len);
 import "DPI-C" function int get_reset_pc();
@@ -35,7 +36,7 @@ always @(*) begin
     if (rst) begin
         inst = 32'b0;
     end else begin
-        inst = read_raw_mem(pc, 4);
+        inst = fetch_inst(pc);
     end
 end
 
