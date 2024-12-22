@@ -47,6 +47,12 @@ void invalid_inst(int thispc, int inst)
     set_npc_state(NPC_ABORT, thispc, -1);
 }
 
+int fetch_inst(int addr) {
+    addr &= ~0x3u; // 读写地址四字节对齐
+    int inst = paddr_read(addr, 4);
+    return inst;
+}
+
 void write_raw_mem(int addr, int len, int data) {
     // _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     addr &= ~0x3u; // 读写地址四字节对齐

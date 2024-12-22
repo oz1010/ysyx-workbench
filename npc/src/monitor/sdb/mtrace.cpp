@@ -4,7 +4,7 @@
 
 #define NR_MTRACE_MAX 128
 
-static const char *mtrace_file = "mtrace.log";
+static const char *mtrace_file = "build/mtrace.log";
 static FILE *mtrace_fp = NULL;
 
 typedef struct
@@ -26,7 +26,7 @@ void init_mtrace()
     {
         mtrace_item_t *mtrace = &items[i];
         memset(mtrace, 0, sizeof(*mtrace));
-        list_add_tail(&free_head, &mtrace->item);
+        list_add_tail(&mtrace->item, &free_head);
     }
 
     mtrace_fp = fopen(mtrace_file, "w");
@@ -61,6 +61,7 @@ void add_mtrace(mtrace_opt_t opt, vaddr_t pc, vaddr_t mem_addr, word_t mem_value
     mtrace->opt = opt;
     mtrace->pc = pc;
     mtrace->mem_addr = mem_addr;
+    mtrace->mem_value = mem_value;
 }
 
 void dump_mtrace()
