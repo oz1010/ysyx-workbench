@@ -26,6 +26,7 @@
 #include "device/mmio.h"
 #include "common/point_pool.h"
 #include "generated/autoconf.h"
+#include "common/mtrace.h"
 
 static int is_batch_mode = false;
 
@@ -469,4 +470,7 @@ void init_sdb()
 
     /* Initialize the iringbuf */
     IRINGBUF_INIT();
+
+    /* Initialize the memory trace */
+    IFDEF(CONFIG_MTRACE, init_mtrace());
 }
