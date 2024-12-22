@@ -14,6 +14,7 @@
 ***************************************************************************************/
 
 #include <cpu/cpu.h>
+#include "common/mtrace.h"
 
 void sdb_mainloop();
 
@@ -23,5 +24,7 @@ void engine_start() {
 #else
   /* Receive commands from user. */
   sdb_mainloop();
+
+  IFDEF(CONFIG_MTRACE, dump_mtrace());
 #endif
 }
