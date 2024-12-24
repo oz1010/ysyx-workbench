@@ -32,6 +32,7 @@
 !/npc/vsrc/**/*.h
 !/npc/vsrc/**/*.v
 !/npc/vsrc/**/*.cpp
+!/npc/vsrc/*.sdc
 !/npc/src/am-bin.S
 !/build_container/*
 !Makefile
