@@ -70,14 +70,14 @@ always @(posedge clk or posedge rst) begin
         // 更新寄存器或回写内存
         // $display("Step - update, alu_result:%x rd:%d inst_code:%x", alu_result, rd, inst_code);
         case (inst_code)
-            `INST_LUI:          invalid_inst(pc, inst);
+            `INST_LUI:          x[rd] <= imm;
             `INST_AUIPC:        x[rd] <= pc + imm;
             `INST_JAL:          begin x[rd] <= pc + 4; pc <= pc + imm; end
             `INST_JALR:         begin x[rd] <= pc + 4; pc <= ((src1 + imm)&~1); end
             `INST_BEQ:          if (src1==src2) pc <= pc + imm;
             `INST_BNE:          if (src1!=src2) pc <= pc + imm;
             `INST_BLT:          invalid_inst(pc, inst);
-            `INST_BGE:          invalid_inst(pc, inst);
+            `INST_BGE:          if (src1>=src2) pc <= pc + imm;
             `INST_BLTU:         invalid_inst(pc, inst);
             `INST_BGEU:         invalid_inst(pc, inst);
             `INST_LB:           invalid_inst(pc, inst);
