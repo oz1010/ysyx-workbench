@@ -55,6 +55,8 @@ decoder risc32e_decoder(inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_ty
 /* 执行并更新结果 */
 wire [31:0] src1 = x[rs1];
 wire [31:0] src2 = x[rs2];
+wire signed [31:0] s_src1 = src1;
+wire signed [31:0] s_src2 = src2;
 // alu risc32e_alu(inst_code, src1, src2, imm, alu_result);
 // always @(*) begin
 //     $display("exec info, pc:%x inst:%x type:%d src1:%x src2:%x imm:%x alu_result:%x",
@@ -76,8 +78,8 @@ always @(posedge clk or posedge rst) begin
             `INST_JALR:         begin x[rd] <= pc + 4; pc <= ((src1 + imm)&~1); end
             `INST_BEQ:          if (src1==src2) pc <= pc + imm;
             `INST_BNE:          if (src1!=src2) pc <= pc + imm;
-            `INST_BLT:          if (src1< src2) pc <= pc + imm;
-            `INST_BGE:          if (src1>=src2) pc <= pc + imm;
+            `INST_BLT:          if (s_src1<s_src2) pc <= pc + imm;
+            `INST_BGE:          if (s_src1>=s_src2) pc <= pc + imm;
             `INST_BLTU:         if (src1< src2) pc <= pc + imm;
             `INST_BGEU:         if (src1>=src2) pc <= pc + imm;
             `INST_LB:           invalid_inst(pc, inst);
