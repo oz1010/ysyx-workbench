@@ -52,75 +52,62 @@ assign imm =
 
 // 生成指令代码
 assign inst_code =
-    (opcode==7'b00101_11) ? `INST_AUIPC :
-    (opcode==7'b11011_11) ? `INST_JAL :
-    (opcode==7'b11001_11) && (funct3==3'b000) ? `INST_JALR :
-    (opcode==7'b11000_11) && (funct3==3'b000) ? `INST_BEQ :
-    (opcode==7'b11000_11) && (funct3==3'b001) ? `INST_BNE :
-    (opcode==7'b00000_11) && (funct3==3'b010) ? `INST_LW :
-    (opcode==7'b01000_11) && (funct3==3'b010) ? `INST_SW :
-    (opcode==7'b00100_11) && (funct3==3'b000) ? `INST_ADDI :
-    (opcode==7'b00100_11) && (funct3==3'b011) ? `INST_SLTIU :
-    (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0000000) ? `INST_ADD :
-    (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0100000) ? `INST_SUB :
+    // (opcode==7'b00000_00) ? `INST_LUI : 
+    (opcode==7'b00101_11) ? `INST_AUIPC : 
+    (opcode==7'b11011_11) ? `INST_JAL : 
+    (opcode==7'b11001_11) && (funct3==3'b000) ? `INST_JALR : 
+    (opcode==7'b11000_11) && (funct3==3'b000) ? `INST_BEQ : 
+    (opcode==7'b11000_11) && (funct3==3'b001) ? `INST_BNE : 
+    // (opcode==7'b00000_00) ? `INST_BLT : 
+    // (opcode==7'b00000_00) ? `INST_BGE : 
+    // (opcode==7'b00000_00) ? `INST_BLTU : 
+    // (opcode==7'b00000_00) ? `INST_BGEU : 
+    // (opcode==7'b00000_00) ? `INST_LB : 
+    // (opcode==7'b00000_00) ? `INST_LH : 
+    (opcode==7'b00000_11) && (funct3==3'b010) ? `INST_LW : 
+    // (opcode==7'b00000_00) ? `INST_LBU : 
+    // (opcode==7'b00000_00) ? `INST_LHU : 
+    // (opcode==7'b00000_00) ? `INST_SB : 
+    // (opcode==7'b00000_00) ? `INST_SH : 
+    (opcode==7'b01000_11) && (funct3==3'b010) ? `INST_SW : 
+    (opcode==7'b00100_11) && (funct3==3'b000) ? `INST_ADDI : 
+    // (opcode==7'b00000_00) ? `INST_SLTI : 
+    (opcode==7'b00100_11) && (funct3==3'b011) ? `INST_SLTIU : 
+    // (opcode==7'b00000_00) ? `INST_XORI : 
+    // (opcode==7'b00000_00) ? `INST_ORI : 
+    // (opcode==7'b00000_00) ? `INST_ANDI : 
+    // (opcode==7'b00000_00) ? `INST_SLLI : 
+    // (opcode==7'b00000_00) ? `INST_SRLI : 
+    // (opcode==7'b00000_00) ? `INST_SRAI : 
+    (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0000000) ? `INST_ADD : 
+    (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0100000) ? `INST_SUB : 
+    // (opcode==7'b00000_00) ? `INST_SLL : 
+    // (opcode==7'b00000_00) ? `INST_SLT : 
+    // (opcode==7'b00000_00) ? `INST_SLTU : 
+    // (opcode==7'b00000_00) ? `INST_XOR : 
+    // (opcode==7'b00000_00) ? `INST_SRL : 
+    // (opcode==7'b00000_00) ? `INST_SRA : 
+    // (opcode==7'b00000_00) ? `INST_OR : 
+    // (opcode==7'b00000_00) ? `INST_AND : 
+    // (opcode==7'b00000_00) ? `INST_FENCE : 
+    // (opcode==7'b00000_00) ? `INST_FENCE_I : 
+    // (opcode==7'b00000_00) ? `INST_ECALL : 
     (opcode==7'b11100_11) && (rd==5'b0) && (funct3==3'b0) && (rs1==5'b0) && (immI==12'b1) ? `INST_EBREAK :
+    // (opcode==7'b00000_00) ? `INST_CSRRW : 
+    // (opcode==7'b00000_00) ? `INST_CSRRS : 
+    // (opcode==7'b00000_00) ? `INST_CSRRC : 
+    // (opcode==7'b00000_00) ? `INST_CSRRWI : 
+    // (opcode==7'b00000_00) ? `INST_CSRRSI : 
+    // (opcode==7'b00000_00) ? `INST_CSRRCI : 
+    // (opcode==7'b00000_00) ? `INST_MUL : 
+    // (opcode==7'b00000_00) ? `INST_MULH : 
+    // (opcode==7'b00000_00) ? `INST_MULHSU : 
+    // (opcode==7'b00000_00) ? `INST_MULHU : 
+    // (opcode==7'b00000_00) ? `INST_DIV : 
+    // (opcode==7'b00000_00) ? `INST_DIVU : 
+    // (opcode==7'b00000_00) ? `INST_REM : 
+    // (opcode==7'b00000_00) ? `INST_REMU : 
+    // (opcode==7'b00000_00) ? `INST_LUI : 
     `INST_INVALID;
-
-// // wire inst_lui       =   (opcode==7'b00000_00);
-// wire inst_auipc     =   (opcode==7'b00101_11);
-// wire inst_jal       =   (opcode==7'b11011_11);
-// wire inst_jalr      =   (opcode==7'b11001_11) && (funct3==3'b000);
-// wire inst_beq       =   (opcode==7'b11000_11) && (funct3==3'b000);
-// wire inst_bne       =   (opcode==7'b11000_11) && (funct3==3'b001);
-// // wire inst_blt       =   (opcode==7'b00000_00);
-// // wire inst_bge       =   (opcode==7'b00000_00);
-// // wire inst_bltu       =   (opcode==7'b00000_00);
-// // wire inst_bgeu       =   (opcode==7'b00000_00);
-// // wire inst_lb       =   (opcode==7'b00000_00);
-// // wire inst_lh       =   (opcode==7'b00000_00);
-// wire inst_lw        =   (opcode==7'b00000_11) && (funct3==3'b010);
-// // wire inst_lbu       =   (opcode==7'b00000_00);
-// // wire inst_lhu       =   (opcode==7'b00000_00);
-// // wire inst_sb       =   (opcode==7'b00000_00);
-// // wire inst_sh       =   (opcode==7'b00000_00);
-// wire inst_sw        =   (opcode==7'b01000_11) && (funct3==3'b010);
-// wire inst_addi      =   (opcode==7'b00100_11) && (funct3==3'b000);
-// // wire inst_slti       =   (opcode==7'b00000_00);
-// wire inst_sltiu     =   (opcode==7'b00100_11) && (funct3==3'b011);
-// // wire inst_xori       =   (opcode==7'b00000_00);
-// // wire inst_ori       =   (opcode==7'b00000_00);
-// // wire inst_andi       =   (opcode==7'b00000_00);
-// // wire inst_slli       =   (opcode==7'b00000_00);
-// // wire inst_srli       =   (opcode==7'b00000_00);
-// // wire inst_srai       =   (opcode==7'b00000_00);
-// wire inst_add       =   (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0000000);
-// wire inst_sub       =   (opcode==7'b01100_11) && (funct3==3'b000) && (funct7==7'b0100000);
-// // wire inst_sll       =   (opcode==7'b00000_00);
-// // wire inst_slt       =   (opcode==7'b00000_00);
-// // wire inst_sltu       =   (opcode==7'b00000_00);
-// // wire inst_xor       =   (opcode==7'b00000_00);
-// // wire inst_srl       =   (opcode==7'b00000_00);
-// // wire inst_sra       =   (opcode==7'b00000_00);
-// // wire inst_or       =   (opcode==7'b00000_00);
-// // wire inst_and       =   (opcode==7'b00000_00);
-// // wire inst_fence       =   (opcode==7'b00000_00);
-// // wire inst_fence_i       =   (opcode==7'b00000_00);
-// // wire inst_ecall       =   (opcode==7'b00000_00);
-// wire inst_ebreak    =   inst==32'h00100073;
-// // wire inst_csrrw       =   (opcode==7'b00000_00);
-// // wire inst_csrrs       =   (opcode==7'b00000_00);
-// // wire inst_csrrc       =   (opcode==7'b00000_00);
-// // wire inst_csrrwi       =   (opcode==7'b00000_00);
-// // wire inst_csrrsi       =   (opcode==7'b00000_00);
-// // wire inst_csrrci       =   (opcode==7'b00000_00);
-// // wire inst_mul       =   (opcode==7'b00000_00);
-// // wire inst_mulh       =   (opcode==7'b00000_00);
-// // wire inst_mulhsu       =   (opcode==7'b00000_00);
-// // wire inst_mulhu       =   (opcode==7'b00000_00);
-// // wire inst_div       =   (opcode==7'b00000_00);
-// // wire inst_divu       =   (opcode==7'b00000_00);
-// // wire inst_rem       =   (opcode==7'b00000_00);
-// // wire inst_remu       =   (opcode==7'b00000_00);
-// // wire inst_lui       =   (opcode==7'b00000_00);
 
 endmodule
