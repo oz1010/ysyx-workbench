@@ -93,7 +93,7 @@ always @(posedge clk or posedge rst) begin
             `INST_SLTIU:        x[rd] <= {{31{1'b0}}, (src1 < imm)};
             `INST_XORI:         invalid_inst(pc, inst);
             `INST_ORI:          invalid_inst(pc, inst);
-            `INST_ANDI:         invalid_inst(pc, inst);
+            `INST_ANDI:         x[rd] <= src1 & imm;
             `INST_SLLI:         invalid_inst(pc, inst);
             `INST_SRLI:         invalid_inst(pc, inst);
             `INST_SRAI:         invalid_inst(pc, inst);

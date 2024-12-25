@@ -75,7 +75,7 @@ assign inst_code =
     (opcode==7'b00100_11) && (funct3==3'b011) ? `INST_SLTIU : 
     // (opcode==7'b00000_00) ? `INST_XORI : 
     // (opcode==7'b00000_00) ? `INST_ORI : 
-    // (opcode==7'b00000_00) ? `INST_ANDI : 
+    (opcode==7'b00100_11) && (funct3==3'b111) ? `INST_ANDI : 
     // (opcode==7'b00000_00) ? `INST_SLLI : 
     // (opcode==7'b00000_00) ? `INST_SRLI : 
     // (opcode==7'b00000_00) ? `INST_SRAI : 
