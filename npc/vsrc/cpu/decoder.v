@@ -52,16 +52,16 @@ assign imm =
 
 // 生成指令代码
 assign inst_code =
-    // (opcode==7'b00000_00) ? `INST_LUI : 
+    (opcode==7'b01101_11) ? `INST_LUI : 
     (opcode==7'b00101_11) ? `INST_AUIPC : 
     (opcode==7'b11011_11) ? `INST_JAL : 
     (opcode==7'b11001_11) && (funct3==3'b000) ? `INST_JALR : 
     (opcode==7'b11000_11) && (funct3==3'b000) ? `INST_BEQ : 
     (opcode==7'b11000_11) && (funct3==3'b001) ? `INST_BNE : 
-    // (opcode==7'b00000_00) ? `INST_BLT : 
+    (opcode==7'b11000_11) && (funct3==3'b100) ? `INST_BLT : 
     (opcode==7'b11000_11) && (funct3==3'b101) ? `INST_BGE : 
-    // (opcode==7'b00000_00) ? `INST_BLTU : 
-    // (opcode==7'b00000_00) ? `INST_BGEU : 
+    (opcode==7'b11000_11) && (funct3==3'b110) ? `INST_BLTU : 
+    (opcode==7'b11000_11) && (funct3==3'b111) ? `INST_BGEU : 
     // (opcode==7'b00000_00) ? `INST_LB : 
     // (opcode==7'b00000_00) ? `INST_LH : 
     (opcode==7'b00000_11) && (funct3==3'b010) ? `INST_LW : 
