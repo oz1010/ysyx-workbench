@@ -76,10 +76,10 @@ always @(posedge clk or posedge rst) begin
             `INST_JALR:         begin x[rd] <= pc + 4; pc <= ((src1 + imm)&~1); end
             `INST_BEQ:          if (src1==src2) pc <= pc + imm;
             `INST_BNE:          if (src1!=src2) pc <= pc + imm;
-            `INST_BLT:          invalid_inst(pc, inst);
+            `INST_BLT:          if (src1< src2) pc <= pc + imm;
             `INST_BGE:          if (src1>=src2) pc <= pc + imm;
-            `INST_BLTU:         invalid_inst(pc, inst);
-            `INST_BGEU:         invalid_inst(pc, inst);
+            `INST_BLTU:         if (src1< src2) pc <= pc + imm;
+            `INST_BGEU:         if (src1>=src2) pc <= pc + imm;
             `INST_LB:           invalid_inst(pc, inst);
             `INST_LH:           invalid_inst(pc, inst);
             `INST_LW:           x[rd] <= read_raw_mem(src1 + imm, 4);
