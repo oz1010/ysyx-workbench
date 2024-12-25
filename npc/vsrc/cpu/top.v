@@ -123,7 +123,7 @@ always @(posedge clk or posedge rst) begin
             `INST_MULHU:        invalid_inst(pc, inst);
             `INST_DIV:          invalid_inst(pc, inst);
             `INST_DIVU:         invalid_inst(pc, inst);
-            `INST_REM:          invalid_inst(pc, inst);
+            `INST_REM:          x[rd] <= src1 % src2;
             `INST_REMU:         invalid_inst(pc, inst);
             `INST_INVALID:      invalid_inst(pc, inst);
             default: ;
