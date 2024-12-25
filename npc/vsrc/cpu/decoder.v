@@ -105,7 +105,7 @@ assign inst_code =
     // (opcode==7'b00000_00) ? `INST_MULHU : 
     // (opcode==7'b00000_00) ? `INST_DIV : 
     // (opcode==7'b00000_00) ? `INST_DIVU : 
-    // (opcode==7'b00000_00) ? `INST_REM : 
+    (opcode==7'b01100_11) && (funct3==3'b110) && (funct7==7'b0000001) ? `INST_REM : 
     // (opcode==7'b00000_00) ? `INST_REMU : 
     `INST_INVALID;
 
