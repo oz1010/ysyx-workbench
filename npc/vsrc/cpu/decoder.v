@@ -59,7 +59,7 @@ assign inst_code =
     (opcode==7'b11000_11) && (funct3==3'b000) ? `INST_BEQ : 
     (opcode==7'b11000_11) && (funct3==3'b001) ? `INST_BNE : 
     // (opcode==7'b00000_00) ? `INST_BLT : 
-    // (opcode==7'b00000_00) ? `INST_BGE : 
+    (opcode==7'b11000_11) && (funct3==3'b101) ? `INST_BGE : 
     // (opcode==7'b00000_00) ? `INST_BLTU : 
     // (opcode==7'b00000_00) ? `INST_BGEU : 
     // (opcode==7'b00000_00) ? `INST_LB : 
@@ -107,7 +107,6 @@ assign inst_code =
     // (opcode==7'b00000_00) ? `INST_DIVU : 
     // (opcode==7'b00000_00) ? `INST_REM : 
     // (opcode==7'b00000_00) ? `INST_REMU : 
-    // (opcode==7'b00000_00) ? `INST_LUI : 
     `INST_INVALID;
 
 endmodule
