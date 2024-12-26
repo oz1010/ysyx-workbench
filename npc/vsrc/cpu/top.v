@@ -96,7 +96,7 @@ always @(posedge clk or posedge rst) begin
             `INST_XORI:         invalid_inst(pc, inst);
             `INST_ORI:          invalid_inst(pc, inst);
             `INST_ANDI:         x[rd] <= src1 & imm;
-            `INST_SLLI:         invalid_inst(pc, inst);
+            `INST_SLLI:         if ((imm&32'h20)!=32'h0) exit_simu(`ERR_INV_OPN); else x[rd] <= src1 << (imm&32'h1F);
             `INST_SRLI:         invalid_inst(pc, inst);
             `INST_SRAI:         invalid_inst(pc, inst);
             `INST_ADD:          x[rd] <= src1 + src2;
