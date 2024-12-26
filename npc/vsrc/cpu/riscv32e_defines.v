@@ -62,3 +62,6 @@
 `define INST_REM            16'd53
 `define INST_REMU           16'd54
 `define INST_INVALID        16'hffff
+
+`define ERR_INV_OPN         -2
+
