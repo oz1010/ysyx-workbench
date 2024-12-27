@@ -47,27 +47,59 @@ void invalid_inst(int thispc, int inst)
     set_npc_state(NPC_ABORT, thispc, -1);
 }
 
-int fetch_inst(int addr) {
-    addr &= ~0x3u; // 读写地址四字节对齐
+int fetch_inst(int addr)
+{
+    addr &= ~0x3u;  // 读写地址四字节对齐
     int inst = paddr_read(addr, 4);
     return inst;
 }
 
-void write_raw_mem(int addr, int len, int data) {
+void write_raw_mem(int addr, int len, int data)
+{
     // _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
-    addr &= ~0x3u; // 读写地址四字节对齐
+    // addr &= ~0x3u;  // 读写地址四字节对齐
     paddr_write(addr, len, data);
     IFDEF(CONFIG_MTRACE, add_mtrace(mtrace_opt_write, 0, addr, data));
 }
 
-int read_raw_mem(int addr, int len) {
-    addr &= ~0x3u; // 读写地址四字节对齐
+int read_raw_mem(int addr, int len)
+{
+    // addr &= ~0x3u;  // 读写地址四字节对齐
     int data = paddr_read(addr, len);
     // _log_raw("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     IFDEF(CONFIG_MTRACE, add_mtrace(mtrace_opt_read, 0, addr, data));
     return data;
 }
 
-int get_reset_pc() {
+int get_reset_pc()
+{
     return CONFIG_MBASE;
+}
+
+#define _SEXT(val, bit_len)      \
+    ({                           \
+        struct                   \
+        {                        \
+            int64_t n : bit_len; \
+        } __x = {.n = val};      \
+        (uint64_t) __x.n;        \
+    })
+int sext(int x, int len)
+{
+    int ret = 0;
+
+    if (len == 8)
+        ret = _SEXT(x, 8);
+    else if (len == 16)
+        ret = _SEXT(x, 16);
+    else if (len == 32)
+        ret = _SEXT(x, 32);
+    else
+    {
+        _log_raw(ANSI_FMT("%s:%d %s input len(%d) is error\n", ANSI_FG_RED), __FILE__, __LINE__,
+                 __FUNCTION__, len);
+        set_npc_state(NPC_ABORT, cpu.pc, -3);
+    }
+
+    return ret;
 }
