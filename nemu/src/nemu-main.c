@@ -24,13 +24,13 @@ void engine_start();
 int is_exit_status_bad();
 extern int dtm_init(cpu_opt_t *cpu_opt);
 
-static word_t * rv_get_gpr(CPU_state *c, size_t idx)
+word_t * rv_get_gpr(CPU_state *c, size_t idx)
 {
 	assert(idx<DM_ARRAY_SIZE(c->gpr) && "get gpr is out of range");
 	return &c->gpr[idx];
 }
 
-static int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
+int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
 {
 	const uint32_t addr = pc - CONFIG_MBASE;
 
@@ -60,6 +60,7 @@ int main(int argc, char *argv[]) {
   init_monitor(argc, argv);
 #endif
 
+#if CONFIG_DEBUG_MODULE
   /* Start debug module */
   extern CPU_state *cur_cpu;
   extern CPU_state cpu;
@@ -69,6 +70,7 @@ int main(int argc, char *argv[]) {
     .access_mem = rv_access_mem,
   };
   dtm_init(&rv_cpu_opt);
+#endif
 
   /* Start engine. */
   engine_start();
