@@ -59,7 +59,7 @@ void write_raw_mem(int addr, int len, int data)
     // _log_raw("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
     paddr_write(addr, len, data);
-    IFDEF(CONFIG_MTRACE, add_mtrace(mtrace_opt_write, 0, addr, data));
+    IFDEF(CONFIG_MTRACE, add_mtrace(mtrace_opt_write, cpu.pc, addr, data));
 }
 
 int read_raw_mem(int addr, int len)
@@ -67,7 +67,7 @@ int read_raw_mem(int addr, int len)
     // addr &= ~0x3u;  // 读写地址四字节对齐
     int data = paddr_read(addr, len);
     // _log_raw("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
-    IFDEF(CONFIG_MTRACE, add_mtrace(mtrace_opt_read, 0, addr, data));
+    IFDEF(CONFIG_MTRACE, add_mtrace(mtrace_opt_read, cpu.pc, addr, data));
     return data;
 }
 
