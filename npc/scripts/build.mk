@@ -55,7 +55,8 @@ $(OBJ_DIR)/%.o: %.cpp
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
-$(IMG):
+$(IMG): image
+image:
 	@$(MAKE) -C $(NPC_HOME)/resource/riscv32-bin
 
 $(VOBJS): $(VSRCS)
@@ -71,7 +72,7 @@ $(VOBJS): $(VSRCS)
 
 # Some convenient rules
 
-.PHONY: app clean
+.PHONY: app clean image
 
 app: $(BINARY) $(IMG)
 
