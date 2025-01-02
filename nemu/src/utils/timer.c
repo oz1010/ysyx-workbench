@@ -44,6 +44,38 @@ uint64_t get_time() {
   return now - boot_time;
 }
 
+void get_hw_time_info(hw_time_info_t *info) {
+#if defined(CONFIG_TARGET_AM)
+  AM_TIMER_RTC_T rtc = io_read(AM_TIMER_RTC);
+  info->year = rtc.year + 1900;
+  info->month = rtc.month + 1;
+  info->day = rtc.day;
+  info->hour = rtc.hour;
+  info->minute = rtc.minute;
+  info->second = rtc.second;
+#elif defined(CONFIG_TIMER_GETTIMEOFDAY)
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  struct tm* local_time = localtime(&now.tv_sec);
+  info->year = local_time->tm_year + 1900;
+  info->month = local_time->tm_mon + 1;
+  info->day = local_time->tm_mday;
+  info->hour = local_time->tm_hour;
+  info->minute = local_time->tm_min;
+  info->second = local_time->tm_sec;
+#else
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+  struct tm* local_time = localtime(&now.tv_sec);
+  info->year = local_time->tm_year + 1900;
+  info->month = local_time->tm_mon + 1;
+  info->day = local_time->tm_mday;
+  info->hour = local_time->tm_hour;
+  info->minute = local_time->tm_min;
+  info->second = local_time->tm_sec;
+#endif
+}
+
 void init_rand() {
   srand(get_time_internal());
 }
