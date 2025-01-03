@@ -18,9 +18,18 @@
 
 #include <common.h>
 
+enum {
+  CSR_MEPC, // mepc寄存器 - 存放触发异常的PC
+  CSR_MSTATUS, // mstatus寄存器 - 存放处理器的状态
+  CSR_MCAUSE, // mcause寄存器 - 存放触发异常的原因
+
+  CSR_COUNT
+};
+
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
+  word_t csr[CSR_COUNT];
 } MUXDEF(CONFIG_RV64, riscv64_CPU_state, riscv32_CPU_state);
 
 // decode
