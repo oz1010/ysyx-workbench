@@ -100,7 +100,22 @@ extern NEMUState nemu_state;
 
 // ----------- timer -----------
 
+typedef union hw_time_info
+{
+    uint64_t time_raw_val;
+    struct
+    {
+        uint64_t year : 12;
+        uint64_t month : 4;
+        uint64_t day : 5;
+        uint64_t hour : 5;
+        uint64_t minute : 6;
+        uint64_t second : 6;
+    };
+} hw_time_info_t;
+
 uint64_t get_time();
+void get_hw_time_info(hw_time_info_t *info);
 
 // ----------- log -----------
 
