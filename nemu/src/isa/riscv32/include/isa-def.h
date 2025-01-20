@@ -19,11 +19,11 @@
 #include <common.h>
 
 enum {
-  CSR_MEPC, // mepc寄存器 - 存放触发异常的PC
-  CSR_MSTATUS, // mstatus寄存器 - 存放处理器的状态
-  CSR_MCAUSE, // mcause寄存器 - 存放触发异常的原因
+  // CSR_MEPC, // mepc寄存器 - 存放触发异常的PC
+  // CSR_MSTATUS, // mstatus寄存器 - 存放处理器的状态
+  // CSR_MCAUSE, // mcause寄存器 - 存放触发异常的原因
 
-  CSR_COUNT
+  CSR_COUNT = 2048 // 查看csrrw中csr占12位推算需要占用2048个csr寄存器
 };
 
 typedef struct {
