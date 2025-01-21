@@ -49,3 +49,23 @@ void invalid_inst(vaddr_t thispc) {
 
   set_nemu_state(NEMU_ABORT, thispc, -1);
 }
+
+vaddr_t raise_exception(vaddr_t thispc, word_t inst) {
+  /**
+   * ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#riscv32
+   * riscv32触发异常后硬件的响应过程如下:
+   * 
+   * 将当前PC值保存到mepc寄存
+   * 在mcause寄存器中设置异常号
+   * 从mtvec寄存器中取出异常入口地址
+   * 跳转到异常入口地址
+  */
+  cpu.csr[CSR_MEPC] = thispc;
+  /**
+   * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
+   *   Table 3.6: Machine cause register (mcause) values after trap.
+   *   1 ≥16 Designated for platform use
+  */
+  cpu.csr[CSR_MCAUSE] = cpu.gpr[15]; // abstract-machine/am/src/riscv/nemu/cte.c约定使用a5寄存器传递mcause, 1<<31 | (16+code)<<0
+  return cpu.csr[CSR_MTVEC];
+}

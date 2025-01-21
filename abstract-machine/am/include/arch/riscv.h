@@ -8,8 +8,9 @@
 #endif
 
 struct Context {
-  // TODO: fix the order of these members to match trap.S
-  uintptr_t mepc, mcause, gpr[NR_REGS], mstatus;
+  // fix the order of these members to match trap.S __am_asm_trap
+  // mcause is gpr[15] a5, 1<<31 | (16+code)<<0
+  uintptr_t gpr[NR_REGS], mcause, mstatus, mepc;
   void *pdir;
 };
 
