@@ -66,6 +66,6 @@ vaddr_t raise_exception(vaddr_t thispc, word_t inst) {
    *   Table 3.6: Machine cause register (mcause) values after trap.
    *   1 ≥16 Designated for platform use
   */
-  cpu.csr[CSR_MCAUSE] = cpu.gpr[15]; // abstract-machine/am/src/riscv/nemu/cte.c约定使用a5寄存器传递mcause, 1<<31 | (16+code)<<0
+  cpu.csr[CSR_MCAUSE] = 1<<31 | 3<<0; // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
   return cpu.csr[CSR_MTVEC];
 }
