@@ -46,7 +46,7 @@ $(BINARY): $(SPIKE) $(SRCS)
 	g++ -std=c++17 -O2 -shared -fPIC -fvisibility=hidden $(INC_PATH) $(SRCS) $(INC_LIBS) -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)
+	@echo skip rm -rf $(BUILD_DIR)
 
 all: $(BINARY)
 .DEFAULT_GOAL = all
