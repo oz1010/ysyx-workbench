@@ -10,8 +10,8 @@ Context* __am_irq_handle(Context *c) {
     uint32_t exception = c->mcause & 0x7fffffff;
     uint32_t event = EVENT_NULL;
 
-    // GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
-    if (exception==3) event = c->GPR1;
+    // GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
+    if (exception==11) event = c->GPR1;
 
     switch (event) {
       case EVENT_YIELD: 
@@ -50,7 +50,7 @@ void yield() {
    * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
    *   Table 3.6: Machine cause register (mcause) values after trap.
    *   1 ≥16 Designated for platform use
-   * GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
+   * GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
    *   n=1 -- yield
   */
   uint32_t event = EVENT_YIELD;
