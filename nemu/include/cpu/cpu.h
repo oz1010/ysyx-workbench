@@ -23,9 +23,11 @@ void cpu_exec(uint64_t n);
 void set_nemu_state(int state, vaddr_t pc, int halt_ret);
 void invalid_inst(vaddr_t thispc);
 vaddr_t raise_exception(vaddr_t thispc, word_t inst);
+vaddr_t machine_return();
 
 #define NEMUTRAP(thispc, code) set_nemu_state(NEMU_END, thispc, code)
 #define INV(thispc) invalid_inst(thispc)
 #define RAISE_EX(thispc,instruction) raise_exception(thispc, instruction)
+#define MACHINE_RET() machine_return()
 
 #endif
