@@ -63,7 +63,7 @@ endif # HAS_KEYBOARD
 
 menuconfig HAS_VGA
   bool "Enable VGA"
-  default y
+  default n
 
 if HAS_VGA
 config FB_ADDR
