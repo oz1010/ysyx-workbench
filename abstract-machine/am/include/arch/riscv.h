@@ -9,7 +9,7 @@
 
 struct Context {
   // fix the order of these members to match trap.S __am_asm_trap
-  // mcause is gpr[15] a5, 1<<31 | (16+code)<<0
+  // GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
   uintptr_t gpr[NR_REGS], mcause, mstatus, mepc;
   void *pdir;
 };
