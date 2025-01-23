@@ -174,6 +174,24 @@ menuconfig DEBUG_SYSTEM
   help
     Provide debug mode for application.
 
+menu "Log Options"
+depends on DEBUG_SYSTEM
+
+config LOG_STDOUT
+  bool "Enable print log to stdout"
+  default y
+
+config LOG_FILE
+  bool "Enable print log to file"
+  default y
+
+config LOG_FILE_PATH
+  depends on LOG_FILE
+  string "File path of printing log"
+  default "build/debug_log.txt"
+
+endmenu # Tracer Options 
+
 if DEBUG_SYSTEM
 
 config TRACE
@@ -185,12 +203,12 @@ config ITRACE
   bool "Enable instruction tracer"
   default n
 
-config TRACE_START
+config ITRACE_START
   depends on ITRACE
   int "How many instruction(s) the tracer skips to start (unit: number of instructions)"
   default 0
 
-config TRACE_END
+config ITRACE_END
   depends on ITRACE
   int "How many instruction(s) the tracer skips to end (unit: number of instructions)"
   default 10000
@@ -210,13 +228,13 @@ menuconfig DTRACE_OPTIONS
 
 if DTRACE_OPTIONS
 
-config DTRACE_START_ADDR1
-  hex "Set start address of device tracer limit 1"
-  default 0xa0000000
+  config DTRACE_START_ADDR1
+    hex "Set start address of device tracer limit 1"
+    default 0xa0000000
 
-config DTRACE_END_ADDR1
-  hex "Set end address of device tracer limit 1"
-  default 0xa0000000
+  config DTRACE_END_ADDR1
+    hex "Set end address of device tracer limit 1"
+    default 0xa0000000
 
 endif # DTRACE_OPTIONS
 
@@ -230,8 +248,8 @@ config ETRACE
 
 if ETRACE
   
-  config ETRACE_STD_OUT
-    bool "Enable information to stdout"
+  config ETRACE_EXTRA_INFO
+    bool "Enable extra information for ETRACE"
     default n
 
 endif # ETRACE_OPTIONS

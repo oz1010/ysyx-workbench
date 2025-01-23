@@ -138,23 +138,8 @@ void get_hw_time_info(hw_time_info_t *info);
 #define ANSI_NONE       "\33[0m"
 
 #define ANSI_FMT(str, fmt) fmt str ANSI_NONE
-/*
-#define _log_raw(...) IFDEF(CONFIG_TARGET_NATIVE_ELF,   \
-  do {                                                  \
-    extern FILE* log_fp;                                \
-    extern bool log_enable();                           \
-    if (log_enable()) {                                 \
-      fprintf(log_fp, __VA_ARGS__);                     \
-      fflush(log_fp);                                   \
-    }                                                   \
-    fprintf(stdout, __VA_ARGS__);                       \
-    fflush(stdout);                                     \
-  } while (0)                                           \
-)
-*/
 #define _log_raw(...)                                   \
   do {                                                  \
-    extern bool log_enable();                           \
     extern FILE* log_fp;                                \
     if (log_fp && (log_fp!=stdout)) {                   \
       fprintf(log_fp, __VA_ARGS__);                     \
