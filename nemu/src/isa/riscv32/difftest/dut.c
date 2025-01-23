@@ -28,10 +28,10 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
         break;
       }
     }
-    printf(ANSI_FMT("Found register is different, %s(0x%x 0x%x) PC(0x%x)\n", ANSI_FG_RED), isa_reg_name(i), cpu.gpr[i], ref_r->gpr[i], pc);
+    raw_all(ANSI_FMT("Found register is different, %s(0x%x 0x%x) PC(0x%x)\n", ANSI_FG_RED), isa_reg_name(i), cpu.gpr[i], ref_r->gpr[i], pc);
     return false;
   } else if (cpu.pc != ref_r->pc) {
-    printf(ANSI_FMT("Found PC is different, PC(0x%x 0x%x)\n", ANSI_FG_RED), cpu.pc, ref_r->pc);
+    raw_all(ANSI_FMT("Found PC is different, PC(0x%x 0x%x)\n", ANSI_FG_RED), cpu.pc, ref_r->pc);
     return false;
   }
 
