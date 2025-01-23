@@ -180,44 +180,23 @@ config TRACE
   bool "Enable tracer"
   default y
 
-config TRACE_START
-  depends on TRACE
-  int "When tracing is enabled (unit: number of instructions)"
-  default 0
-
-config TRACE_END
-  depends on TRACE
-  int "When tracing is disabled (unit: number of instructions)"
-  default 10000
-
 config ITRACE
   depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
   bool "Enable instruction tracer"
-  default y
-
-config ITRACE_COND
-  depends on ITRACE
-  string "Only trace instructions when the condition is true"
-  default "true"
-
-config WATCHPOINT
-  bool "Enable watchpoint scan"
-  default "false"
-
-config BREAKPOINT
-  bool "Enable breakpoint scan"
-  default "false"
-
-config DIFFTEST
-  depends on TARGET_NATIVE_ELF
-  bool "Enable differential testing"
   default n
-  help
-    Enable differential testing with a reference design.
-    Note that this will significantly reduce the performance of NEMU.
+
+config TRACE_START
+  depends on ITRACE
+  int "How many instruction(s) the tracer skips to start (unit: number of instructions)"
+  default 0
+
+config TRACE_END
+  depends on ITRACE
+  int "How many instruction(s) the tracer skips to end (unit: number of instructions)"
+  default 10000
 
 config DTRACE
-  depends on DEVICE
+  depends on TRACE && DEVICE
   bool "Enable device tracer"
   default n
   help
@@ -242,6 +221,7 @@ config DTRACE_END_ADDR1
 endif # DTRACE_OPTIONS
 
 config ETRACE
+  depends on TRACE
   bool "Enable exception/interrupt tracer"
   default n
   help
@@ -255,6 +235,27 @@ if ETRACE
     default n
 
 endif # ETRACE_OPTIONS
+
+config ITRACE_COND
+  depends on ITRACE
+  string "Only trace instructions when the condition is true"
+  default "true"
+
+config WATCHPOINT
+  bool "Enable watchpoint scan"
+  default "false"
+
+config BREAKPOINT
+  bool "Enable breakpoint scan"
+  default "false"
+
+config DIFFTEST
+  depends on TARGET_NATIVE_ELF
+  bool "Enable differential testing"
+  default n
+  help
+    Enable differential testing with a reference design.
+    Note that this will significantly reduce the performance of NEMU.
 
 endif # DEBUG_SYSTEM
 
