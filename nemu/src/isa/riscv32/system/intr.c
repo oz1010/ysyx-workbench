@@ -41,10 +41,6 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_query_intr() {
-  return INTR_EMPTY;
-}
-
-vaddr_t machine_return() {
   /**
    * 将 PC 设为 mepc，将 mstatus.MPIE 复制到 MIE 字段来恢复之前的中断使能状态，并将特权模式设为 mstatus.MPP 的值。
   */
