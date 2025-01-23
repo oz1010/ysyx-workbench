@@ -1,7 +1,9 @@
 #ifndef __ARCH_H__
 #define __ARCH_H__
 
-struct Context {
+#include "macro.h"
+
+struct concat(__GUEST_ISA__, _Context) {
   // TODO: fix the order of these members to match trap.S
   uintptr_t gpr[32], era, estat, prmd;
   void *pdir;
