@@ -4,6 +4,7 @@
 #include "memory/paddr.h"
 
 IRingBuf_t iringbuf;
+FILE *trace_fd = NULL;
 
 #ifndef assert
 #include <assert.h>
@@ -137,13 +138,9 @@ int fmt_instruction(IRingBufItem_t *item, vaddr_t addr)
 
 static dtrace_limit_t dtrace_limits[8] = {0};
 static int dtrace_limits_cnt = 0;
-FILE *trace_fd = NULL;
 
 void dtrace_init()
 {
-    extern const char *log_file_path;
-    trace_fd = log_fp;
-    Assert(trace_fd, "Open file %s failed", log_file_path);
     DTRACE_LOG("Start record device trace.");
 
 #if CONFIG_DTRACE_OPTIONS
@@ -177,6 +174,9 @@ bool dtrace_limit_check(const char *name, paddr_t addr, int len)
 
 void trace_init(void)
 {
+    // extern const char *log_file_path;
+    trace_fd = log_fp;
+    // Assert(trace_fd, "Open file %s failed", log_file_path);
     IFDEF(CONFIG_ITRACE, itrace_init());
     IFDEF(CONFIG_DTRACE, dtrace_init());
 }

@@ -14,6 +14,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include "trace.h"
 
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* Trigger an interrupt/exception with ``NO''.
@@ -36,6 +37,8 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    *   1 ≥16 Designated for platform use
   */
   cpu.csr[CSR_MCAUSE] = NO; // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
+
+  ETRACE_LOG("mepc:0x%x mcause:0x%x a5:0x%x", epc, NO, cpu.gpr[15]);
 
   return cpu.csr[CSR_MTVEC];
 }
