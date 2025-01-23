@@ -203,6 +203,19 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         break;
       }
 
+      case 'p':
+      {
+        char str[32] = {0};
+        uint32_t num = (uint32_t)va_arg(ap, int*);
+        size_t len = uint32_to_string(num, 16, str);
+        if (zero_prifex) add_zero_prefix(str, &len, limit_len);
+        len = len > (max_size - ret) ? (max_size - ret) : len;
+        memcpy(out, str, len);
+        out += len;
+        ret += len;
+        break;
+      }
+
       case 'c':
       {
         char input_c = (char)va_arg(ap, int);
