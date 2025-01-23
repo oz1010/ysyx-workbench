@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "macro.h"
 #include ARCH_H // this macro is defined in $CFLAGS
                 // examples: "arch/x86-qemu.h", "arch/native.h", ...
 
@@ -18,7 +19,7 @@ typedef struct {
 } Area;
 
 // Arch-dependent processor context
-typedef struct Context Context;
+typedef struct concat(__GUEST_ISA__, _Context) Context;
 
 // An event of type @event, caused by @cause of pointer @ref
 typedef struct {

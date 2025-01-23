@@ -1,7 +1,8 @@
 #ifndef ARCH_H__
 #define ARCH_H__
+#include "macro.h"
 
-struct Context {
+struct concat(__GUEST_ISA__, _Context) {
   void    *cr3;
   uint64_t rax, rbx, rcx, rdx,
            rbp, rsi, rdi,

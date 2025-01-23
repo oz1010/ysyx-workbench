@@ -7,7 +7,9 @@
 #define NR_REGS 32
 #endif
 
-struct Context {
+#include "macro.h"
+
+struct concat(__GUEST_ISA__, _Context) {
   // fix the order of these members to match trap.S __am_asm_trap
   // GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
   uintptr_t gpr[NR_REGS], mcause, mstatus, mepc;
