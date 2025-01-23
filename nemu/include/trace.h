@@ -4,6 +4,8 @@
 #include <isa.h>
 #include "common/flog.h"
 
+extern FILE *trace_fd;
+
 #define ITRACE_ITEM_MAX 5
 #define ITRACE_NEXT_INST_SHOW 3
 
@@ -21,7 +23,6 @@
 #endif
 
 #if CONFIG_DTRACE
-extern FILE *trace_fd;
 #define DTRACE_LOG(fmt, ...) raw_out_fp(trace_fd, fmt "\n", ##__VA_ARGS__)
 #define DTRACE_LOG_LIMIT(fmt, ...)                         \
     do                                                     \
@@ -32,6 +33,12 @@ extern FILE *trace_fd;
 #else
 #define DTRACE_LOG(fmt, ...)
 #define DTRACE_LOG_LIMIT(fmt, ...)
+#endif
+
+#if CONFIG_ETRACE
+#define ETRACE_LOG(fmt, ...) raw_out_fp(trace_fd, "<ET> " fmt "\n", ##__VA_ARGS__)
+#else
+#define ETRACE_LOG(fmt, ...)
 #endif
 
 typedef struct IRingBufItem
