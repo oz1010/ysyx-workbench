@@ -402,6 +402,6 @@ void init_sdb() {
   /* Initialize the point pool. */
   init_point_pool();
 
-  /* Initialize the iringbuf */
-  IRINGBUF_INIT();
+  /* Initialize the trace */
+  trace_init();
 }
