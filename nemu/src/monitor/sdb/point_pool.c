@@ -81,7 +81,7 @@ void add_point(point_type_t type, char *str)
 {
   point_info_t* point = new_point();
   if (!point) {
-    printf("new point failed\n");
+    raw_all("new point failed\n");
     return;
   }
 
@@ -92,22 +92,22 @@ void add_point(point_type_t type, char *str)
     case POINT_BREAK:
       point->type = type;
       point->breakpoint.addr = val;
-      printf("breakpoint %lu: 0x%x\n", point->id, val);
+      raw_all("breakpoint %lu: 0x%x\n", point->id, val);
       break;
 
     case POINT_WATCH:
       point->type = type;
       strncpy(point->watchpoint.expr_str, str, WP_STR_BUF_MAX - 1);
       point->watchpoint.expr_val = val;
-      printf("watchpoint %lu: %s\n", point->id, point->watchpoint.expr_str);
+      raw_all("watchpoint %lu: %s\n", point->id, point->watchpoint.expr_str);
       break;
 
     default:
-      printf("unsupport point type: %d\n", type);
+      raw_all("unsupport point type: %d\n", type);
       break;
     }
   } else {
-    printf("insert %s expr error\n", (point->type==POINT_BREAK?"breakpoint":"watchpoint"));
+    raw_all("insert %s expr error\n", (point->type==POINT_BREAK?"breakpoint":"watchpoint"));
   }
 
   if (point->type == POINT_UNKNOWN) {
@@ -122,28 +122,28 @@ void delete_point(uint64_t id)
   int cnt = 0;
   list_for_each_entry_safe(pnode, ptmp, &used_head, item) {
     if ((id==0) || (id==pnode->id)) {
-      printf("delete %s %lu\n", (pnode->type==POINT_BREAK?"breakpoint":"watchpoint"), pnode->id);
+      raw_all("delete %s %lu\n", (pnode->type==POINT_BREAK?"breakpoint":"watchpoint"), pnode->id);
       ++cnt;
       free_point(pnode);
     }
   }
 
   if ((id!=0) && (cnt==0)) {
-    printf("No point number %lu\n", id);
+    raw_all("No point number %lu\n", id);
   }
 }
 
 void show_point(point_type_t type)
 {
-  printf("%-8s %-15s %-s\n", "Num", "Type", "Condition");
+  raw_all("%-8s %-15s %-s\n", "Num", "Type", "Condition");
 
   point_info_t* pnode;
   list_for_each_entry(pnode, &used_head, item) {
     if ((type==POINT_ALL) || (pnode->type==type)) {
       if (pnode->type == POINT_BREAK) {
-        printf("%-8lu %-15s 0x%-x\n", pnode->id, "breakpoint", pnode->breakpoint.addr);
+        raw_all("%-8lu %-15s 0x%-x\n", pnode->id, "breakpoint", pnode->breakpoint.addr);
       } else if (pnode->type == POINT_WATCH) {
-        printf("%-8lu %-15s %-s\n", pnode->id, "watchpoint", pnode->watchpoint.expr_str);
+        raw_all("%-8lu %-15s %-s\n", pnode->id, "watchpoint", pnode->watchpoint.expr_str);
       }
     }
   }
@@ -159,14 +159,14 @@ bool scan_point(point_type_t type)
       if (pnode->type == POINT_BREAK) {
         if (cpu.pc == pnode->breakpoint.addr){
           stop = true;
-          printf("Matched breakpoint %lu at 0x%x\n", pnode->id, pnode->breakpoint.addr);
+          raw_all("Matched breakpoint %lu at 0x%x\n", pnode->id, pnode->breakpoint.addr);
         }
       } else if (pnode->type == POINT_WATCH) {
         bool success = true;
         word_t val = expr(pnode->watchpoint.expr_str, &success);
         if (success && val != pnode->watchpoint.expr_val){
           stop = true;
-          printf("Matched watchpoint %lu: %s | %u=>%u %#x=>%#x.\n", 
+          raw_all("Matched watchpoint %lu: %s | %u=>%u %#x=>%#x.\n", 
             pnode->id, pnode->watchpoint.expr_str, 
             pnode->watchpoint.expr_val, val, 
             pnode->watchpoint.expr_val, val);

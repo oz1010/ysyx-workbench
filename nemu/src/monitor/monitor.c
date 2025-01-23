@@ -28,16 +28,19 @@ void init_disasm(const char *triple);
 
 static void welcome() {
   Log("Trace: %s", MUXDEF(CONFIG_TRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+#if CONFIG_TRACE
+  Log("Instruction Trace: %s", MUXDEF(CONFIG_ITRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
   Log("Device Trace: %s", MUXDEF(CONFIG_DTRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
   IFDEF(CONFIG_TRACE, Log("If trace is enabled, a log file will be generated "
         "to record the trace. This may lead to a large log file. "
         "If it is not necessary, you can disable it in menuconfig"));
+#endif
   Log("Watchpoint: %s", MUXDEF(CONFIG_WATCHPOINT, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
   Log("Breakpoint: %s", MUXDEF(CONFIG_BREAKPOINT, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
   Log("Debug Module: %s", MUXDEF(CONFIG_DEBUG_MODULE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to %s-NEMU!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
-  printf("For help, type \"help\"\n");
+  raw_stdout("Welcome to %s-NEMU!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
+  raw_stdout("For help, type \"help\"\n");
   // Log("Exercise: Please remove me in the source code and compile NEMU again.");
   // assert(0);
 }
@@ -92,12 +95,12 @@ static int parse_args(int argc, char *argv[]) {
       case 'd': diff_so_file = optarg; break;
       case 1: img_file = optarg; return 0;
       default:
-        printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
-        printf("\t-b,--batch              run with batch mode\n");
-        printf("\t-l,--log=FILE           output log to FILE\n");
-        printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
-        printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
-        printf("\n");
+        raw_stdout("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
+        raw_stdout("\t-b,--batch              run with batch mode\n");
+        raw_stdout("\t-l,--log=FILE           output log to FILE\n");
+        raw_stdout("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
+        raw_stdout("\t-p,--port=PORT          run DiffTest with port PORT\n");
+        raw_stdout("\n");
         exit(0);
     }
   }

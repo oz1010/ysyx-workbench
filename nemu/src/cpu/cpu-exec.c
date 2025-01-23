@@ -37,19 +37,33 @@ extern bool scan_wp();
 extern bool scan_bp();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
-#ifdef CONFIG_ITRACE_COND
-  // if (ITRACE_COND) { _log_raw("%s\n", _this->logbuf); }
-#endif
+  bool print_cond = MUXDEF(CONFIG_ITRACE, ITRACE_COND, true);
 #ifdef CONFIG_WATCHPOINT
   if (nemu_state.state==NEMU_RUNNING && scan_point(POINT_WATCH)) nemu_state.state = NEMU_STOP;
 #endif
 #ifdef CONFIG_BREAKPOINT
   if (nemu_state.state==NEMU_RUNNING && scan_point(POINT_BREAK)) nemu_state.state = NEMU_STOP;
 #endif
-  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
+#ifdef CONFIG_ITRACE_START
+  print_cond &= (g_nr_guest_inst>=CONFIG_ITRACE_START);
+#endif
+#ifdef CONFIG_ITRACE_END
+  print_cond &= (g_nr_guest_inst<=CONFIG_ITRACE_END);
+#endif
+  if (g_print_step && print_cond) { IFDEF(CONFIG_ITRACE, raw_puts(_this->logbuf)); }
+  if (print_cond) ITRACE_FILE(_this->logbuf);
+
+#ifdef CONFIG_ITRACE_END
+  if (g_nr_guest_inst==CONFIG_ITRACE_END)
+  {
+    raw_out_fp(stdout, "<IT> end instruction trace\n");
+    raw_out_fp(trace_fd, "<IT> end instruction trace\n");
+  }
+#endif
+
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
-  IRINGBUF_UPDATE(MUXDEF(CONFIG_ISA_x86, _this->snpc, _this->pc), _this->logbuf, nemu_state.state == NEMU_RUNNING);
+  ITRACE_UPDATE(MUXDEF(CONFIG_ISA_x86, _this->snpc, _this->pc), _this->logbuf, nemu_state.state == NEMU_RUNNING);
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
@@ -87,7 +101,6 @@ static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
     exec_once(&s, cpu.pc);
-    // printf("current cpu pc: %#x\n", cpu.pc);
     g_nr_guest_inst ++;
     trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
@@ -114,7 +127,7 @@ void cpu_exec(uint64_t n) {
   g_print_step = (n < MAX_INST_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
-      printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
+      raw_stdout("Program execution has ended. To restart the program, exit NEMU and run again.\n");
       return;
     default: nemu_state.state = NEMU_RUNNING;
   }
@@ -130,7 +143,7 @@ void cpu_exec(uint64_t n) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
     case NEMU_END: case NEMU_ABORT:
-      IRINGBUF_SHOW();
+      ITRACE_SHOW();
       Log("nemu: %s at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :

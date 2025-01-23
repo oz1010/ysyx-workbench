@@ -4,51 +4,61 @@
 #include <isa.h>
 #include "common/flog.h"
 
-#define IRINGBUF_ITEM_MAX 5
-#define IRINGBUF_NEXT_INST_SHOW 3
+#define ITRACE_ITEM_MAX 5
+#define ITRACE_NEXT_INST_SHOW 3
 
 #ifdef CONFIG_ITRACE
-#define IRINGBUF_UPDATE(addr,str,err) iringbuf_update(addr,str,err)
-#define IRINGBUF_SHOW() iringbuf_show()
+#define ITRACE_UPDATE(addr, str, err) itrace_update(addr, str, err)
+#define ITRACE_SHOW() itrace_show()
+// #define ITRACE_FILE(s) raw_out_fp(trace_fd, ANSI_FMT("<IT>", ANSI_FG_BLUE) " %s\n", s)
+#define ITRACE_FILE(s) raw_out_fp(trace_fd, "<IT> " \
+                                            "%s\n", \
+                                  s)
 #else
-#define IRINGBUF_UPDATE(addr,str,err)
-#define IRINGBUF_SHOW()
+#define ITRACE_UPDATE(addr, str, err)
+#define ITRACE_SHOW()
+#define ITRACE_FILE(s)
 #endif
 
 #if CONFIG_DTRACE
-#define DTRACE_LOG(fmt, ...) flog_printf(trace_fd, fmt "\n", ##__VA_ARGS__)
-#define DTRACE_LOG_LIMIT(fmt, ...) do\
-  {\
-    if (dtrace_limit_check(map->name, addr, len)) \
-      flog_printf(trace_fd, fmt "\n", ##__VA_ARGS__);\
-  } while (false)
+extern FILE *trace_fd;
+#define DTRACE_LOG(fmt, ...) raw_out_fp(trace_fd, fmt "\n", ##__VA_ARGS__)
+#define DTRACE_LOG_LIMIT(fmt, ...)                         \
+    do                                                     \
+    {                                                      \
+        if (dtrace_limit_check(map->name, addr, len))      \
+            raw_out_fp(trace_fd, "<DT> " fmt "\n", ##__VA_ARGS__); \
+    } while (false)
 #else
 #define DTRACE_LOG(fmt, ...)
 #define DTRACE_LOG_LIMIT(fmt, ...)
 #endif
 
-typedef struct IRingBufItem {
-  vaddr_t addr;
-  IFDEF(CONFIG_ITRACE, char buf[128]);
-  struct IRingBufItem* next;
-  struct IRingBufItem* prev;
+typedef struct IRingBufItem
+{
+    vaddr_t addr;
+    IFDEF(CONFIG_ITRACE, char buf[128]);
+    struct IRingBufItem *next;
+    struct IRingBufItem *prev;
 } IRingBufItem_t;
 
-typedef struct RingBuf {
-  IRingBufItem_t *erritem;
-  int count;
-  IRingBufItem_t *header;
+typedef struct RingBuf
+{
+    IRingBufItem_t *erritem;
+    int count;
+    IRingBufItem_t *header;
 } IRingBuf_t;
 
-typedef struct _dtrace_limit_s {
-  paddr_t start_addr;
-  paddr_t end_addr;
+typedef struct _dtrace_limit_s
+{
+    paddr_t start_addr;
+    paddr_t end_addr;
 } dtrace_limit_t;
 
 extern FILE *trace_fd;
 
-void iringbuf_update(vaddr_t addr, const char* str, bool err);
-void iringbuf_show();
+void itrace_update(vaddr_t addr, const char *str, bool err);
+void itrace_show();
 
 bool dtrace_limit_check(const char *name, paddr_t addr, int len);
 

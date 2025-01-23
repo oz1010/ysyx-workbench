@@ -65,24 +65,6 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
   }
 }
 
-// static void exec_temp(Decode*s, int *_rd, word_t *_src1, word_t *_src2, word_t*_imm)
-// {
-//   int rd = *_rd;
-//   word_t src1 = *_src1;
-//   word_t src2 = *_src2;
-//   word_t imm = *_imm;
-//   printf("=== inst:%#010x rd:%d src1:%#x src2:%#x imm:%#x\n", s->isa.inst.val, rd, src1, src2, imm);
-
-//   // uint32_t ex0 = SEXT(imm, 12);
-//   // R(rd) = src1 + SEXT(imm, 12);
-//   // printf("=== ex0 %x\n", ex0);
-
-//   R(rd) = s->pc + 4; s->dnpc = (src1 + SEXT(imm, 12))&~1;
-//   // printf("=== ex0 %x\n", ex0);
-
-//   // exit(-1);
-// }
-
 static int decode_exec(Decode *s) {
   int rd = 0;
   word_t src1 = 0, src2 = 0, imm = 0, t = 0;
