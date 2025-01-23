@@ -194,86 +194,86 @@ endmenu # Tracer Options
 
 if DEBUG_SYSTEM
 
-config TRACE
-  bool "Enable tracer"
-  default y
+  config TRACE
+    bool "Enable tracer"
+    default y
 
-config ITRACE
-  depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
-  bool "Enable instruction tracer"
-  default n
-
-config ITRACE_START
-  depends on ITRACE
-  int "How many instruction(s) the tracer skips to start (unit: number of instructions)"
-  default 0
-
-config ITRACE_END
-  depends on ITRACE
-  int "How many instruction(s) the tracer skips to end (unit: number of instructions)"
-  default 10000
-
-config DTRACE
-  depends on TRACE && DEVICE
-  bool "Enable device tracer"
-  default n
-  help
-    Enable record information of every device.
-    Note that maybe significantly reduce the performance of NEMU.
-
-menuconfig DTRACE_OPTIONS
-  depends on DTRACE
-  bool "Device tracer options"
-  default n
-
-if DTRACE_OPTIONS
-
-  config DTRACE_START_ADDR1
-    hex "Set start address of device tracer limit 1"
-    default 0xa0000000
-
-  config DTRACE_END_ADDR1
-    hex "Set end address of device tracer limit 1"
-    default 0xa0000000
-
-endif # DTRACE_OPTIONS
-
-config ETRACE
-  depends on TRACE
-  bool "Enable exception/interrupt tracer"
-  default n
-  help
-    Enable record information of every exception/interrupt.
-    Note that maybe significantly reduce the performance of NEMU.
-
-if ETRACE
-  
-  config ETRACE_EXTRA_INFO
-    bool "Enable extra information for ETRACE"
+  config ITRACE
+    depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
+    bool "Enable instruction tracer"
     default n
 
-endif # ETRACE_OPTIONS
+  config ITRACE_START
+    depends on ITRACE
+    int "How many instruction(s) the tracer skips to start (unit: number of instructions)"
+    default 0
 
-config ITRACE_COND
-  depends on ITRACE
-  string "Only trace instructions when the condition is true"
-  default "true"
+  config ITRACE_END
+    depends on ITRACE
+    int "How many instruction(s) the tracer skips to end (unit: number of instructions)"
+    default 10000
 
-config WATCHPOINT
-  bool "Enable watchpoint scan"
-  default "false"
+  config ITRACE_COND
+    depends on ITRACE
+    string "Only trace instructions when the condition is true"
+    default "true"
 
-config BREAKPOINT
-  bool "Enable breakpoint scan"
-  default "false"
+  config DTRACE
+    depends on TRACE && DEVICE
+    bool "Enable device tracer"
+    default n
+    help
+      Enable record information of every device.
+      Note that maybe significantly reduce the performance of NEMU.
 
-config DIFFTEST
-  depends on TARGET_NATIVE_ELF
-  bool "Enable differential testing"
-  default n
-  help
-    Enable differential testing with a reference design.
-    Note that this will significantly reduce the performance of NEMU.
+  menuconfig DTRACE_OPTIONS
+    depends on DTRACE
+    bool "Device tracer options"
+    default n
+
+  if DTRACE_OPTIONS
+
+    config DTRACE_START_ADDR1
+      hex "Set start address of device tracer limit 1"
+      default 0xa0000000
+
+    config DTRACE_END_ADDR1
+      hex "Set end address of device tracer limit 1"
+      default 0xa0000000
+
+  endif # DTRACE_OPTIONS
+
+  config ETRACE
+    depends on TRACE
+    bool "Enable exception/interrupt tracer"
+    default n
+    help
+      Enable record information of every exception/interrupt.
+      Note that maybe significantly reduce the performance of NEMU.
+
+  if ETRACE
+    
+    config ETRACE_EXTRA_INFO
+      bool "Enable extra information for ETRACE"
+      default n
+
+  endif # ETRACE_OPTIONS
+
+  config WATCHPOINT
+    bool "Enable watchpoint scan"
+    default "false"
+
+  config BREAKPOINT
+    bool "Enable breakpoint scan"
+    default "false"
+
+  config DIFFTEST
+    depends on TARGET_NATIVE_ELF
+    bool "Enable differential testing"
+    default n
+    help
+      Enable differential testing with a reference design.
+      Note that this will significantly reduce the performance of NEMU.
 
 endif # DEBUG_SYSTEM
 
