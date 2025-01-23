@@ -38,7 +38,7 @@ typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
   word_t csr[CSR_COUNT];
-} MUXDEF(CONFIG_RV64, riscv64_CPU_state, riscv32_CPU_state);
+} MUXDEF(CONFIG_RV64, riscv64_CPU_state, concat(__GUEST_ISA__, _CPU_state));
 
 // decode
 typedef struct {
