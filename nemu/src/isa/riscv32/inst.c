@@ -156,7 +156,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("0000001 ????? ????? 111 ????? 01100 11", remu   , R, R(rd) = src1 % src2 );
   
   // Privileged Instructions ref. RISC-V开放架构设计之道-V1.0.0 p101
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , R, s->dnpc = MACHINE_RET() );
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , R, s->dnpc = QUERY_INTR() );
 
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
