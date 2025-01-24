@@ -15,6 +15,17 @@
 #define putstr(s) \
   ({ for (const char *p = s; *p; p++) putch(*p); })
 
+#define putnum_debug(num)           \
+  do{                               \
+    char str[32] = {0};             \
+    int num = limit_len;            \
+    int_to_string(num, 10, str);    \
+    putstr("--- DEBUG NUM---\n");   \
+    putstr( #num ":");              \
+    putstr(str);                    \
+    putstr("\n\n");                 \
+  } while(0)
+
 #define io_read(reg) \
   ({ reg##_T __io_param; \
     ioe_read(reg, &__io_param); \

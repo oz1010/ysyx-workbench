@@ -111,6 +111,15 @@ int snprintf(char *out, size_t n, const char *fmt, ...) {
   return ret;
 }
 
+// 将字符串输出到指定输出口处
+inline size_t copy_to_output(char **out, const size_t ret, const int max_size, const char *str, size_t len)
+{
+  len = len > (max_size - ret) ? (max_size - ret) : len;
+  memcpy(*out, str, len);
+  *out += len;
+  return len;
+}
+
 // 当字符串长度低于限长时，使用0补全
 void add_zero_prefix(char *str, size_t *str_len, int limit_len)
 {
@@ -138,19 +147,26 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
     {
     case '%':
     {
-      bool zero_prifex = false;
+      bool hex_prefix = false;
+      bool zero_prefix = false;
       int limit_len = 0;
+
+      // 是否hex前缀
+      if (*fmt == '#') {
+        ++fmt;
+        hex_prefix = true;
+      }
 
       // 是否0补位解析
       if (*fmt == '0') {
         ++fmt;
-        zero_prifex = true;
+        zero_prefix = true;
       }
 
       // 限位数解析
+      // TODO 修复无法识别限位数的bug
       const char* start_fmt = fmt;
       while(limit_len>=0 && *fmt>='0' && *fmt<='9') {
-        limit_len = limit_len*10 + *fmt - '0';
         ++fmt;
       }
       if (limit_len < 0) {
@@ -170,10 +186,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       {
         char* str = va_arg(ap, char*);
         size_t len = strlen(str);
-        len = len > (max_size - ret) ? (max_size - ret) : len;
-        memcpy(out, str, len);
-        out += len;
-        ret += len;
+        ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }
 
@@ -182,11 +195,8 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         char str[32] = {0};
         int num = va_arg(ap, int);
         size_t len = int_to_string(num, 10, str);
-        if (zero_prifex) add_zero_prefix(str, &len, limit_len);
-        len = len > (max_size - ret) ? (max_size - ret) : len;
-        memcpy(out, str, len);
-        out += len;
-        ret += len;
+        if (zero_prefix) add_zero_prefix(str, &len, limit_len);
+        ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }
       
@@ -195,46 +205,47 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         char str[32] = {0};
         uint32_t num = (uint32_t)va_arg(ap, int);
         size_t len = uint32_to_string(num, 16, str);
-        if (zero_prifex) add_zero_prefix(str, &len, limit_len);
-        len = len > (max_size - ret) ? (max_size - ret) : len;
-        memcpy(out, str, len);
-        out += len;
-        ret += len;
+        if (hex_prefix) ret += copy_to_output(&out, ret, max_size, "0x", 2);
+        if (zero_prefix) add_zero_prefix(str, &len, limit_len);
+        ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }
 
       case 'p':
       {
+        ret += copy_to_output(&out, ret, max_size, "0x", 2);
         char str[32] = {0};
         uint32_t num = (uint32_t)va_arg(ap, int*);
         size_t len = uint32_to_string(num, 16, str);
-        if (zero_prifex) add_zero_prefix(str, &len, limit_len);
-        len = len > (max_size - ret) ? (max_size - ret) : len;
-        memcpy(out, str, len);
-        out += len;
-        ret += len;
+        if (zero_prefix) add_zero_prefix(str, &len, limit_len);
+        ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }
 
       case 'c':
       {
         char input_c = (char)va_arg(ap, int);
-        *out++ = input_c;
-        ++ret;
+        ret += copy_to_output(&out, ret, max_size, &input_c, 1);
         break;
       }
 
       case '%':
-        *out++ = '%';
-        ++ret;
+        ret += copy_to_output(&out, ret, max_size, "\%", 1);
         break;
       
       default:
+      {
+        char str[32] = {0};
+        uint32_t num = (uint32_t)select_c;
+        uint32_to_string(num, 16, str);
         putstr("Found unsupported char '");
         putch(select_c);
-        putstr("'\n");
+        putstr("'(0x");
+        putstr(str);
+        putstr(")\n");
         panic("Not implemented");
         break;
+      }
       }
       break;
     }
