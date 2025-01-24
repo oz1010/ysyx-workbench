@@ -14,7 +14,8 @@
     halt(1); \
   } while (0)
 
-#define DEBUG(fmt, ...) printf("\33[1;34mDebug:\33[0m " fmt "\n", ##__VA_ARGS__)
+// #define DEBUG(fmt, ...) printf("\33[1;34mDebug:\33[0m " fmt "\n", ##__VA_ARGS__)
+#define DEBUG(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
 #define INFO(fmt, ...) printf("\33[1;32mInfo:\33[0m " fmt "\n", ##__VA_ARGS__)
 #define ERROR(fmt, ...) printf("\33[1;31mError:\33[0m " fmt "\n", ##__VA_ARGS__)
 #define FATAL(fmt, ...)                            \
