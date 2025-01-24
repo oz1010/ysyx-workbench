@@ -68,7 +68,7 @@ size_t int_to_string(int num, size_t base, char *str)
 }
 
 int printf(const char *fmt, ...) {
-  static char buf[1024];
+  static char buf[102400];
   int ret = -1;
 
   va_list ap;
