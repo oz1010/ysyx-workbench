@@ -203,17 +203,17 @@ static uintptr_t loader(PCB *pcb, const char *filename)
         /* 加载程序并初始化内存 */
         if (h->p_type == PT_LOAD)
         {
-            // uint8_t buf[0x10000] = {0};
             size_t offset = h->p_offset;
             uint8_t *vaddr = (uint8_t *)(h->p_vaddr);
             size_t sz = h->p_filesz;
-            DEBUG("load info: addr:%p offset:%#x size:%#x", vaddr, offset, sz);
+            // DEBUG("load info: addr:%p offset:%#x size:%#x", vaddr, offset, sz);
 
             /* offset表示整个elf文件的偏移 */
             ramdisk_read(vaddr, offset, sz);
             memset(vaddr+h->p_filesz, 0, h->p_memsz-h->p_filesz);
         }
     }
+    DEBUG("");
 
     return elf_header->e_entry;
 }
