@@ -7,16 +7,25 @@
 #define Elf_Half Elf64_Half
 #define Elf_E_Type Elf64_Half
 #define Elf_P_Type Elf64_Word
+#define ELF_HEADER_SIZE 64
 #else
 #define Elf_Ehdr Elf32_Ehdr
 #define Elf_Phdr Elf32_Phdr
 #define Elf_Half Elf32_Half
 #define Elf_E_Type Elf32_Half
 #define Elf_P_Type Elf32_Word
+#define ELF_HEADER_SIZE 52
 #endif
 
+#if defined(__ISA_AM_NATIVE__)
+#define EXPECT_TYPE EM_X86_64
+uint8_t *proc_addr = (uint8_t *)0x3000000;
+#elif defined(__ISA_RISCV32E__)
+#define EXPECT_TYPE EM_RISCV
 uint8_t *proc_addr = (uint8_t *)0x83000000;
-#define ELF_HEADER_SIZE 52
+#else
+# error Unsupported ISA
+#endif
 
 const char *elf_e_type_to_str(Elf_E_Type e_type)
 {
@@ -165,6 +174,11 @@ static uintptr_t loader(PCB *pcb, const char *filename)
         ERROR("Not an ELF file - it has the wrong magic bytes at the start");
         return nullptr;
     }
+    if (elf_header->e_machine != EXPECT_TYPE)
+    {
+        ERROR("Wrong ELF file - it has the wrong ISA type at the start (%d)", elf_header->e_machine);
+        return nullptr;
+    }
     // DEBUG("%#12x %% \"%c\" |%16s| |%-16s| |%+16s| |%4s|", elf_addr, 'T', "hello", "hello", "hello", "world");
     // DEBUG("%06d %#06x", 512, 512);
     // DEBUG("e_machine %d", (elf_header->e_machine)); // EM_RISCV
@@ -177,6 +191,7 @@ static uintptr_t loader(PCB *pcb, const char *filename)
     elf_addr += elf_header->e_phoff;
     Elf_Phdr *elf_prog_headers = (Elf_Phdr *)elf_addr;
     ramdisk_read(elf_prog_headers, ELF_HEADER_SIZE, sizeof(Elf_Phdr) * elf_header->e_phnum);
+    elf_addr += (sizeof(Elf_Phdr) * elf_header->e_phnum);
     DEBUG("");
     DEBUG("Program Headers:");
     DEBUG("  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align");
@@ -184,10 +199,23 @@ static uintptr_t loader(PCB *pcb, const char *filename)
     {
         Elf_Phdr *h = &elf_prog_headers[idx];
         DEBUG("  %14s %#06x %#08x %#08x %#05x %#05x %c%c%c %#x", elf_p_type_to_str(h->p_type), h->p_offset, h->p_vaddr, h->p_paddr, h->p_filesz, h->p_memsz, h->p_flags & PF_R ? 'R' : ' ', h->p_flags & PF_W ? 'W' : ' ', h->p_flags & PF_X ? 'E' : ' ', h->p_align);
+
+        /* 加载程序并初始化内存 */
+        if (h->p_type == PT_LOAD)
+        {
+            // uint8_t buf[0x10000] = {0};
+            size_t offset = h->p_offset;
+            uint8_t *vaddr = (uint8_t *)(h->p_vaddr);
+            size_t sz = h->p_filesz;
+            DEBUG("load info: addr:%p offset:%#x size:%#x", vaddr, offset, sz);
+
+            /* offset表示整个elf文件的偏移 */
+            ramdisk_read(vaddr, offset, sz);
+            memset(vaddr+h->p_filesz, 0, h->p_memsz-h->p_filesz);
+        }
     }
 
-    TODO();
-    return nullptr;
+    return elf_header->e_entry;
 }
 
 void naive_uload(PCB *pcb, const char *filename)
