@@ -120,6 +120,16 @@ inline size_t copy_to_output(char **out, const size_t ret, const int max_size, c
   return len;
 }
 
+// 将字符重复输出到指定输出口处
+inline size_t copy_repeat_to_output(char **out, const size_t ret, const int max_size, const char c, int len)
+{
+  len = len < 0 ? 0 : len;
+  len = len > (max_size - ret) ? (max_size - ret) : len;
+  memset(*out, c, len);
+  *out += len;
+  return len;
+}
+
 // 当字符串长度低于限长时，使用0补全
 void add_zero_prefix(char *str, size_t *str_len, int limit_len)
 {
@@ -150,6 +160,16 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       bool hex_prefix = false;
       bool zero_prefix = false;
       int limit_len = 0;
+      int str_align = 0; // 0--left 1--right
+
+      // 字符串左右对齐
+      if (*fmt == '-') {
+        ++fmt;
+        str_align = 0;
+      } else if (*fmt == '+') {
+        ++fmt;
+        str_align = 1;
+      }
 
       // 是否hex前缀
       if (*fmt == '#') {
@@ -164,9 +184,10 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       }
 
       // 限位数解析
-      // TODO 修复无法识别限位数的bug
+      // 修复无法识别限位数的bug
       const char* start_fmt = fmt;
       while(limit_len>=0 && *fmt>='0' && *fmt<='9') {
+        limit_len = limit_len*10 + *fmt - '0';
         ++fmt;
       }
       if (limit_len < 0) {
@@ -186,7 +207,11 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       {
         char* str = va_arg(ap, char*);
         size_t len = strlen(str);
+        if (str_align)
+            ret += copy_repeat_to_output(&out, ret, max_size, ' ', limit_len-len);
         ret += copy_to_output(&out, ret, max_size, str, len);
+        if (!str_align)
+            ret += copy_repeat_to_output(&out, ret, max_size, ' ', limit_len-len);
         break;
       }
 
@@ -195,7 +220,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         char str[32] = {0};
         int num = va_arg(ap, int);
         size_t len = int_to_string(num, 10, str);
-        if (zero_prefix) add_zero_prefix(str, &len, limit_len);
+        if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
         ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }
@@ -206,7 +231,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         uint32_t num = (uint32_t)va_arg(ap, int);
         size_t len = uint32_to_string(num, 16, str);
         if (hex_prefix) ret += copy_to_output(&out, ret, max_size, "0x", 2);
-        if (zero_prefix) add_zero_prefix(str, &len, limit_len);
+        if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
         ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }
@@ -217,7 +242,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         char str[32] = {0};
         uint32_t num = (uint32_t)va_arg(ap, int*);
         size_t len = uint32_to_string(num, 16, str);
-        if (zero_prefix) add_zero_prefix(str, &len, limit_len);
+        if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
         ret += copy_to_output(&out, ret, max_size, str, len);
         break;
       }

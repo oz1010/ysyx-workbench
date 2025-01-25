@@ -18,7 +18,7 @@
 uint8_t *proc_addr = (uint8_t *)0x83000000;
 #define ELF_HEADER_SIZE 52
 
-static const char *elf_e_type_to_str(Elf_E_Type e_type)
+const char *elf_e_type_to_str(Elf_E_Type e_type)
 {
     const char *str = "UNKNOWN";
     switch (e_type)
@@ -60,7 +60,7 @@ static const char *elf_e_type_to_str(Elf_E_Type e_type)
     return str;
 }
 
-static const char *elf_p_type_to_str(Elf_P_Type p_type)
+const char *elf_p_type_to_str(Elf_P_Type p_type)
 {
     static char numstr[32];
     char *str = nullptr;
@@ -165,7 +165,8 @@ static uintptr_t loader(PCB *pcb, const char *filename)
         ERROR("Not an ELF file - it has the wrong magic bytes at the start");
         return nullptr;
     }
-    // DEBUG("%#12x %% \"%c\"", elf_addr, 'T');
+    // DEBUG("%#12x %% \"%c\" |%16s| |%-16s| |%+16s| |%4s|", elf_addr, 'T', "hello", "hello", "hello", "world");
+    // DEBUG("%06d %#06x", 512, 512);
     // DEBUG("e_machine %d", (elf_header->e_machine)); // EM_RISCV
     DEBUG("");
     DEBUG("Elf file type is %s", elf_e_type_to_str(elf_header->e_type));
