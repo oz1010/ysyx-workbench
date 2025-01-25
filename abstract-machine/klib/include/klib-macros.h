@@ -18,7 +18,6 @@
 #define putnum_debug(num)           \
   do{                               \
     char str[32] = {0};             \
-    int num = limit_len;            \
     int_to_string(num, 10, str);    \
     putstr("--- DEBUG NUM---\n");   \
     putstr( #num ":");              \
