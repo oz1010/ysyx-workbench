@@ -183,7 +183,7 @@ static uintptr_t loader(PCB *pcb, const char *filename)
     for (Elf_Half idx = 0; idx < elf_header->e_phnum; ++idx)
     {
         Elf_Phdr *h = &elf_prog_headers[idx];
-        DEBUG("  %s %#x %#x %#x %#x %#x %#x %#x", elf_p_type_to_str(h->p_type), h->p_offset, h->p_vaddr, h->p_paddr, h->p_filesz, h->p_memsz, h->p_flags, h->p_align);
+        DEBUG("  %14s %#06x %#08x %#08x %#05x %#05x %c%c%c %#x", elf_p_type_to_str(h->p_type), h->p_offset, h->p_vaddr, h->p_paddr, h->p_filesz, h->p_memsz, h->p_flags & PF_R ? 'R' : ' ', h->p_flags & PF_W ? 'W' : ' ', h->p_flags & PF_X ? 'E' : ' ', h->p_align);
     }
 
     TODO();
