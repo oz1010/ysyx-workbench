@@ -4,15 +4,21 @@
 #ifdef __LP64__
 #define Elf_Ehdr Elf64_Ehdr
 #define Elf_Phdr Elf64_Phdr
+#define Elf_Half Elf64_Half
+#define Elf_E_Type Elf64_Half
+#define Elf_P_Type Elf64_Word
 #else
 #define Elf_Ehdr Elf32_Ehdr
 #define Elf_Phdr Elf32_Phdr
+#define Elf_Half Elf32_Half
+#define Elf_E_Type Elf32_Half
+#define Elf_P_Type Elf32_Word
 #endif
 
 uint8_t *proc_addr = (uint8_t *)0x83000000;
 #define ELF_HEADER_SIZE 52
 
-static const char *elf_type_to_str(Elf64_Half e_type)
+static const char *elf_e_type_to_str(Elf_E_Type e_type)
 {
     const char *str = "UNKNOWN";
     switch (e_type)
@@ -54,6 +60,77 @@ static const char *elf_type_to_str(Elf64_Half e_type)
     return str;
 }
 
+static const char *elf_p_type_to_str(Elf_P_Type p_type)
+{
+    static char numstr[32];
+    char *str = nullptr;
+
+    switch (p_type)
+    {
+    case PT_NULL:
+        str = "NULL";
+        break;
+    case PT_LOAD:
+        str = "LOAD";
+        break;
+    case PT_DYNAMIC:
+        str = "DYNAMIC";
+        break;
+    case PT_INTERP:
+        str = "INTERP";
+        break;
+    case PT_NOTE:
+        str = "NOTE";
+        break;
+    case PT_SHLIB:
+        str = "SHLIB";
+        break;
+    case PT_PHDR:
+        str = "PHDR";
+        break;
+    case PT_TLS:
+        str = "TLS";
+        break;
+    case PT_NUM:
+        str = "NUM";
+        break;
+    case PT_LOOS:
+        str = "LOOS";
+        break;
+    case PT_GNU_EH_FRAME:
+        str = "GNU_EH_FRAME";
+        break;
+    case PT_GNU_STACK:
+        str = "GNU_STACK";
+        break;
+    case PT_GNU_RELRO:
+        str = "GNU_RELRO";
+        break;
+    default:
+        break;
+    }
+
+    if (p_type >= PT_LOPROC && p_type <= PT_HIPROC)
+    {
+        if (p_type == 0x70000003)
+        {
+            str = "RISCV_ATTRIBUT";
+        }
+        else
+        {
+            str = "PT_PROC OTHER";
+        }
+    }
+
+    if (!str)
+    {
+        str = numstr;
+        snprintf(str, sizeof(numstr), "%#x", p_type);
+    }
+
+    return str;
+}
+
 /*
 ELF文件加载器
 $ readelf -l build/dummy-riscv32e
@@ -90,7 +167,8 @@ static uintptr_t loader(PCB *pcb, const char *filename)
     }
     // DEBUG("%#12x %% \"%c\"", elf_addr, 'T');
     // DEBUG("e_machine %d", (elf_header->e_machine)); // EM_RISCV
-    DEBUG("Elf file type is %s", elf_type_to_str(elf_header->e_type));
+    DEBUG("");
+    DEBUG("Elf file type is %s", elf_e_type_to_str(elf_header->e_type));
     DEBUG("Entry point %p", elf_header->e_entry);
     DEBUG("There are %d program headers, starting at offset %d", elf_header->e_phnum, elf_header->e_phoff);
 
@@ -98,10 +176,13 @@ static uintptr_t loader(PCB *pcb, const char *filename)
     elf_addr += elf_header->e_phoff;
     Elf_Phdr *elf_prog_headers = (Elf_Phdr *)elf_addr;
     ramdisk_read(elf_prog_headers, ELF_HEADER_SIZE, sizeof(Elf_Phdr) * elf_header->e_phnum);
-    for (Elf32_Half idx = 0; idx < elf_header->e_phnum; ++idx)
+    DEBUG("");
+    DEBUG("Program Headers:");
+    DEBUG("  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align");
+    for (Elf_Half idx = 0; idx < elf_header->e_phnum; ++idx)
     {
         Elf_Phdr *h = &elf_prog_headers[idx];
-        DEBUG("%#x %#x %#x %#x %#x %#x %#x %#x", h->p_type, h->p_offset, h->p_vaddr, h->p_paddr, h->p_filesz, h->p_memsz, h->p_flags, h->p_align);
+        DEBUG("  %s %#x %#x %#x %#x %#x %#x %#x", elf_p_type_to_str(h->p_type), h->p_offset, h->p_vaddr, h->p_paddr, h->p_filesz, h->p_memsz, h->p_flags, h->p_align);
     }
 
     TODO();
