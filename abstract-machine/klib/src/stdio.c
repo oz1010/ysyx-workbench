@@ -20,10 +20,11 @@ void reverse(char* str, int length)
   }
 }
 
-// 无符号32位数字转字符串，返回值为字符串长度
-size_t uint32_to_string(uint32_t num, size_t base, char *str)
+// 无符号64位数字转字符串，返回值为字符串长度
+// TODO 无符号64位数字转换有问题
+size_t uint64_to_string(uint64_t num, size_t base, char *str)
 {
-  uint32_t left = num % base;
+  uint64_t left = num % base;
   size_t idx = 0;
 
   // 基数最大为16
@@ -35,7 +36,7 @@ size_t uint32_to_string(uint32_t num, size_t base, char *str)
   // 若数值超过基数，需要先递归
   if (num >= base)
   {
-    idx = uint32_to_string((num/base), base, str);
+    idx = uint64_to_string((num/base), base, str);
   }
     
   // 向str输出字符
@@ -62,7 +63,26 @@ size_t int_to_string(int num, size_t base, char *str)
     ++str;
   }
 
-  len += uint32_to_string(n, base, str);
+  len += uint64_to_string(n, base, str);
+
+  return len;
+}
+
+// 有符号整数转字符串，返回值为字符串长度
+size_t int64_to_string(int64_t num, size_t base, char *str)
+{
+  size_t len = 0;
+  uint64_t n = num;
+  
+  if (num < 0)
+  {
+    n = -num;
+    str[len] = '-';
+    ++len;
+    ++str;
+  }
+
+  len += uint64_to_string(n, base, str);
 
   return len;
 }
@@ -162,6 +182,12 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       int limit_len = 0;
       int str_align = 0; // 0--left 1--right
 
+      // 是否hex前缀
+      if (*fmt == '#') {
+        ++fmt;
+        hex_prefix = true;
+      }
+
       // 字符串左右对齐
       if (*fmt == '-') {
         ++fmt;
@@ -169,12 +195,6 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       } else if (*fmt == '+') {
         ++fmt;
         str_align = 1;
-      }
-
-      // 是否hex前缀
-      if (*fmt == '#') {
-        ++fmt;
-        hex_prefix = true;
       }
 
       // 是否0补位解析
@@ -216,23 +236,27 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       }
 
       case 'd':
-      {
-        char str[32] = {0};
-        int num = va_arg(ap, int);
-        size_t len = int_to_string(num, 10, str);
-        if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
-        ret += copy_to_output(&out, ret, max_size, str, len);
-        break;
-      }
-      
+      case 'u':
       case 'x':
       {
         char str[32] = {0};
-        uint32_t num = (uint32_t)va_arg(ap, int);
-        size_t len = uint32_to_string(num, 16, str);
-        if (hex_prefix) ret += copy_to_output(&out, ret, max_size, "0x", 2);
-        if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
+        size_t len = 0;
+        if (select_c == 'd') len = int_to_string(va_arg(ap, int), 10, str);
+        else if (select_c == 'u') len = uint64_to_string(va_arg(ap, uint32_t), 10, str);
+        else len = uint64_to_string(va_arg(ap, uint32_t), 16, str);
+
+        if (!zero_prefix && str_align)
+          ret += copy_repeat_to_output(&out, ret, max_size, ' ', limit_len-(hex_prefix?len+2:len));
+
+        if (select_c == 'x') {
+          if (hex_prefix) ret += copy_to_output(&out, ret, max_size, "0x", 2);
+          if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
+        }
         ret += copy_to_output(&out, ret, max_size, str, len);
+
+        if (!zero_prefix && !str_align)
+          ret += copy_repeat_to_output(&out, ret, max_size, ' ', limit_len-(hex_prefix?len+2:len));
+
         break;
       }
 
@@ -241,7 +265,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         ret += copy_to_output(&out, ret, max_size, "0x", 2);
         char str[32] = {0};
         uint32_t num = (uint32_t)va_arg(ap, int*);
-        size_t len = uint32_to_string(num, 16, str);
+        size_t len = uint64_to_string(num, 16, str);
         if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
         ret += copy_to_output(&out, ret, max_size, str, len);
         break;
@@ -257,12 +281,74 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       case '%':
         ret += copy_to_output(&out, ret, max_size, "\%", 1);
         break;
+
+      case 'l':
+      {
+        bool ll_prefix = false;
+        char long_select_c = *fmt++;
+        if (long_select_c == 'l') {
+          long_select_c = *fmt++;
+          ll_prefix = true;
+        }
+
+        switch (long_select_c){
+          case 'd':
+          case 'u':
+          case 'x':
+          {
+            char str[32] = {0};
+            size_t len = 0;
+            if (ll_prefix) {
+              if (select_c == 'd') len = int64_to_string(va_arg(ap, int64_t), 10, str);
+              else if (select_c == 'u') len = uint64_to_string(va_arg(ap, uint64_t), 10, str);
+              else len = uint64_to_string(va_arg(ap, uint64_t), 16, str);
+            } else {
+              if (select_c == 'd') len = int64_to_string(va_arg(ap, long), 10, str);
+              else if (select_c == 'u') len = uint64_to_string(va_arg(ap, unsigned long), 10, str);
+              else len = uint64_to_string(va_arg(ap, unsigned long), 16, str);
+            }
+
+            if (!zero_prefix && str_align)
+              ret += copy_repeat_to_output(&out, ret, max_size, ' ', limit_len-(hex_prefix?len+2:len));
+
+            if (select_c == 'x') {
+              if (hex_prefix) ret += copy_to_output(&out, ret, max_size, "0x", 2);
+              if (zero_prefix) ret += copy_repeat_to_output(&out, ret, max_size, '0', limit_len-len);
+            }
+            ret += copy_to_output(&out, ret, max_size, str, len);
+
+            if (!zero_prefix && !str_align)
+              ret += copy_repeat_to_output(&out, ret, max_size, ' ', limit_len-(hex_prefix?len+2:len));
+
+            break;
+          }
+
+          default:
+          {
+            char str[32] = {0};
+            uint32_t num = (uint32_t)long_select_c;
+            uint64_to_string(num, 16, str);
+            putstr("Found unsupported long char '");
+            putch(select_c);
+            putch(long_select_c);
+            putstr("'(0x");
+            putstr(str);
+            putstr(")\n");
+
+            panic("Not implemented");
+
+            break;
+          }
+
+        }
+        break;
+      }
       
       default:
       {
         char str[32] = {0};
         uint32_t num = (uint32_t)select_c;
-        uint32_to_string(num, 16, str);
+        uint64_to_string(num, 16, str);
         putstr("Found unsupported char '");
         putch(select_c);
         putstr("'(0x");
