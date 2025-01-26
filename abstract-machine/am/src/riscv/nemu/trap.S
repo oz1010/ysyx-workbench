@@ -64,6 +64,9 @@ __am_asm_trap:
   mv a0, sp
   jal __am_irq_handle
 
+  /* sp可能在__am_irq_handle，需要先回复sp，可以完成上下文切换 */
+  mv sp, a0
+
   LOAD t1, OFFSET_STATUS(sp)
   LOAD t2, OFFSET_EPC(sp)
   csrw mstatus, t1
