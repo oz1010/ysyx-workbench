@@ -45,8 +45,17 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   Context *new_ctx = (Context *)(((uint8_t *)kstack.end) - sizeof(Context));
   memset(new_ctx, 0, sizeof(Context));
-  new_ctx->mstatus = 0x1800;
   new_ctx->mepc = (uintptr_t)entry;
+  /**
+   * ref. https://ysyx.oscc.cc/docs/ics-pa/4.1.html#%E5%86%85%E6%A0%B8%E7%BA%BF%E7%A8%8B
+   * 为了保证DiffTest的正确运行, 根据你选择的ISA, 你还需要进行一些额外的设置:
+   *   x86: 把上下文结构中的cs设置为8.
+   *   riscv32: 把上下文结构中的mstatus设置为0x1800.
+   *   riscv64, 把上下文结构中的mstatus设置为0xa00001800.
+  */
+  new_ctx->mstatus = 0x1800;
+  new_ctx->gpr[10] = (uintptr_t)arg; // x10-11(a0-1)函数参数
+  
   Context **cp=(Context **)kstack.start;
   *cp = new_ctx;
   return new_ctx;
