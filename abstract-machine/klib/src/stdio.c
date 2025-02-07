@@ -132,7 +132,7 @@ int snprintf(char *out, size_t n, const char *fmt, ...) {
 }
 
 // 将字符串输出到指定输出口处
-inline size_t copy_to_output(char **out, const size_t ret, const int max_size, const char *str, size_t len)
+static inline size_t copy_to_output(char **out, const size_t ret, const int max_size, const char *str, size_t len)
 {
   len = len > (max_size - ret) ? (max_size - ret) : len;
   memcpy(*out, str, len);
@@ -141,7 +141,7 @@ inline size_t copy_to_output(char **out, const size_t ret, const int max_size, c
 }
 
 // 将字符重复输出到指定输出口处
-inline size_t copy_repeat_to_output(char **out, const size_t ret, const int max_size, const char c, int len)
+static inline size_t copy_repeat_to_output(char **out, const size_t ret, const int max_size, const char c, int len)
 {
   len = len < 0 ? 0 : len;
   len = len > (max_size - ret) ? (max_size - ret) : len;
