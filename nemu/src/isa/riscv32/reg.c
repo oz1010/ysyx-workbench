@@ -23,6 +23,15 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+void isa_cpu_reg_display(const char *title, CPU_state *c) {
+  raw_stdout("%s registers:\n", title);
+  int i;
+  for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {
+    uint32_t reg_val = c->gpr[check_reg_idx(i)];
+    raw_stdout("%-16s0x%-14x%-16d\n", regs[i], reg_val, reg_val);
+  }
+}
+
 void isa_reg_display() {
   int i;
   for(i=0; i<sizeof(regs)/sizeof(regs[0]); ++i) {
