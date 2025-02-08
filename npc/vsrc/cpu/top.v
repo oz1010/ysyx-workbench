@@ -7,6 +7,7 @@ import "DPI-C" function int get_reset_pc();
 import "DPI-C" function int sext(input int x, input int len);
 import "DPI-C" function void write_raw_csr(input int idx, input int data);
 import "DPI-C" function int read_raw_csr(input int idx);
+import "DPI-C" function int dpi_raise_ex(input int thispc, input int inst);
 
 `include "riscv32e_defines.v"
 
@@ -121,10 +122,10 @@ always @(posedge clk or posedge rst) begin
             `INST_AND:          x[rd] <= src1 & src2;
             `INST_FENCE:        invalid_inst(pc, inst);
             `INST_FENCE_I:      invalid_inst(pc, inst);
-            `INST_ECALL:        invalid_inst(pc, inst);
+            `INST_ECALL:        pc <= dpi_raise_ex(pc, inst);
             `INST_EBREAK:       exit_simu(a[0]);
             `INST_CSRRW:        begin x[rd] <= read_raw_csr(imm); write_raw_csr(imm, src1); end
-            `INST_CSRRS:        invalid_inst(pc, inst);
+            `INST_CSRRS:        begin x[rd] <= read_raw_csr(imm); write_raw_csr(imm, (read_raw_csr(imm) | src1)); end
             `INST_CSRRC:        invalid_inst(pc, inst);
             `INST_CSRRWI:       invalid_inst(pc, inst);
             `INST_CSRRSI:       invalid_inst(pc, inst);

@@ -7,6 +7,7 @@
 #include "memory/vaddr.h"
 #include "generated/autoconf.h"
 #include "common/mtrace.h"
+#include "cpu/cpu.h"
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 
@@ -106,13 +107,24 @@ int sext(int x, int len)
 
 void write_raw_csr(int idx, int data)
 {
-    // printf("write csr %d %d\n", idx, data);
-    cpu.csr[idx] = data;
+    unsigned int ri = (unsigned int)idx;
+    if (ri >= CSR_COUNT) return;
+    // printf("write csr %d %d\n", ri, data);
+    // int ri = ri % CSR_COUNT;
+    cpu.csr[ri] = data;
 }
 
 int read_raw_csr(int idx)
 {
-    int ret = cpu.csr[idx];
-    // printf("read csr %d %d\n", idx, ret);
+    unsigned int ri = (unsigned int)idx;
+    if (ri >= CSR_COUNT) return 0;
+
+    int ret = cpu.csr[ri];
+    // printf("read csr %d %d\n", ri, ret);
     return ret;
+}
+
+int dpi_raise_ex(int thispc, int inst)
+{
+    return RAISE_EX(thispc,inst);
 }
