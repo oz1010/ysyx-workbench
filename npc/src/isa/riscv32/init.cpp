@@ -34,6 +34,12 @@ static void restart() {
 
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
+
+  /** https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E8%A7%A6%E5%8F%91%E8%87%AA%E9%99%B7%E6%93%8D%E4%BD%9C 让DiffTest支持异常响应机制
+   * 针对riscv32, 你需要将mstatus初始化为0x1800.
+   * 针对riscv64, 你需要将mstatus初始化为0xa00001800.
+   */
+  cpu.csr[CSR_MSTATUS] = MUXDEF(CONFIG_RV64, 0xa00001800, 0x1800);
 }
 
 void init_isa(int argc, char *argv[]) {
