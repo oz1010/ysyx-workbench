@@ -19,4 +19,7 @@ void __divdf3() {
 void __fixunsdfsi() {
     panic("unimplement __fixunsdfsi");
 }
+void __muldf3() {
+    panic("unimplement __muldf3");
+}
 #endif
