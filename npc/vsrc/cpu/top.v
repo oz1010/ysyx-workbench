@@ -8,6 +8,7 @@ import "DPI-C" function int sext(input int x, input int len);
 import "DPI-C" function void write_raw_csr(input int idx, input int data);
 import "DPI-C" function int read_raw_csr(input int idx);
 import "DPI-C" function int dpi_raise_ex(input int thispc, input int inst);
+import "DPI-C" function int dip_machine_ret();
 
 `include "riscv32e_defines.v"
 
@@ -138,6 +139,7 @@ always @(posedge clk or posedge rst) begin
             `INST_DIVU:         x[rd] <= src1 / src2;
             `INST_REM:          x[rd] <= s_src1 % s_src2;
             `INST_REMU:         x[rd] <= src1 % src2;
+            `INST_MRET:         pc <= dip_machine_ret();
             `INST_INVALID:      invalid_inst(pc, inst);
             default: ;
         endcase

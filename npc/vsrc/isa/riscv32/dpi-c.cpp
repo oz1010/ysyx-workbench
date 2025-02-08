@@ -128,3 +128,8 @@ int dpi_raise_ex(int thispc, int inst)
 {
     return RAISE_EX(thispc,inst);
 }
+
+int dip_machine_ret()
+{
+    return machine_return();
+}
