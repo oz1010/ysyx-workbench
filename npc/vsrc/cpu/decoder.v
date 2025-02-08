@@ -96,7 +96,7 @@ always @(*) begin
         // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_FENCE;
         // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_ECALL;
         32'b0000000_00001_00000_000_00000_11100_11: inst_code = `INST_EBREAK;
-        // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRW;
+        32'bzzzzzzz_zzzzz_zzzzz_001_zzzzz_11100_11: inst_code = `INST_CSRRW;
         // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRS;
         // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRC;
         // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRWI;
