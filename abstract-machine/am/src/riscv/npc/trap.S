@@ -53,7 +53,7 @@ __am_asm_trap:
   STORE t2, OFFSET_EPC(sp)
 
 
-  # TODO 上下文x0保存地址空间，无需恢复 ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%B8%8B%E6%96%87
+  # 上下文已经保存所有寄存器，无需单独恢复a0 ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E4%BF%9D%E5%AD%98%E4%B8%8A%E4%B8%8B%E6%96%87
   li a0, 1
   STORE a0, 0(sp)
 
