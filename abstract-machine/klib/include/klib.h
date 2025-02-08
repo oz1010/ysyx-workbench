@@ -51,6 +51,15 @@ int    vsnprintf (char *str, size_t size, const char *format, va_list ap);
     } while (0)
 #endif
 
+#if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
+// unused function, fix link failed
+void __floatsidf();
+void __subdf3();
+void __fixdfsi();
+void __divdf3();
+void __fixunsdfsi();
+#endif
+
 #ifdef __cplusplus
 }
 #endif
