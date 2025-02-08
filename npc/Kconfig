@@ -213,6 +213,11 @@ config ITRACE_END
   int "How many instruction(s) the tracer skips to end (unit: number of instructions)"
   default -1
 
+config ITRACE_COND
+  depends on ITRACE
+  string "Only trace instructions when the condition is true"
+  default "true"
+
 config MTRACE
   depends on TRACE
   bool "Enable memory tracer"
@@ -258,11 +263,6 @@ if ETRACE
     default n
 
 endif # ETRACE_OPTIONS
-
-config ITRACE_COND
-  depends on ITRACE
-  string "Only trace instructions when the condition is true"
-  default "true"
 
 config WATCHPOINT
   bool "Enable watchpoint scan"
