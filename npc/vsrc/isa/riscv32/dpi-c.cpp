@@ -129,7 +129,7 @@ int dpi_raise_intr(int NO, int epc)
     return RAISE_INTR(NO, epc);
 }
 
-int dpi_machine_ret()
+int dpi_query_intr()
 {
-    return MACHINE_RET();
+    return QUERY_INTR();
 }
