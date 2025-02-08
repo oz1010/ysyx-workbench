@@ -246,6 +246,21 @@ config DTRACE_END_ADDR1
 
 endif # DTRACE_OPTIONS
 
+config ETRACE
+  bool "Enable exception/interrupt tracer"
+  default n
+  help
+    Enable record information of every exception/interrupt.
+    Note that maybe significantly reduce the performance of NEMU.
+
+if ETRACE
+  
+  config ETRACE_STD_OUT
+    bool "Enable information to stdout"
+    default n
+
+endif # ETRACE_OPTIONS
+
 endif # DEBUG_SYSTEM
 
 choice

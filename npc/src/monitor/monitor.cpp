@@ -30,15 +30,15 @@ static void welcome()
 {
     Log("Trace: %s",
         MUXDEF(CONFIG_TRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+    Log("Device Trace: %s",
+        MUXDEF(CONFIG_DTRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+    IFDEF(CONFIG_TRACE, Log("If trace is enabled, a log file will be generated "
+                            "to record the trace. This may lead to a large log file. "
+                            "If it is not necessary, you can disable it in menuconfig"));
     Log("Watchpoint: %s",
         MUXDEF(CONFIG_WATCHPOINT, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
     Log("Breakpoint: %s",
         MUXDEF(CONFIG_BREAKPOINT, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
-    IFDEF(CONFIG_TRACE, Log("If trace is enabled, a log file will be generated "
-                            "to record the trace. This may lead to a large log file. "
-                            "If it is not necessary, you can disable it in menuconfig"));
-    Log("Device Trace: %s",
-        MUXDEF(CONFIG_DTRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
     Log("Debug Module: %s",
         MUXDEF(CONFIG_DEBUG_MODULE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
     Log("Build time: %s, %s", __TIME__, __DATE__);
