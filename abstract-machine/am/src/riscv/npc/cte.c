@@ -7,10 +7,15 @@ static Context* (*user_handler)(Event, Context*) = NULL;
 Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
-    uint32_t code = (c->mcause & 0x7fffffff)-16;
-    switch (code) {
+    uint32_t exception = c->mcause & 0x7fffffff;
+    uint32_t event = EVENT_NULL;
+
+    // GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
+    if (exception==3) event = c->GPR1;
+
+    switch (event) {
       case EVENT_YIELD: 
-        ev.event = code;
+        ev.event = event;
         ev.msg = "yield";
         break;
 
@@ -45,14 +50,14 @@ void yield() {
    * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
    *   Table 3.6: Machine cause register (mcause) values after trap.
    *   1 ≥16 Designated for platform use
-   * 1<<31 | (16+n)<<0
+   * GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
    *   n=1 -- yield
   */
-  uint32_t yield_code = 1<<31 | (16+1)<<0;
+  uint32_t event = EVENT_YIELD;
 #ifdef __riscv_e
-  asm volatile("mv a5, %0; ecall" : : "r"(yield_code) : "a5");
+  asm volatile("mv a5, %0; ecall" : : "r"(event) : "a5");
 #else
-  asm volatile("mv a7, %0; ecall" : : "r"(yield_code) : "a7");
+  asm volatile("mv a7, %0; ecall" : : "r"(event) : "a7");
 #endif
 }
 
