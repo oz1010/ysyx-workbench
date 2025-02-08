@@ -83,11 +83,11 @@ static int cmd_info(char *args)
         else if (ISDEF(CONFIG_BREAKPOINT) && strcmp(args, "b") == 0)
             show_point(POINT_ALL);
         else
-            printf("Error format: info <r%s%s>\n", str_wp, str_bp);
+            raw_stdout("Error format: info <r%s%s>\n", str_wp, str_bp);
     }
     else
     {
-        printf("Miss args: info <r%s%s>\n", str_wp, str_bp);
+        raw_stdout("Miss args: info <r%s%s>\n", str_wp, str_bp);
     }
     return 0;
 }
@@ -110,7 +110,7 @@ static int cmd_x(char *args)
 
     if (argc < 1)
     {
-        printf("Miss args: x <ADDR> [LEN]\n");
+        raw_stdout("Miss args: x <ADDR> [LEN]\n");
         return 0;
     }
 
@@ -128,18 +128,18 @@ static int cmd_x(char *args)
         uint32_t i = 0, j = 0;
         for (i = 0; i < len;)
         {
-            printf("0x%8x:", addr);
+            raw_stdout("0x%8x:", addr);
             for (j = 0; j < line_len && i < len; ++i, ++j)
             {
                 word_t value = vaddr_ifetch(addr, 1) & 0xFF;
-                printf("%s%02x", (j != 0 && j % 4 == 0 ? "   " : " "), value);
+                raw_stdout("%s%02x", (j != 0 && j % 4 == 0 ? "   " : " "), value);
                 addr += 1;
             }
             if (j % line_len == 0)
-                printf("\n");
+                raw_stdout("\n");
         }
         if (j % line_len != 0)
-            printf("\n");
+            raw_stdout("\n");
     }
 #if DEVICE
     else if (addr >= CONFIG_RTC_MMIO && addr <= CONFIG_RTC_MMIO)
@@ -147,12 +147,12 @@ static int cmd_x(char *args)
         // read from rtc
         uint64_t low = mmio_read(addr, 4);
         uint64_t high = mmio_read(addr + 4, 4);
-        printf("RTC value(us): %lu\n", (high << 32 | low));
+        raw_stdout("RTC value(us): %lu\n", (high << 32 | low));
     }
 #endif
     else
     {
-        printf("Unknown addr %#x\n", addr);
+        raw_stdout("Unknown addr %#x\n", addr);
     }
 
     return 0;
@@ -163,17 +163,17 @@ static int cmd_p(char *args)
     bool success = true;
     if (!args)
     {
-        printf("miss args\n");
+        raw_stdout("miss args\n");
         return 0;
     }
     word_t val = expr(args, &success);
     if (success)
     {
-        printf("val = %u\n", val);
-        printf("hex = %#x\n", val);
+        raw_stdout("val = %u\n", val);
+        raw_stdout("hex = %#x\n", val);
     }
     else
-        printf("expression is error\n");
+        raw_stdout("expression is error\n");
     return 0;
 }
 #ifdef CONFIG_WATCHPOINT
@@ -181,7 +181,7 @@ static int cmd_w(char *args)
 {
     if (!args)
     {
-        printf("miss args\n");
+        raw_stdout("miss args\n");
         return 0;
     }
 
@@ -194,7 +194,7 @@ static int cmd_b(char *args)
 {
     if (!args)
     {
-        printf("miss address\n");
+        raw_stdout("miss address\n");
         return 0;
     }
 
@@ -211,7 +211,7 @@ static int cmd_d(char *args)
         uint64_t input_id = strtoull(args, NULL, 10);
         if (input_id == 0)
         {
-            printf("format: d [point id]\n");
+            raw_stdout("format: d [point id]\n");
             return 0;
         }
         id = input_id;
@@ -220,12 +220,12 @@ static int cmd_d(char *args)
     if (id == 0)
     {
         char answer[32] = "";
-        printf("Delete all of breakpoints/watchpoints? <y/n>: ");
+        raw_stdout("Delete all of breakpoints/watchpoints? <y/n>: ");
         int ret = scanf("%31s", answer);
         (void)ret;
         if (strcmp(answer, "y") != 0)
         {
-            printf("Canceled\n");
+            raw_stdout("Canceled\n");
             return 0;
         }
     }
@@ -248,7 +248,7 @@ static int cmd_test(char *args)
 
     if (!args)
     {
-        printf("miss test case, support: expr\n");
+        raw_stdout("miss test case, support: expr\n");
         return 0;
     }
 
@@ -256,7 +256,7 @@ static int cmd_test(char *args)
     char *test_case = strtok(args, " ");
     if (!test_case)
     {
-        printf("miss input test case\n");
+        raw_stdout("miss input test case\n");
         return 0;
     }
     args = test_case + strlen(test_case) + 1;
@@ -289,12 +289,12 @@ static int cmd_test(char *args)
             strcat(&file_path[strlen(file_path)], "/tools/gen-expr/build/input");
         }
 
-        printf("load test expr file|%s\n", file_path);
+        raw_stdout("load test expr file|%s\n", file_path);
 
         FILE *fd = fopen(file_path, "rb");
         if (!fd)
         {
-            printf("open file error, file|%s err|%s\n", file_path, strerror(errno));
+            raw_stdout("open file error, file|%s err|%s\n", file_path, strerror(errno));
             return 0;
         }
 
@@ -308,7 +308,7 @@ static int cmd_test(char *args)
             uint32_t expr_ret = expr(buf, &success);
             if (!success || expr_ret != result)
             {
-                printf("case-%u failed: %u %u %lu\n", cnt, result, expr_ret, strlen(buf));
+                raw_stdout("case-%u failed: %u %u %lu\n", cnt, result, expr_ret, strlen(buf));
                 ++err_cnt;
             }
             else
@@ -317,11 +317,11 @@ static int cmd_test(char *args)
             }
         }
 
-        printf("test expr case total|%u error|%u success|%u\n", cnt, err_cnt, suc_cnt);
+        raw_stdout("test expr case total|%u error|%u success|%u\n", cnt, err_cnt, suc_cnt);
     }
     else
     {
-        printf("unknown test case|%s, support: expr.\n", test_case);
+        raw_stdout("unknown test case|%s, support: expr.\n", test_case);
     }
 
     return 0;
@@ -368,7 +368,7 @@ static int cmd_help(char *args)
         /* no argument given */
         for (i = 0; i < NR_CMD; i++)
         {
-            printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+            raw_stdout("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
         }
     }
     else
@@ -377,11 +377,11 @@ static int cmd_help(char *args)
         {
             if (strcmp(arg, cmd_table[i].name) == 0)
             {
-                printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+                raw_stdout("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
                 return 0;
             }
         }
-        printf("Unknown command '%s'\n", arg);
+        raw_stdout("Unknown command '%s'\n", arg);
     }
     return 0;
 }
@@ -454,7 +454,7 @@ void sdb_mainloop()
 
         if (i == NR_CMD)
         {
-            printf("Unknown command '%s'\n", cmd);
+            raw_stdout("Unknown command '%s'\n", cmd);
         }
     }
 #endif

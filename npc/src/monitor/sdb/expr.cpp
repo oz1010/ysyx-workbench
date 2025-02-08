@@ -22,13 +22,6 @@
 #include <macro.h>
 
 #define MIN(_a, _b) ((_a) < (_b) ? (_a) : (_b))
-#if 0
-#define TRACE(VAL)                                                                \
-    printf("Enter %s, token|%d %s val|%d success|%d\n", __FUNCTION__, *token_idx, \
-           *token_idx < nr_token ? tokens[*token_idx].str : "NONE", VAL, *success)
-#else
-#define TRACE(VAL)
-#endif
 #define TOKEN_EXCEPT()                                                        \
     do                                                                        \
     {                                                                         \
@@ -220,7 +213,7 @@ static bool make_token(char *e)
 
         if (i == NR_REGEX)
         {
-            printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
+            raw_stdout("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
             return false;
         }
     }

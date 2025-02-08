@@ -185,16 +185,12 @@ config LOG_FILE
   bool "Enable print log to file"
   default y
 
-config LOG_FILE_PATH
-  depends on LOG_FILE
-  string "File path of printing log"
-  default "build/debug_log.txt"
-
 endmenu # Tracer Options 
 
 if DEBUG_SYSTEM
 
 config TRACE
+  depends on LOG_STDOUT || LOG_FILE
   bool "Enable tracer"
   default y
 
