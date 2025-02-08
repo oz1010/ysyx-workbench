@@ -42,6 +42,9 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
   return true;
 }
 
+/**
+ * 在堆栈顶部构建内核线程堆栈上下文
+*/
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   Context *new_ctx = (Context *)(((uint8_t *)kstack.end) - sizeof(Context));
   memset(new_ctx, 0, sizeof(Context));
@@ -55,9 +58,7 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   */
   new_ctx->mstatus = 0x1800;
   new_ctx->gpr[10] = (uintptr_t)arg; // x10-11(a0-1)函数参数
-  
-  Context **cp=(Context **)kstack.start;
-  *cp = new_ctx;
+
   return new_ctx;
 }
 
