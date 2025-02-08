@@ -4,7 +4,6 @@
 #include "memory/paddr.h"
 
 IRingBuf_t iringbuf;
-FILE *trace_fd = NULL;
 
 #ifndef assert
 #include <assert.h>
@@ -15,10 +14,10 @@ int fmt_instruction(IRingBufItem_t *item, vaddr_t addr);
 
 #ifdef CONFIG_ITRACE
 
-void iringbuf_init()
+void itrace_init()
 {
     memset(&iringbuf, 0, sizeof(iringbuf));
-    for (int i = 0; i < IRINGBUF_ITEM_MAX; ++i)
+    for (int i = 0; i < ITRACE_ITEM_MAX; ++i)
     {
         IRingBufItem_t *item = (IRingBufItem_t *)malloc(sizeof(IRingBufItem_t));
         assert(item && "No enough memory\n");
@@ -38,7 +37,7 @@ void iringbuf_init()
     }
 }
 
-void iringbuf_update(vaddr_t addr, const char *str, bool err)
+void itrace_update(vaddr_t addr, const char *str, bool err)
 {
     iringbuf.header = iringbuf.header->next;
     IRingBufItem_t *item = iringbuf.header;
@@ -48,7 +47,7 @@ void iringbuf_update(vaddr_t addr, const char *str, bool err)
         iringbuf.erritem = item;
 }
 
-void iringbuf_show()
+void itrace_show()
 {
     IRingBufItem_t *item = iringbuf.header;
     IRingBufItem_t *start = item->next;
@@ -56,17 +55,17 @@ void iringbuf_show()
 
     if (!item->addr)
     {
-        printf("No code execute.\n");
+        raw_all("No code execute.\n");
         return;
     }
 
     // 将近期运行过的指令都输出
-    printf(ANSI_FMT("Instruction trace:\n", ANSI_FG_GREEN));
+    raw_all(ANSI_FMT("Instruction trace:\n", ANSI_FG_GREEN));
     item = start;
     do
     {
-        printf("%s", (item == iringbuf.header ? ANSI_FMT("  --> ", ANSI_FG_RED) : "      "));
-        printf("%s\n", item->buf);
+        raw_all("%s", (item == iringbuf.header ? ANSI_FMT("  --> ", ANSI_FG_RED) : "      "));
+        raw_all("%s\n", item->buf);
         item = item->next;
     } while (item != end);
 
@@ -74,15 +73,15 @@ void iringbuf_show()
     IRingBufItem_t next_item;
     item = &next_item;
     vaddr_t addr = iringbuf.header->addr + 4;
-    if (IRINGBUF_NEXT_INST_SHOW)
-        printf("Instruction next:\n");
-    for (int i = 0; i < IRINGBUF_NEXT_INST_SHOW; ++i)
+    if (ITRACE_NEXT_INST_SHOW)
+        raw_all("Instruction next:\n");
+    for (int i = 0; i < ITRACE_NEXT_INST_SHOW; ++i)
     {
         if (fmt_instruction(item, addr) != 0)
             break;
         addr += 4;
-        printf("%s", (item == iringbuf.header ? ANSI_FMT("  --> ", ANSI_FG_RED) : "      "));
-        printf("%s\n", item->buf);
+        raw_all("%s", (item == iringbuf.header ? ANSI_FMT("  --> ", ANSI_FG_RED) : "      "));
+        raw_all("%s\n", item->buf);
     }
 }
 
@@ -121,11 +120,11 @@ int fmt_instruction(IRingBufItem_t *item, vaddr_t addr)
 
 #ifndef CONFIG_ISA_loongarch32r
     void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-    disassemble(p, item->buf + sizeof(item->buf) - p,
-                MUXDEF(CONFIG_ISA_x86, s->snpc, addr), inst, ilen);
+    disassemble(p, item->buf + sizeof(item->buf) - p, MUXDEF(CONFIG_ISA_x86, s->snpc, addr), inst,
+                ilen);
     return 0;
 #else
-    p[0] = '\0'; // the upstream llvm does not support loongarch32r
+    p[0] = '\0';  // the upstream llvm does not support loongarch32r
     return 0;
 #endif
 #endif
@@ -136,22 +135,23 @@ int fmt_instruction(IRingBufItem_t *item, vaddr_t addr)
 
 #ifdef CONFIG_DTRACE
 
-static const char trace_file_path[] = "build/trace.txt";
 static dtrace_limit_t dtrace_limits[8] = {0};
 static int dtrace_limits_cnt = 0;
+FILE *trace_fd = NULL;
 
 void dtrace_init()
 {
-    trace_fd = fopen(trace_file_path, "w+");
-    Assert(trace_fd, "Open file %s failed", trace_file_path);
-    Log("Device trace log is written to %s", trace_file_path);
+    extern const char *log_file_path;
+    trace_fd = log_fp;
+    Assert(trace_fd, "Open file %s failed", log_file_path);
     DTRACE_LOG("Start record device trace.");
 
 #if CONFIG_DTRACE_OPTIONS
     dtrace_limit_t *plimit = &dtrace_limits[dtrace_limits_cnt++];
     plimit->start_addr = CONFIG_DTRACE_START_ADDR1;
     plimit->end_addr = CONFIG_DTRACE_END_ADDR1;
-    Log("Device trace limit %d [%#x, %#x].", dtrace_limits_cnt, plimit->start_addr, plimit->end_addr);
+    Log("Device trace limit %d [%#x, %#x].", dtrace_limits_cnt, plimit->start_addr,
+        plimit->end_addr);
 #endif
 }
 
@@ -178,6 +178,6 @@ bool dtrace_limit_check(const char *name, paddr_t addr, int len)
 
 void trace_init(void)
 {
-    IFDEF(CONFIG_ITRACE, iringbuf_init());
+    IFDEF(CONFIG_ITRACE, itrace_init());
     IFDEF(CONFIG_DTRACE, dtrace_init());
 }
