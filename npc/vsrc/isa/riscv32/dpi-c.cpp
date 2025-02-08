@@ -124,12 +124,12 @@ int read_raw_csr(int idx)
     return ret;
 }
 
-int dpi_raise_ex(int thispc, int inst)
+int dpi_raise_intr(int NO, int epc)
 {
-    return RAISE_EX(thispc,inst);
+    return RAISE_INTR(NO, epc);
 }
 
-int dip_machine_ret()
+int dpi_machine_ret()
 {
-    return machine_return();
+    return MACHINE_RET();
 }

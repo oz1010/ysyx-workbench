@@ -22,12 +22,12 @@ void cpu_exec(uint64_t n);
 
 void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 void invalid_inst(vaddr_t thispc);
-vaddr_t raise_exception(vaddr_t thispc, word_t inst);
+word_t isa_raise_intr(word_t NO, vaddr_t epc);
 vaddr_t machine_return();
 
 #define NPCTRAP(thispc, code) set_npc_state(NPC_END, thispc, code)
 #define INV(thispc) invalid_inst(thispc)
-#define RAISE_EX(thispc,instruction) raise_exception(thispc, instruction)
+#define RAISE_INTR(NO, epc) isa_raise_intr(NO, epc)
 #define MACHINE_RET() machine_return()
 
 #endif
