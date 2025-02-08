@@ -17,6 +17,7 @@ Context* __am_irq_handle(Context *c) {
       case EVENT_YIELD: 
         ev.event = event;
         ev.msg = "yield";
+        c->mepc += 4; // mepc保存的是当前地址，需要再一次加4才能继续运行。ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E6%81%A2%E5%A4%8D%E4%B8%8A%E4%B8%8B%E6%96%87
         break;
 
       default: ev.event = EVENT_ERROR; break;
