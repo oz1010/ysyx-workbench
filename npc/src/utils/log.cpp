@@ -28,8 +28,4 @@ void init_log(const char *log_file) {
   Log("Log is written to %s", log_file ? log_file : "stdout");
 }
 
-bool log_enable() {
-  return MUXDEF(CONFIG_TRACE, (npc_ctx.nr_guest_inst >= CONFIG_TRACE_START) &&
-         (npc_ctx.nr_guest_inst <= CONFIG_TRACE_END), false);
-}
 #endif
