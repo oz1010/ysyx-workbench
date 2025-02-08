@@ -58,6 +58,7 @@ void __subdf3();
 void __fixdfsi();
 void __divdf3();
 void __fixunsdfsi();
+void __muldf3();
 #endif
 
 #ifdef __cplusplus
