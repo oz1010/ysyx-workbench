@@ -103,3 +103,16 @@ int sext(int x, int len)
 
     return ret;
 }
+
+void write_raw_csr(int idx, int data)
+{
+    // printf("write csr %d %d\n", idx, data);
+    cpu.csr[idx] = data;
+}
+
+int read_raw_csr(int idx)
+{
+    int ret = cpu.csr[idx];
+    // printf("read csr %d %d\n", idx, ret);
+    return ret;
+}
