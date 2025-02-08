@@ -60,13 +60,13 @@ vaddr_t raise_exception(vaddr_t thispc, word_t inst) {
    * 从mtvec寄存器中取出异常入口地址
    * 跳转到异常入口地址
   */
-  cpu.csr[CSR_MEPC] = thispc + 4;
+  cpu.csr[CSR_MEPC] = thispc;
   /**
    * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
    *   Table 3.6: Machine cause register (mcause) values after trap.
    *   1 ≥16 Designated for platform use
   */
-  cpu.csr[CSR_MCAUSE] = 1<<31 | 3<<0; // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Machine software interrupt (1<<31 | 3<<0)
+  cpu.csr[CSR_MCAUSE] = 0<<31 | 11<<0; // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
   return cpu.csr[CSR_MTVEC];
 }
 
