@@ -29,7 +29,9 @@ extern unsigned char isa_logo[];
 void init_isa(int argc, char *argv[]);
 
 // reg
+#define ISA_CPU_REG_DISPLAY(c) isa_cpu_reg_display(#c, c)
 extern CPU_state cpu;
+void isa_cpu_reg_display(const char *title, CPU_state *c);
 void isa_reg_display();
 const char* isa_reg_name(size_t idx);
 word_t isa_reg_str2val(const char *name, bool *success);
