@@ -12,6 +12,7 @@ void init_monitor(int argc, char* argv[]);
 void am_init_monitor();
 void engine_start();
 int is_exit_status_bad();
+void exit_vsimu();
 
 word_t * rv_get_gpr(CPU_state *c, size_t idx)
 {
@@ -66,6 +67,9 @@ int main(int argc, char** argv)
 
     /* Start engine. */
     engine_start();
+
+    /* Exit vsimu */
+    exit_vsimu();
 
     return is_exit_status_bad();
 }

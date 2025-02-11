@@ -24,6 +24,11 @@ VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic
 
+# TRACE=1 make run -j , code define VM_TRACE_VCD
+ifdef TRACE
+VERILATOR_CFLAGS += --trace
+endif
+
 # 多个目标会触发多次构建规则，这里选择其中一个即可
 VOBJS = $(VGEN_DIR)/libV$(VMOD_NAME).a
 # VOBJS += $(VGEN_DIR)/V$(VMOD_NAME)_ALL.a $(VGEN_DIR)/libV$(VMOD_NAME).a $(VGEN_DIR)/libverilated.a

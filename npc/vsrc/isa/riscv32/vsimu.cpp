@@ -123,3 +123,13 @@ void init_vsimu(int argc, char *argv[])
 
     cpu.pc = top->rootp->top__DOT__pc;
 }
+
+void exit_vsimu()
+{
+    // Final model cleanup
+    top->final();
+
+    tfp.reset();
+    top.reset();
+	contextp.reset();
+}
