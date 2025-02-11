@@ -1,3 +1,5 @@
+`include "riscv32e_defines.v"
+
 module new_top (
     input wire clk,
     input wire rst
@@ -33,7 +35,7 @@ wire wb_ready;
 
 /* 取指if */
 inst_fetch #(
-    .INST_WIDTH(32)
+    .INST_WIDTH(`RISCV_INST_WIDTH)
 ) ifu(
     .clk(clk),
     .rst(rst),
