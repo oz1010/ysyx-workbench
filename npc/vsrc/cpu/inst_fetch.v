@@ -3,10 +3,11 @@ module inst_fetch #(
 ) (
     input wire clk,
     input wire rst,
+
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] inst,
 
-    input wire ready,
+    input wire next_ready,
     output wire valid
 );
 

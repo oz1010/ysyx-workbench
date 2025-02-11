@@ -41,7 +41,7 @@ inst_fetch #(
     .rst(rst),
     .pc(pc),
     .inst(if_inst),
-    .ready(id_ready),
+    .next_ready(id_ready),
     .valid(if_valid)
 );
 
