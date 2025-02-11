@@ -25,7 +25,6 @@ wire [31:0] a[7:0];
 assign a[7:0] = x[17:10];
 
 /* 模块通信消息 */
-wire [31:0] if_inst;
 wire if_valid;
 wire id_ready;
 wire id_valid;
@@ -34,6 +33,7 @@ wire ex_valid;
 wire wb_ready;
 
 /* 取指if */
+wire [`RISCV_INST_WIDTH-1:0] if_inst;
 inst_fetch #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) ifu(
@@ -46,11 +46,34 @@ inst_fetch #(
 );
 
 /* 译码id */
+wire [4:0] id_rd;
+wire [4:0] id_rs1;
+wire [4:0] id_rs2;
+wire [`RISCV_INST_WIDTH-1:0] id_imm;
+wire [15:0] id_inst_code;
+inst_decode #(
+    .INST_WIDTH(`RISCV_INST_WIDTH)
+) idu(
+    .clk(clk),
+    .rst(rst),
+
+    .inst(if_inst),
+    .rd(id_rd),
+    .rs1(id_rs1),
+    .rs2(id_rs2),
+    .imm(id_imm),
+    .icode(id_inst_code),
+
+    .next_ready(ex_ready),
+    .prev_valid(if_valid),
+    .ready(id_ready),
+    .valid(id_valid)
+);
 
 /* 执行ex */
 
 /* 回写wb */
-assign ex_valid = if_valid;
+assign ex_valid = id_valid;
 always @(posedge clk or posedge rst)begin
     if (rst) begin
         pc <= get_reset_pc();
