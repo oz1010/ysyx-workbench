@@ -17,6 +17,11 @@ module top (
     input rst
 );
 
+new_top new_cpu(
+    .clk(clk),
+    .rst(rst)
+);
+
 /* 寄存器组 */
 // 通用寄存器
 reg [31:0] x[31:0];
