@@ -21,12 +21,14 @@ static void halt(int code)
 
 void _start()
 {
-    asm volatile(
-        "addi a0, x0, 0x50;"
-        "addi a1, x0, 0x51;"
-        "addi a3, x0, 0x52;"
-        "addi a4, x0, 0x53;"
-    );
+    for (int i=0; i<10; ++i) {
+        asm volatile(
+            "addi a0, x0, 0x50;"
+            "addi a1, x0, 0x51;"
+            "addi a3, x0, 0x52;"
+            "addi a4, x0, 0x53;"
+        );
+    }
 
     putch('A');
     halt(0);
