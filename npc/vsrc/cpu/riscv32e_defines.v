@@ -70,4 +70,5 @@
 
 `define SCOM_SEND           2'b00
 `define SCOM_RECV           2'b01
+`define SCOM_INVALID        2'b10
 `define SCOM_RESET          2'b11
