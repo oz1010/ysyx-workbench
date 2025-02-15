@@ -11,10 +11,10 @@ module inst_decode #(
     output wire [INST_WIDTH-1:0] imm,
     output wire [15:0] icode,
 
-    input wire next_ready,
+    output wire prev_ready,
     input wire prev_valid,
-    output wire ready,
-    output wire valid
+    input wire next_ready,
+    output wire next_valid
 );
 
 reg [4:0] r_rd;
@@ -22,20 +22,28 @@ reg [4:0] r_rs1;
 reg [4:0] r_rs2;
 reg [INST_WIDTH-1:0] r_imm;
 reg [15:0] inst_code;
-reg r_ready;
-reg r_valid;
+wire [1:0] w_prev_state, w_next_state;
+
+scom m_scom_id(
+    .clk(clk),
+    .rst(rst),
+    .prev_ready(prev_ready),
+    .prev_valid(prev_valid),
+    .next_ready(next_ready),
+    .next_valid(next_valid),
+    .prev_state(w_prev_state),
+    .next_state(w_next_state)
+);
 
 // assign rd = r_rd;
 // assign rs1 = r_rs1;
 // assign rs2 = r_rs2;
 // assign imm = r_imm;
 // assign inst_code = r_inst_code;
-assign ready = r_ready;
-assign valid = r_valid;
+// assign ready = r_ready;
+// assign valid = r_valid;
 
-// assign inst_code = r_inst_code;
 assign icode = inst_code;
-assign valid = r_valid;
 
 // 定义内部信号
 wire [6:0] opcode;
@@ -163,18 +171,12 @@ always @(posedge clk or posedge rst) begin
         r_rs1 <= 0;
         r_rs2 <= 0;
         r_imm <= 0;
-        // inst_code <= 0;
-        r_ready <= 0;
-        r_valid <= 0;
     end else begin
-        if (prev_valid) begin
+        if (w_prev_state == `SCOM_FOUND) begin
             r_rd <= rd;
             r_rs1 <= rs1;
             r_rs2 <= rs2;
             r_imm <= imm;
-            // inst_code <= inst_code;
-            r_valid <= 1;
-            r_ready <= 1;
         end
     end
 end

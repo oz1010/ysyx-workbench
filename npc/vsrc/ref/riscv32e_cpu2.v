@@ -1,4 +1,4 @@
-module riscv32e_cpu (
+module riscv32e_cpu2 (
     input wire clk,
     input wire rst,
     output wire [31:0] instr_addr,

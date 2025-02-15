@@ -8,22 +8,28 @@ module inst_fetch #(
     output wire [INST_WIDTH-1:0] inst,
 
     input wire next_ready,
-    output wire valid
+    output wire next_valid
 );
 
 reg [INST_WIDTH-1:0] r_inst;
-reg r_valid;
+wire [1:0] w_if_state;
 
 assign inst = r_inst;
-assign valid = r_valid;
+
+scom_send m_scom_if(
+    .clk(clk),
+    .rst(rst),
+    .enable(1),
+    .next_ready(next_ready),
+    .next_valid(next_valid),
+    .state(w_if_state)
+);
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_inst <= 0;
-        r_valid <= 0;
     end else begin
-        r_inst <= fetch_inst(pc);
-        r_valid <= 1;
+        if (w_if_state == `SCOM_FOUND) r_inst <= fetch_inst(pc);
     end
 end
 
