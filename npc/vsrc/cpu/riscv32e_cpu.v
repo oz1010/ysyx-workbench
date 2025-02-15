@@ -6,7 +6,7 @@ module riscv32e_cpu (
 
 /* 寄存器组 */
 // 通用寄存器
-reg [`RISCV_INST_WIDTH-1:0] x[`RISCV_INST_WIDTH-1:0];
+reg [`RISCV_INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
 // 程序寄存器
 reg [`RISCV_INST_WIDTH-1:0] pc;
 wire [`RISCV_INST_WIDTH-1:0] snpc = pc + 4;
@@ -33,7 +33,6 @@ wire wb_ready;
 assign valid = wb_ready;
 
 /* 取指if */
-// wire [`RISCV_INST_WIDTH-1:0] if_inst;
 inst_fetch #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) ifu(
@@ -72,19 +71,33 @@ inst_decode #(
 
 /* 执行ex */
 wire [1:0] w_ex_prev_state, w_ex_next_state;
-scom m_scom_ex(
+wire [`RISCV_INST_WIDTH-1:0] ex_result, ex_dnpc;
+wire [7:0] ex_mem_result_width;
+execute #(
+    .INST_WIDTH(`RISCV_INST_WIDTH)
+) exu(
     .clk(clk),
     .rst(rst),
+    .rs1(id_rs1),
+    .rs2(id_rs2),
+    .imm(id_imm),
+    .inst_code(id_inst_code),
+    .inst(inst),
+    .pc(pc),
+    .dnpc(ex_dnpc),
+    .x(x),
+    .result(ex_result),
+    .mem_result_width(ex_mem_result_width),
     .prev_ready(ex_ready),
     .prev_valid(id_valid),
     .next_ready(wb_ready),
-    .next_valid(ex_valid),
-    .prev_state(w_ex_prev_state),
-    .next_state(w_ex_next_state)
+    .next_valid(ex_valid)
 );
 
 /* 回写wb */
 wire [1:0] w_wb_prev_state;
+wire [`RISCV_INST_WIDTH-1:0] w_mem_result_width = {{`RISCV_INST_WIDTH-8{1'b0}}, ex_mem_result_width};
+wire [`RISCV_INST_WIDTH-1:0] src1 = x[id_rs1];
 scom_recv m_scom_wb(
     .clk(clk),
     .rst(rst),
@@ -93,20 +106,40 @@ scom_recv m_scom_wb(
     .prev_valid(ex_valid),
     .state(w_wb_prev_state)
 );
-always @(posedge clk or posedge rst)begin
-    if (rst) begin
-        pc <= get_reset_pc();
-    end else begin
+always @(posedge clk or posedge rst) begin
+    if (!rst) begin
         if (w_wb_prev_state == `SCOM_FOUND) begin
-            // 默认更新程序寄存器
-            pc <= snpc;
-            
+            pc <= ex_dnpc;
+            if (w_mem_result_width > 0) begin
+                write_raw_mem(src1 + id_imm, w_mem_result_width, ex_result);
+            end else begin
+                x[id_rd] <= ex_result;
+            end
+
             // 确保 x0 始终为零
             x[0] <= 0;
-        end else begin
-            pc <= pc;
         end
     end
 end
+
+// write_back #(
+//     .INST_WIDTH(`RISCV_INST_WIDTH)
+// ) wbu(
+//     .clk(clk),
+//     .rst(rst),
+//     .rd(id_rd),
+//     .rs1(id_rs1),
+//     .rs2(id_rs2),
+//     .imm(id_imm),
+//     .inst_code(id_inst_code),
+//     .src1(x[id_rs1]),
+//     .x(x),
+//     .result(ex_result),
+//     .mem_result_width(ex_mem_result_width),
+//     .dnpc(ex_dnpc),
+//     .pc(pc),
+//     .prev_ready(wb_ready),
+//     .prev_valid(ex_valid)
+// );
 
 endmodule

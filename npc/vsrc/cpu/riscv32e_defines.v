@@ -1,4 +1,5 @@
 `define RISCV_INST_WIDTH    32
+`define RISCV_CSR_COUNT     32
 
 `define TYPE_R              3'd0
 `define TYPE_I              3'd1
