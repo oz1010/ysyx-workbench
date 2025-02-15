@@ -19,7 +19,7 @@ assign inst = r_inst;
 scom_send m_scom_if(
     .clk(clk),
     .rst(rst),
-    .enable(next_valid),
+    .enable(1),
     .next_ready(next_ready),
     .next_valid(next_valid),
     .state(w_if_state)
