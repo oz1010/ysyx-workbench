@@ -9,27 +9,26 @@ module scom (
     input wire next_ready,
     output wire next_valid,
 
-    output wire [1:0] state
+    output wire [1:0] prev_state,
+    output wire [1:0] next_state
 );
-
-wire [1:0] w_prev_state;
 
 scom_recv m_scom_recv(
     .clk(clk),
     .rst(rst),
-    .recv_enable(prev_valid),
-    .recv_ready(prev_ready),
-    .send_valid(prev_valid),
-    .recv_state(w_prev_state)
+    .enable(prev_valid),
+    .prev_ready(prev_ready),
+    .prev_valid(prev_valid),
+    .state(prev_state)
 );
 
 scom_send m_scom_send(
     .clk(clk),
     .rst(rst),
-    .send_enable(prev_ready),
-    .recv_ready(next_ready),
-    .send_valid(next_valid),
-    .send_state(state)
+    .enable(prev_state == `SCOM_FOUND),
+    .next_ready(next_ready),
+    .next_valid(next_valid),
+    .state(next_state)
 );
 
 endmodule
@@ -56,8 +55,8 @@ enable==0 reset
 wire [1:0] w_data = {ready,valid};
 assign state = 
     (enable==0) ? `SCOM_INVALID :
-    (w_data==2'b00) ? `SCOM_SEND :
-    (w_data==2'b01) ? `SCOM_RECV :
+    (w_data==2'b00) ? `SCOM_OTHER :
+    (w_data==2'b01) ? `SCOM_FOUND :
     (w_data==2'b10) ? `SCOM_INVALID :
     `SCOM_RESET;
 
@@ -67,32 +66,32 @@ module scom_send (
     input wire clk,
     input wire rst,
 
-    input wire send_enable,
-    input wire recv_ready,
-    output wire send_valid,
-    output wire [1:0] send_state
+    input wire enable,
+    input wire next_ready,
+    output wire next_valid,
+    output wire [1:0] state
 );
 
-reg r_send_valid;
+reg r_next_valid;
 
-assign send_valid = r_send_valid;
+assign next_valid = r_next_valid;
 
 scom_base m_scom_send(
-    .enable(r_send_valid),
-    .ready(recv_ready),
-    .valid(send_valid),
-    .state(send_state)
+    .enable(r_next_valid),
+    .ready(next_ready),
+    .valid(next_valid),
+    .state(state)
 );
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_send_valid <= 0;
+        r_next_valid <= 0;
     end else begin
-        r_send_valid <= r_send_valid;
-        if (r_send_valid == 0) begin
-            if (send_enable) r_send_valid <= 1;
+        r_next_valid <= r_next_valid;
+        if (r_next_valid == 0) begin
+            if (enable) r_next_valid <= 1;
         end else begin
-            if (send_state == `SCOM_RESET) r_send_valid <= 0;
+            if (state == `SCOM_RESET) r_next_valid <= 0;
         end
     end
 end
@@ -103,30 +102,30 @@ module scom_recv (
     input wire clk,
     input wire rst,
 
-    input wire recv_enable,
-    output wire recv_ready,
-    input wire send_valid,
-    output wire [1:0] recv_state
+    input wire enable,
+    output wire prev_ready,
+    input wire prev_valid,
+    output wire [1:0] state
 );
 
-reg r_recv_ready;
+reg r_prev_ready;
 
-assign recv_ready = r_recv_ready;
+assign prev_ready = r_prev_ready;
 
 scom_base m_scom_recv(
-    .enable(recv_enable),
-    .ready(r_recv_ready),
-    .valid(send_valid),
-    .state(recv_state)
+    .enable(enable),
+    .ready(r_prev_ready),
+    .valid(prev_valid),
+    .state(state)
 );
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_recv_ready <= 0;
+        r_prev_ready <= 0;
     end else begin
-        case (recv_state)
-            `SCOM_RECV: r_recv_ready <= 1;
-            default: r_recv_ready <= 0;
+        case (state)
+            `SCOM_FOUND: r_prev_ready <= 1;
+            default: r_prev_ready <= 0;
         endcase
     end
 
