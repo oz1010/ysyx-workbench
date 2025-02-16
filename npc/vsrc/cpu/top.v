@@ -10,7 +10,7 @@ import "DPI-C" function int read_raw_csr(input int idx);
 import "DPI-C" function int dpi_raise_intr(input int NO, input int epc);
 import "DPI-C" function int dpi_query_intr();
 
-`include "riscv32e_defines.v"
+`include "common/riscv32e_defines.v"
 
 module top (
     input wire clk,
@@ -20,7 +20,7 @@ module top (
     output wire valid
 );
 
-riscv32e_cpu_pipeline #(
+riscv32e_cpu #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) m_cpu(
     .clk(clk),

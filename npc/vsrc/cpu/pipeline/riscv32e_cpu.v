@@ -1,5 +1,5 @@
 // 单流水线多周期处理器
-module riscv32e_cpu_pipeline #(
+module riscv32e_cpu #(
     parameter INST_WIDTH = 32
 ) (
     input wire clk,

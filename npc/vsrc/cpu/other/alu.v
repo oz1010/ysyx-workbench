@@ -1,4 +1,4 @@
-`include "riscv32e_defines.v"
+`include "common/riscv32e_defines.v"
 
 module alu (
     input [15:0] inst_code,
