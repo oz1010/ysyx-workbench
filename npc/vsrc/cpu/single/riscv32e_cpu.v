@@ -1,5 +1,5 @@
 // 单周期处理器
-module riscv32e_cpu_single #(
+module riscv32e_cpu #(
     parameter INST_WIDTH = 32
 ) (
     input wire clk,

@@ -1,4 +1,4 @@
-`include "riscv32e_defines.v"
+`include "common/riscv32e_defines.v"
 
 module scom (
     input wire clk,
