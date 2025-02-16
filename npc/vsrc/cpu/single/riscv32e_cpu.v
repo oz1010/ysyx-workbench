@@ -4,8 +4,8 @@ module riscv32e_cpu #(
 ) (
     input wire clk,
     input wire rst,
-    output wire [INST_WIDTH-1:0] w_pc,
-    output wire [INST_WIDTH-1:0] w_x[`RISCV_CSR_COUNT-1:0],
+    // output wire [INST_WIDTH-1:0] w_pc,
+    // output wire [INST_WIDTH-1:0] w_x[`RISCV_CSR_COUNT-1:0],
     output wire valid
 );
 
@@ -17,8 +17,8 @@ wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
 wire [INST_WIDTH-1:0] pc;
 
 assign valid = 1;
-assign w_pc = pc;
-assign w_x = x;
+// assign w_pc = pc;
+// assign w_x = x;
 
 /* 取指 */
 always @(*) begin

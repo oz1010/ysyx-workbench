@@ -4,8 +4,8 @@ module riscv32e_cpu #(
 ) (
     input wire clk,
     input wire rst,
-    output wire [INST_WIDTH-1:0] w_pc,
-    output wire [INST_WIDTH-1:0] w_x[`RISCV_CSR_COUNT-1:0],
+    // output wire [INST_WIDTH-1:0] w_pc,
+    // output wire [INST_WIDTH-1:0] w_x[`RISCV_CSR_COUNT-1:0],
     output wire valid
 );
 
@@ -31,8 +31,8 @@ wire [INST_WIDTH-1:0] a[7:0];
 assign a[7:0] = x[17:10];
 
 assign valid = wb_ready;
-assign w_x = x;
-assign w_pc = pc;
+// assign w_x = x;
+// assign w_pc = pc;
 
 /* 取指if */
 inst_fetch #(

@@ -15,8 +15,6 @@ import "DPI-C" function int dpi_query_intr();
 module top (
     input wire clk,
     input wire rst,
-    output wire [`RISCV_INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0],
-    output wire [`RISCV_INST_WIDTH-1:0] pc,
     output wire valid
 );
 
@@ -25,8 +23,6 @@ riscv32e_cpu #(
 ) m_cpu(
     .clk(clk),
     .rst(rst),
-    .w_pc(pc),
-    .w_x(x),
     .valid(valid)
 );
 
