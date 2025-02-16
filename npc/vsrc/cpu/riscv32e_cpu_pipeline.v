@@ -1,5 +1,7 @@
 // 单流水线多周期处理器
-module riscv32e_cpu_pipeline (
+module riscv32e_cpu_pipeline #(
+    parameter INST_WIDTH = 32
+) (
     input wire clk,
     input wire rst,
     output wire [INST_WIDTH-1:0] w_pc,
@@ -16,16 +18,16 @@ wire ex_valid;
 wire wb_ready;
 
 /* 常用处理器信号 */
-wire [`RISCV_INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
-wire [`RISCV_INST_WIDTH-1:0] pc;
-wire [`RISCV_INST_WIDTH-1:0] inst;
+wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
+wire [INST_WIDTH-1:0] pc;
+wire [INST_WIDTH-1:0] inst;
 // 寄存器别名，register alias, ch2.3
-wire [`RISCV_INST_WIDTH-1:0] zero = x[0];
-wire [`RISCV_INST_WIDTH-1:0] ra = x[1];
-wire [`RISCV_INST_WIDTH-1:0] sp = x[2];
-wire [`RISCV_INST_WIDTH-1:0] gp = x[3];
-wire [`RISCV_INST_WIDTH-1:0] tp = x[4];
-wire [`RISCV_INST_WIDTH-1:0] a[7:0];
+wire [INST_WIDTH-1:0] zero = x[0];
+wire [INST_WIDTH-1:0] ra = x[1];
+wire [INST_WIDTH-1:0] sp = x[2];
+wire [INST_WIDTH-1:0] gp = x[3];
+wire [INST_WIDTH-1:0] tp = x[4];
+wire [INST_WIDTH-1:0] a[7:0];
 assign a[7:0] = x[17:10];
 
 assign valid = wb_ready;
@@ -34,7 +36,7 @@ assign w_pc = pc;
 
 /* 取指if */
 inst_fetch #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH)
 ) ifu(
     .clk(clk),
     .rst(rst),
@@ -50,10 +52,10 @@ inst_fetch #(
 wire [4:0] rd;
 wire [4:0] rs1;
 wire [4:0] rs2;
-wire [`RISCV_INST_WIDTH-1:0] imm;
+wire [INST_WIDTH-1:0] imm;
 wire [15:0] inst_code;
 inst_decode #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH)
 ) idu(
     .clk(clk),
     .rst(rst),
@@ -72,11 +74,11 @@ inst_decode #(
 );
 
 /* 执行ex */
-wire [`RISCV_INST_WIDTH-1:0] result, dnpc;
+wire [INST_WIDTH-1:0] result, dnpc;
 wire [7:0] mem_result_width;
 wire result_update_csr;
 execute #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH)
 ) exu(
     .clk(clk),
     .rst(rst),
@@ -101,7 +103,7 @@ execute #(
 
 /* 回写wb */
 write_back #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH)
 ) wbu(
     .clk(clk),
     .rst(rst),

@@ -36,6 +36,8 @@
  */
 #define MAX_INST_TO_PRINT 10
 
+#define PIPE_LINE_PROCESSOR 1
+
 #if VM_TRACE_VCD
 static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 {
@@ -62,6 +64,17 @@ static int sync_simu_cpu(TOP_NAME *_simu, CPU_state *_cpu, sync_type_t type)
     //     _cpu->pc = _simu->rootp->top__DOT__pc;
     // }
 
+#if (PIPE_LINE_PROCESSOR)
+    // 单流水处理器同步
+    if (type == SYNC_TO_SIMU){
+        memcpy(&_simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__x.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
+        _simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__pc = _cpu->pc;
+    } else {
+        memcpy(&_cpu->gpr[0], &_simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__x.m_storage[0], sizeof(_cpu->gpr));
+        _cpu->pc = _simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__pc;
+    }
+#else
+    // 单周期处理器同步
     if (type == SYNC_TO_SIMU){
         memcpy(&_simu->rootp->top__DOT__m_cpu__DOT__x.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
         _simu->rootp->top__DOT__m_cpu__DOT__pc = _cpu->pc;
@@ -69,6 +82,7 @@ static int sync_simu_cpu(TOP_NAME *_simu, CPU_state *_cpu, sync_type_t type)
         memcpy(&_cpu->gpr[0], &_simu->rootp->top__DOT__m_cpu__DOT__x.m_storage[0], sizeof(_cpu->gpr));
         _cpu->pc = _simu->rootp->top__DOT__m_cpu__DOT__pc;
     }
+#endif
 
     return 0;
 }
@@ -132,7 +146,11 @@ void init_vsimu(int argc, char *argv[])
     }
     top->rst = 0;
 
+#if (PIPE_LINE_PROCESSOR)
+    cpu.pc = top->rootp->top__DOT__m_cpu__DOT__wbu__DOT__pc;
+#else
     cpu.pc = top->rootp->top__DOT__m_cpu__DOT__pc;
+#endif
 }
 
 void exit_vsimu()

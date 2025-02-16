@@ -20,7 +20,7 @@ module top (
     output wire valid
 );
 
-riscv32e_cpu_single #(
+riscv32e_cpu_pipeline #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) m_cpu(
     .clk(clk),
