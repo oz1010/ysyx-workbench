@@ -11,26 +11,34 @@ module inst_fetch #(
     output wire next_valid
 );
 
-reg [INST_WIDTH-1:0] r_inst;
+wire [INST_WIDTH-1:0] w_inst;
 wire [1:0] w_if_state;
+reg r_sram_valid;
+wire w_scom_valid;
 
-assign inst = r_inst;
+assign inst = w_inst;
+
+assign next_valid = w_scom_valid & r_sram_valid;
 
 scom_send m_scom_if(
     .clk(clk),
     .rst(rst),
     .enable(1),
     .next_ready(next_ready),
-    .next_valid(next_valid),
+    .next_valid(w_scom_valid),
     .state(w_if_state)
 );
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        r_inst <= 0;
-    end else begin
-        if (w_if_state == `SCOM_FOUND) r_inst <= fetch_inst(pc);
-    end
-end
+sram_delay #(
+    .INST_WIDTH(INST_WIDTH),
+    .SRAM_READ_DELAY(2)
+) m_sram_delay (
+    .clk(clk),
+    .rst(rst),
+    .enable(w_if_state == `SCOM_FOUND),
+    .addr(pc),
+    .data(w_inst),
+    .valid(r_sram_valid)
+);
 
 endmodule
