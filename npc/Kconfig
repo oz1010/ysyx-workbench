@@ -16,12 +16,12 @@ endchoice
 choice 
     depends on ISA_riscv
     prompt "RISC-V Process Type"
-    default ISA_RISCV_SINGLE
+    default ISA_RISCV_MULTIPLE
 
     config ISA_RISCV_SINGLE
         bool "single"
-    config ISA_RISCV_PIPELINE
-        bool "pipeline"
+    config ISA_RISCV_MULTIPLE
+        bool "multiple"
 endchoice
 
 config ISA

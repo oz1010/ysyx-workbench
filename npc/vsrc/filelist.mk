@@ -19,7 +19,7 @@ VERILATOR   = verilator
 
 VDIRS-y									+= ./vsrc/cpu/common
 VDIRS-y									+= ./vsrc/cpu
-VDIRS-$(CONFIG_ISA_RISCV_PIPELINE)		+= ./vsrc/cpu/pipeline
+VDIRS-$(CONFIG_ISA_RISCV_MULTIPLE)		+= ./vsrc/cpu/multiple
 VDIRS-$(CONFIG_ISA_RISCV_SINGLE)		+= ./vsrc/cpu/single
 
 VCSR_CPPS   = $(shell find -L ./vsrc -name *.cpp)
