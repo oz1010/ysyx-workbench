@@ -22,4 +22,7 @@ void __fixunsdfsi() {
 void __muldf3() {
     panic("unimplement __muldf3");
 }
+void __fixdfdi() {
+    panic("unimplement __fixdfdi");
+}
 #endif
