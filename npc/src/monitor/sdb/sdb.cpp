@@ -470,7 +470,4 @@ void init_sdb()
 
     /* Initialize the trace */
     trace_init();
-
-    /* Initialize the memory trace */
-    IFDEF(CONFIG_MTRACE, init_mtrace());
 }
