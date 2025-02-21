@@ -19,15 +19,24 @@ static void halt(int code)
         ;
 }
 
+volatile int cnt = 0x76543210;
+
 void _start()
 {
     for (int i=0; i<10; ++i) {
+        // asm volatile(
+        //     "addi a0, x0, 0x50;"
+        //     "addi a1, x0, 0x51;"
+        //     "addi a3, x0, 0x52;"
+        //     "addi a4, x0, 0x53;"
+        // );
         asm volatile(
-            "addi a0, x0, 0x50;"
-            "addi a1, x0, 0x51;"
-            "addi a3, x0, 0x52;"
-            "addi a4, x0, 0x53;"
+            "mv t0, %0;"
+            :
+            : "r" (cnt)
+            :
         );
+        cnt += i;
     }
 
     putch('A');
