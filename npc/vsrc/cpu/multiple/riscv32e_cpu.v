@@ -16,6 +16,8 @@ wire id_valid;
 wire ex_ready;
 wire ex_valid;
 wire wb_ready;
+wire ex_enable;
+wire ls_enable;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
@@ -72,6 +74,14 @@ inst_decode #(
     .next_ready(ex_ready),
     .next_valid(id_valid)
 );
+assign ls_enable = 
+(inst_code == `INST_LB) ||
+(inst_code == `INST_LH) ||
+(inst_code == `INST_LW) ||
+(inst_code == `INST_LBU) ||
+(inst_code == `INST_LHU)
+;
+assign ex_enable = !ls_enable;
 
 /* 执行ex */
 wire [INST_WIDTH-1:0] result, dnpc;
