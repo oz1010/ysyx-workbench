@@ -100,11 +100,11 @@ always @(posedge clk or posedge rst) begin
                 `INST_BGE:          begin if (s_src1>=s_src2) r_dnpc <= pc + imm; r_result_update_csr <= 0; end
                 `INST_BLTU:         begin if (src1< src2) r_dnpc <= pc + imm; r_result_update_csr <= 0; end
                 `INST_BGEU:         begin if (src1>=src2) r_dnpc <= pc + imm; r_result_update_csr <= 0; end
-                `INST_LB:           r_result <= sext(read_raw_mem(src1 + imm, 1), 8);
-                `INST_LH:           r_result <= sext(read_raw_mem(src1 + imm, 2), 16);
-                `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
-                `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
-                `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
+                // `INST_LB:           r_result <= sext(read_raw_mem(src1 + imm, 1), 8);
+                // `INST_LH:           r_result <= sext(read_raw_mem(src1 + imm, 2), 16);
+                // `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
+                // `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
+                // `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
                 // `INST_SB:           write_raw_mem(src1 + imm, 1, src2&32'hFF);
                 // `INST_SH:           write_raw_mem(src1 + imm, 2, src2&32'hFFFF);
                 // `INST_SW:           write_raw_mem(src1 + imm, 4, src2);
