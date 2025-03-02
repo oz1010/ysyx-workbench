@@ -73,3 +73,8 @@
 `define SCOM_FOUND          2'b01
 `define SCOM_OTHER          2'b10
 `define SCOM_RESET          2'b11
+
+`define AXI4_WAIT           2'b00
+`define AXI4_VALID          2'b01
+`define AXI4_READY          2'b10
+`define AXI4_COMPLETE       2'b11
