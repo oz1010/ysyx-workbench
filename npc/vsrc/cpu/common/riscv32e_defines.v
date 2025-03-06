@@ -78,3 +78,6 @@
 `define AXI4_VALID          2'b01
 `define AXI4_READY          2'b10
 `define AXI4_COMPLETE       2'b11
+
+`define SRAM_TYPE_AXI4      0
+`define SRAM_TYPE_SCOM      1

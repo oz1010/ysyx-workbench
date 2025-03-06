@@ -43,7 +43,13 @@ module axi4_manager #(
     input wire r_valid,
     output wire r_ready,
     input wire [DATA_WIDTH-1:0] r_data,
-    input wire [RRESP_WIDTH-1:0] r_resp
+    input wire [RRESP_WIDTH-1:0] r_resp,
+
+    output wire [1:0] aw_status,
+    output wire [1:0] w_status,
+    output wire [1:0] b_status,
+    output wire [1:0] ar_status,
+    output wire [1:0] r_status
 );
 
 reg r_aw_valid;
@@ -69,8 +75,6 @@ assign ar_valid = r_ar_valid;
 assign ar_addr = r_ar_addr;
 assign ar_prot = r_ar_prot;
 assign r_ready = r_r_ready;
-
-wire [1:0] aw_status,w_status,b_status,ar_status,r_status;
 
 axi4_base aw_base(
     .enable(1),
@@ -168,7 +172,13 @@ module axi4_subordinate #(
     output wire r_valid,
     input wire r_ready,
     output wire [DATA_WIDTH-1:0] r_data,
-    output wire [RRESP_WIDTH-1:0] r_resp
+    output wire [RRESP_WIDTH-1:0] r_resp,
+
+    output wire [1:0] aw_status,
+    output wire [1:0] w_status,
+    output wire [1:0] b_status,
+    output wire [1:0] ar_status,
+    output wire [1:0] r_status
 );
 
 reg r_aw_ready;
@@ -188,8 +198,6 @@ assign ar_ready = r_ar_ready;
 assign r_valid = r_r_valid;
 assign r_data = r_r_data;
 assign r_resp = r_r_resp;
-
-wire [1:0] aw_status,w_status,b_status,ar_status,r_status;
 
 axi4_base aw_base(
     .enable(1),
