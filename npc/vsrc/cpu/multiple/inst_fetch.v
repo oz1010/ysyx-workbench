@@ -1,5 +1,7 @@
 module inst_fetch #(
-    parameter INST_WIDTH = 32
+    parameter INST_WIDTH = 32,
+    parameter SRAM_TYPE = `SRAM_TYPE_AXI4,
+    parameter SRAM_READ_DELAY = 0
 ) (
     input wire clk,
     input wire rst,
@@ -7,38 +9,125 @@ module inst_fetch #(
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] inst,
 
+    input wire enable,
     input wire next_ready,
     output wire next_valid
 );
 
-wire [INST_WIDTH-1:0] w_inst;
-wire [1:0] w_if_state;
-reg r_sram_valid;
-wire w_scom_valid;
+generate
+    if (SRAM_TYPE == `SRAM_TYPE_SCOM) begin : sram_scom
+        wire [INST_WIDTH-1:0] w_inst;
+        wire [1:0] w_if_state;
+        reg r_sram_valid;
+        wire w_scom_valid;
 
-assign inst = w_inst;
+        assign inst = w_inst;
+        assign next_valid = w_scom_valid & r_sram_valid;
 
-assign next_valid = w_scom_valid & r_sram_valid;
+        scom_send m_scom_if(
+            .clk(clk),
+            .rst(rst),
+            .enable(1),
+            .next_ready(next_ready),
+            .next_valid(w_scom_valid),
+            .state(w_if_state)
+        );
 
-scom_send m_scom_if(
-    .clk(clk),
-    .rst(rst),
-    .enable(1),
-    .next_ready(next_ready),
-    .next_valid(w_scom_valid),
-    .state(w_if_state)
-);
+        sram_delay #(
+            .INST_WIDTH(INST_WIDTH),
+            .SRAM_READ_DELAY(SRAM_READ_DELAY)
+        ) m_sram_delay (
+            .clk(clk),
+            .rst(rst),
+            .enable(w_if_state == `SCOM_FOUND),
+            .addr(pc),
+            .data(w_inst),
+            .valid(r_sram_valid),
+            .ready(next_ready)
+        );
 
-sram_delay #(
-    .INST_WIDTH(INST_WIDTH),
-    .SRAM_READ_DELAY(2)
-) m_sram_delay (
-    .clk(clk),
-    .rst(rst),
-    .enable(w_if_state == `SCOM_FOUND),
-    .addr(pc),
-    .data(w_inst),
-    .valid(r_sram_valid)
-);
+    end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
+        // wire aw_valid;
+        // wire aw_ready;
+        // wire [31:0] aw_addr;
+        // wire [2:0] aw_prot;
+        // wire w_valid;
+        // wire w_ready;
+        // wire [INST_WIDTH-1:0] w_data;
+        // wire [INST_WIDTH/8-1:0] w_strb;
+        // wire b_valid;
+        // wire b_ready;
+        // wire [2:0] b_resp;
+        wire ar_valid;
+        wire ar_ready;
+        wire [31:0] ar_addr;
+        wire [2:0] ar_prot;
+        wire r_valid;
+        wire r_ready;
+        wire [INST_WIDTH-1:0] r_data;
+        wire [2:0] r_resp;
+
+        sram_axi4 #(
+            .INST_WIDTH(INST_WIDTH),
+            .SRAM_READ_DELAY(SRAM_READ_DELAY)
+        ) m_sram_axi4(
+            .clk(clk),
+            .rst(rst),
+            .ar_valid(ar_valid),
+            .ar_ready(ar_ready),
+            .ar_addr(ar_addr),
+            .ar_prot(ar_prot),
+            .r_valid(r_valid),
+            .r_ready(r_ready),
+            .r_data(r_data),
+            .r_resp(r_resp)
+        );
+
+        reg r_ar_valid;
+        reg [31:0] r_ar_addr;
+        reg [2:0] r_ar_prot;
+        reg r_r_ready;
+
+        assign ar_valid = r_ar_valid;
+        assign ar_addr = r_ar_addr;
+        assign ar_prot = r_ar_prot;
+        assign r_ready = r_r_ready;
+
+        assign next_valid = r_valid && r_ready;
+        assign inst = r_data;
+
+        always @(posedge clk or posedge rst) begin
+            if (rst) begin
+                r_ar_valid <= 0;
+                r_ar_addr <= 0;
+                r_ar_prot <= 0;
+                r_r_ready <= 0;
+            end else begin
+                r_ar_valid <= r_ar_valid;
+                r_ar_addr <= r_ar_addr;
+                r_ar_prot <= r_ar_prot;
+                r_r_ready <= 1;
+
+                // read request
+                if (enable && !ar_valid) begin
+                    r_ar_valid <= 1;
+                    r_ar_addr <= pc;
+                end
+                if (ar_valid && ar_ready) begin
+                    r_ar_valid <= 0;
+                end
+
+                // read data
+                if (r_valid && r_ready) begin
+                    r_r_ready <= 0;
+                end
+            end
+        end
+
+    end else begin : sram_unknown
+        assign next_valid = 1;
+        assign inst = 0;
+    end
+endgenerate
 
 endmodule

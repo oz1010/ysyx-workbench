@@ -35,10 +35,19 @@ wire [INST_WIDTH-1:0] gp = x[3];
 wire [INST_WIDTH-1:0] tp = x[4];
 wire [INST_WIDTH-1:0] a[7:0];
 assign a[7:0] = x[17:10];
+reg [63:0] execute_time;
 
 assign valid = wb_ready;
 // assign w_x = x;
 // assign w_pc = pc;
+
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        execute_time <= 0;
+    end else begin
+        execute_time <= execute_time + 1;
+    end
+end
 
 /* 取指if */
 inst_fetch #(
@@ -50,6 +59,7 @@ inst_fetch #(
     .pc(pc),
     .inst(inst),
 
+    .enable(execute_time<=1 || valid),
     .next_ready(id_ready),
     .next_valid(if_valid)
 );
