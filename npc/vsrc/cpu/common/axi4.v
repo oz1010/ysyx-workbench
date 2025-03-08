@@ -24,7 +24,6 @@ module axi4_manager #(
     output wire aw_valid,
     input wire aw_ready,
     output wire [ADDR_WIDTH-1:0] aw_addr,
-    output wire [2:0] aw_prot,
 
     output wire w_valid,
     input wire w_ready,
@@ -38,7 +37,6 @@ module axi4_manager #(
     output wire ar_valid,
     input wire ar_ready,
     output wire [ADDR_WIDTH-1:0] ar_addr,
-    output wire [2:0] ar_prot,
 
     input wire r_valid,
     output wire r_ready,
@@ -54,26 +52,22 @@ module axi4_manager #(
 
 reg r_aw_valid;
 reg [ADDR_WIDTH-1:0] r_aw_addr;
-reg [2:0] r_aw_prot;
 reg r_w_valid;
 reg [DATA_WIDTH-1:0] r_w_data;
 reg [DATA_WIDTH/8-1:0] r_w_strb;
 reg r_b_ready;
 reg r_ar_valid;
 reg [ADDR_WIDTH-1:0] r_ar_addr;
-reg [2:0] r_ar_prot;
 reg r_r_ready;
 
 assign aw_valid = r_aw_valid;
 assign aw_addr = r_aw_addr;
-assign aw_prot = r_aw_prot;
 assign w_valid = r_w_valid;
 assign w_data = r_w_data;
 assign w_strb = r_w_strb;
 assign b_ready = r_b_ready;
 assign ar_valid = r_ar_valid;
 assign ar_addr = r_ar_addr;
-assign ar_prot = r_ar_prot;
 assign r_ready = r_r_ready;
 
 axi4_base aw_base(
@@ -111,14 +105,12 @@ always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_aw_valid <= 0;
         r_aw_addr <= 0;
-        r_aw_prot <= 0;
         r_w_valid <= 0;
         r_w_data <= 0;
         r_w_strb <= 0;
         r_b_ready <= 0;
         r_ar_valid <= 0;
         r_ar_addr <= 0;
-        r_ar_prot <= 0;
         r_r_ready <= 0;
     end else begin
         if (enable) begin
@@ -153,7 +145,6 @@ module axi4_subordinate #(
     input wire aw_valid,
     output wire aw_ready,
     input wire [ADDR_WIDTH-1:0] aw_addr,
-    input wire [2:0] aw_prot,
 
     input wire w_valid,
     output wire w_ready,
@@ -167,7 +158,6 @@ module axi4_subordinate #(
     input wire ar_valid,
     output wire ar_ready,
     input wire [ADDR_WIDTH-1:0] ar_addr,
-    input wire [2:0] ar_prot,
 
     output wire r_valid,
     input wire r_ready,
