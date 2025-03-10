@@ -105,6 +105,7 @@ generate
             .rst(rst),
             .enable(ar_valid_enable),
             .delay_enable(delay_ar_valid_enable),
+            .delay_max(7),
             .delay_cnt(delay_ar_valid_cnt),
             .delay_cur_cnt(delay_ar_valid_cur_cnt)
         );

@@ -53,6 +53,7 @@ module lfsr_delay_signal (
     input wire enable,
 
     output wire delay_enable,
+    input wire [7:0] delay_max,
     output wire [7:0] delay_cnt,
     output wire [7:0] delay_cur_cnt
 );
@@ -66,7 +67,7 @@ lfsr_8bit m_lfsr_ar_valid(
     .out(cnt)
 );
 
-assign delay_cur_cnt = cnt % 13;
+assign delay_cur_cnt = cnt % delay_max;
 // assign delay_cur_cnt = 0;
 assign delay_cnt = r_delay_cnt;
 assign delay_enable = r_delay_enable;
