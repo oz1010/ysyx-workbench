@@ -1,27 +1,23 @@
 module lfsr_8bit (
-    input wire clk,    // 时钟信号
-    input wire rst,    // 复位信号（异步复位）
-    output reg  [7:0] lfsr // 8-bit LFSR 输出
+    input wire clk,
+    input wire rst,
+    output reg [7:0] out
 );
 
-wire enable = 1;
-
-wire feedback; // 反馈信号
-assign feedback = lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]; // 反馈多项式
+// 反馈多项式: x^8 + x^6 + x^5 + x^4 + 1
+wire feedback = out[7] ^ out[5] ^ out[4] ^ out[3];
 
 always @(posedge clk or posedge rst) begin
-    if (rst)
-        lfsr <= 8'h01; // 复位时设定非零初值（不能是0）
-    else begin
-        lfsr <= lfsr;
-        if (enable) begin
-            lfsr <= {lfsr[6:0], feedback}; // 移位+反馈
-        end
+    if (rst) begin
+        // 复位时初始化LFSR为一个非零值
+        out <= 8'b11111111;
+    end else begin
+        // 移位并应用反馈
+        out <= {out[6:0], feedback};
     end
 end
 
 endmodule
-
 
 module lfsr_8bit_galois (
     input wire clk,
@@ -51,60 +47,44 @@ always @(posedge clk or posedge rst) begin
 end
 endmodule
 
-module lfsr_8bit_onesign (
+module lfsr_delay_signal (
     input wire clk,
     input wire rst,
-    input wire raw_sign,
-    output wire delay_sign
+    input wire enable,
+
+    output wire delay_enable,
+    output wire [7:0] delay_cnt,
+    output wire [7:0] delay_cur_cnt
 );
 
-wire [7:0] delay_cnt;
-
+wire [7:0] cnt;
 reg r_delay_enable;
-reg r_output_enable;
 reg [7:0] r_delay_cnt;
-reg [7:0] r_delay_output_cnt;
-
-lfsr_8bit m_lfsr(
+lfsr_8bit m_lfsr_ar_valid(
     .clk(clk),
     .rst(rst),
-    .lfsr(delay_cnt)
+    .out(cnt)
 );
 
-assign delay_sign = r_output_enable && raw_sign;
+assign delay_cur_cnt = cnt % 13;
+// assign delay_cur_cnt = 0;
+assign delay_cnt = r_delay_cnt;
+assign delay_enable = r_delay_enable;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_delay_cnt <= 0;
         r_delay_enable <= 0;
-        r_output_enable <= 0;
+        r_delay_cnt <= 0;
     end else begin
-        r_delay_cnt <= r_delay_cnt;
-        r_delay_enable <= r_delay_enable;
-        r_output_enable <= r_output_enable;
-        r_delay_output_cnt <= r_delay_output_cnt;
-        r_delay_cnt <= r_delay_cnt + 1;
-        
-        if (!r_delay_enable && raw_sign) begin
-            r_delay_enable <= 1;
-            r_delay_output_cnt <= (delay_cnt%31);
-            r_delay_cnt <= 0;
-        end
-        if (r_output_enable) begin
-            r_delay_enable <= 0;
-        end
+        if (r_delay_enable && r_delay_cnt > 0) r_delay_cnt <= r_delay_cnt - 1;
+        if (r_delay_enable && r_delay_cnt == 1) r_delay_enable <= 0;
 
-        if (r_delay_enable && r_delay_cnt >= r_delay_output_cnt) begin
-            r_output_enable <= 1;
+        if (enable) begin
+            if (delay_cur_cnt > 0) begin
+                r_delay_cnt <= delay_cur_cnt;
+                r_delay_enable <= 1;
+            end
         end
-        if (r_output_enable && !raw_sign) begin
-            r_output_enable <= 0;
-        end
-
-        if (r_output_enable) begin 
-            r_delay_output_cnt <= 0;
-        end
-        
     end
 end
 

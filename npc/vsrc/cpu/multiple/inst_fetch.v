@@ -96,6 +96,19 @@ generate
         assign next_valid = r_valid && r_ready;
         assign inst = r_data;
 
+        wire [7:0] delay_ar_valid_cur_cnt;
+        wire delay_ar_valid_enable;
+        wire [7:0] delay_ar_valid_cnt;
+        wire ar_valid_enable = enable && !ar_valid && !delay_ar_valid_enable;
+        lfsr_delay_signal m_delay_ar_valid(
+            .clk(clk),
+            .rst(rst),
+            .enable(ar_valid_enable),
+            .delay_enable(delay_ar_valid_enable),
+            .delay_cnt(delay_ar_valid_cnt),
+            .delay_cur_cnt(delay_ar_valid_cur_cnt)
+        );
+
         always @(posedge clk or posedge rst) begin
             if (rst) begin
                 r_ar_valid <= 0;
@@ -109,11 +122,12 @@ generate
                 r_r_ready <= 1;
 
                 // read request
-                if (enable && !ar_valid) begin
+                if ((ar_valid_enable && delay_ar_valid_cur_cnt == 0) ||
+                    (delay_ar_valid_enable && delay_ar_valid_cnt == 1)) begin
                     r_ar_valid <= 1;
                     r_ar_addr <= pc;
                 end
-                if (ar_valid && ar_ready) begin
+                if (r_ar_valid && ar_ready) begin
                     r_ar_valid <= 0;
                 end
 
