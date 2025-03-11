@@ -1,7 +1,10 @@
 `include "common/riscv32e_defines.v"
 
 module sram_axi4 #(
-    parameter INST_WIDTH = 32,
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter BRESP_WIDTH = 3,
+    parameter RRESP_WIDTH = 3,
     parameter SRAM_READ_DELAY = 0
 ) (
     input wire clk,
@@ -9,13 +12,12 @@ module sram_axi4 #(
 
     input wire ar_valid,
     output wire ar_ready,
-    input wire [31:0] ar_addr,
-    input wire [2:0] ar_prot,
+    input wire [ADDR_WIDTH-1:0] ar_addr,
 
     output wire r_valid,
     input wire r_ready,
-    output wire [INST_WIDTH-1:0] r_data,
-    output wire [2:0] r_resp
+    output wire [DATA_WIDTH-1:0] r_data,
+    output wire [RRESP_WIDTH-1:0] r_resp
 );
 
 reg [7:0] r_delay_cnt;
@@ -23,8 +25,8 @@ reg r_delay_enable;
 
 reg r_ar_ready;
 reg r_r_valid;
-reg [INST_WIDTH-1:0] r_r_data;
-reg [2:0] r_r_resp;
+reg [DATA_WIDTH-1:0] r_r_data;
+reg [RRESP_WIDTH-1:0] r_r_resp;
 
 assign ar_ready = r_ar_ready;
 assign r_valid = r_r_valid;

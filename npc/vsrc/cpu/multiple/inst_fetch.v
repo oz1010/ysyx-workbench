@@ -1,7 +1,11 @@
 module inst_fetch #(
     parameter INST_WIDTH = 32,
     parameter SRAM_TYPE = `SRAM_TYPE_AXI4,
-    parameter SRAM_READ_DELAY = 0
+    parameter SRAM_READ_DELAY = 0,
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter BRESP_WIDTH = 3,
+    parameter RRESP_WIDTH = 3
 ) (
     input wire clk,
     input wire rst,
@@ -49,26 +53,27 @@ generate
     end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
         // wire aw_valid;
         // wire aw_ready;
-        // wire [31:0] aw_addr;
-        // wire [2:0] aw_prot;
+        // wire [ADDR_WIDTH-1:0] aw_addr;
         // wire w_valid;
         // wire w_ready;
-        // wire [INST_WIDTH-1:0] w_data;
-        // wire [INST_WIDTH/8-1:0] w_strb;
+        // wire [DATA_WIDTH-1:0] w_data;
+        // wire [DATA_WIDTH/8-1:0] w_strb;
         // wire b_valid;
         // wire b_ready;
-        // wire [2:0] b_resp;
+        // wire [BRESP_WIDTH-1:0] b_resp;
         wire ar_valid;
         wire ar_ready;
-        wire [31:0] ar_addr;
-        wire [2:0] ar_prot;
+        wire [ADDR_WIDTH-1:0] ar_addr;
         wire r_valid;
         wire r_ready;
-        wire [INST_WIDTH-1:0] r_data;
-        wire [2:0] r_resp;
+        wire [DATA_WIDTH-1:0] r_data;
+        wire [RRESP_WIDTH-1:0] r_resp;
 
         sram_axi4 #(
-            .INST_WIDTH(INST_WIDTH),
+            .ADDR_WIDTH(ADDR_WIDTH),
+            .DATA_WIDTH(DATA_WIDTH),
+            .BRESP_WIDTH(BRESP_WIDTH),
+            .RRESP_WIDTH(RRESP_WIDTH),
             .SRAM_READ_DELAY(SRAM_READ_DELAY)
         ) m_sram_axi4(
             .clk(clk),
@@ -76,7 +81,6 @@ generate
             .ar_valid(ar_valid),
             .ar_ready(ar_ready),
             .ar_addr(ar_addr),
-            .ar_prot(ar_prot),
             .r_valid(r_valid),
             .r_ready(r_ready),
             .r_data(r_data),
@@ -84,13 +88,11 @@ generate
         );
 
         reg r_ar_valid;
-        reg [31:0] r_ar_addr;
-        reg [2:0] r_ar_prot;
+        reg [ADDR_WIDTH-1:0] r_ar_addr;
         reg r_r_ready;
 
         assign ar_valid = r_ar_valid;
         assign ar_addr = r_ar_addr;
-        assign ar_prot = r_ar_prot;
         assign r_ready = r_r_ready;
 
         assign next_valid = r_valid && r_ready;
@@ -128,12 +130,10 @@ generate
             if (rst) begin
                 r_ar_valid <= 0;
                 r_ar_addr <= 0;
-                r_ar_prot <= 0;
                 r_r_ready <= 0;
             end else begin
                 r_ar_valid <= r_ar_valid;
                 r_ar_addr <= r_ar_addr;
-                r_ar_prot <= r_ar_prot;
                 r_r_ready <= r_r_ready;
 
                 // read request
