@@ -110,6 +110,20 @@ generate
             .delay_cur_cnt(delay_ar_valid_cur_cnt)
         );
 
+        wire [7:0] delay_r_ready_cur_cnt;
+        wire delay_r_ready_enable;
+        wire [7:0] delay_r_ready_cnt;
+        wire r_ready_enable = (ar_valid && ar_ready) && !r_ready && !delay_r_ready_enable;
+        lfsr_delay_signal m_delay_r_ready(
+            .clk(clk),
+            .rst(rst),
+            .enable(r_ready_enable),
+            .delay_enable(delay_r_ready_enable),
+            .delay_max(17),
+            .delay_cnt(delay_r_ready_cnt),
+            .delay_cur_cnt(delay_r_ready_cur_cnt)
+        );
+
         always @(posedge clk or posedge rst) begin
             if (rst) begin
                 r_ar_valid <= 0;
@@ -120,7 +134,7 @@ generate
                 r_ar_valid <= r_ar_valid;
                 r_ar_addr <= r_ar_addr;
                 r_ar_prot <= r_ar_prot;
-                r_r_ready <= 1;
+                r_r_ready <= r_r_ready;
 
                 // read request
                 if ((ar_valid_enable && delay_ar_valid_cur_cnt == 0) ||
@@ -133,6 +147,10 @@ generate
                 end
 
                 // read data
+                if ((r_ready_enable && delay_r_ready_cur_cnt == 0) ||
+                    (delay_r_ready_enable && delay_r_ready_cnt == 1)) begin
+                    r_r_ready <= 1;
+                end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;
                 end
