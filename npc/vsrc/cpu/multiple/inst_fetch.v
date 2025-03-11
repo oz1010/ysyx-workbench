@@ -51,16 +51,6 @@ generate
         );
 
     end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-        // wire aw_valid;
-        // wire aw_ready;
-        // wire [ADDR_WIDTH-1:0] aw_addr;
-        // wire w_valid;
-        // wire w_ready;
-        // wire [DATA_WIDTH-1:0] w_data;
-        // wire [DATA_WIDTH/8-1:0] w_strb;
-        // wire b_valid;
-        // wire b_ready;
-        // wire [BRESP_WIDTH-1:0] b_resp;
         wire ar_valid;
         wire ar_ready;
         wire [ADDR_WIDTH-1:0] ar_addr;
@@ -78,6 +68,16 @@ generate
         ) m_sram_axi4(
             .clk(clk),
             .rst(rst),
+            .aw_valid(),
+            .aw_ready(),
+            .aw_addr(),
+            .w_valid(),
+            .w_ready(),
+            .w_data(),
+            .w_strb(),
+            .b_valid(),
+            .b_ready(),
+            .b_resp(),
             .ar_valid(ar_valid),
             .ar_ready(ar_ready),
             .ar_addr(ar_addr),
