@@ -13,6 +13,28 @@ module inst_fetch #(
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] inst,
 
+    output wire aw_valid,
+    input wire aw_ready,
+    output wire [ADDR_WIDTH-1:0] aw_addr,
+
+    output wire w_valid,
+    input wire w_ready,
+    output wire [DATA_WIDTH-1:0] w_data,
+    output wire [DATA_WIDTH/8-1:0] w_strb,
+
+    input wire b_valid,
+    output wire b_ready,
+    input wire [BRESP_WIDTH-1:0] b_resp,
+
+    output wire ar_valid,
+    input wire ar_ready,
+    output wire [ADDR_WIDTH-1:0] ar_addr,
+
+    input wire r_valid,
+    output wire r_ready,
+    input wire [DATA_WIDTH-1:0] r_data,
+    input wire [RRESP_WIDTH-1:0] r_resp,
+
     input wire enable,
     input wire next_ready,
     output wire next_valid
@@ -51,42 +73,6 @@ generate
         );
 
     end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-        wire ar_valid;
-        wire ar_ready;
-        wire [ADDR_WIDTH-1:0] ar_addr;
-        wire r_valid;
-        wire r_ready;
-        wire [DATA_WIDTH-1:0] r_data;
-        wire [RRESP_WIDTH-1:0] r_resp;
-
-        sram_axi4 #(
-            .ADDR_WIDTH(ADDR_WIDTH),
-            .DATA_WIDTH(DATA_WIDTH),
-            .BRESP_WIDTH(BRESP_WIDTH),
-            .RRESP_WIDTH(RRESP_WIDTH),
-            .SRAM_READ_DELAY(SRAM_READ_DELAY)
-        ) m_sram_axi4(
-            .clk(clk),
-            .rst(rst),
-            .aw_valid(),
-            .aw_ready(),
-            .aw_addr(),
-            .w_valid(),
-            .w_ready(),
-            .w_data(),
-            .w_strb(),
-            .b_valid(),
-            .b_ready(),
-            .b_resp(),
-            .ar_valid(ar_valid),
-            .ar_ready(ar_ready),
-            .ar_addr(ar_addr),
-            .r_valid(r_valid),
-            .r_ready(r_ready),
-            .r_data(r_data),
-            .r_resp(r_resp)
-        );
-
         reg r_ar_valid;
         reg [ADDR_WIDTH-1:0] r_ar_addr;
         reg r_r_ready;
