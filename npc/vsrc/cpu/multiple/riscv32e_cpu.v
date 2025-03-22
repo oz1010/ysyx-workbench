@@ -1,6 +1,11 @@
 // 单流水线多周期处理器
 module riscv32e_cpu #(
-    parameter INST_WIDTH = 32
+    parameter INST_WIDTH = 32,
+    parameter SRAM_READ_DELAY = 0,
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter BRESP_WIDTH = 3,
+    parameter RRESP_WIDTH = 3
 ) (
     input wire clk,
     input wire rst,
@@ -22,6 +27,15 @@ wire ex_enable;
 wire ls_enable;
 wire ex_ls_valid;
 wire ex_ls_ready;
+
+/* axi4 信号 */
+wire ar_valid;
+wire ar_ready;
+wire [ADDR_WIDTH-1:0] ar_addr;
+wire r_valid;
+wire r_ready;
+wire [DATA_WIDTH-1:0] r_data;
+wire [RRESP_WIDTH-1:0] r_resp;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
@@ -49,6 +63,36 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
+/* sram模块 */
+sram_axi4_arbiter #(
+    .MASTER_COUNT(2),
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH),
+    .SRAM_READ_DELAY(SRAM_READ_DELAY)
+) m_sram_axi4_arbiter(
+    .clk(clk),
+    .rst(rst),
+    .aw_valids({0,0}),
+    .aw_readys({0,0}),
+    .aw_addrs({0,0}),
+    .w_valids({0,0}),
+    .w_readys({0,0}),
+    .w_datas({0,0}),
+    .w_strbs({0,0}),
+    .b_valids({0,0}),
+    .b_readys({0,0}),
+    .b_resps({0,0}),
+    .ar_valids({ar_valid, 0}),
+    .ar_readys({ar_ready, 0}),
+    .ar_addrs({ar_addr, 0}),
+    .r_valids({r_valid, 0}),
+    .r_readys({r_ready, 0}),
+    .r_datas({r_data, 0}),
+    .r_resps({r_resp, 0})
+);
+
 /* 取指if */
 inst_fetch #(
     .INST_WIDTH(INST_WIDTH)
@@ -58,6 +102,24 @@ inst_fetch #(
 
     .pc(pc),
     .inst(inst),
+
+    .aw_valid(),
+    .aw_ready(),
+    .aw_addr(),
+    .w_valid(),
+    .w_ready(),
+    .w_data(),
+    .w_strb(),
+    .b_valid(),
+    .b_ready(),
+    .b_resp(),
+    .ar_valid(ar_valid),
+    .ar_ready(ar_ready),
+    .ar_addr(ar_addr),
+    .r_valid(r_valid),
+    .r_ready(r_ready),
+    .r_data(r_data),
+    .r_resp(r_resp),
 
     .enable(execute_time<=1 || valid),
     .next_ready(id_ready),
