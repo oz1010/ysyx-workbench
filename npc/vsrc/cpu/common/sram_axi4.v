@@ -35,12 +35,23 @@ module sram_axi4 #(
 
 reg [7:0] r_delay_cnt;
 reg r_delay_enable;
+reg [ADDR_WIDTH-1:0] r_write_mem_addr;
 
+reg r_aw_ready;
+reg r_w_ready;
+reg r_b_valid;
+reg [BRESP_WIDTH-1:0] r_b_resp;
 reg r_ar_ready;
 reg r_r_valid;
 reg [DATA_WIDTH-1:0] r_r_data;
 reg [RRESP_WIDTH-1:0] r_r_resp;
 
+wire [DATA_WIDTH-1:0] w_mem_result_width = {{DATA_WIDTH-DATA_WIDTH/8{1'b0}}, w_strb};
+
+assign aw_ready = r_aw_ready;
+assign w_ready = r_w_ready;
+assign b_valid = r_b_valid;
+assign b_resp = r_b_resp;
 assign ar_ready = r_ar_ready;
 assign r_valid = r_r_valid;
 assign r_data = r_r_data;
@@ -72,15 +83,53 @@ end
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
+        r_write_mem_addr <= 0;
+        r_aw_ready <= 0;
+        r_w_ready <= 0;
+        r_b_valid <= 0;
+        r_b_resp <= 0;
         r_ar_ready <= 0;
         r_r_valid <= 0;
         r_r_data <= 0;
         r_r_resp <= 0;
     end else begin
+        r_write_mem_addr <= r_write_mem_addr;
+        r_aw_ready <= r_aw_ready;
+        r_w_ready <= r_w_ready;
+        r_b_valid <= r_b_valid;
+        r_b_resp <= r_b_resp;
         r_ar_ready <= r_ar_ready;
         r_r_valid <= r_r_valid;
         r_r_data <= r_r_data;
         r_r_resp <= r_r_resp;
+
+        // write request
+        if (aw_valid) begin
+            r_aw_ready <= 1;
+        end
+        if (aw_valid && aw_ready) begin
+            r_write_mem_addr <= aw_addr;
+            r_aw_ready <= 0;
+        end
+
+        // write data
+        if (aw_valid && aw_ready) begin
+            r_w_ready <= 1;
+        end
+        if (w_valid && w_ready) begin
+            write_raw_mem(r_write_mem_addr, w_mem_result_width, w_data);
+            r_w_ready <= 0;
+        end
+
+        // write response
+        if (w_valid && w_ready) begin
+            r_b_valid <= 1;
+            r_b_resp <= 1;
+        end
+        if (b_valid && b_ready) begin
+            r_b_valid <= 0;
+            r_b_resp <= 0;
+        end
 
         // read request
         if (!r_ar_ready && !r_ready) begin
