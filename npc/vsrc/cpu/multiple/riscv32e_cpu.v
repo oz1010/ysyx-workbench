@@ -29,13 +29,23 @@ wire ex_ls_valid;
 wire ex_ls_ready;
 
 /* axi4 信号 */
-wire ar_valid;
-wire ar_ready;
-wire [ADDR_WIDTH-1:0] ar_addr;
-wire r_valid;
-wire r_ready;
-wire [DATA_WIDTH-1:0] r_data;
-wire [RRESP_WIDTH-1:0] r_resp;
+wire ar_valid_1;
+wire ar_ready_1;
+wire [ADDR_WIDTH-1:0] ar_addr_1;
+wire r_valid_1;
+wire r_ready_1;
+wire [DATA_WIDTH-1:0] r_data_1;
+wire [RRESP_WIDTH-1:0] r_resp_1;
+wire aw_valid_2;
+wire aw_ready_2;
+wire [ADDR_WIDTH-1:0] aw_addr_2;
+wire w_valid_2;
+wire w_ready_2;
+wire [DATA_WIDTH-1:0] w_data_2;
+wire [DATA_WIDTH/8-1:0] w_strb_2;
+wire b_valid_2;
+wire b_ready_2;
+wire [BRESP_WIDTH-1:0] b_resp_2;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
@@ -74,23 +84,23 @@ sram_axi4_arbiter #(
 ) m_sram_axi4_arbiter(
     .clk(clk),
     .rst(rst),
-    .aw_valids({0,0}),
-    .aw_readys({0,0}),
-    .aw_addrs({0,0}),
-    .w_valids({0,0}),
-    .w_readys({0,0}),
-    .w_datas({0,0}),
-    .w_strbs({0,0}),
-    .b_valids({0,0}),
-    .b_readys({0,0}),
-    .b_resps({0,0}),
-    .ar_valids({ar_valid, 0}),
-    .ar_readys({ar_ready, 0}),
-    .ar_addrs({ar_addr, 0}),
-    .r_valids({r_valid, 0}),
-    .r_readys({r_ready, 0}),
-    .r_datas({r_data, 0}),
-    .r_resps({r_resp, 0})
+    .aw_valids({0, aw_valid_2}),
+    .aw_readys({0, aw_ready_2}),
+    .aw_addrs({0, aw_addr_2}),
+    .w_valids({0, w_valid_2}),
+    .w_readys({0, w_ready_2}),
+    .w_datas({0, w_data_2}),
+    .w_strbs({0, w_strb_2}),
+    .b_valids({0, b_valid_2}),
+    .b_readys({0, b_ready_2}),
+    .b_resps({0, b_resp_2}),
+    .ar_valids({ar_valid_1, 0}),
+    .ar_readys({ar_ready_1, 0}),
+    .ar_addrs({ar_addr_1, 0}),
+    .r_valids({r_valid_1, 0}),
+    .r_readys({r_ready_1, 0}),
+    .r_datas({r_data_1, 0}),
+    .r_resps({r_resp_1, 0})
 );
 
 /* 取指if */
@@ -113,13 +123,13 @@ inst_fetch #(
     .b_valid(),
     .b_ready(),
     .b_resp(),
-    .ar_valid(ar_valid),
-    .ar_ready(ar_ready),
-    .ar_addr(ar_addr),
-    .r_valid(r_valid),
-    .r_ready(r_ready),
-    .r_data(r_data),
-    .r_resp(r_resp),
+    .ar_valid(ar_valid_1),
+    .ar_ready(ar_ready_1),
+    .ar_addr(ar_addr_1),
+    .r_valid(r_valid_1),
+    .r_ready(r_ready_1),
+    .r_data(r_data_1),
+    .r_resp(r_resp_1),
 
     .enable(execute_time<=1 || valid),
     .next_ready(id_ready),
@@ -242,6 +252,24 @@ write_back #(
     .result_update_csr(result_update_csr),
     .dnpc(dnpc),
     .w_pc(pc),
+
+    .aw_valid(aw_valid_2),
+    .aw_ready(aw_ready_2),
+    .aw_addr(aw_addr_2),
+    .w_valid(w_valid_2),
+    .w_ready(w_ready_2),
+    .w_data(w_data_2),
+    .w_strb(w_strb_2),
+    .b_valid(b_valid_2),
+    .b_ready(b_ready_2),
+    .b_resp(b_resp_2),
+    .ar_valid(),
+    .ar_ready(),
+    .ar_addr(),
+    .r_valid(),
+    .r_ready(),
+    .r_data(),
+    .r_resp(),
 
     .prev_ready(wb_ready),
     .prev_valid(ex_ls_valid)
