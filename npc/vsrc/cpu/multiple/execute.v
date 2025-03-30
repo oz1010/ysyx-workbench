@@ -105,12 +105,12 @@ always @(posedge clk or posedge rst) begin
                 // `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
                 // `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
                 // `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
-                // `INST_SB:           write_raw_mem(src1 + imm, 1, src2&32'hFF);
-                // `INST_SH:           write_raw_mem(src1 + imm, 2, src2&32'hFFFF);
-                // `INST_SW:           write_raw_mem(src1 + imm, 4, src2);
-                `INST_SB:           begin r_result <= src2&32'hFF; r_result_mem_width <= 1; end
-                `INST_SH:           begin r_result <= src2&32'hFFFF; r_result_mem_width <= 2; end
-                `INST_SW:           begin r_result <= src2; r_result_mem_width <= 4; end
+                // // `INST_SB:           write_raw_mem(src1 + imm, 1, src2&32'hFF);
+                // // `INST_SH:           write_raw_mem(src1 + imm, 2, src2&32'hFFFF);
+                // // `INST_SW:           write_raw_mem(src1 + imm, 4, src2);
+                // `INST_SB:           begin r_result <= src2&32'hFF; r_result_mem_width <= 1; end
+                // `INST_SH:           begin r_result <= src2&32'hFFFF; r_result_mem_width <= 2; end
+                // `INST_SW:           begin r_result <= src2; r_result_mem_width <= 4; end
                 `INST_ADDI:         r_result <= src1 + imm;
                 `INST_SLTI:         r_result <= {{31{1'b0}}, (s_src1 < imm)};
                 `INST_SLTIU:        r_result <= {{31{1'b0}}, (src1 < imm)};

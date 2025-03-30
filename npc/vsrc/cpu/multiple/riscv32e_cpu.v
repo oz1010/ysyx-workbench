@@ -84,16 +84,16 @@ sram_axi4_arbiter #(
 ) m_sram_axi4_arbiter(
     .clk(clk),
     .rst(rst),
-    .aw_valids({0, aw_valid_2}),
-    .aw_readys({0, aw_ready_2}),
-    .aw_addrs({0, aw_addr_2}),
-    .w_valids({0, w_valid_2}),
-    .w_readys({0, w_ready_2}),
-    .w_datas({0, w_data_2}),
-    .w_strbs({0, w_strb_2}),
-    .b_valids({0, b_valid_2}),
-    .b_readys({0, b_ready_2}),
-    .b_resps({0, b_resp_2}),
+    .aw_valids({0, 0}),
+    .aw_readys({0, 0}),
+    .aw_addrs({0, 0}),
+    .w_valids({0, 0}),
+    .w_readys({0, 0}),
+    .w_datas({0, 0}),
+    .w_strbs({0, 0}),
+    .b_valids({0, 0}),
+    .b_readys({0, 0}),
+    .b_resps({0, 0}),
     .ar_valids({ar_valid_1, 0}),
     .ar_readys({ar_ready_1, 0}),
     .ar_addrs({ar_addr_1, 0}),
@@ -165,7 +165,10 @@ assign ls_enable =
 (inst_code == `INST_LH) ||
 (inst_code == `INST_LW) ||
 (inst_code == `INST_LBU) ||
-(inst_code == `INST_LHU)
+(inst_code == `INST_LHU) ||
+(inst_code == `INST_SB) ||
+(inst_code == `INST_SH) ||
+(inst_code == `INST_SW)
 ;
 assign ex_enable = !ls_enable;
 assign ex_ls_ready = ({1{ex_enable}} & ex_ready) | ({1{ls_enable}} & ls_ready);
@@ -253,16 +256,16 @@ write_back #(
     .dnpc(dnpc),
     .w_pc(pc),
 
-    .aw_valid(aw_valid_2),
-    .aw_ready(aw_ready_2),
-    .aw_addr(aw_addr_2),
-    .w_valid(w_valid_2),
-    .w_ready(w_ready_2),
-    .w_data(w_data_2),
-    .w_strb(w_strb_2),
-    .b_valid(b_valid_2),
-    .b_ready(b_ready_2),
-    .b_resp(b_resp_2),
+    .aw_valid(),
+    .aw_ready(),
+    .aw_addr(),
+    .w_valid(),
+    .w_ready(),
+    .w_data(),
+    .w_strb(),
+    .b_valid(),
+    .b_ready(),
+    .b_resp(),
     .ar_valid(),
     .ar_ready(),
     .ar_addr(),
