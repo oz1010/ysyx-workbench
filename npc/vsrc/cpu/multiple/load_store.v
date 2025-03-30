@@ -1,5 +1,9 @@
 module load_store #(
-    parameter INST_WIDTH = 32
+    parameter INST_WIDTH = 32,
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter BRESP_WIDTH = 3,
+    parameter RRESP_WIDTH = 3
 ) (
     input wire clk,
     input wire rst,
@@ -18,24 +22,52 @@ module load_store #(
     output wire [7:0] mem_result_width,
     output wire result_update_csr,
 
+    output wire aw_valid,
+    input wire aw_ready,
+    output wire [ADDR_WIDTH-1:0] aw_addr,
+
+    output wire w_valid,
+    input wire w_ready,
+    output wire [DATA_WIDTH-1:0] w_data,
+    output wire [DATA_WIDTH/8-1:0] w_strb,
+
+    input wire b_valid,
+    output wire b_ready,
+    input wire [BRESP_WIDTH-1:0] b_resp,
+
+    output wire ar_valid,
+    input wire ar_ready,
+    output wire [ADDR_WIDTH-1:0] ar_addr,
+
+    input wire r_valid,
+    output wire r_ready,
+    input wire [DATA_WIDTH-1:0] r_data,
+    input wire [RRESP_WIDTH-1:0] r_resp,
+
     output wire prev_ready,
     input wire prev_valid,
     input wire next_ready,
     output wire next_valid
 );
 
-wire [1:0] w_ls_prev_state, w_ls_next_state;
+reg r_prev_ready, r_next_valid;
+assign prev_ready = r_prev_ready;
+assign next_valid = r_next_valid;
 
-scom m_scom_ex(
-    .clk(clk),
-    .rst(rst),
-    .prev_ready(prev_ready),
-    .prev_valid(prev_valid),
-    .next_ready(next_ready),
-    .next_valid(next_valid),
-    .prev_state(w_ls_prev_state),
-    .next_state(w_ls_next_state)
-);
+reg r_aw_valid;
+reg [ADDR_WIDTH-1:0] r_aw_addr;
+reg r_w_valid;
+reg [DATA_WIDTH-1:0] r_w_data;
+reg [DATA_WIDTH/8-1:0] r_w_strb;
+reg r_b_ready;
+
+assign aw_valid = r_aw_valid;
+assign aw_addr = r_aw_addr;
+assign w_valid = r_w_valid;
+assign w_data = r_w_data;
+assign w_strb = r_w_strb;
+assign b_ready = r_b_ready;
+wire [2:0] write_status = {b_valid, w_valid, aw_valid};
 
 reg [INST_WIDTH-1:0] r_dnpc;
 reg [INST_WIDTH-1:0] r_result;
@@ -56,31 +88,100 @@ always @(posedge clk or posedge rst) begin
         r_result <= 0;
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
+
+        r_prev_ready <= 0;
+        r_aw_valid <= 0;
+        r_aw_addr <= 0;
+        r_w_valid <= 0;
+        r_w_data <= 0;
+        r_w_strb <= 0;
+        r_b_ready <= 0;
     end else begin
         r_dnpc <= r_dnpc;
         r_result <= r_result;
         r_result_mem_width <= r_result_mem_width;
         r_result_update_csr <= r_result_update_csr;
 
-        if (w_ls_prev_state == `SCOM_FOUND) begin
-            // 默认更新程序寄存器
-            r_dnpc <= pc + 4;
-            r_result <= 0;
-            r_result_mem_width <= 0;
-            r_result_update_csr <= 1;
+        r_aw_valid <= r_aw_valid;
+        r_aw_addr <= r_aw_addr;
+        r_w_valid <= r_w_valid;
+        r_w_data <= r_w_data;
+        r_w_strb <= r_w_strb;
+        r_b_ready <= r_b_ready;
 
-            case (inst_code)
-                `INST_LB:           r_result <= sext(read_raw_mem(src1 + imm, 1), 8);
-                `INST_LH:           r_result <= sext(read_raw_mem(src1 + imm, 2), 16);
-                `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
-                `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
-                `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
-                `INST_SB:           begin write_raw_mem(src1 + imm, 1, src2&32'hFF); r_result_update_csr <= 0; end
-                `INST_SH:           begin write_raw_mem(src1 + imm, 2, src2&32'hFFFF); r_result_update_csr <= 0; end
-                `INST_SW:           begin write_raw_mem(src1 + imm, 4, src2); r_result_update_csr <= 0; end
-                default: ;
-            endcase
+        if (prev_valid && !prev_ready) begin
+            if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
+                // write request
+                if (write_status==0 && !aw_valid) begin
+                    r_aw_valid <= 1;
+                    r_aw_addr <= src1 + imm;
+                end
+                if (aw_valid && aw_ready) begin
+                    r_aw_valid <= 0;
+                end
+
+                // write data
+                if (aw_valid && aw_ready) begin
+                    r_w_valid <= 1;
+                    case (inst_code)
+                        `INST_SB:           begin r_w_strb <= 1; r_w_data <= src2&32'hFF; end
+                        `INST_SH:           begin r_w_strb <= 2; r_w_data <= src2&32'hFFFF; end
+                        `INST_SW:           begin r_w_strb <= 4; r_w_data <= src2; end
+                        default: ;
+                    endcase
+                end
+                if (w_valid && w_ready) begin
+                    r_w_valid <= 0;
+                end
+
+                // write response
+                if (w_valid && w_ready) begin
+                    r_b_ready <= 1;
+                end
+                if (b_valid && b_ready) begin
+                    r_b_ready <= 0;
+                end
+                
+                // notify prev module
+                if (w_valid && w_ready) begin
+                    // pc <= dnpc;
+                    r_dnpc <= pc + 4;
+                    r_result <= 0;
+                    r_result_mem_width <= 0;
+                    r_result_update_csr <= 0;
+                    r_prev_ready <= 1;
+                end
+
+            end else begin
+                r_dnpc <= pc + 4;
+                r_result <= 0;
+                r_result_mem_width <= 0;
+                r_result_update_csr <= 1;
+
+                case (inst_code)
+                    `INST_LB:           r_result <= sext(read_raw_mem(src1 + imm, 1), 8);
+                    `INST_LH:           r_result <= sext(read_raw_mem(src1 + imm, 2), 16);
+                    `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
+                    `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
+                    `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
+                    default: ;
+                endcase
+                r_prev_ready <= 1;
+
+            end
+
         end
+        if (prev_valid && prev_ready) begin
+            r_prev_ready <= 0;
+        end
+        
+        if (prev_valid && prev_ready) begin
+            r_next_valid <= 1;
+        end
+        if (next_valid && next_ready) begin
+            r_next_valid <= 0;
+        end
+
     end
 end
 endmodule
