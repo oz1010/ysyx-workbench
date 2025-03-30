@@ -48,6 +48,7 @@ assign mem_result_width = r_result_mem_width;
 assign result_update_csr = r_result_update_csr;
 
 wire [31:0] src1 = x[rs1];
+wire [31:0] src2 = x[rs2];
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -74,6 +75,9 @@ always @(posedge clk or posedge rst) begin
                 `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
                 `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
                 `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
+                `INST_SB:           begin write_raw_mem(src1 + imm, 1, src2&32'hFF); r_result_update_csr <= 0; end
+                `INST_SH:           begin write_raw_mem(src1 + imm, 2, src2&32'hFFFF); r_result_update_csr <= 0; end
+                `INST_SW:           begin write_raw_mem(src1 + imm, 4, src2); r_result_update_csr <= 0; end
                 default: ;
             endcase
         end
