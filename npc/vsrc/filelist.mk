@@ -19,6 +19,7 @@ VERILATOR   = verilator
 
 VDIRS-y									+= ./vsrc/cpu/common
 VDIRS-y									+= ./vsrc/cpu
+VDIRS-y									+= ./vsrc/device
 VDIRS-$(CONFIG_ISA_RISCV_MULTIPLE)		+= ./vsrc/cpu/multiple
 VDIRS-$(CONFIG_ISA_RISCV_SINGLE)		+= ./vsrc/cpu/single
 
