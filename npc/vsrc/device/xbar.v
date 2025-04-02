@@ -29,9 +29,9 @@ module xbar #(
     output wire [RRESP_WIDTH-1:0] r_resps[0:MASTER_COUNT-1]
 );
 
-reg [MASTER_COUNT-1:0] signal_enable;
-reg [MASTER_COUNT-1:0] grant;
-reg [MASTER_COUNT-1:0] last_granted;
+reg [MASTER_COUNT-1:0] m_signal_en;
+reg [MASTER_COUNT-1:0] m_grant;
+reg [MASTER_COUNT-1:0] m_grant_idx;
 reg aw_valid;
 wire aw_ready;
 reg [ADDR_WIDTH-1:0] aw_addr;
@@ -49,7 +49,7 @@ wire r_valid;
 reg r_ready;
 wire [DATA_WIDTH-1:0] r_data;
 wire [RRESP_WIDTH-1:0] r_resp;
-reg [SLAVE_COUNT:0] slave_grant;
+reg [SLAVE_COUNT-1:0] s_grant;
 
 parameter logic [ADDR_WIDTH-1:0] dev_addr_bases[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_BASE, `DEV_UART_ADDR_BASE};
 parameter logic [ADDR_WIDTH-1:0] dev_addr_ends[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_END, `DEV_UART_ADDR_END};
@@ -96,20 +96,20 @@ sram_axi4 #(
 );
 
 // arbiter
-// grant记录授权为相应的位置1
-// last_granted记录上次授权编号，便于实现轮询遍历
+// m_grant记录授权为相应的位置
+// m_grant_idx记录上次授权编号，便于实现轮询遍历
 integer t;
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        grant <= 0;
-        last_granted <= 0;
+        m_grant <= 0;
+        m_grant_idx <= 0;
     end else begin
-        grant <= 0; // default is not granted
+        m_grant <= 0; // default is not granted
 
         for (t=0; t<MASTER_COUNT; ++t) begin
-            if (signal_enable[(last_granted + t[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
-                grant[(last_granted + t[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
-                last_granted <= (last_granted + t[MASTER_COUNT-1:0]) % MASTER_COUNT;
+            if (m_signal_en[(m_grant_idx + t[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
+                m_grant[(m_grant_idx + t[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
+                m_grant_idx <= (m_grant_idx + t[MASTER_COUNT-1:0]) % MASTER_COUNT;
                 break;
             end
         end
@@ -120,16 +120,16 @@ end
 genvar i;
 generate
     for (i = 0; i < MASTER_COUNT; ++i) begin : signal_gen
-        assign signal_enable[i] = aw_valids[i] | w_valids[i] | b_valids[i] | ar_valids[i] | r_valids[i];
+        assign m_signal_en[i] = aw_valids[i] | w_valids[i] | b_valids[i] | ar_valids[i] | r_valids[i];
 
-        assign aw_readys[i] = (aw_ready & {$bits(aw_ready){grant[i]}});
-        assign w_readys[i] = (w_ready & {$bits(w_ready){grant[i]}});
-        assign b_valids[i] = (b_valid & {$bits(b_valid){grant[i]}});
+        assign aw_readys[i] = (aw_ready & {$bits(aw_ready){m_grant[i]}});
+        assign w_readys[i] = (w_ready & {$bits(w_ready){m_grant[i]}});
+        assign b_valids[i] = (b_valid & {$bits(b_valid){m_grant[i]}});
         assign b_resps[i] = b_resp;
-        assign ar_readys[i] = (ar_ready & {$bits(ar_ready){grant[i]}});
-        assign r_valids[i] = (r_valid & {$bits(r_valid){grant[i]}});
+        assign ar_readys[i] = (ar_ready & {$bits(ar_ready){m_grant[i]}});
+        assign r_valids[i] = (r_valid & {$bits(r_valid){m_grant[i]}});
         assign r_datas[i] = r_data;
-        assign r_resps[i] = (r_resp & {$bits(r_resp){grant[i]}});
+        assign r_resps[i] = (r_resp & {$bits(r_resp){m_grant[i]}});
     end
 endgenerate
 
@@ -146,7 +146,7 @@ always @(*) begin
     r_ready = 0;
 
     for (int m=0; m<MASTER_COUNT; ++m) begin
-        if (grant[m]) begin
+        if (m_grant[m]) begin
             aw_valid = aw_valids[m];
             aw_addr = aw_addrs[m];
             w_valid = w_valids[m];
@@ -164,18 +164,18 @@ end
 // slave选择逻辑
 // 要求读写地址在通信期间地址不改变
 always @(*) begin
-    slave_grant = 3'h0;
+    s_grant = 0;
     
-    if (grant != 0) begin
+    if (m_grant != 0) begin
         for (int midx=0; midx<=MASTER_COUNT; ++midx) begin
-            if (grant[midx]) begin
+            if (m_grant[midx]) begin
                 for (int n=0; n<SLAVE_COUNT; ++n) begin
                     if ((aw_addr >= dev_addr_bases[n] && aw_addr <= dev_addr_ends[n]) ||
                         (ar_addr >= dev_addr_bases[n] && ar_addr <= dev_addr_ends[n])) begin
                         // if (n==1) begin
                         //     $display("Found sram %x %x", ar_addr, aw_addr);
                         // end
-                        slave_grant[n] = 1;
+                        s_grant[n] = 1;
                         break;
                     end
                 end
