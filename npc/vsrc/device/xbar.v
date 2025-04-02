@@ -1,5 +1,6 @@
 module xbar #(
     parameter MASTER_COUNT = 1,
+    parameter SLAVE_COUNT = 2,
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter BRESP_WIDTH = 3,
@@ -48,6 +49,10 @@ wire r_valid;
 reg r_ready;
 wire [DATA_WIDTH-1:0] r_data;
 wire [RRESP_WIDTH-1:0] r_resp;
+reg [SLAVE_COUNT:0] slave_grant;
+
+parameter logic [ADDR_WIDTH-1:0] dev_addr_bases[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_BASE, `DEV_UART_ADDR_BASE};
+parameter logic [ADDR_WIDTH-1:0] dev_addr_ends[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_END, `DEV_UART_ADDR_END};
 
 function integer log2;
     input integer value;
@@ -111,6 +116,7 @@ always @(posedge clk or posedge rst) begin
     end    
 end
 
+// manager输出引脚处理
 genvar i;
 generate
     for (i = 0; i < MASTER_COUNT; ++i) begin : signal_gen
@@ -127,6 +133,7 @@ generate
     end
 endgenerate
 
+// manager输入引脚处理
 always @(*) begin
     aw_valid = 0;
     aw_addr = 0;
@@ -150,6 +157,27 @@ always @(*) begin
             ar_addr = ar_addrs[m];
             r_ready = r_readys[m];
             break;
+        end
+    end
+end
+
+// slave选择逻辑
+// 要求读写地址在通信期间地址不改变
+always @(*) begin
+    slave_grant = 3'h0;
+    
+    if (grant != 0) begin
+        for (int midx=0; midx<=MASTER_COUNT; ++midx) begin
+            if (grant[midx]) begin
+                for (int n=0; n<SLAVE_COUNT; ++n) begin
+                    if ((aw_addr >= dev_addr_bases[n] && aw_addr <= dev_addr_ends[n]) ||
+                        (ar_addr >= dev_addr_bases[n] && ar_addr <= dev_addr_ends[n])) begin
+                        slave_grant[n] = 1;
+                        break;
+                    end
+                end
+                break;
+            end
         end
     end
 end
