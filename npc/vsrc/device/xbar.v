@@ -10,28 +10,28 @@ module xbar #(
     input wire clk,
     input wire rst,
 
-    input wire aw_valids[MASTER_COUNT-1:0],
-    output wire aw_readys[MASTER_COUNT-1:0],
-    input wire [ADDR_WIDTH-1:0] aw_addrs[MASTER_COUNT-1:0],
-    input wire w_valids[MASTER_COUNT-1:0],
-    output wire w_readys[MASTER_COUNT-1:0],
-    input wire [DATA_WIDTH-1:0] w_datas[MASTER_COUNT-1:0],
-    input wire [DATA_WIDTH/8-1:0] w_strbs[MASTER_COUNT-1:0],
-    output wire b_valids[MASTER_COUNT-1:0],
-    input wire b_readys[MASTER_COUNT-1:0],
-    output wire [BRESP_WIDTH-1:0] b_resps[MASTER_COUNT-1:0],
-    input wire ar_valids[MASTER_COUNT-1:0],
-    output wire ar_readys[MASTER_COUNT-1:0],
-    input wire [ADDR_WIDTH-1:0] ar_addrs[MASTER_COUNT-1:0],
-    output wire r_valids[MASTER_COUNT-1:0],
-    input wire r_readys[MASTER_COUNT-1:0],
-    output wire [DATA_WIDTH-1:0] r_datas[MASTER_COUNT-1:0],
-    output wire [RRESP_WIDTH-1:0] r_resps[MASTER_COUNT-1:0]
+    input wire aw_valids[0:MASTER_COUNT-1],
+    output wire aw_readys[0:MASTER_COUNT-1],
+    input wire [ADDR_WIDTH-1:0] aw_addrs[0:MASTER_COUNT-1],
+    input wire w_valids[0:MASTER_COUNT-1],
+    output wire w_readys[0:MASTER_COUNT-1],
+    input wire [DATA_WIDTH-1:0] w_datas[0:MASTER_COUNT-1],
+    input wire [DATA_WIDTH/8-1:0] w_strbs[0:MASTER_COUNT-1],
+    output wire b_valids[0:MASTER_COUNT-1],
+    input wire b_readys[0:MASTER_COUNT-1],
+    output wire [BRESP_WIDTH-1:0] b_resps[0:MASTER_COUNT-1],
+    input wire ar_valids[0:MASTER_COUNT-1],
+    output wire ar_readys[0:MASTER_COUNT-1],
+    input wire [ADDR_WIDTH-1:0] ar_addrs[0:MASTER_COUNT-1],
+    output wire r_valids[0:MASTER_COUNT-1],
+    input wire r_readys[0:MASTER_COUNT-1],
+    output wire [DATA_WIDTH-1:0] r_datas[0:MASTER_COUNT-1],
+    output wire [RRESP_WIDTH-1:0] r_resps[0:MASTER_COUNT-1]
 );
 
 reg [MASTER_COUNT-1:0] signal_enable;
-reg [MASTER_COUNT:0] grant;
-reg [MASTER_COUNT:0] last_granted;
+reg [MASTER_COUNT-1:0] grant;
+reg [MASTER_COUNT-1:0] last_granted;
 reg aw_valid;
 wire aw_ready;
 reg [ADDR_WIDTH-1:0] aw_addr;
@@ -107,9 +107,9 @@ always @(posedge clk or posedge rst) begin
         grant <= 0; // default is not granted
 
         for (t=0; t<MASTER_COUNT; ++t) begin
-            if (signal_enable[(last_granted + t[MASTER_COUNT:0]) % MASTER_COUNT]) begin
-                grant[(last_granted + t[MASTER_COUNT:0]) % MASTER_COUNT] <= 1;
-                last_granted <= (last_granted + t[MASTER_COUNT:0]) % MASTER_COUNT;
+            if (signal_enable[(last_granted + t[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
+                grant[(last_granted + t[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
+                last_granted <= (last_granted + t[MASTER_COUNT-1:0]) % MASTER_COUNT;
                 break;
             end
         end
@@ -172,6 +172,9 @@ always @(*) begin
                 for (int n=0; n<SLAVE_COUNT; ++n) begin
                     if ((aw_addr >= dev_addr_bases[n] && aw_addr <= dev_addr_ends[n]) ||
                         (ar_addr >= dev_addr_bases[n] && ar_addr <= dev_addr_ends[n])) begin
+                        // if (n==1) begin
+                        //     $display("Found sram %x %x", ar_addr, aw_addr);
+                        // end
                         slave_grant[n] = 1;
                         break;
                     end
