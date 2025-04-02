@@ -73,15 +73,15 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-/* sram模块 */
-sram_axi4_arbiter #(
+/* xbar模块 */
+xbar #(
     .MASTER_COUNT(2),
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH),
     .SRAM_READ_DELAY(SRAM_READ_DELAY)
-) m_sram_axi4_arbiter(
+) m_xbar(
     .clk(clk),
     .rst(rst),
     .aw_valids({0, aw_valid_2}),
