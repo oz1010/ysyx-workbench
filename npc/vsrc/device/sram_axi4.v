@@ -46,7 +46,7 @@ reg r_r_valid;
 reg [DATA_WIDTH-1:0] r_r_data;
 reg [RRESP_WIDTH-1:0] r_r_resp;
 
-wire [DATA_WIDTH-1:0] w_mem_result_width = {{DATA_WIDTH-DATA_WIDTH/8{1'b0}}, w_strb};
+wire [DATA_WIDTH-1:0] w_write_width = {{DATA_WIDTH-DATA_WIDTH/8{1'b0}}, w_strb};
 
 assign aw_ready = r_aw_ready;
 assign w_ready = r_w_ready;
@@ -117,7 +117,7 @@ always @(posedge clk or posedge rst) begin
             r_w_ready <= 1;
         end
         if (w_valid && w_ready) begin
-            write_raw_mem(r_write_mem_addr, w_mem_result_width, w_data);
+            write_raw_mem(r_write_mem_addr, w_write_width, w_data);
             r_w_ready <= 0;
         end
 
