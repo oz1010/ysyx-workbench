@@ -82,8 +82,10 @@
 `define SRAM_TYPE_AXI4      0
 `define SRAM_TYPE_SCOM      1
 
+`define DEV_SRAM_IDX        0
 `define DEV_SRAM_ADDR_BASE  32'h8000_0000
 `define DEV_SRAM_ADDR_END   32'h80ff_ffff
 
+`define DEV_UART_IDX        1
 `define DEV_UART_ADDR_BASE  32'ha000_03f8
 `define DEV_UART_ADDR_END   32'ha000_03ff
