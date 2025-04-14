@@ -172,11 +172,8 @@ always @(posedge clk or posedge rst) begin
             for (int sidx=0; sidx<SLAVE_COUNT; ++sidx) begin
                 if ((aw_valid && aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
                     (ar_valid && ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
-                    // TODO 临时强制指定为0
-                    // s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
-                    // s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
-                    s_grant[0] <= 1;
-                    s_grant_idx <= 0;
+                    s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
+                    s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
                     break;
                 end
             end

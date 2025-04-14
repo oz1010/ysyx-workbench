@@ -9,6 +9,7 @@
 #include "common/mtrace.h"
 #include "cpu/cpu.h"
 #include "trace.h"
+#include "device/mmio.h"
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 
@@ -61,6 +62,15 @@ void write_raw_mem(int addr, int len, int data)
     // raw_stdout("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
     paddr_write(addr, len, data);
+    MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
+}
+
+void write_raw_dev(int addr, int len, int data)
+{
+    // raw_stdout("Device write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    // addr &= ~0x3u;  // 读写地址四字节对齐
+    // paddr_write(addr, len, data);
+    mmio_write(addr, len, data);
     MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
 

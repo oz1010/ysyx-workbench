@@ -85,6 +85,11 @@ int exec_vsimu(Decode *s)
         top->contextp()->timeInc(1);
         top->eval();
         RECORD_TRACE_VCD();
+
+        // if (top->contextp()->time() >= 1000000) {
+        //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
+        //     exit(-1);
+        // }
     } while (top->valid != 1);
 
     // 同步模拟处理器到cpu
