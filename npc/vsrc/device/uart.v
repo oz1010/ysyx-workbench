@@ -88,8 +88,11 @@ always @(posedge clk or posedge rst) begin
             r_w_ready <= 1;
         end
         if (w_valid && w_ready) begin
-            write_raw_dev(r_write_addr, w_mem_result_width, w_data);
             // $display("====== uart:%x strb:%d '%c'", r_write_addr, w_strb, w_data[7:0]);
+            // print data
+            $write("%c", w_data[7:0]);
+            $fflush();
+            write_raw_dev(r_write_addr, w_mem_result_width, w_data);
             r_w_ready <= 0;
         end
 
@@ -103,7 +106,7 @@ always @(posedge clk or posedge rst) begin
             r_b_resp <= 0;
         end
 
-        // // read request
+        // read request
         // if (!r_ar_ready && !r_ready) begin
         //     r_ar_ready <= 1;
         // end
@@ -111,16 +114,16 @@ always @(posedge clk or posedge rst) begin
         //     r_ar_ready <= 0;
         // end
 
-        // // read data
-        // if (ar_valid && ar_ready) begin
-        //     r_r_data <= fetch_inst(ar_addr);
-        //     r_r_valid <= 1;
-        // end
-        // if (r_valid && r_ready) begin
-        //     r_r_valid <= 0;
-        //     // r_r_data <= 0;
-        //     r_r_resp <= 0;
-        // end
+        // read data
+        if (ar_valid && ar_ready) begin
+            $display("uart don't support read, addr:%x strb:%d data:%x", r_write_addr, w_strb, w_data);
+            $finish();
+            r_r_valid <= 1;
+        end
+        if (r_valid && r_ready) begin
+            r_r_valid <= 0;
+            r_r_resp <= 0;
+        end
     end
 end
 
