@@ -89,3 +89,7 @@
 `define DEV_UART_IDX        1
 `define DEV_UART_ADDR_BASE  32'ha000_03f8
 `define DEV_UART_ADDR_END   32'ha000_03ff
+
+`define DEV_RTC_IDX         2
+`define DEV_RTC_ADDR_BASE   32'ha000_0048
+`define DEV_RTC_ADDR_END    32'ha000_0057

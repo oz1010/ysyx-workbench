@@ -66,6 +66,15 @@ void write_raw_mem(int addr, int len, int data)
     MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
 
+int read_raw_mem(int addr, int len)
+{
+    // addr &= ~0x3u;  // 读写地址四字节对齐
+    int data = paddr_read(addr, len);
+    // raw_stdout("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    MTRACE_ADD("R [%#.8x] => %#.8x %d", addr, data, len);
+    return data;
+}
+
 void write_raw_dev(int addr, int len, int data)
 {
     // raw_stdout("Device write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
@@ -79,11 +88,16 @@ void write_raw_dev(int addr, int len, int data)
     MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
 
-int read_raw_mem(int addr, int len)
+int read_raw_dev(int addr, int len, int data)
 {
+    // raw_stdout("Device write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
-    int data = paddr_read(addr, len);
-    // raw_stdout("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+    // paddr_write(addr, len, data);
+    // mmio_write(addr, len, data);
+
+    // 必须跳过检查，否则开启diff会报错
+    difftest_skip_ref();
+
     MTRACE_ADD("R [%#.8x] => %#.8x %d", addr, data, len);
     return data;
 }
