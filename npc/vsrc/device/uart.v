@@ -116,7 +116,7 @@ always @(posedge clk or posedge rst) begin
 
         // read data
         if (ar_valid && ar_ready) begin
-            $display("uart don't support read, addr:%x strb:%d data:%x", r_write_addr, w_strb, w_data);
+            $display("uart don't support read, addr:%x", ar_addr);
             $finish();
             r_r_valid <= 1;
         end
