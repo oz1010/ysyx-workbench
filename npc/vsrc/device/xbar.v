@@ -148,14 +148,37 @@ always @(posedge clk or posedge rst) begin
     if (rst) begin
         m_grant <= 0;
         m_grant_idx <= 0;
+        s_grant <= 0;
+        s_grant_idx <= 0;
     end else begin
-        m_grant <= 0; // default is not granted
+        m_grant <= m_grant;
+        m_grant_idx <= m_grant_idx;
+        s_grant <= s_grant;
+        s_grant_idx <= s_grant_idx;
+        
+        if (m_signal_en > 0) begin
+            m_grant <= 0;
+            for (integer midx=0; midx<MASTER_COUNT; ++midx) begin
+                if (m_signal_en[(m_grant_idx + midx[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
+                    m_grant[(m_grant_idx + midx[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
+                    m_grant_idx <= (m_grant_idx + midx[$bits(m_grant_idx)-1:0]) % MASTER_COUNT;
+                    break;
+                end
+            end
+        end
 
-        for (integer midx=0; midx<MASTER_COUNT; ++midx) begin
-            if (m_signal_en[(m_grant_idx + midx[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
-                m_grant[(m_grant_idx + midx[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
-                m_grant_idx <= (m_grant_idx + midx[$bits(m_grant_idx)-1:0]) % MASTER_COUNT;
-                break;
+        if (aw_valid || ar_valid) begin
+            s_grant <= 0;
+            for (int sidx=0; sidx<SLAVE_COUNT; ++sidx) begin
+                if ((aw_valid && aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
+                    (ar_valid && ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
+                    // TODO 临时强制指定为0
+                    // s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
+                    // s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
+                    s_grant[0] <= 1;
+                    s_grant_idx <= 0;
+                    break;
+                end
             end
         end
     end    
@@ -178,29 +201,29 @@ generate
     for (genvar i = 0; i < MASTER_COUNT; ++i) begin : m_sig_out_gen
         assign m_signal_en[i] = m_aw_valids[i] | m_w_valids[i] | m_b_valids[i] | m_ar_valids[i] | m_r_valids[i];
 
-        assign m_aw_readys[i] = (aw_ready & {$bits(aw_ready){m_grant[i]}});
-        assign m_w_readys[i] = (w_ready & {$bits(w_ready){m_grant[i]}});
-        assign m_b_valids[i] = (b_valid & {$bits(b_valid){m_grant[i]}});
+        assign m_aw_readys[i] = (aw_ready & {$bits(aw_ready){m_grant_idx==i}});
+        assign m_w_readys[i] = (w_ready & {$bits(w_ready){m_grant_idx==i}});
+        assign m_b_valids[i] = (b_valid & {$bits(b_valid){m_grant_idx==i}});
         assign m_b_resps[i] = b_resp;
-        assign m_ar_readys[i] = (ar_ready & {$bits(ar_ready){m_grant[i]}});
-        assign m_r_valids[i] = (r_valid & {$bits(r_valid){m_grant[i]}});
+        assign m_ar_readys[i] = (ar_ready & {$bits(ar_ready){m_grant_idx==i}});
+        assign m_r_valids[i] = (r_valid & {$bits(r_valid){m_grant_idx==i}});
         assign m_r_datas[i] = r_data;
-        assign m_r_resps[i] = (r_resp & {$bits(r_resp){m_grant[i]}});
+        assign m_r_resps[i] = (r_resp & {$bits(r_resp){m_grant_idx==i}});
     end
 endgenerate
 
 // slave输入引脚处理
 generate
     for (genvar i = 0; i < SLAVE_COUNT; ++i ) begin : s_sig_in_gen
-        assign s_aw_valids[i] = (aw_valid & {$bits(aw_valid){s_grant[i]}});
-        assign s_aw_addrs[i] = (aw_addr & {$bits(aw_addr){s_grant[i]}});
-        assign s_w_valids[i] = (w_valid & {$bits(w_valid){s_grant[i]}});
-        assign s_w_datas[i] = (w_data & {$bits(w_data){s_grant[i]}});
-        assign s_w_strbs[i] = (w_strb & {$bits(w_strb){s_grant[i]}});
-        assign s_b_readys[i] = (b_ready & {$bits(b_ready){s_grant[i]}});
-        assign s_ar_valids[i] = (ar_valid & {$bits(ar_valid){s_grant[i]}});
-        assign s_ar_addrs[i] = (ar_addr & {$bits(ar_addr){s_grant[i]}});
-        assign s_r_readys[i] = (r_ready & {$bits(r_ready){s_grant[i]}});
+        assign s_aw_valids[i] = (aw_valid & {$bits(aw_valid){s_grant_idx==i}});
+        assign s_aw_addrs[i] = (aw_addr & {$bits(aw_addr){s_grant_idx==i}});
+        assign s_w_valids[i] = (w_valid & {$bits(w_valid){s_grant_idx==i}});
+        assign s_w_datas[i] = (w_data & {$bits(w_data){s_grant_idx==i}});
+        assign s_w_strbs[i] = (w_strb & {$bits(w_strb){s_grant_idx==i}});
+        assign s_b_readys[i] = (b_ready & {$bits(b_ready){s_grant_idx==i}});
+        assign s_ar_valids[i] = (ar_valid & {$bits(ar_valid){s_grant_idx==i}});
+        assign s_ar_addrs[i] = (ar_addr & {$bits(ar_addr){s_grant_idx==i}});
+        assign s_r_readys[i] = (r_ready & {$bits(r_ready){s_grant_idx==i}});
     end
 endgenerate
 // slave输出引脚处理
@@ -212,31 +235,5 @@ assign b_valid = s_b_valids[s_grant_idx%SLAVE_COUNT];
 assign ar_ready = s_ar_readys[s_grant_idx%SLAVE_COUNT];
 assign r_valid = s_r_valids[s_grant_idx%SLAVE_COUNT];
 assign r_resp = s_r_resps[s_grant_idx%SLAVE_COUNT];
-
-// slave选择逻辑
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        s_grant <= 0;
-        s_grant_idx <= 0;
-    end else begin
-        s_grant <= s_grant;
-        s_grant_idx <= s_grant_idx;
-
-        if (aw_valid || ar_valid) begin
-            s_grant <= 0;
-            for (int sidx=0; sidx<SLAVE_COUNT; ++sidx) begin
-                if ((aw_valid && aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
-                    (ar_valid && ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
-                    // TODO 临时强制指定为0
-                    // s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
-                    // s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
-                    s_grant[0] <= 1;
-                    s_grant_idx <= 0;
-                    break;
-                end
-            end
-        end
-    end
-end
 
 endmodule
