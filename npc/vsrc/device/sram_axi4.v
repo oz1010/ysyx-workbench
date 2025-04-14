@@ -35,7 +35,7 @@ module sram_axi4 #(
 
 reg [7:0] r_delay_cnt;
 reg r_delay_enable;
-reg [ADDR_WIDTH-1:0] r_write_mem_addr;
+reg [ADDR_WIDTH-1:0] r_write_addr;
 
 reg r_aw_ready;
 reg r_w_ready;
@@ -83,7 +83,7 @@ end
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_write_mem_addr <= 0;
+        r_write_addr <= 0;
         r_aw_ready <= 0;
         r_w_ready <= 0;
         r_b_valid <= 0;
@@ -93,7 +93,7 @@ always @(posedge clk or posedge rst) begin
         r_r_data <= 0;
         r_r_resp <= 0;
     end else begin
-        r_write_mem_addr <= r_write_mem_addr;
+        r_write_addr <= r_write_addr;
         r_aw_ready <= r_aw_ready;
         r_w_ready <= r_w_ready;
         r_b_valid <= r_b_valid;
@@ -108,7 +108,7 @@ always @(posedge clk or posedge rst) begin
             r_aw_ready <= 1;
         end
         if (aw_valid && aw_ready) begin
-            r_write_mem_addr <= aw_addr;
+            r_write_addr <= aw_addr;
             r_aw_ready <= 0;
         end
 
@@ -117,7 +117,7 @@ always @(posedge clk or posedge rst) begin
             r_w_ready <= 1;
         end
         if (w_valid && w_ready) begin
-            write_raw_mem(r_write_mem_addr, w_write_width, w_data);
+            write_raw_mem(r_write_addr, w_write_width, w_data);
             r_w_ready <= 0;
         end
 
