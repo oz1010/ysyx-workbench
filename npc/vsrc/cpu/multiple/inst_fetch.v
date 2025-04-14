@@ -76,13 +76,14 @@ generate
         reg r_ar_valid;
         reg [ADDR_WIDTH-1:0] r_ar_addr;
         reg r_r_ready;
+        reg [INST_WIDTH-1:0] r_inst;
 
         assign ar_valid = r_ar_valid;
         assign ar_addr = r_ar_addr;
         assign r_ready = r_r_ready;
 
         assign next_valid = r_valid && r_ready;
-        assign inst = r_data;
+        assign inst = r_inst;
 
         wire [7:0] delay_ar_valid_cur_cnt;
         wire delay_ar_valid_enable;
@@ -136,6 +137,9 @@ generate
                 if ((r_ready_enable && delay_r_ready_cur_cnt == 0) ||
                     (delay_r_ready_enable && delay_r_ready_cnt == 1)) begin
                     r_r_ready <= 1;
+                end
+                if (r_valid) begin
+                    r_inst <= r_data;
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;

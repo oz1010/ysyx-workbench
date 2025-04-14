@@ -31,7 +31,7 @@ module xbar #(
 
 reg [MASTER_COUNT-1:0] m_signal_en;
 reg [MASTER_COUNT-1:0] m_grant;
-reg [MASTER_COUNT-1:0] m_grant_idx;
+reg [log2(MASTER_COUNT):0] m_grant_idx;
 reg aw_valid;
 reg aw_ready;
 reg [ADDR_WIDTH-1:0] aw_addr;
@@ -68,6 +68,7 @@ wire s_r_readys[0:SLAVE_COUNT-1];
 wire [DATA_WIDTH-1:0] s_r_datas[0:SLAVE_COUNT-1];
 wire [RRESP_WIDTH-1:0] s_r_resps[0:SLAVE_COUNT-1];
 reg [SLAVE_COUNT-1:0] s_grant;
+reg [log2(SLAVE_COUNT):0] s_grant_idx;
 
 parameter logic [ADDR_WIDTH-1:0] dev_addr_bases[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_BASE, `DEV_UART_ADDR_BASE};
 parameter logic [ADDR_WIDTH-1:0] dev_addr_ends[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_END, `DEV_UART_ADDR_END};
@@ -150,16 +151,28 @@ always @(posedge clk or posedge rst) begin
     end else begin
         m_grant <= 0; // default is not granted
 
-        for (integer t=0; t<MASTER_COUNT; ++t) begin
-            if (m_signal_en[(m_grant_idx + t[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
-                m_grant[(m_grant_idx + t[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
-                m_grant_idx <= (m_grant_idx + t[MASTER_COUNT-1:0]) % MASTER_COUNT;
+        for (integer midx=0; midx<MASTER_COUNT; ++midx) begin
+            if (m_signal_en[(m_grant_idx + midx[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
+                m_grant[(m_grant_idx + midx[MASTER_COUNT-1:0]) % MASTER_COUNT] <= 1;
+                m_grant_idx <= (m_grant_idx + midx[$bits(m_grant_idx)-1:0]) % MASTER_COUNT;
                 break;
             end
         end
     end    
 end
 
+// manager输入引脚处理
+wire aw_valid_test0 = m_aw_valids[0];
+wire aw_valid_test1 = m_aw_valids[1];
+assign aw_valid = m_aw_valids[m_grant_idx%MASTER_COUNT];
+assign aw_addr = m_aw_addrs[m_grant_idx%MASTER_COUNT];
+assign w_valid = m_w_valids[m_grant_idx%MASTER_COUNT];
+assign w_data = m_w_datas[m_grant_idx%MASTER_COUNT];
+assign w_strb = m_w_strbs[m_grant_idx%MASTER_COUNT];
+assign b_ready = m_b_readys[m_grant_idx%MASTER_COUNT];
+assign ar_valid = m_ar_valids[m_grant_idx%MASTER_COUNT];
+assign ar_addr = m_ar_addrs[m_grant_idx%MASTER_COUNT];
+assign r_ready = m_r_readys[m_grant_idx%MASTER_COUNT];
 // manager输出引脚处理
 generate
     for (genvar i = 0; i < MASTER_COUNT; ++i) begin : m_sig_out_gen
@@ -176,34 +189,6 @@ generate
     end
 endgenerate
 
-// manager输入引脚处理
-always @(*) begin
-    aw_valid = 0;
-    aw_addr = 0;
-    w_valid = 0;
-    w_data = 0;
-    w_strb = 0;
-    b_ready = 0;
-    ar_valid = 0;
-    ar_addr = 0;
-    r_ready = 0;
-
-    for (int m=0; m<MASTER_COUNT; ++m) begin
-        if (m_grant[m]) begin
-            aw_valid = m_aw_valids[m];
-            aw_addr = m_aw_addrs[m];
-            w_valid = m_w_valids[m];
-            w_data = m_w_datas[m];
-            w_strb = m_w_strbs[m];
-            b_ready = m_b_readys[m];
-            ar_valid = m_ar_valids[m];
-            ar_addr = m_ar_addrs[m];
-            r_ready = m_r_readys[m];
-            break;
-        end
-    end
-end
-
 // slave输入引脚处理
 generate
     for (genvar i = 0; i < SLAVE_COUNT; ++i ) begin : s_sig_in_gen
@@ -218,65 +203,37 @@ generate
         assign s_r_readys[i] = (r_ready & {$bits(r_ready){s_grant[i]}});
     end
 endgenerate
-
 // slave输出引脚处理
-always @(*) begin
-    aw_ready = 0;
-    w_ready = 0;
-    b_valid = 0;
-    ar_ready = 0;
-    r_valid = 0;
-    r_resp = 0;
-
-    for (int s=0; s<SLAVE_COUNT; ++s) begin
-        if (s_grant[s]) begin
-            aw_ready = s_aw_readys[s];
-            w_ready = s_w_readys[s];
-            b_valid = s_b_valids[s];
-            ar_ready = s_ar_readys[s];
-            r_valid = s_r_valids[s];
-            r_resp = s_r_resps[s];
-        end
-    end
-end
-
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        r_data <= 0;
-        b_resp <= 0;
-    end else begin
-        r_data <= r_data;
-        b_resp <= b_resp;
-        for (int s=0; s<SLAVE_COUNT; ++s) begin
-            if (s_grant[s]) begin
-                r_data <= s_r_datas[s];
-                b_resp <= s_b_resps[s];
-            end
-        end
-    end
-end
+assign r_data = s_r_datas[s_grant_idx%SLAVE_COUNT];
+assign b_resp = s_b_resps[s_grant_idx%SLAVE_COUNT];
+assign aw_ready = s_aw_readys[s_grant_idx%SLAVE_COUNT];
+assign w_ready = s_w_readys[s_grant_idx%SLAVE_COUNT];
+assign b_valid = s_b_valids[s_grant_idx%SLAVE_COUNT];
+assign ar_ready = s_ar_readys[s_grant_idx%SLAVE_COUNT];
+assign r_valid = s_r_valids[s_grant_idx%SLAVE_COUNT];
+assign r_resp = s_r_resps[s_grant_idx%SLAVE_COUNT];
 
 // slave选择逻辑
-// 要求读写地址在通信期间地址不改变
-always @(*) begin
-    s_grant = 0;
-    
-    if (m_grant != 0) begin
-        for (int midx=0; midx<=MASTER_COUNT; ++midx) begin
-            if (m_grant[midx]) begin
-                for (int n=0; n<SLAVE_COUNT; ++n) begin
-                    if ((aw_addr >= dev_addr_bases[n] && aw_addr <= dev_addr_ends[n]) ||
-                        (ar_addr >= dev_addr_bases[n] && ar_addr <= dev_addr_ends[n])) begin
-                        // if (n==1) begin
-                        //     $display("Found sram %x %x", ar_addr, aw_addr);
-                        // end
-                        // TODO 临时强制指定为0
-                        // s_grant[n] = 1;
-                        s_grant[0] = 1;
-                        break;
-                    end
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        s_grant <= 0;
+        s_grant_idx <= 0;
+    end else begin
+        s_grant <= s_grant;
+        s_grant_idx <= s_grant_idx;
+
+        if (aw_valid || ar_valid) begin
+            s_grant <= 0;
+            for (int sidx=0; sidx<SLAVE_COUNT; ++sidx) begin
+                if ((aw_valid && aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
+                    (ar_valid && ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
+                    // TODO 临时强制指定为0
+                    // s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
+                    // s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
+                    s_grant[0] <= 1;
+                    s_grant_idx <= 0;
+                    break;
                 end
-                break;
             end
         end
     end
