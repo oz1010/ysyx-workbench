@@ -132,7 +132,7 @@ always @(posedge clk or posedge rst) begin
         end
 
         // read request
-        if (!r_ar_ready && !r_ready) begin
+        if (!r_ar_ready && !r_ready && ar_valid) begin
             r_ar_ready <= 1;
         end
         if (ar_valid && ar_ready) begin

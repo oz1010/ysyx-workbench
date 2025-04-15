@@ -28,7 +28,7 @@ wire ls_enable;
 wire ex_ls_valid;
 wire ex_ls_ready;
 
-/* axi4 信号 */
+/* ifu axi4 信号 */
 wire ar_valid_1;
 wire ar_ready_1;
 wire [ADDR_WIDTH-1:0] ar_addr_1;
@@ -36,6 +36,7 @@ wire r_valid_1;
 wire r_ready_1;
 wire [DATA_WIDTH-1:0] r_data_1;
 wire [RRESP_WIDTH-1:0] r_resp_1;
+/* lsu axi4 信号 */
 wire aw_valid_2;
 wire aw_ready_2;
 wire [ADDR_WIDTH-1:0] aw_addr_2;
@@ -82,7 +83,7 @@ end
 
 /* xbar模块 */
 xbar #(
-    .MASTER_COUNT(2),
+    .USER_M_COUNT(2),
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
@@ -91,23 +92,23 @@ xbar #(
 ) m_xbar(
     .clk(clk),
     .rst(rst),
-    .m_aw_valids({0, aw_valid_2}),
-    .m_aw_readys({0, aw_ready_2}),
-    .m_aw_addrs({0, aw_addr_2}),
-    .m_w_valids({0, w_valid_2}),
-    .m_w_readys({0, w_ready_2}),
-    .m_w_datas({0, w_data_2}),
-    .m_w_strbs({0, w_strb_2}),
-    .m_b_valids({0, b_valid_2}),
-    .m_b_readys({0, b_ready_2}),
-    .m_b_resps({0, b_resp_2}),
-    .m_ar_valids({ar_valid_1, ar_valid_2}),
-    .m_ar_readys({ar_ready_1, ar_ready_2}),
-    .m_ar_addrs({ar_addr_1, ar_addr_2}),
-    .m_r_valids({r_valid_1, r_valid_2}),
-    .m_r_readys({r_ready_1, r_ready_2}),
-    .m_r_datas({r_data_1, r_data_2}),
-    .m_r_resps({r_resp_1,r_resp_2})
+    .u_aw_valids({0, aw_valid_2}),
+    .u_aw_readys({0, aw_ready_2}),
+    .u_aw_addrs({0, aw_addr_2}),
+    .u_w_valids({0, w_valid_2}),
+    .u_w_readys({0, w_ready_2}),
+    .u_w_datas({0, w_data_2}),
+    .u_w_strbs({0, w_strb_2}),
+    .u_b_valids({0, b_valid_2}),
+    .u_b_readys({0, b_ready_2}),
+    .u_b_resps({0, b_resp_2}),
+    .u_ar_valids({ar_valid_1, ar_valid_2}),
+    .u_ar_readys({ar_ready_1, ar_ready_2}),
+    .u_ar_addrs({ar_addr_1, ar_addr_2}),
+    .u_r_valids({r_valid_1, r_valid_2}),
+    .u_r_readys({r_ready_1, r_ready_2}),
+    .u_r_datas({r_data_1, r_data_2}),
+    .u_r_resps({r_resp_1,r_resp_2})
 );
 
 /* 取指if */

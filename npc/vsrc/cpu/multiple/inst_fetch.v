@@ -118,10 +118,12 @@ generate
                 r_ar_valid <= 0;
                 r_ar_addr <= 0;
                 r_r_ready <= 0;
+                r_inst <= 0;
             end else begin
                 r_ar_valid <= r_ar_valid;
                 r_ar_addr <= r_ar_addr;
                 r_r_ready <= r_r_ready;
+                r_inst <= r_inst;
 
                 // read request
                 if ((ar_valid_enable && delay_ar_valid_cur_cnt == 0) ||
