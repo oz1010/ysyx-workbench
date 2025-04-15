@@ -88,6 +88,9 @@ assign result_update_csr = r_result_update_csr;
 wire [31:0] src1 = x[rs1];
 wire [31:0] src2 = x[rs2];
 
+wire [ADDR_WIDTH-1:0] signed_ar_addr = (src1 + imm) & (~32'h03); // 4字节对齐
+wire [DATA_WIDTH-1:0] signed_r_data_shift_bits = 8* ((src1 + imm) & (32'h03));
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_dnpc <= get_reset_pc();
@@ -173,7 +176,7 @@ always @(posedge clk or posedge rst) begin
                 end
                 // read request
                 if (!ar_valid && !r_valid) begin
-                    r_ar_addr <= src1 + imm;
+                    r_ar_addr <= signed_ar_addr; // 4字节对齐
                     r_ar_valid <= 1;
                 end
                 if (ar_valid && ar_ready) begin
@@ -185,12 +188,13 @@ always @(posedge clk or posedge rst) begin
                     r_r_ready <= 1;
                 end
                 if (r_valid) begin
+                    // 读取时需要按照4字节对齐计算偏移
                     case (inst_code)
-                        `INST_LB:           r_result <= sext(r_data & 32'h000000FF, 8);
-                        `INST_LH:           r_result <= sext(r_data & 32'h0000FFFF, 16);
-                        `INST_LW:           r_result <= sext(r_data & 32'hFFFFFFFF, 32);
-                        `INST_LBU:          r_result <= r_data & 32'hFF;
-                        `INST_LHU:          r_result <= r_data & 32'hFFFF;
+                        `INST_LB:           r_result <= sext((r_data>>signed_r_data_shift_bits) & 32'h000000FF, 8);
+                        `INST_LH:           r_result <= sext((r_data>>signed_r_data_shift_bits) & 32'h0000FFFF, 16);
+                        `INST_LW:           r_result <= sext((r_data>>signed_r_data_shift_bits) & 32'hFFFFFFFF, 32);
+                        `INST_LBU:          r_result <= (r_data>>signed_r_data_shift_bits) & 32'hFF;
+                        `INST_LHU:          r_result <= (r_data>>signed_r_data_shift_bits) & 32'hFFFF;
                         default: ;
                     endcase
                 end
