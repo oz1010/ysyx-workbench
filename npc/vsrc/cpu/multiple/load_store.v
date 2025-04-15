@@ -60,6 +60,9 @@ reg r_w_valid;
 reg [DATA_WIDTH-1:0] r_w_data;
 reg [DATA_WIDTH/8-1:0] r_w_strb;
 reg r_b_ready;
+reg r_ar_valid;
+reg [ADDR_WIDTH-1:0] r_ar_addr;
+reg r_r_ready;
 
 assign aw_valid = r_aw_valid;
 assign aw_addr = r_aw_addr;
@@ -68,6 +71,9 @@ assign w_data = r_w_data;
 assign w_strb = r_w_strb;
 assign b_ready = r_b_ready;
 wire [2:0] write_status = {b_valid, w_valid, aw_valid};
+assign ar_valid = r_ar_valid;
+assign ar_addr = r_ar_addr;
+assign r_ready = r_r_ready;
 
 reg [INST_WIDTH-1:0] r_dnpc;
 reg [INST_WIDTH-1:0] r_result;
@@ -96,6 +102,9 @@ always @(posedge clk or posedge rst) begin
         r_w_data <= 0;
         r_w_strb <= 0;
         r_b_ready <= 0;
+        r_ar_valid <= 0;
+        r_ar_addr <= 0;
+        r_r_ready <= 0;
     end else begin
         r_dnpc <= r_dnpc;
         r_result <= r_result;
@@ -108,6 +117,9 @@ always @(posedge clk or posedge rst) begin
         r_w_data <= r_w_data;
         r_w_strb <= r_w_strb;
         r_b_ready <= r_b_ready;
+        r_ar_valid <= r_ar_valid;
+        r_ar_addr <= r_ar_addr;
+        r_r_ready <= r_r_ready;
 
         if (prev_valid && !prev_ready) begin
             if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
@@ -153,21 +165,46 @@ always @(posedge clk or posedge rst) begin
                 end
 
             end else begin
-                r_dnpc <= pc + 4;
-                r_result <= 0;
-                r_result_mem_width <= 0;
-                r_result_update_csr <= 1;
+                if (inst_code==`INST_LB || 
+                    inst_code==`INST_LH || 
+                    inst_code==`INST_LW || 
+                    inst_code==`INST_LBU || 
+                    inst_code==`INST_LHU) begin
+                end
+                // read request
+                if (!ar_valid && !r_valid) begin
+                    r_ar_addr <= src1 + imm;
+                    r_ar_valid <= 1;
+                end
+                if (ar_valid && ar_ready) begin
+                    r_ar_valid <= 0;
+                end
 
-                case (inst_code)
-                    `INST_LB:           r_result <= sext(read_raw_mem(src1 + imm, 1), 8);
-                    `INST_LH:           r_result <= sext(read_raw_mem(src1 + imm, 2), 16);
-                    `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
-                    `INST_LBU:          r_result <= read_raw_mem(src1 + imm, 1) & 32'hFF;
-                    `INST_LHU:          r_result <= read_raw_mem(src1 + imm, 2) & 32'hFFFF;
-                    default: ;
-                endcase
-                r_prev_ready <= 1;
+                // read data
+                if (ar_valid && ar_ready) begin
+                    r_r_ready <= 1;
+                end
+                if (r_valid) begin
+                    case (inst_code)
+                        `INST_LB:           r_result <= sext(r_data & 32'h000000FF, 8);
+                        `INST_LH:           r_result <= sext(r_data & 32'h0000FFFF, 16);
+                        `INST_LW:           r_result <= sext(r_data & 32'hFFFFFFFF, 32);
+                        `INST_LBU:          r_result <= r_data & 32'hFF;
+                        `INST_LHU:          r_result <= r_data & 32'hFFFF;
+                        default: ;
+                    endcase
+                end
+                if (r_valid && r_ready) begin
+                    r_r_ready <= 0;
+                end
 
+                // notify prev module
+                if (r_valid && r_ready) begin
+                    r_dnpc <= pc + 4;
+                    r_result_mem_width <= 0;
+                    r_result_update_csr <= 1;
+                    r_prev_ready <= 1;
+                end
             end
 
         end

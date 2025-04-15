@@ -46,6 +46,13 @@ wire [DATA_WIDTH/8-1:0] w_strb_2;
 wire b_valid_2;
 wire b_ready_2;
 wire [BRESP_WIDTH-1:0] b_resp_2;
+wire ar_valid_2;
+wire ar_ready_2;
+wire [ADDR_WIDTH-1:0] ar_addr_2;
+wire r_valid_2;
+wire r_ready_2;
+wire [DATA_WIDTH-1:0] r_data_2;
+wire [RRESP_WIDTH-1:0] r_resp_2;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
@@ -94,13 +101,13 @@ xbar #(
     .m_b_valids({0, b_valid_2}),
     .m_b_readys({0, b_ready_2}),
     .m_b_resps({0, b_resp_2}),
-    .m_ar_valids({ar_valid_1, 0}),
-    .m_ar_readys({ar_ready_1, 0}),
-    .m_ar_addrs({ar_addr_1, 0}),
-    .m_r_valids({r_valid_1, 0}),
-    .m_r_readys({r_ready_1, 0}),
-    .m_r_datas({r_data_1, 0}),
-    .m_r_resps({r_resp_1, 0})
+    .m_ar_valids({ar_valid_1, ar_valid_2}),
+    .m_ar_readys({ar_ready_1, ar_ready_2}),
+    .m_ar_addrs({ar_addr_1, ar_addr_2}),
+    .m_r_valids({r_valid_1, r_valid_2}),
+    .m_r_readys({r_ready_1, r_ready_2}),
+    .m_r_datas({r_data_1, r_data_2}),
+    .m_r_resps({r_resp_1,r_resp_2})
 );
 
 /* 取指if */
@@ -233,13 +240,13 @@ load_store #(
     .b_valid(b_valid_2),
     .b_ready(b_ready_2),
     .b_resp(b_resp_2),
-    .ar_valid(),
-    .ar_ready(),
-    .ar_addr(),
-    .r_valid(),
-    .r_ready(),
-    .r_data(),
-    .r_resp(),
+    .ar_valid(ar_valid_2),
+    .ar_ready(ar_ready_2),
+    .ar_addr(ar_addr_2),
+    .r_valid(r_valid_2),
+    .r_ready(r_ready_2),
+    .r_data(r_data_2),
+    .r_resp(r_resp_2),
 
     .prev_ready(ls_ready),
     .prev_valid(id_valid && ls_enable),
