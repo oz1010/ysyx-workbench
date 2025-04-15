@@ -1,5 +1,6 @@
 import "DPI-C" function void exit_simu(input int code);
 import "DPI-C" function void invalid_inst(input int pc, input int inst);
+import "DPI-C" function void dpi_execute_time_ctrl(input int delta);
 import "DPI-C" function int fetch_inst(input int addr);
 import "DPI-C" function void write_raw_mem(input int addr, input int len, input int inst);
 import "DPI-C" function int read_raw_mem(input int addr, input int len);
@@ -11,6 +12,7 @@ import "DPI-C" function void write_raw_csr(input int idx, input int data);
 import "DPI-C" function int read_raw_csr(input int idx);
 import "DPI-C" function int dpi_raise_intr(input int NO, input int epc);
 import "DPI-C" function int dpi_query_intr();
+import "DPI-C" function int dpi_dev_get_rtc(input int addr, input int len);
 
 `include "common/riscv32e_defines.v"
 

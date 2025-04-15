@@ -117,14 +117,7 @@ always @(posedge clk or posedge rst) begin
 
         // read data
         if (ar_valid && ar_ready) begin
-            if (ar_addr == 32'ha0000050) begin
-                r_r_data <= read_raw_dev(ar_addr, 4, r_mtime[31:0]);
-            end else if (ar_addr == 32'ha0000054) begin
-                r_r_data <= read_raw_dev(ar_addr, 4, r_mtime[63:32]);
-            end else begin
-                $display("clint read is out of range, addr:%x", ar_addr);
-                $finish();
-            end
+            r_r_data <= dpi_dev_get_rtc(ar_addr, 4);
             r_r_valid <= 1;
         end
         if (r_valid && r_ready) begin

@@ -11,8 +11,10 @@
 #include "trace.h"
 #include "device/mmio.h"
 #include "cpu/difftest.h"
+#include "utils.h"
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
+static uint64_t hw_tick = 0;
 
 void exit_simu(int code)
 {
@@ -51,6 +53,15 @@ void invalid_inst(int thispc, int inst)
     set_npc_state(NPC_ABORT, thispc, -1);
 }
 
+void dpi_execute_time_ctrl(int delta)
+{
+    if (delta == 0) {
+        hw_tick = 0;
+    } else {
+        hw_tick += delta;
+    }
+}
+
 int fetch_inst(int addr)
 {
     addr &= ~0x3u;  // 读写地址四字节对齐
@@ -62,6 +73,10 @@ void write_raw_mem(int addr, int len, int data)
 {
     // raw_stdout("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
+    if (unlikely(!in_pmem(addr))) {
+        raw_stdout("Write mem is out of range, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
+        exit_simu(2);
+    }
     paddr_write(addr, len, data);
     MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
@@ -69,8 +84,11 @@ void write_raw_mem(int addr, int len, int data)
 int read_raw_mem(int addr, int len)
 {
     // addr &= ~0x3u;  // 读写地址四字节对齐
+    if (unlikely(!in_pmem(addr))) {
+        raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+    }
     int data = paddr_read(addr, len);
-    // raw_stdout("Mr read, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     MTRACE_ADD("R [%#.8x] => %#.8x %d", addr, data, len);
     return data;
 }
@@ -162,4 +180,44 @@ int dpi_raise_intr(int NO, int epc)
 int dpi_query_intr()
 {
     return QUERY_INTR();
+}
+
+int dpi_dev_get_rtc(int addr, int len)
+{
+    static hw_time_info_t local_time_info = {0};
+    static uint64_t local_execute_time = 0;
+    static uint64_t last_tick = 0;
+    int ret = 0;
+
+    switch ((uint32_t)addr) {
+        /* Get up time */
+        case 0xa0000048:
+            if ((hw_tick - last_tick) > 10000) {
+                last_tick = hw_tick;
+                local_execute_time = get_time();
+            }
+            ret = (int)local_execute_time;
+            break;
+        case 0xa000004c:
+            ret = (int)(local_execute_time>>32);
+            break;
+
+        /* Get linux date */
+        case 0xa0000050:
+            get_hw_time_info(&local_time_info);
+            ret = (int)local_time_info.time_raw_val;
+            break;
+        case 0xa0000054:
+            ret = (int)(local_time_info.time_raw_val>>32);
+            break;
+
+        default:
+            LOG_ERROR("RTC read is out of range, addr:%#x len:%d", addr, len);
+            exit_simu(2);
+            break;
+    }
+
+    DTRACE_LOG("<DT> %s %#x %d read %#x", "rtc - RTL", addr, len, ret);
+    difftest_skip_ref();
+    return ret;
 }
