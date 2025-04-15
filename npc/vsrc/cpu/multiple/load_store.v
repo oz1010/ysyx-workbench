@@ -155,7 +155,7 @@ always @(posedge clk or posedge rst) begin
                 end
                 
                 // notify prev module
-                if (w_valid && w_ready) begin
+                if (b_valid && b_ready) begin
                     // pc <= dnpc;
                     r_dnpc <= pc + 4;
                     r_result <= 0;
