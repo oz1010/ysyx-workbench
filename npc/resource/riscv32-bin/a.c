@@ -1,22 +1,32 @@
-static void ebreak(long arg0, long arg1)
+#include <stdint.h>
+
+static inline void outb(uintptr_t addr, uint8_t  data) { *(volatile uint8_t  *)addr = data; }
+static inline void outw(uintptr_t addr, uint16_t data) { *(volatile uint16_t *)addr = data; }
+static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)addr = data; }
+static inline void outll(uintptr_t addr, uint64_t data) { *(volatile uint64_t *)addr = data; }
+
+static void ebreak(long arg0)
 {
     asm volatile(
         "addi a0, x0, %0;"
-        "addi a1, x0, %1;"
         "ebreak"
         :
-        : "i"(arg0), "i"(arg1));
+        : "i"(arg0));
+        // : "i"(arg0), "i"(arg1));
 }
 
 static void putch(char ch)
 {
-    ebreak(0, ch);
+    outb(0xa00003f8, ch);
 }
-static void halt(int code)
+
+static void putstr(const char *str)
 {
-    ebreak(1, code);
-    while (1)
-        ;
+    if (!str) return;
+    while(*str) {
+        putch(*str);
+        ++str;
+    }
 }
 
 volatile int cnt = 0x76543210;
@@ -39,6 +49,7 @@ void _start()
         cnt += i;
     }
 
-    putch('A');
-    halt(0);
+    putstr("This is single test\n");
+
+    ebreak(0);
 }
