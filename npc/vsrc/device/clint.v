@@ -117,7 +117,7 @@ always @(posedge clk or posedge rst) begin
 
         // read data
         if (ar_valid && ar_ready) begin
-            r_r_data <= dpi_dev_get_rtc(ar_addr, 4);
+            r_r_data <= dpi_rtc_read(ar_addr, 4);
             r_r_valid <= 1;
         end
         if (r_valid && r_ready) begin
