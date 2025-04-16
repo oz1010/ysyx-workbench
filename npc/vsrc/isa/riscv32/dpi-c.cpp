@@ -14,12 +14,16 @@
 #include "utils.h"
 
 #define DPI_MTRACE(fmt, ...) MTRACE_ADD("DPI-" fmt, ##__VA_ARGS__)
+#if CONFIG_DTRACE
 #define DPI_DTRACE(name, fmt, ...)                                  \
     do                                                              \
     {                                                               \
         if (dtrace_limit_check(name, addr, len))                    \
             DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);    \
     } while (false)
+#else
+#define DPI_DTRACE(name, fmt, ...)
+#endif
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 
