@@ -78,3 +78,37 @@ make sta DESIGN=top SDC_FILE=$PRO_PATH/cpu.sdc RTL_FILES="$PRO_PATH/cpu/adder.v 
 
 - 在`RTL_FILES`的文件中必须包含一个名为`DESIGN`的module
 - sdc文件中的时钟端口名称需要与设计文件保持一致, 具体内容可参考样例设计GCD中的相应文件
+
+## ysyxSoC环境使用
+
+下载代码
+
+```bash
+cd ysyx-workbench
+git clone git@gitee.com:uu90909/ysyxSoC.git
+# git clone git@github.com:OSCPU/ysyxSoC.git
+```
+
+初始化环境
+
+```bash
+cd /usr/local/bin
+# 安装mill依赖 java
+apt install default-jdk
+# 安装mill
+curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/0.12.10/mill -o mill
+chmod +x mill
+# ./mill __.compile # double underscore
+
+# 拉取rocket-chip项目
+cd ysyxSoC
+echo 0.12.10 > .mill-version
+mill --version
+make dev-init
+```
+
+生成verilog文件，位于`ysyxSoC/build/ysyxSoCFull.v`
+
+```bash
+make verilog
+```
