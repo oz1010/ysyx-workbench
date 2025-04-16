@@ -90,9 +90,9 @@ always @(posedge clk or posedge rst) begin
         if (w_valid && w_ready) begin
             // $display("====== uart:%x strb:%d '%c'", r_write_addr, w_strb, w_data[7:0]);
             // print data
-            $write("%c", w_data[7:0]);
-            $fflush();
-            write_raw_dev(r_write_addr, w_write_width, w_data);
+            // $write("%c", w_data[7:0]);
+            // $fflush();
+            dpi_uart_write(r_write_addr, w_write_width, w_data);
             r_w_ready <= 0;
         end
 

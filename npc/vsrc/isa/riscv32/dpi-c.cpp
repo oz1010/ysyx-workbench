@@ -13,6 +13,13 @@
 #include "cpu/difftest.h"
 #include "utils.h"
 
+#define DPI_MTRACE(fmt, ...) MTRACE_ADD("DPI-" fmt, ##__VA_ARGS__)
+#define DPI_DTRACE(name, fmt, ...)                                  \
+    do                                                              \
+    {                                                               \
+        if (dtrace_limit_check(name, addr, len))                    \
+            DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);    \
+    } while (false)
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 
@@ -64,6 +71,10 @@ void dpi_execute_time_ctrl(int delta)
 
 int fetch_inst(int addr)
 {
+    if (unlikely(!in_pmem(addr))) {
+        raw_stdout("fetch inst is out of range, addr:%#.8x\n", addr);
+        exit_simu(2);
+    }
     addr &= ~0x3u;  // 读写地址四字节对齐
     int inst = paddr_read(addr, 4);
     return inst;
@@ -78,7 +89,7 @@ void write_raw_mem(int addr, int len, int data)
         exit_simu(2);
     }
     paddr_write(addr, len, data);
-    MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
+    DPI_MTRACE("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
 
 int read_raw_mem(int addr, int len)
@@ -89,34 +100,7 @@ int read_raw_mem(int addr, int len)
         exit_simu(2);
     }
     int data = paddr_read(addr, len);
-    MTRACE_ADD("R [%#.8x] => %#.8x %d", addr, data, len);
-    return data;
-}
-
-void write_raw_dev(int addr, int len, int data)
-{
-    // raw_stdout("Device write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
-    // addr &= ~0x3u;  // 读写地址四字节对齐
-    // paddr_write(addr, len, data);
-    // mmio_write(addr, len, data);
-
-    // 必须跳过检查，否则开启diff会报错
-    difftest_skip_ref();
-
-    MTRACE_ADD("W [%#.8x] <= %#.8x %d", addr, data, len);
-}
-
-int read_raw_dev(int addr, int len, int data)
-{
-    // raw_stdout("Device write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
-    // addr &= ~0x3u;  // 读写地址四字节对齐
-    // paddr_write(addr, len, data);
-    // mmio_write(addr, len, data);
-
-    // 必须跳过检查，否则开启diff会报错
-    difftest_skip_ref();
-
-    MTRACE_ADD("R [%#.8x] => %#.8x %d", addr, data, len);
+    DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, data, len);
     return data;
 }
 
@@ -182,7 +166,21 @@ int dpi_query_intr()
     return QUERY_INTR();
 }
 
-int dpi_dev_get_rtc(int addr, int len)
+void dpi_uart_write(int addr, int len, int data){
+    char c = (char)data;
+    if (addr != 0xa00003f8) {
+        LOG_ERROR("uart write is out of range, addr:%#x len:%d", addr, len);
+        exit_simu(2);
+        return;
+    }
+
+    raw_stdout("%c", c);
+
+    DPI_DTRACE("uart", "%#x %d write '%c'(%#x)", (uint32_t)addr, len, c, c);
+    difftest_skip_ref();
+}
+
+int dpi_rtc_read(int addr, int len)
 {
     static hw_time_info_t local_time_info = {0};
     static uint64_t local_execute_time = 0;
@@ -212,12 +210,13 @@ int dpi_dev_get_rtc(int addr, int len)
             break;
 
         default:
-            LOG_ERROR("RTC read is out of range, addr:%#x len:%d", addr, len);
+            LOG_ERROR("rtc read is out of range, addr:%#x len:%d", addr, len);
             exit_simu(2);
             break;
     }
 
-    DTRACE_LOG("<DT> %s %#x %d read %#x", "rtc - RTL", addr, len, ret);
+    DPI_DTRACE("rtc", "%#x %d read %#x", addr, len, ret);
     difftest_skip_ref();
+
     return ret;
 }
