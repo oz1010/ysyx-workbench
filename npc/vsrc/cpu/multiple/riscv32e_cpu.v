@@ -76,8 +76,10 @@ assign valid = wb_ready;
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         execute_time <= 0;
+        dpi_execute_time_ctrl(0);
     end else begin
         execute_time <= execute_time + 1;
+        dpi_execute_time_ctrl(1);
     end
 end
 

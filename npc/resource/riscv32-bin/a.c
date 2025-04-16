@@ -30,6 +30,7 @@ static void putstr(const char *str)
 }
 
 volatile int cnt = 0x76543210;
+volatile uint64_t *rtc_addr = (volatile uint64_t *)0xa0000048;
 
 void _start()
 {
@@ -50,6 +51,8 @@ void _start()
     }
 
     putstr("This is single test\n");
+
+    *rtc_addr;
 
     ebreak(0);
 }

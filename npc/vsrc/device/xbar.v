@@ -67,6 +67,8 @@ assign u_r_datas = m_r_datas[1:USER_M_COUNT];
 assign u_r_resps = m_r_resps[1:USER_M_COUNT];
 
 reg [MASTER_COUNT-1:0] m_signal_en;
+reg [MASTER_COUNT-1:0] m_write_en;
+reg [MASTER_COUNT-1:0] m_read_en;
 reg [MASTER_COUNT-1:0] m_grant;
 reg [log2(MASTER_COUNT):0] r_m_grant_idx;
 wire [log2(MASTER_COUNT):0] m_grant_idx;
@@ -229,8 +231,8 @@ always @(posedge clk or posedge rst) begin
         s_grant <= 0;
         s_grant_idx <= 0;
         for (int sidx=0; sidx<SLAVE_COUNT; ++sidx) begin
-            if ((aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
-                (ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
+            if ((m_write_en>0 && aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
+                (m_read_en>0 && ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
                 s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
                 s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
                 break;
@@ -265,6 +267,8 @@ end
 generate
     for (genvar i = 0; i < MASTER_COUNT; ++i) begin : m_sig_out_gen
         assign m_signal_en[i] = m_aw_valids[i] | m_w_valids[i] | m_b_valids[i] | m_ar_valids[i] | m_r_valids[i];
+        assign m_write_en[i] = ((m_aw_valids[i] | m_w_valids[i] | m_b_valids[i]));
+        assign m_read_en[i] = ((m_ar_valids[i] | m_r_valids[i]));
 
         assign m_aw_readys[i] = (aw_ready & {$bits(aw_ready){m_grant[i]}});
         assign m_w_readys[i] = (w_ready & {$bits(w_ready){m_grant[i]}});
