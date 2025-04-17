@@ -89,7 +89,7 @@ int exec_vsimu(Decode *s)
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
         //     exit(-1);
         // }        
-    } while (top->rootp->TOP_S_WB_READY != 1);
+    } while (top->rootp->TOP_S_CORE_VALID[0] != 1);
 
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);

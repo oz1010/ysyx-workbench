@@ -88,6 +88,8 @@ assign io_master_awvalid = 1;
 
 wire clk = clock;
 wire rst = reset;
+
+// 检测core是否陷入循环，默认但指令执行周期比较短暂
 reg [31:0] core_execute_tick[`RISCV_CORE_NUM-1:0];
 wire core_valid[`RISCV_CORE_NUM-1:0];
 wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];

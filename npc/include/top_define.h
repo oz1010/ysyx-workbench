@@ -22,6 +22,6 @@
 #define TOP_CORE0_NAME ysyx_23060295_CORE0
 #define TOP_S_X concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__wbu__DOT__x)
 #define TOP_S_PC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__wbu__DOT__pc)
-#define TOP_S_WB_READY concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__wbu__DOT__r_prev_ready)
+#define TOP_S_CORE_VALID concat3(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, core_valid)
 
 #endif
