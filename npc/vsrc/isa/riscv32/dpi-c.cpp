@@ -1,7 +1,6 @@
 #include <iostream>
 #include "svdpi.h"
-// #include "top_define.h"
-#include "Vtop__Dpi.h"
+#include "top_define.h"
 #include "debug.h"
 #include "isa.h"
 #include "memory/paddr.h"
