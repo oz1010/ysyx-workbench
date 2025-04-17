@@ -5,7 +5,7 @@ module inst_fetch #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter BRESP_WIDTH = 3,
-    parameter RRESP_WIDTH = 3
+    parameter RRESP_WIDTH = 2
 ) (
     input wire clk,
     input wire rst,
@@ -72,7 +72,7 @@ generate
             .ready(next_ready)
         );
 
-    end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
+    end if (SRAM_TYPE == `SRAM_TYPE_AXI4_LITE) begin : sram_axi4_lite
         reg r_ar_valid;
         reg [ADDR_WIDTH-1:0] r_ar_addr;
         reg r_r_ready;
@@ -142,6 +142,55 @@ generate
                 end
                 if (r_valid) begin
                     r_inst <= r_data;
+                end
+                if (r_valid && r_ready) begin
+                    r_r_ready <= 0;
+                end
+            end
+        end
+    end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
+        reg r_ar_valid;
+        reg [ADDR_WIDTH-1:0] r_ar_addr;
+        reg r_r_ready;
+        reg [INST_WIDTH-1:0] r_inst;
+
+        wire read_en = !ar_valid && !r_valid && enable;
+
+        assign ar_valid = r_ar_valid;
+        assign ar_addr = r_ar_addr;
+        assign r_ready = r_r_ready;
+
+        assign next_valid = r_valid && r_ready;
+        assign inst = r_inst;
+
+        always @(posedge clk or posedge rst) begin
+            if (rst) begin
+                r_ar_valid <= 0;
+                r_ar_addr <= 0;
+                r_r_ready <= 0;
+                r_inst <= 0;
+            end else begin
+                r_ar_valid <= r_ar_valid;
+                r_ar_addr <= r_ar_addr;
+                r_r_ready <= r_r_ready;
+                r_inst <= r_inst;
+
+                // read request
+                if (read_en) begin
+                    r_ar_valid <= 1;
+                    r_ar_addr <= pc;
+                end
+                if (ar_valid && ar_ready) begin
+                    r_ar_valid <= 0;
+                end
+
+                // read data
+                if (ar_valid && ar_ready) begin
+                    r_r_ready <= 1;
+                end
+                if (r_valid) begin
+                    r_inst <= r_data;
+                    r_r_ready <= 1;
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;

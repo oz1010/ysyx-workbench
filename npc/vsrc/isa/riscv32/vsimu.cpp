@@ -89,12 +89,17 @@ int exec_vsimu(Decode *s)
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
         //     exit(-1);
         // }        
-    } while (!top->rootp->TOP_S_CORE_INST_DONE[0]);
+    } while (!top->contextp()->gotFinish() && !top->rootp->TOP_S_CORE_INST_DONE[0]);
 
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
 
     s->dnpc = cpu.pc;
+
+    // 仿真直接调用finish，强制修改状态
+    if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING) {
+        npc_ctx.state = NPC_ABORT;
+    }
 
     return 0;
 }
@@ -121,11 +126,13 @@ void init_vsimu(int argc, char *argv[])
     // 上电复位
     uint32_t clock = 0;
     top->reset = 1;
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 18; ++i)
     {
-        clock = !clock;
         top->clock = clock;
+        clock = !clock;
+        top->contextp()->timeInc(1);
         top->eval();
+        RECORD_TRACE_VCD();
     }
     top->reset = 0;
 
