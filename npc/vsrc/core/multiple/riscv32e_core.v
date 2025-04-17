@@ -1,5 +1,5 @@
 // 单流水线多周期处理器
-module riscv32e_cpu #(
+module riscv32e_core #(
     parameter INST_WIDTH = 32,
     parameter SRAM_READ_DELAY = 0,
     parameter ADDR_WIDTH = 32,

@@ -19,12 +19,12 @@ VMOD_NAME	= ysyxSoCFull
 VERILATOR   = verilator
 
 VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull.v
-VSRCS-y += ./vsrc/ysyx_23060295.v
-VDIRS-y									+= ./vsrc/cpu/common
-# VDIRS-y									+= ./vsrc/cpu
+VSRCS-y += ./vsrc/core/ysyx_23060295.v
+VDIRS-y									+= ./vsrc/core/common
+# VDIRS-y									+= ./vsrc/core
 VDIRS-y									+= ./vsrc/device
-VDIRS-$(CONFIG_ISA_RISCV_MULTIPLE)		+= ./vsrc/cpu/multiple
-VDIRS-$(CONFIG_ISA_RISCV_SINGLE)		+= ./vsrc/cpu/single
+VDIRS-$(CONFIG_ISA_RISCV_MULTIPLE)		+= ./vsrc/core/multiple
+VDIRS-$(CONFIG_ISA_RISCV_SINGLE)		+= ./vsrc/core/single
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/amba
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/bitrev
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/flash
@@ -73,4 +73,4 @@ VCXXFLAGS += -DTOP_FILE=V$(VMOD_NAME).h
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing 
-VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/cpu
+VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core

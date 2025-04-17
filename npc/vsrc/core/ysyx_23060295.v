@@ -108,7 +108,7 @@ generate
     end
 endgenerate
 
-riscv32e_cpu #(
+riscv32e_core #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) ysyx_23060295_CORE0(
     .clk(clk),
