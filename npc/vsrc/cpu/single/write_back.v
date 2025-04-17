@@ -1,8 +1,8 @@
 module write_back #(
     parameter INST_WIDTH = 32
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire [INST_WIDTH-1:0] inst,
     input wire [4:0] rd,
@@ -52,8 +52,8 @@ wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 //         pc, r_inst, inst_code, src1, src2, imm, alu_result);
 // end
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         pc <= get_reset_pc();
     end else begin
         // 默认更新程序寄存器

@@ -1,4 +1,4 @@
-`include "common/riscv32e_defines.v"
+`include "riscv32e_defines.v"
 
 module decoder (
     input  [31:0] inst,

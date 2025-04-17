@@ -88,8 +88,8 @@ int exec_vsimu(Decode *s)
         // if (top->contextp()->time() >= 1000000) {
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
         //     exit(-1);
-        // }
-    } while (top->valid != 1);
+        // }        
+    } while (top->rootp->TOP_S_WB_READY != 1);
 
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
@@ -101,10 +101,11 @@ int exec_vsimu(Decode *s)
 
 void init_vsimu(int argc, char *argv[])
 {
+    Verilated::commandArgs(argc, argv);
     contextp = std::make_shared<VerilatedContext>();
     contextp->debug(0);                 // Set debug level, 0 is off, 9 is highest
     contextp->randReset(2);             // Randomization reset policy
-    contextp->commandArgs(argc, argv);  // Pass arguments so Verilated code can see them
+    // contextp->commandArgs(argc, argv);  // Pass arguments so Verilated code can see them
 
     top = std::make_shared<TOP_ROOT_CLASS>(contextp.get(), TOP_STR);
 

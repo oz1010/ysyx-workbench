@@ -13,7 +13,7 @@ import "DPI-C" function int dpi_query_intr();
 import "DPI-C" function void dpi_uart_write(input int addr, input int len, input int inst);
 import "DPI-C" function int dpi_rtc_read(input int addr, input int len);
 
-`include "common/riscv32e_defines.v"
+`include "riscv32e_defines.v"
 
 module ysyx_23060295 (
     input  wire         clock,
@@ -80,16 +80,37 @@ module ysyx_23060295 (
     output wire [1:0]   io_slave_rresp,
     output wire [31:0]  io_slave_rdata,
     output wire         io_slave_rlast,
-    output wire [3:0]   io_slave_rid,
-
-    output wire         valid
+    output wire [3:0]   io_slave_rid
 );
+
+// TODO awvalid必须拉高，避免ysyxSOC报错
+assign io_master_awvalid = 1;
+
+wire clk = clock;
+wire rst = reset;
+reg [31:0] core_execute_tick[`RISCV_CORE_NUM-1:0];
+wire core_valid[`RISCV_CORE_NUM-1:0];
+wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
+generate
+    for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
+        always @(posedge clk or posedge rst) begin
+            if (rst) begin
+                core_execute_tick[i] <= 0;
+            end else begin
+                core_execute_tick[i] <= core_valid[i] ? 0 : core_execute_tick[i] + 1;
+                if (core_execute_tick[i] >= 100) begin
+                    $error("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d\n", i, core_pc[i], core_execute_tick[i]);
+                end
+            end
+        end
+    end
+endgenerate
 
 riscv32e_cpu #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) ysyx_23060295_CORE0(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .io_interrupt(0),
     .io_master_awready(0),
@@ -122,7 +143,8 @@ riscv32e_cpu #(
     .io_master_rlast(0),
     .io_master_rid(0),
 
-    .valid(valid)
+    .pc(core_pc[0]),
+    .valid(core_valid[0])
 );
 
 endmodule

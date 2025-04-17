@@ -1,3 +1,4 @@
+`define RISCV_CORE_NUM      1
 `define RISCV_INST_WIDTH    32
 `define RISCV_CSR_COUNT     32
 

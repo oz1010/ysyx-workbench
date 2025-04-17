@@ -2,8 +2,8 @@
 module riscv32e_cpu #(
     parameter INST_WIDTH = 32
 ) (
-    input  wire         clock,
-    input  wire         reset,
+    input  wire         clk,
+    input  wire         rst,
 
     /* 外部中断 */
     input  wire         io_interrupt,
@@ -38,6 +38,7 @@ module riscv32e_cpu #(
     input  wire         io_master_rlast,
     input  wire [3:0]   io_master_rid,
 
+    output wire [INST_WIDTH-1:0] pc,
     output wire         valid
 );
 
@@ -46,7 +47,7 @@ reg [INST_WIDTH-1:0] r_inst;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
-wire [INST_WIDTH-1:0] pc;
+// wire [INST_WIDTH-1:0] pc;
 
 assign valid = 1;
 // assign w_pc = pc;
@@ -54,7 +55,7 @@ assign valid = 1;
 
 /* 取指 */
 always @(*) begin
-    if (reset) begin
+    if (rst) begin
         r_inst = 32'b0;
     end else begin
         r_inst = fetch_inst(pc);
@@ -89,8 +90,8 @@ wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .inst(r_inst),
     .rd(rd),

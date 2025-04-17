@@ -1,8 +1,8 @@
 module execute #(
     parameter INST_WIDTH = 32
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire [4:0] rs1,
     input wire [4:0] rs2,
@@ -27,8 +27,8 @@ module execute #(
 wire [1:0] w_ex_prev_state, w_ex_next_state;
 
 scom m_scom_ex(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
     .prev_ready(prev_ready),
     .prev_valid(prev_valid),
     .next_ready(next_ready),
@@ -68,8 +68,8 @@ wire signed [63:0] mulh_ret = (s_src1_64 * s_src2_64) >> 32;
 wire signed [63:0] mulhsu_ret = (s_src1 * src2) >> 32;
 wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_dnpc <= get_reset_pc();
         r_result <= 0;
         r_result_mem_width <= 0;

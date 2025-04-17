@@ -224,3 +224,7 @@ int dpi_rtc_read(int addr, int len)
 
     return ret;
 }
+
+// TODO 重新规整，需要重新修改
+extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void mrom_read(int32_t addr, int32_t *data) { assert(0); }

@@ -14,22 +14,39 @@
 #**************************************************************************************/
 WORK_DIR    = $(shell pwd)
 VGEN_DIR    = $(WORK_DIR)/build/vgen
-VMOD_NAME	= ysyx_23060295
+VMOD_NAME	= ysyxSoCFull
 # VMOD_NAME	= top
 VERILATOR   = verilator
 
-VSRCS-y += ./vsrc/$(VMOD_NAME).v
+VSRCS-y += ../ysyxSoC/build/ysyxSoCFull.v
+VSRCS-y += ./vsrc/ysyx_23060295.v
 VDIRS-y									+= ./vsrc/cpu/common
 # VDIRS-y									+= ./vsrc/cpu
 VDIRS-y									+= ./vsrc/device
 VDIRS-$(CONFIG_ISA_RISCV_MULTIPLE)		+= ./vsrc/cpu/multiple
 VDIRS-$(CONFIG_ISA_RISCV_SINGLE)		+= ./vsrc/cpu/single
+# VDIRS-y									+= ../ysyxSoC/perip/amba
+# VDIRS-y									+= ../ysyxSoC/perip/bitrev
+# VDIRS-y									+= ../ysyxSoC/perip/flash
+# VDIRS-y									+= ../ysyxSoC/perip/gpio
+# VDIRS-y									+= ../ysyxSoC/perip/ps2
+# VDIRS-y									+= ../ysyxSoC/perip/psram
+# VDIRS-y									+= ../ysyxSoC/perip/psram/efabless
+# VDIRS-y									+= ../ysyxSoC/perip/sdram
+# VDIRS-y									+= ../ysyxSoC/perip/sdram/core_sdram_axi4
+# VDIRS-y									+= ../ysyxSoC/perip/spi
+# VDIRS-y									+= ../ysyxSoC/perip/uart16550
+# VDIRS-y									+= ../ysyxSoC/perip/vga
+VSRCS-y		+= $(shell find -L ../ysyxSoC/perip -name *.v)
 
 VCSR_CPPS   = $(shell find -L ./vsrc -name *.cpp)
 VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS-y     += $(VCSR_CPPS)
 VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
+INC_PATH    += $(VDIRS-y)
+INC_PATH    += $(WORK_DIR)/../ysyxSoC/perip/uart16550/rtl
+INC_PATH    += $(WORK_DIR)/../ysyxSoC/perip/spi/rtl
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic
 
 # TRACE=1 make run -j , code define VM_TRACE_VCD
@@ -55,4 +72,5 @@ VCXXFLAGS += -DTOP_NAME="\"$(VMOD_NAME)\""
 VCXXFLAGS += -DTOP_FILE=V$(VMOD_NAME).h
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
+VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing 
 VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/cpu
