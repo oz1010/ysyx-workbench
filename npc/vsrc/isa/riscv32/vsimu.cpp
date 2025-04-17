@@ -26,9 +26,7 @@
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
-#include "Vtop.h"
-#include "Vtop___024root.h"
-// #include "top_define.h"
+#include "top_define.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -48,12 +46,12 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #endif
 
 std::shared_ptr<VerilatedContext> contextp;
-std::shared_ptr<TOP_NAME> top;
+std::shared_ptr<TOP_ROOT_CLASS> top;
 std::shared_ptr<VerilatedVcdC> tfp;
 
 typedef enum { SYNC_TO_SIMU, SYNC_TO_CPU } sync_type_t;
 
-static int sync_simu_cpu(TOP_NAME *_simu, CPU_state *_cpu, sync_type_t type)
+static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t type)
 {
     if (type == SYNC_TO_SIMU){
         memcpy(&_simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__x.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
@@ -108,7 +106,7 @@ void init_vsimu(int argc, char *argv[])
     contextp->randReset(2);             // Randomization reset policy
     contextp->commandArgs(argc, argv);  // Pass arguments so Verilated code can see them
 
-    top = std::make_shared<TOP_NAME>(contextp.get(), "top");
+    top = std::make_shared<TOP_ROOT_CLASS>(contextp.get(), TOP_STR);
 
 #if VM_TRACE_VCD
     Verilated::mkdir("build/logs");

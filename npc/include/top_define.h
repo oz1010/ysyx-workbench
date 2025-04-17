@@ -7,12 +7,16 @@
 #error You need macro TOP_NAME firstly
 #endif
 
-#define TOP_DPI_HEADER_FILE str(concat(TOP_NAME, __Dpi.h))
+#define TOP_DPI_HEADER_FILE str(concat3(V, TOP_NAME, __Dpi.h))
 #include TOP_DPI_HEADER_FILE
 
-#define TOP_ROOT_HEADER_FILE str(concat(TOP_NAME, ___024root.h))
+#define TOP_HEADER_FILE str(TOP_FILE)
+#include TOP_HEADER_FILE
+
+#define TOP_ROOT_HEADER_FILE str(concat3(V, TOP_NAME, ___024root.h))
 #include TOP_ROOT_HEADER_FILE
 
-#define TOP_ROOT_CLASS concat(TOP_NAME, ___024root)
+#define TOP_ROOT_CLASS concat(V, TOP_NAME)
+#define TOP_STR str(TOP_NAME)
 
 #endif
