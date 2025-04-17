@@ -42,8 +42,8 @@ typedef uint16_t ioaddr_t;
 
 #include <debug.h>
 
-#define CONFIG_MBASE 0x80000000
-#define CONFIG_MSIZE 0x8000000
+// #define CONFIG_MBASE 0x80000000
+// #define CONFIG_MSIZE 0x8000000
 #define PRIx32 "x"
 
 
