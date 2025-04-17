@@ -28,6 +28,7 @@
 #include "verilated_vcd_c.h"
 #include "Vtop.h"
 #include "Vtop___024root.h"
+// #include "top_define.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
