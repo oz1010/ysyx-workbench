@@ -1,8 +1,8 @@
 module inst_decode #(
     parameter INST_WIDTH = 32
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     input wire [INST_WIDTH-1:0] inst,
     output wire [4:0] rd,
@@ -25,8 +25,8 @@ reg [15:0] inst_code;
 wire [1:0] w_id_prev_state, w_id_next_state;
 
 scom m_scom_id(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .prev_ready(prev_ready),
     .prev_valid(prev_valid),
     .next_ready(next_ready),
@@ -165,8 +165,8 @@ reg [15:0] r_inst_code;
 reg r_valid;
 */
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         r_rd <= 0;
         r_rs1 <= 0;
         r_rs2 <= 0;

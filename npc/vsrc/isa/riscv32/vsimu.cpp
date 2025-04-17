@@ -54,11 +54,11 @@ typedef enum { SYNC_TO_SIMU, SYNC_TO_CPU } sync_type_t;
 static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t type)
 {
     if (type == SYNC_TO_SIMU){
-        memcpy(&_simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__x.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
-        _simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__pc = _cpu->pc;
+        memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
+        _simu->rootp->TOP_S_PC = _cpu->pc;
     } else {
-        memcpy(&_cpu->gpr[0], &_simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__x.m_storage[0], sizeof(_cpu->gpr));
-        _cpu->pc = _simu->rootp->top__DOT__m_cpu__DOT__wbu__DOT__pc;
+        memcpy(&_cpu->gpr[0], &_simu->rootp->TOP_S_X.m_storage[0], sizeof(_cpu->gpr));
+        _cpu->pc = _simu->rootp->TOP_S_PC;
     }
 
     return 0;
@@ -75,12 +75,12 @@ int exec_vsimu(Decode *s)
     {
         // 电路仿真
         // top->inst = s->isa.inst.val;
-        top->clk = 1;
+        top->clock = 1;
         top->contextp()->timeInc(1);
         top->eval();
         RECORD_TRACE_VCD();
 
-        top->clk = 0;
+        top->clock = 0;
         top->contextp()->timeInc(1);
         top->eval();
         RECORD_TRACE_VCD();
@@ -118,17 +118,17 @@ void init_vsimu(int argc, char *argv[])
 #endif
 
     // 上电复位
-    uint32_t clk = 0;
-    top->rst = 1;
+    uint32_t clock = 0;
+    top->reset = 1;
     for (int i = 0; i < 10; ++i)
     {
-        clk = !clk;
-        top->clk = clk;
+        clock = !clock;
+        top->clock = clock;
         top->eval();
     }
-    top->rst = 0;
+    top->reset = 0;
 
-    cpu.pc = top->rootp->top__DOT__m_cpu__DOT__wbu__DOT__pc;
+    cpu.pc = top->rootp->TOP_S_PC;
 }
 
 void exit_vsimu()

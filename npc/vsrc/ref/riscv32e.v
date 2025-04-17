@@ -1,6 +1,6 @@
 module riscv32e (
-    input clk,
-    input rst
+    input clock,
+    input reset
 );
     /* 寄存器组 */
     // 通用寄存器
@@ -20,8 +20,8 @@ module riscv32e (
     assign a[7:0] = x[17:10];
 
     /* 取指 */
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clock or posedge reset) begin
+        if (reset) begin
             data <= 32'b0;
         end else begin
             data <= Mr(pc, 4);
@@ -43,8 +43,8 @@ module riscv32e (
     /* 执行 */
 
     /* 更新 */
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clock or posedge reset) begin
+        if (reset) begin
             pc <= get_reset_pc();
         end else begin
             pc <= pc + 4;

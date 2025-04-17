@@ -1,6 +1,6 @@
 module riscv32e_cpu2 (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
     output wire [31:0] instr_addr,
     input wire [31:0] instr
 );
@@ -33,8 +33,8 @@ module riscv32e_cpu2 (
     reg [31:0] alu_result;
 
     // 指令地址
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clock or posedge reset) begin
+        if (reset) begin
             pc <= 0;
         end else begin
             if (opcode == 7'b1100011) begin // BEQ/BNE
@@ -76,7 +76,7 @@ module riscv32e_cpu2 (
     import "DPI-C" function int read_mem(input int addr);
     import "DPI-C" function void write_mem(input int addr, input int data);
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if (opcode == 7'b0000011) begin // LW
             regfile[rd] <= read_mem(alu_result);
         end else if (opcode == 7'b0100011) begin // SW

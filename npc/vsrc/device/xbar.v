@@ -8,8 +8,8 @@ module xbar #(
     parameter SRAM_READ_DELAY = 0,
     parameter MASTER_COUNT = USER_M_COUNT + 1
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     input wire u_aw_valids[0:USER_M_COUNT-1],
     output wire u_aw_readys[0:USER_M_COUNT-1],
@@ -134,8 +134,8 @@ sram_axi4 #(
     .RRESP_WIDTH(RRESP_WIDTH),
     .SRAM_READ_DELAY(SRAM_READ_DELAY)
 ) m_sram_axi4(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .aw_valid(s_aw_valids[`DEV_SRAM_IDX]),
     .aw_ready(s_aw_readys[`DEV_SRAM_IDX]),
     .aw_addr(s_aw_addrs[`DEV_SRAM_IDX]),
@@ -161,8 +161,8 @@ uart #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_uart(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .aw_valid(s_aw_valids[`DEV_UART_IDX]),
     .aw_ready(s_aw_readys[`DEV_UART_IDX]),
     .aw_addr(s_aw_addrs[`DEV_UART_IDX]),
@@ -188,8 +188,8 @@ clint #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_clint(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .aw_valid(s_aw_valids[`DEV_RTC_IDX]),
     .aw_ready(s_aw_readys[`DEV_RTC_IDX]),
     .aw_addr(s_aw_addrs[`DEV_RTC_IDX]),
@@ -211,8 +211,8 @@ clint #(
 
 // arbiter
 // 每次按照顺序循环遍历，master中最后一个为默认节点
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         m_grant <= 0;
         r_m_grant_idx <= 0;
         s_grant <= 0;
