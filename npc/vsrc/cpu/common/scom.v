@@ -1,8 +1,8 @@
-`include "common/riscv32e_defines.v"
+`include "riscv32e_defines.v"
 
 module scom (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     output wire prev_ready,
     input wire prev_valid,
@@ -14,8 +14,8 @@ module scom (
 );
 
 scom_recv m_scom_recv(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
     .enable(prev_valid),
     .prev_ready(prev_ready),
     .prev_valid(prev_valid),
@@ -23,8 +23,8 @@ scom_recv m_scom_recv(
 );
 
 scom_send m_scom_send(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
     .enable(prev_state == `SCOM_FOUND),
     .next_ready(next_ready),
     .next_valid(next_valid),
@@ -46,10 +46,10 @@ w_data = {ready,valid}
 current     next    action
 00          01      send data
 01          11      recv data
-11          00      reset
+11          00      rst
 10          00      invalid
 
-enable==0 reset
+enable==0 rst
 */
 
 wire [1:0] w_data = {ready,valid};
@@ -63,8 +63,8 @@ assign state =
 endmodule
 
 module scom_send (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire enable,
     input wire next_ready,
@@ -83,8 +83,8 @@ scom_base m_scom_send(
     .state(state)
 );
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_next_valid <= 0;
     end else begin
         r_next_valid <= r_next_valid;
@@ -99,8 +99,8 @@ end
 endmodule
 
 module scom_recv (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire enable,
     output wire prev_ready,
@@ -119,8 +119,8 @@ scom_base m_scom_recv(
     .state(state)
 );
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_prev_ready <= 0;
     end else begin
         case (state)

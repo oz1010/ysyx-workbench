@@ -7,8 +7,8 @@ module riscv32e_cpu #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input  wire         clock,
-    input  wire         reset,
+    input  wire         clk,
+    input  wire         rst,
 
     /* 外部中断 */
     input  wire         io_interrupt,
@@ -43,6 +43,7 @@ module riscv32e_cpu #(
     input  wire         io_master_rlast,
     input  wire [3:0]   io_master_rid,
 
+    output wire [INST_WIDTH-1:0] pc,
     output wire         valid
 );
 
@@ -89,7 +90,6 @@ wire [RRESP_WIDTH-1:0] r_resp_2;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
-wire [INST_WIDTH-1:0] pc;
 wire [INST_WIDTH-1:0] inst;
 // 寄存器别名，register alias, ch2.3
 wire [INST_WIDTH-1:0] zero = x[0];
@@ -105,8 +105,8 @@ assign valid = wb_ready;
 // assign w_x = x;
 // assign w_pc = pc;
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         execute_time <= 0;
         dpi_execute_time_ctrl(0);
     end else begin
@@ -124,8 +124,8 @@ xbar #(
     .RRESP_WIDTH(RRESP_WIDTH),
     .SRAM_READ_DELAY(SRAM_READ_DELAY)
 ) m_xbar(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
     .u_aw_valids({0, aw_valid_2}),
     .u_aw_readys({0, aw_ready_2}),
     .u_aw_addrs({0, aw_addr_2}),
@@ -149,8 +149,8 @@ xbar #(
 inst_fetch #(
     .INST_WIDTH(INST_WIDTH)
 ) ifu(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .pc(pc),
     .inst(inst),
@@ -187,8 +187,8 @@ wire [15:0] inst_code;
 inst_decode #(
     .INST_WIDTH(INST_WIDTH)
 ) idu(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .inst(inst),
     .rd(rd),
@@ -222,8 +222,8 @@ wire ex_result_update_csr;
 execute #(
     .INST_WIDTH(INST_WIDTH)
 ) exu(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .rs1(rs1),
     .rs2(rs2),
@@ -250,8 +250,8 @@ wire ls_result_update_csr;
 load_store #(
     .INST_WIDTH(INST_WIDTH)
 ) lsu(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .rs1(rs1),
     .rs2(rs2),
@@ -301,8 +301,8 @@ assign ex_ls_valid = ({1{ex_enable}} & ex_valid) | ({1{ls_enable}} & ls_valid);
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
 
     .rd(rd),
     .rs1(rs1),

@@ -1,7 +1,7 @@
 module riscv32e_old_top
 (
-    input clock,
-    input reset,
+    input clk,
+    input rst,
     input [31:0] inst
 );
 
@@ -11,7 +11,7 @@ wire [31:0] regs_input[31:0];
 genvar i;
 generate
     for (i=0; i<32; ++i) begin : gen_regs
-        Reg32 regs(clock, reset, regs_input[i] & {32{i!=0}}, x[i], regs_wen[i]);
+        Reg32 regs(clk, rst, regs_input[i] & {32{i!=0}}, x[i], regs_wen[i]);
     end
 endgenerate
 
@@ -30,7 +30,7 @@ wire [31:0] pc;
 wire [31:0] snpc = pc + 4;
 wire [31:0] dnpc = ({32{!pc_jump}} & snpc) |
                     ({32{pc_jump}} & pc_jump_addr);
-PC32 pcR(clock, reset, dnpc, pc);
+PC32 pcR(clk, rst, dnpc, pc);
 
 // decode_operand
 wire [11:0] immI = inst[31:20];
@@ -120,7 +120,7 @@ wire inst_invalid   =   !(
                             inst_sub || 
                             inst_sltiu ||
                             inst_ebreak || 
-                            reset
+                            rst
                         );
 assign pc_jump      =   (
     inst_jal ||
@@ -189,7 +189,7 @@ wire carray;
 wire [31:0] adder_output;
 adder32 adder(1'b0, add_a, add_b, carray, adder_output);
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     if (inst_ebreak) begin exit_simu(a[0]); end
     if (inst_lw) begin modify_rd_val <= Mr(adder_output, 4); end
     if (inst_sltiu) begin modify_rd_val <= {{31{1'b0}}, (src1 < ext_immI)}; end

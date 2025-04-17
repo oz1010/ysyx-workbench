@@ -2,8 +2,8 @@ module sram_delay #(
     parameter INST_WIDTH = 32,
     parameter SRAM_READ_DELAY = 1
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire enable,
     input wire [31:0] addr,
@@ -22,8 +22,8 @@ assign data = r_data;
 assign valid = r_valid;
 
 assign r_delay_enable = enable;
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_delay_cnt <= 8'h0;
     end else begin
         r_delay_cnt <= r_delay_cnt;
@@ -36,8 +36,8 @@ always @(posedge clock or posedge reset) begin
     end
 end
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_data <= 0;
         r_valid <= 0;
     end else begin

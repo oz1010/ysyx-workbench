@@ -5,8 +5,8 @@ module load_store #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire [4:0] rs1,
     input wire [4:0] rs2,
@@ -91,8 +91,8 @@ wire [31:0] src2 = x[rs2];
 wire [ADDR_WIDTH-1:0] signed_ar_addr = (src1 + imm) & (~32'h03); // 4字节对齐
 wire [DATA_WIDTH-1:0] signed_r_data_shift_bits = 8* ((src1 + imm) & (32'h03));
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_dnpc <= get_reset_pc();
         r_result <= 0;
         r_result_mem_width <= 0;

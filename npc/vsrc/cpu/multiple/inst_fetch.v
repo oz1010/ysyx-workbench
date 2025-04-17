@@ -7,8 +7,8 @@ module inst_fetch #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] inst,
@@ -51,8 +51,8 @@ generate
         assign next_valid = w_scom_valid & r_sram_valid;
 
         scom_send m_scom_if(
-            .clock(clock),
-            .reset(reset),
+            .clk(clk),
+            .rst(rst),
             .enable(1),
             .next_ready(next_ready),
             .next_valid(w_scom_valid),
@@ -63,8 +63,8 @@ generate
             .INST_WIDTH(INST_WIDTH),
             .SRAM_READ_DELAY(SRAM_READ_DELAY)
         ) m_sram_delay (
-            .clock(clock),
-            .reset(reset),
+            .clk(clk),
+            .rst(rst),
             .enable(w_if_state == `SCOM_FOUND),
             .addr(pc),
             .data(w_inst),
@@ -90,8 +90,8 @@ generate
         wire [7:0] delay_ar_valid_cnt;
         wire ar_valid_enable = enable && !ar_valid && !delay_ar_valid_enable;
         lfsr_delay_signal m_delay_ar_valid(
-            .clock(clock),
-            .reset(reset),
+            .clk(clk),
+            .rst(rst),
             .enable(ar_valid_enable),
             .delay_enable(delay_ar_valid_enable),
             .delay_max(7),
@@ -104,8 +104,8 @@ generate
         wire [7:0] delay_r_ready_cnt;
         wire r_ready_enable = (ar_valid && ar_ready) && !r_ready && !delay_r_ready_enable;
         lfsr_delay_signal m_delay_r_ready(
-            .clock(clock),
-            .reset(reset),
+            .clk(clk),
+            .rst(rst),
             .enable(r_ready_enable),
             .delay_enable(delay_r_ready_enable),
             .delay_max(17),
@@ -113,8 +113,8 @@ generate
             .delay_cur_cnt(delay_r_ready_cur_cnt)
         );
 
-        always @(posedge clock or posedge reset) begin
-            if (reset) begin
+        always @(posedge clk or posedge rst) begin
+            if (rst) begin
                 r_ar_valid <= 0;
                 r_ar_addr <= 0;
                 r_r_ready <= 0;

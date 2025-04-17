@@ -1,4 +1,4 @@
-`include "common/riscv32e_defines.v"
+`include "riscv32e_defines.v"
 
 module sram_axi4 #(
     parameter ADDR_WIDTH = 32,
@@ -7,8 +7,8 @@ module sram_axi4 #(
     parameter RRESP_WIDTH = 3,
     parameter SRAM_READ_DELAY = 0
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire aw_valid,
     output wire aw_ready,
@@ -57,8 +57,8 @@ assign r_valid = r_r_valid;
 assign r_data = r_r_data;
 assign r_resp = r_r_resp;
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_delay_cnt <= 8'h0;
         r_delay_enable <= 0;
     end else begin
@@ -81,8 +81,8 @@ always @(posedge clock or posedge reset) begin
     end
 end
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_write_addr <= 0;
         r_aw_ready <= 0;
         r_w_ready <= 0;
@@ -163,8 +163,8 @@ module sram_axi4_arbiter #(
     parameter RRESP_WIDTH = 3,
     parameter SRAM_READ_DELAY = 0
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire aw_valids[MASTER_COUNT-1:0],
     output wire aw_readys[MASTER_COUNT-1:0],
@@ -192,8 +192,8 @@ sram_axi4 #(
     .RRESP_WIDTH(RRESP_WIDTH),
     .SRAM_READ_DELAY(SRAM_READ_DELAY)
 ) m_sram_axi4(
-    .clock(clock),
-    .reset(reset),
+    .clk(clk),
+    .rst(rst),
     .aw_valid(aw_valid),
     .aw_ready(aw_ready),
     .aw_addr(aw_addr),
@@ -292,8 +292,8 @@ always @(*) begin
 end
 
 integer t;
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         grant <= 0;
         last_granted <= 0;
     end else begin

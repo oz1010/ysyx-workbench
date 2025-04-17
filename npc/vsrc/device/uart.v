@@ -4,8 +4,8 @@ module uart #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clock,
-    input wire reset,
+    input wire clk,
+    input wire rst,
 
     input wire aw_valid,
     output wire aw_ready,
@@ -52,8 +52,8 @@ assign r_valid = r_r_valid;
 assign r_data = r_r_data;
 assign r_resp = r_r_resp;
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
         r_write_addr <= 0;
         r_aw_ready <= 0;
         r_w_ready <= 0;
