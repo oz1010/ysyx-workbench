@@ -109,6 +109,9 @@ make dev-init
 
 生成verilog文件，位于`ysyxSoC/build/ysyxSoCFull.v`
 
+并可以拷贝到NPC中
+
 ```bash
-make verilog
+# make verilog
+make copy_to_npc
 ```
