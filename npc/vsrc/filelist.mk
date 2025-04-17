@@ -14,11 +14,11 @@
 #**************************************************************************************/
 WORK_DIR    = $(shell pwd)
 VGEN_DIR    = $(WORK_DIR)/build/vgen
-# VMOD_NAME	= ysyx_23060295
-VMOD_NAME	= top
+VMOD_NAME	= ysyx_23060295
+# VMOD_NAME	= top
 VERILATOR   = verilator
 
-VSRCS-y += ./vsrc/top.v
+VSRCS-y += ./vsrc/$(VMOD_NAME).v
 VDIRS-y									+= ./vsrc/cpu/common
 # VDIRS-y									+= ./vsrc/cpu
 VDIRS-y									+= ./vsrc/device

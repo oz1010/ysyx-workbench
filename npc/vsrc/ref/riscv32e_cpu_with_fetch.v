@@ -1,6 +1,6 @@
 module riscv32e_cpu_with_fetch (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
     output wire [31:0] instr_addr
 );
 
@@ -43,8 +43,8 @@ module riscv32e_cpu_with_fetch (
     import "DPI-C" function void write_mem(input int addr, input int data);
 
     // 程序计数器更新和指令取值
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clock or posedge reset) begin
+        if (reset) begin
             pc <= 32'b0;
             instr <= 32'b0;
         end else begin
@@ -86,7 +86,7 @@ module riscv32e_cpu_with_fetch (
     end
 
     // 寄存器写回
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if (opcode == 7'b0000011) begin // LW
             regfile[rd] <= read_mem(alu_result);
         end else if (opcode == 7'b0100011) begin // SW

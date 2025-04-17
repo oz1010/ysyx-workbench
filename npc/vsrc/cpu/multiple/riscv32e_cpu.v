@@ -7,11 +7,43 @@ module riscv32e_cpu #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
-    // output wire [INST_WIDTH-1:0] w_pc,
-    // output wire [INST_WIDTH-1:0] w_x[`RISCV_CSR_COUNT-1:0],
-    output wire valid
+    input  wire         clock,
+    input  wire         reset,
+
+    /* 外部中断 */
+    input  wire         io_interrupt,
+    /* AXI4 Master总线 */
+    input  wire         io_master_awready,
+    output wire         io_master_awvalid,
+    output wire [31:0]  io_master_awaddr,
+    output wire [3:0]   io_master_awid,
+    output wire [7:0]   io_master_awlen,
+    output wire [2:0]   io_master_awsize,
+    output wire [1:0]   io_master_awburst,
+    input  wire         io_master_wready,
+    output wire         io_master_wvalid,
+    output wire [31:0]  io_master_wdata,
+    output wire [3:0]   io_master_wstrb,
+    output wire         io_master_wlast,
+    output wire         io_master_bready,
+    input  wire         io_master_bvalid,
+    input  wire [1:0]   io_master_bresp,
+    input  wire [3:0]   io_master_bid,
+    input  wire         io_master_arready,
+    output wire         io_master_arvalid,
+    output wire [31:0]  io_master_araddr,
+    output wire [3:0]   io_master_arid,
+    output wire [7:0]   io_master_arlen,
+    output wire [2:0]   io_master_arsize,
+    output wire [1:0]   io_master_arburst,
+    output wire         io_master_rready,
+    input  wire         io_master_rvalid,
+    input  wire [1:0]   io_master_rresp,
+    input  wire [31:0]  io_master_rdata,
+    input  wire         io_master_rlast,
+    input  wire [3:0]   io_master_rid,
+
+    output wire         valid
 );
 
 /* 模块通信消息 */
@@ -73,8 +105,8 @@ assign valid = wb_ready;
 // assign w_x = x;
 // assign w_pc = pc;
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         execute_time <= 0;
         dpi_execute_time_ctrl(0);
     end else begin
@@ -92,8 +124,8 @@ xbar #(
     .RRESP_WIDTH(RRESP_WIDTH),
     .SRAM_READ_DELAY(SRAM_READ_DELAY)
 ) m_xbar(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .u_aw_valids({0, aw_valid_2}),
     .u_aw_readys({0, aw_ready_2}),
     .u_aw_addrs({0, aw_addr_2}),
@@ -117,8 +149,8 @@ xbar #(
 inst_fetch #(
     .INST_WIDTH(INST_WIDTH)
 ) ifu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .pc(pc),
     .inst(inst),
@@ -155,8 +187,8 @@ wire [15:0] inst_code;
 inst_decode #(
     .INST_WIDTH(INST_WIDTH)
 ) idu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .inst(inst),
     .rd(rd),
@@ -190,8 +222,8 @@ wire ex_result_update_csr;
 execute #(
     .INST_WIDTH(INST_WIDTH)
 ) exu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .rs1(rs1),
     .rs2(rs2),
@@ -218,8 +250,8 @@ wire ls_result_update_csr;
 load_store #(
     .INST_WIDTH(INST_WIDTH)
 ) lsu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .rs1(rs1),
     .rs2(rs2),
@@ -269,8 +301,8 @@ assign ex_ls_valid = ({1{ex_enable}} & ex_valid) | ({1{ls_enable}} & ls_valid);
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .rd(rd),
     .rs1(rs1),

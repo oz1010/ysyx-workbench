@@ -17,8 +17,8 @@ module axi4_manager #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
     input wire enable,
 
     output wire aw_valid,
@@ -101,8 +101,8 @@ axi4_base r_base(
     .status(r_status)
 );
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         r_aw_valid <= 0;
         r_aw_addr <= 0;
         r_w_valid <= 0;
@@ -138,8 +138,8 @@ module axi4_subordinate #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
     input wire enable,
 
     input wire aw_valid,
@@ -220,8 +220,8 @@ axi4_base r_base(
     .status(r_status)
 );
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         r_aw_ready <= 0;
         r_w_ready <= 0;
         r_b_valid <= 0;

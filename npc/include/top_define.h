@@ -19,4 +19,9 @@
 #define TOP_ROOT_CLASS concat(V, TOP_NAME)
 #define TOP_STR str(TOP_NAME)
 
+#define TOP_CORE0_NAME ysyx_23060295_CORE0
+
+#define TOP_S_X concat5(TOP_NAME, __DOT__, TOP_CORE0_NAME, __DOT__, wbu__DOT__x)
+#define TOP_S_PC concat5(TOP_NAME, __DOT__, TOP_CORE0_NAME, __DOT__, wbu__DOT__pc)
+
 #endif

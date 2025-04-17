@@ -5,8 +5,8 @@ module write_back #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     input wire [4:0] rd,
     input wire [4:0] rs1,
@@ -53,8 +53,8 @@ reg [7:0] cnt;
 
 assign prev_ready = r_prev_ready;
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         pc <= get_reset_pc();
         x[0] <= 0;
         r_prev_ready <= 0;
