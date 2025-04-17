@@ -115,38 +115,39 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-/* xbar模块 */
-xbar #(
-    .USER_M_COUNT(2),
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(DATA_WIDTH),
-    .BRESP_WIDTH(BRESP_WIDTH),
-    .RRESP_WIDTH(RRESP_WIDTH),
-    .SRAM_READ_DELAY(SRAM_READ_DELAY)
-) m_xbar(
-    .clk(clk),
-    .rst(rst),
-    .u_aw_valids({0, aw_valid_2}),
-    .u_aw_readys({0, aw_ready_2}),
-    .u_aw_addrs({0, aw_addr_2}),
-    .u_w_valids({0, w_valid_2}),
-    .u_w_readys({0, w_ready_2}),
-    .u_w_datas({0, w_data_2}),
-    .u_w_strbs({0, w_strb_2}),
-    .u_b_valids({0, b_valid_2}),
-    .u_b_readys({0, b_ready_2}),
-    .u_b_resps({0, b_resp_2}),
-    .u_ar_valids({ar_valid_1, ar_valid_2}),
-    .u_ar_readys({ar_ready_1, ar_ready_2}),
-    .u_ar_addrs({ar_addr_1, ar_addr_2}),
-    .u_r_valids({r_valid_1, r_valid_2}),
-    .u_r_readys({r_ready_1, r_ready_2}),
-    .u_r_datas({r_data_1, r_data_2}),
-    .u_r_resps({r_resp_1,r_resp_2})
-);
+// /* xbar模块 */
+// xbar #(
+//     .USER_M_COUNT(2),
+//     .ADDR_WIDTH(ADDR_WIDTH),
+//     .DATA_WIDTH(DATA_WIDTH),
+//     .BRESP_WIDTH(BRESP_WIDTH),
+//     .RRESP_WIDTH(RRESP_WIDTH),
+//     .SRAM_READ_DELAY(SRAM_READ_DELAY)
+// ) m_xbar(
+//     .clk(clk),
+//     .rst(rst),
+//     .u_aw_valids({0, aw_valid_2}),
+//     .u_aw_readys({0, aw_ready_2}),
+//     .u_aw_addrs({0, aw_addr_2}),
+//     .u_w_valids({0, w_valid_2}),
+//     .u_w_readys({0, w_ready_2}),
+//     .u_w_datas({0, w_data_2}),
+//     .u_w_strbs({0, w_strb_2}),
+//     .u_b_valids({0, b_valid_2}),
+//     .u_b_readys({0, b_ready_2}),
+//     .u_b_resps({0, b_resp_2}),
+//     .u_ar_valids({ar_valid_1, ar_valid_2}),
+//     .u_ar_readys({ar_ready_1, ar_ready_2}),
+//     .u_ar_addrs({ar_addr_1, ar_addr_2}),
+//     .u_r_valids({r_valid_1, r_valid_2}),
+//     .u_r_readys({r_ready_1, r_ready_2}),
+//     .u_r_datas({r_data_1, r_data_2}),
+//     .u_r_resps({r_resp_1,r_resp_2})
+// );
 
 /* 取指if */
 inst_fetch #(
+    .SRAM_TYPE(`SRAM_TYPE_AXI4),
     .INST_WIDTH(INST_WIDTH)
 ) ifu(
     .clk(clk),
@@ -165,13 +166,13 @@ inst_fetch #(
     .b_valid(),
     .b_ready(),
     .b_resp(),
-    .ar_valid(ar_valid_1),
-    .ar_ready(ar_ready_1),
-    .ar_addr(ar_addr_1),
-    .r_valid(r_valid_1),
-    .r_ready(r_ready_1),
-    .r_data(r_data_1),
-    .r_resp(r_resp_1),
+    .ar_ready(io_master_arready),
+    .ar_valid(io_master_arvalid),
+    .ar_addr(io_master_araddr),
+    .r_ready(io_master_rready),
+    .r_valid(io_master_rvalid),
+    .r_data(io_master_rdata),
+    .r_resp(io_master_rresp),
 
     .enable(execute_time<=1 || valid),
     .next_ready(id_ready),

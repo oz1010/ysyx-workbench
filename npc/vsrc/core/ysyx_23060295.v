@@ -83,8 +83,36 @@ module ysyx_23060295 (
     output wire [3:0]   io_slave_rid
 );
 
-// TODO awvalid必须拉高，避免ysyxSOC报错
-assign io_master_awvalid = 1;
+// TODO 没有用到的需要赋值，避免ysyxSOC报错
+assign io_master_awvalid = 0;
+assign io_master_awaddr = 0;
+assign io_master_awid = 0;
+assign io_master_awlen = 0;
+assign io_master_awsize = 1;
+assign io_master_awburst = 0;
+assign io_master_wvalid = 0;
+assign io_master_wdata = 0;
+assign io_master_wstrb = 0;
+assign io_master_wlast = 0;
+assign io_master_bready = 0;
+// assign io_master_arvalid = 0;
+// assign io_master_araddr = 0;
+assign io_master_arid = 0;
+assign io_master_arlen = 0;
+assign io_master_arsize = 1;
+assign io_master_arburst = 0;
+assign io_master_rready = 0;
+assign io_slave_awready = 0;
+assign io_slave_wready = 0;
+assign io_slave_bvalid = 0;
+assign io_slave_bresp = 0;
+assign io_slave_bid = 0;
+assign io_slave_arready = 0;
+assign io_slave_rvalid = 0;
+assign io_slave_rresp = 0;
+assign io_slave_rdata = 0;
+assign io_slave_rlast = 0;
+assign io_slave_rid = 0;
 
 wire clk = clock;
 wire rst = reset;
@@ -102,6 +130,8 @@ generate
                 core_inst_stuck_tick[i] <= core_inst_done[i] ? 0 : core_inst_stuck_tick[i] + 1;
                 if (core_inst_stuck_tick[i] >= 100) begin
                     $error("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d\n", i, core_pc[i], core_inst_stuck_tick[i]);
+                    // $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d\n", i, core_pc[i], core_inst_stuck_tick[i]);
+                    // $finish;
                 end
             end
         end
@@ -131,19 +161,19 @@ riscv32e_core #(
     .io_master_bvalid(0),
     .io_master_bresp(0),
     .io_master_bid(0),
-    .io_master_arready(0),
-    .io_master_arvalid(),
-    .io_master_araddr(),
-    .io_master_arid(),
-    .io_master_arlen(),
-    .io_master_arsize(),
-    .io_master_arburst(),
-    .io_master_rready(),
-    .io_master_rvalid(0),
-    .io_master_rresp(0),
-    .io_master_rdata(0),
-    .io_master_rlast(0),
-    .io_master_rid(0),
+    .io_master_arready(io_master_arready),
+    .io_master_arvalid(io_master_arvalid),
+    .io_master_araddr(io_master_araddr),
+    .io_master_arid(io_master_arid),
+    .io_master_arlen(io_master_arlen),
+    .io_master_arsize(io_master_arsize),
+    .io_master_arburst(io_master_arburst),
+    .io_master_rready(io_master_rready),
+    .io_master_rvalid(io_master_rvalid),
+    .io_master_rresp(io_master_rresp),
+    .io_master_rdata(io_master_rdata),
+    .io_master_rlast(io_master_rlast),
+    .io_master_rid(io_master_rid),
 
     .pc(core_pc[0]),
     .valid(core_inst_done[0])

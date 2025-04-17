@@ -80,8 +80,9 @@
 `define AXI4_READY          2'b10
 `define AXI4_COMPLETE       2'b11
 
-`define SRAM_TYPE_AXI4      0
-`define SRAM_TYPE_SCOM      1
+`define SRAM_TYPE_AXI4_LITE 0
+`define SRAM_TYPE_AXI4      1
+`define SRAM_TYPE_SCOM      2
 
 `define DEV_SRAM_IDX        0
 `define DEV_SRAM_ADDR_BASE  32'h8000_0000
