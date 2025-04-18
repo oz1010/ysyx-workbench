@@ -72,5 +72,6 @@ VCXXFLAGS += -DTOP_NAME="\"$(VMOD_NAME)\""
 VCXXFLAGS += -DTOP_FILE=V$(VMOD_NAME).h
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
-VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing 
+VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
+VERILATOR_CFLAGS += --autoflush
 VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
