@@ -84,22 +84,22 @@ module ysyx_23060295 (
 );
 
 // TODO 没有用到的需要赋值，避免ysyxSOC报错
-assign io_master_awvalid = 0;
-assign io_master_awaddr = 0;
-assign io_master_awid = 0;
-assign io_master_awlen = 0;
-assign io_master_awsize = 1;
-assign io_master_awburst = 0;
-assign io_master_wvalid = 0;
-assign io_master_wdata = 0;
-assign io_master_wstrb = 0;
-assign io_master_wlast = 0;
-assign io_master_bready = 0;
+// assign io_master_awvalid = 0;
+// assign io_master_awaddr = 0;
+// assign io_master_awid = 0;
+// assign io_master_awlen = 0;
+// assign io_master_awsize = 4;
+// assign io_master_awburst = 0;
+// assign io_master_wvalid = 0;
+// assign io_master_wdata = 0;
+// assign io_master_wstrb = 0;
+// assign io_master_wlast = 0;
+// assign io_master_bready = 0;
 // assign io_master_arvalid = 0;
 // assign io_master_araddr = 0;
 assign io_master_arid = 0;
 assign io_master_arlen = 0;
-assign io_master_arsize = 1;
+assign io_master_arsize = 0;
 assign io_master_arburst = 0;
 assign io_master_rready = 0;
 assign io_slave_awready = 0;
@@ -144,23 +144,23 @@ riscv32e_core #(
     .clk(clk),
     .rst(rst),
 
-    .io_interrupt(0),
-    .io_master_awready(0),
-    .io_master_awvalid(),
-    .io_master_awaddr(),
-    .io_master_awid(),
-    .io_master_awlen(),
-    .io_master_awsize(),
-    .io_master_awburst(),
-    .io_master_wready(0),
-    .io_master_wvalid(),
-    .io_master_wdata(),
-    .io_master_wstrb(),
-    .io_master_wlast(),
-    .io_master_bready(),
-    .io_master_bvalid(0),
-    .io_master_bresp(0),
-    .io_master_bid(0),
+    .io_interrupt(io_interrupt),
+    .io_master_awready(io_master_awready),
+    .io_master_awvalid(io_master_awvalid),
+    .io_master_awaddr(io_master_awaddr),
+    .io_master_awid(io_master_awid),
+    .io_master_awlen(io_master_awlen),
+    .io_master_awsize(io_master_awsize),
+    .io_master_awburst(io_master_awburst),
+    .io_master_wready(io_master_wready),
+    .io_master_wvalid(io_master_wvalid),
+    .io_master_wdata(io_master_wdata),
+    .io_master_wstrb(io_master_wstrb),
+    .io_master_wlast(io_master_wlast),
+    .io_master_bready(io_master_bready),
+    .io_master_bvalid(io_master_bvalid),
+    .io_master_bresp(io_master_bresp),
+    .io_master_bid(io_master_bid),
     .io_master_arready(io_master_arready),
     .io_master_arvalid(io_master_arvalid),
     .io_master_araddr(io_master_araddr),

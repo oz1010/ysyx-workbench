@@ -229,7 +229,7 @@ extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
 extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
     // assert(0);
-    // *data = read_raw_mem(addr, 4);
-    // TODO 临时返回固定的ebreak
-    *data = 0x00100073;
+    *data = read_raw_mem(addr, 4);
+    // 临时返回固定的ebreak
+    // *data = 0x00100073;
 }
