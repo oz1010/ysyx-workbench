@@ -2,7 +2,7 @@ module load_store #(
     parameter INST_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter BRESP_WIDTH = 3,
+    parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 3
 ) (
     input wire clk,
@@ -22,18 +22,22 @@ module load_store #(
     output wire [7:0] mem_result_width,
     output wire result_update_csr,
 
-    output wire aw_valid,
-    input wire aw_ready,
-    output wire [ADDR_WIDTH-1:0] aw_addr,
-
-    output wire w_valid,
-    input wire w_ready,
-    output wire [DATA_WIDTH-1:0] w_data,
-    output wire [DATA_WIDTH/8-1:0] w_strb,
-
-    input wire b_valid,
-    output wire b_ready,
-    input wire [BRESP_WIDTH-1:0] b_resp,
+    input  wire                         aw_ready,
+    output wire                         aw_valid,
+    output wire [ADDR_WIDTH-1:0]        aw_addr,
+    output wire [3:0]                   aw_id,
+    output wire [7:0]                   aw_len,
+    output wire [2:0]                   aw_size,
+    output wire [1:0]                   aw_burst,
+    input  wire                         w_ready,
+    output wire                         w_valid,
+    output wire [DATA_WIDTH-1:0]        w_data,
+    output wire [DATA_WIDTH/8-1:0]      w_strb,
+    output wire                         w_last,
+    output wire                         b_ready,
+    input  wire                         b_valid,
+    input  wire [BRESP_WIDTH-1:0]       b_resp,
+    input  wire [3:0]                   b_id,
 
     output wire ar_valid,
     input wire ar_ready,
@@ -50,15 +54,21 @@ module load_store #(
     output wire next_valid
 );
 
+assign aw_len = 0; // 写入数据总大小，2^n字节
+assign aw_burst = 1; // burst类型，0--FIXED 1--INCR 2--WRAP
+
 reg r_prev_ready, r_next_valid;
 assign prev_ready = r_prev_ready;
 assign next_valid = r_next_valid;
 
 reg r_aw_valid;
 reg [ADDR_WIDTH-1:0] r_aw_addr;
+reg [3:0] r_aw_id; // 写入数据标识，响应中可以比对是否一致
+reg [2:0] r_aw_size; // 单次写入数据大小，2^n字节
 reg r_w_valid;
 reg [DATA_WIDTH-1:0] r_w_data;
 reg [DATA_WIDTH/8-1:0] r_w_strb;
+reg r_w_last; // 写入最后一个数据时需要拉高
 reg r_b_ready;
 reg r_ar_valid;
 reg [ADDR_WIDTH-1:0] r_ar_addr;
@@ -66,9 +76,12 @@ reg r_r_ready;
 
 assign aw_valid = r_aw_valid;
 assign aw_addr = r_aw_addr;
+assign aw_id = r_aw_id;
+assign aw_size = r_aw_size;
 assign w_valid = r_w_valid;
 assign w_data = r_w_data;
 assign w_strb = r_w_strb;
+assign w_last = r_w_last;
 assign b_ready = r_b_ready;
 wire [2:0] write_status = {b_valid, w_valid, aw_valid};
 assign ar_valid = r_ar_valid;
@@ -101,9 +114,12 @@ always @(posedge clk or posedge rst) begin
         r_prev_ready <= 0;
         r_aw_valid <= 0;
         r_aw_addr <= 0;
+        r_aw_id <= 0;
+        r_aw_size <= 0;
         r_w_valid <= 0;
         r_w_data <= 0;
         r_w_strb <= 0;
+        r_w_last <= 0;
         r_b_ready <= 0;
         r_ar_valid <= 0;
         r_ar_addr <= 0;
@@ -116,9 +132,12 @@ always @(posedge clk or posedge rst) begin
 
         r_aw_valid <= r_aw_valid;
         r_aw_addr <= r_aw_addr;
+        r_aw_id <= r_aw_id;
+        r_aw_size <= r_aw_size;
         r_w_valid <= r_w_valid;
         r_w_data <= r_w_data;
         r_w_strb <= r_w_strb;
+        r_w_last <= r_w_last;
         r_b_ready <= r_b_ready;
         r_ar_valid <= r_ar_valid;
         r_ar_addr <= r_ar_addr;
@@ -130,23 +149,31 @@ always @(posedge clk or posedge rst) begin
                 if (write_status==0 && !aw_valid) begin
                     r_aw_valid <= 1;
                     r_aw_addr <= src1 + imm;
+                    r_aw_id <= `AXI4_ID_LSU;
+                    r_aw_size <= (inst_code==`INST_SB) ? 0 :
+                                (inst_code==`INST_SH) ? 1 : 2;
                 end
                 if (aw_valid && aw_ready) begin
                     r_aw_valid <= 0;
+                    r_aw_addr <= 0;
+                    r_aw_id <= 0;
+                    r_aw_size <= 0;
                 end
 
                 // write data
                 if (aw_valid && aw_ready) begin
                     r_w_valid <= 1;
                     case (inst_code)
-                        `INST_SB:           begin r_w_strb <= 1; r_w_data <= src2&32'hFF; end
-                        `INST_SH:           begin r_w_strb <= 2; r_w_data <= src2&32'hFFFF; end
-                        `INST_SW:           begin r_w_strb <= 4; r_w_data <= src2; end
+                        `INST_SB:           begin r_w_strb <= 4'h1; r_w_data <= src2&32'h0000_00FF; r_w_last <= 1; end
+                        `INST_SH:           begin r_w_strb <= 4'h3; r_w_data <= src2&32'h0000_FFFF; r_w_last <= 1; end
+                        `INST_SW:           begin r_w_strb <= 4'hF; r_w_data <= src2&32'hFFFF_FFFF; r_w_last <= 1; end
                         default: ;
                     endcase
                 end
                 if (w_valid && w_ready) begin
+                    r_w_strb <= 0;
                     r_w_valid <= 0;
+                    r_w_last <= 0;
                 end
 
                 // write response
@@ -155,6 +182,10 @@ always @(posedge clk or posedge rst) begin
                 end
                 if (b_valid && b_ready) begin
                     r_b_ready <= 0;
+                    // check error response
+                    if (b_resp!=0 || b_id!=`AXI4_ID_LSU) begin
+                        $error("Write data error, addr:%x data:%x resp:%x id:%x\n", src1 + imm, src2, b_resp, b_id);
+                    end
                 end
                 
                 // notify prev module

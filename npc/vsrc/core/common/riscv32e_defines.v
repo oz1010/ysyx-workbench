@@ -80,6 +80,12 @@
 `define AXI4_READY          2'b10
 `define AXI4_COMPLETE       2'b11
 
+`define AXI4_ID_IFU         4'h1
+`define AXI4_ID_IDU         4'h2
+`define AXI4_ID_LSU         4'h3
+`define AXI4_ID_EXU         4'h4
+`define AXI4_ID_WBU         4'h5
+
 `define SRAM_TYPE_AXI4_LITE 0
 `define SRAM_TYPE_AXI4      1
 `define SRAM_TYPE_SCOM      2
