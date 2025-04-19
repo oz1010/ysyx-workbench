@@ -54,7 +54,7 @@ module load_store #(
     output wire next_valid
 );
 
-assign aw_len = 0; // 写入数据总大小，2^n字节
+assign aw_len = 0; // 写入数据总burst数量，2^n
 assign aw_burst = 1; // burst类型，0--FIXED 1--INCR 2--WRAP
 
 reg r_prev_ready, r_next_valid;
@@ -64,7 +64,7 @@ assign next_valid = r_next_valid;
 reg r_aw_valid;
 reg [ADDR_WIDTH-1:0] r_aw_addr;
 reg [3:0] r_aw_id; // 写入数据标识，响应中可以比对是否一致
-reg [2:0] r_aw_size; // 单次写入数据大小，2^n字节
+reg [2:0] r_aw_size; // 单个burst写入数据大小，2^n字节
 reg r_w_valid;
 reg [DATA_WIDTH-1:0] r_w_data;
 reg [DATA_WIDTH/8-1:0] r_w_strb;

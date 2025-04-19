@@ -26,14 +26,19 @@ module inst_fetch #(
     output wire b_ready,
     input wire [BRESP_WIDTH-1:0] b_resp,
 
-    output wire ar_valid,
-    input wire ar_ready,
-    output wire [ADDR_WIDTH-1:0] ar_addr,
-
-    input wire r_valid,
-    output wire r_ready,
-    input wire [DATA_WIDTH-1:0] r_data,
-    input wire [RRESP_WIDTH-1:0] r_resp,
+    input   wire                        ar_ready,
+    output  wire                        ar_valid,
+    output  wire [ADDR_WIDTH-1:0]       ar_addr,
+    output  wire [3:0]                  ar_id,
+    output  wire [7:0]                  ar_len,
+    output  wire [2:0]                  ar_size,
+    output  wire [1:0]                  ar_burst,
+    output  wire                        r_ready,
+    input   wire                        r_valid,
+    input   wire [RRESP_WIDTH-1:0]      r_resp,
+    input   wire [DATA_WIDTH-1:0]       r_data,
+    input   wire                        r_last,
+    input   wire [3:0]                  r_id,
 
     input wire enable,
     input wire next_ready,
@@ -151,6 +156,10 @@ generate
     end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
         reg r_ar_valid;
         reg [ADDR_WIDTH-1:0] r_ar_addr;
+        reg [3:0] r_ar_id;
+        reg [7:0] r_ar_len;
+        reg [2:0] r_ar_size;
+        reg [1:0] r_ar_burst;
         reg r_r_ready;
         reg [INST_WIDTH-1:0] r_inst;
 
@@ -158,6 +167,10 @@ generate
 
         assign ar_valid = r_ar_valid;
         assign ar_addr = r_ar_addr;
+        assign ar_id = r_ar_id;
+        assign ar_len = r_ar_len;
+        assign ar_size = r_ar_size;
+        assign ar_burst = r_ar_burst;
         assign r_ready = r_r_ready;
 
         assign next_valid = r_valid && r_ready;
@@ -167,11 +180,19 @@ generate
             if (rst) begin
                 r_ar_valid <= 0;
                 r_ar_addr <= 0;
+                r_ar_id <= 0;
+                r_ar_len <= 0;
+                r_ar_size <= 0;
+                r_ar_burst <= 0;
                 r_r_ready <= 0;
                 r_inst <= 0;
             end else begin
                 r_ar_valid <= r_ar_valid;
                 r_ar_addr <= r_ar_addr;
+                r_ar_id <= r_ar_id;
+                r_ar_len <= r_ar_len;
+                r_ar_size <= r_ar_size;
+                r_ar_burst <= r_ar_burst;
                 r_r_ready <= r_r_ready;
                 r_inst <= r_inst;
 
@@ -179,9 +200,18 @@ generate
                 if (read_en) begin
                     r_ar_valid <= 1;
                     r_ar_addr <= pc;
+                    r_ar_id <= `AXI4_ID_IFU;
+                    r_ar_len <= 0; // 读取数据总burst数量，2^n
+                    r_ar_size <= 2; // 单个burst读取大小，2^n字节
+                    r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
                 end
                 if (ar_valid && ar_ready) begin
                     r_ar_valid <= 0;
+                    r_ar_addr <= 0;
+                    r_ar_id <= 0;
+                    r_ar_len <= 0;
+                    r_ar_size <= 0;
+                    r_ar_burst <= 0;
                 end
 
                 // read data
@@ -194,6 +224,10 @@ generate
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;
+                    // check error response
+                    if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_IFU) begin
+                        $error("Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                    end
                 end
             end
         end

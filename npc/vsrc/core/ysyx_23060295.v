@@ -97,11 +97,11 @@ module ysyx_23060295 (
 // assign io_master_bready = 0;
 // assign io_master_arvalid = 0;
 // assign io_master_araddr = 0;
-assign io_master_arid = 0;
-assign io_master_arlen = 0;
-assign io_master_arsize = 0;
-assign io_master_arburst = 0;
-assign io_master_rready = 0;
+// assign io_master_arid = 0;
+// assign io_master_arlen = 0;
+// assign io_master_arsize = 0;
+// assign io_master_arburst = 0;
+// assign io_master_rready = 0;
 assign io_slave_awready = 0;
 assign io_slave_wready = 0;
 assign io_slave_bvalid = 0;
