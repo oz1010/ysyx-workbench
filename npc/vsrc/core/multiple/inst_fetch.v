@@ -226,7 +226,7 @@ generate
                     r_r_ready <= 0;
                     // check error response
                     if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_IFU) begin
-                        $error("Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                        $error("IFU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
                     end
                 end
             end
