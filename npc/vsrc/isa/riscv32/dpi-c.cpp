@@ -16,13 +16,18 @@
 #define DPI_MTRACE(fmt, ...) MTRACE_ADD("DPI-" fmt, ##__VA_ARGS__)
 #if CONFIG_DTRACE
 #define DPI_DTRACE(name, fmt, ...)                                  \
-    do                                                              \
-    {                                                               \
-        if (dtrace_limit_check(name, addr, len))                    \
-            DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);    \
-    } while (false)
+do                                                              \
+{                                                               \
+    if (dtrace_limit_check(name, addr, len))                    \
+    DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);    \
+} while (false)
 #else
 #define DPI_DTRACE(name, fmt, ...)
+#endif
+#if CONFIG_DIFFTEST
+#define DIFFTEST_SKIP_REF() difftest_skip_ref()
+#else
+#define DIFFTEST_SKIP_REF()
 #endif
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
@@ -181,7 +186,7 @@ void dpi_uart_write(int addr, int len, int data){
     raw_stdout("%c", c);
 
     DPI_DTRACE("uart", "%#x %d write '%c'(%#x)", (uint32_t)addr, len, c, c);
-    difftest_skip_ref();
+    DIFFTEST_SKIP_REF();
 }
 
 int dpi_rtc_read(int addr, int len)
@@ -220,7 +225,7 @@ int dpi_rtc_read(int addr, int len)
     }
 
     DPI_DTRACE("rtc", "%#x %d read %#x", addr, len, ret);
-    difftest_skip_ref();
+    DIFFTEST_SKIP_REF();
 
     return ret;
 }
