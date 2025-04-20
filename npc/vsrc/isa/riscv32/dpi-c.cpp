@@ -189,6 +189,21 @@ void dpi_uart_write(int addr, int len, int data){
     DIFFTEST_SKIP_REF();
 }
 
+void dpi_dev_skip(int write, int addr, int len, int data)
+{
+#if CONFIG_DIFFTEST
+    const char *w_str = write ? "write" : "read";
+    int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
+    int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+    // uart 0x1000_0000~0x1000_0fff
+    if (addr>=0x10000000 && addr<=0x10000fff) {
+        char c = (char)data;
+        DPI_DTRACE("uart", "%s %#x %x '%c'(%#x)", w_str, (uint32_t)addr, aw_size, c, c);
+        DIFFTEST_SKIP_REF();
+    }
+#endif
+}
+
 int dpi_rtc_read(int addr, int len)
 {
     static hw_time_info_t local_time_info = {0};
