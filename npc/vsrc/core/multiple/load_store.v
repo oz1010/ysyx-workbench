@@ -70,6 +70,7 @@ reg r_aw_valid;
 reg [ADDR_WIDTH-1:0] r_aw_addr;
 reg [3:0] r_aw_id; // 写入数据标识，响应中可以比对是否一致
 reg [2:0] r_aw_size; // 单个burst写入数据大小，2^n字节
+reg [2:0] r_record_aw_size;
 reg r_w_valid;
 reg [DATA_WIDTH-1:0] r_w_data;
 reg [DATA_WIDTH/8-1:0] r_w_strb;
@@ -176,6 +177,7 @@ always @(posedge clk or posedge rst) begin
                                 (inst_code==`INST_SH) ? 1 : 2;
                 end
                 if (aw_valid && aw_ready) begin
+                    r_record_aw_size <= r_aw_size;
                     r_aw_valid <= 0;
                     r_aw_addr <= 0;
                     r_aw_id <= 0;
@@ -193,6 +195,7 @@ always @(posedge clk or posedge rst) begin
                     endcase
                 end
                 if (w_valid && w_ready) begin
+                    dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, r_w_data);
                     r_w_strb <= 0;
                     r_w_valid <= 0;
                     r_w_last <= 0;
