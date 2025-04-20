@@ -4,8 +4,8 @@ module riscv32e_core #(
     parameter SRAM_READ_DELAY = 0,
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter BRESP_WIDTH = 3,
-    parameter RRESP_WIDTH = 3
+    parameter BRESP_WIDTH = 2,
+    parameter RRESP_WIDTH = 2
 ) (
     input  wire         clk,
     input  wire         rst,
@@ -62,6 +62,50 @@ wire ex_ls_valid;
 wire ex_ls_ready;
 
 /* ifu axi4 信号 */
+wire                        ar_ready1;
+wire                        ar_valid1;
+wire [ADDR_WIDTH-1:0]       ar_addr1;
+wire [3:0]                  ar_id1;
+wire [7:0]                  ar_len1;
+wire [2:0]                  ar_size1;
+wire [1:0]                  ar_burst1;
+wire                        r_ready1;
+wire                        r_valid1;
+wire [RRESP_WIDTH-1:0]      r_resp1;
+wire [DATA_WIDTH-1:0]       r_data1;
+wire                        r_last1;
+wire [3:0]                  r_id1;
+/* lsu axi4 信号 */
+wire                        aw_ready2;
+wire                        aw_valid2;
+wire [ADDR_WIDTH-1:0]       aw_addr2;
+wire [3:0]                  aw_id2;
+wire [7:0]                  aw_len2;
+wire [2:0]                  aw_size2;
+wire [1:0]                  aw_burst2;
+wire                        w_ready2;
+wire                        w_valid2;
+wire [DATA_WIDTH-1:0]       w_data2;
+wire [DATA_WIDTH/8-1:0]     w_strb2;
+wire                        w_last2;
+wire                        b_ready2;
+wire                        b_valid2;
+wire [BRESP_WIDTH-1:0]      b_resp2;
+wire [3:0]                  b_id2;
+wire                        ar_ready2;
+wire                        ar_valid2;
+wire [ADDR_WIDTH-1:0]       ar_addr2;
+wire [3:0]                  ar_id2;
+wire [7:0]                  ar_len2;
+wire [2:0]                  ar_size2;
+wire [1:0]                  ar_burst2;
+wire                        r_ready2;
+wire                        r_valid2;
+wire [RRESP_WIDTH-1:0]      r_resp2;
+wire [DATA_WIDTH-1:0]       r_data2;
+wire                        r_last2;
+wire [3:0]                  r_id2;
+/* ifu axi4 信号 */
 wire ar_valid_1;
 wire ar_ready_1;
 wire [ADDR_WIDTH-1:0] ar_addr_1;
@@ -115,6 +159,78 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
+arbiter_axi4 #(
+    .USER_M_COUNT(2),
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH)
+) m_arbiter_axi4(
+    .clk(clk),
+    .rst(rst),
+    .u_aw_readys(   {0,             aw_ready2   }),
+    .u_aw_valids(   {0,             aw_valid2   }),
+    .u_aw_addrs(    {0,             aw_addr2    }),
+    .u_aw_ids(      {0,             aw_id2      }),
+    .u_aw_lens(     {0,             aw_len2     }),
+    .u_aw_sizes(    {0,             aw_size2    }),
+    .u_aw_bursts(   {0,             aw_burst2   }),
+    .u_w_readys(    {0,             w_ready2    }),
+    .u_w_valids(    {0,             w_valid2    }),
+    .u_w_datas(     {0,             w_data2     }),
+    .u_w_strbs(     {0,             w_strb2     }),
+    .u_w_lasts(     {0,             w_last2     }),
+    .u_b_readys(    {0,             b_ready2    }),
+    .u_b_valids(    {0,             b_valid2    }),
+    .u_b_resps(     {0,             b_resp2     }),
+    .u_b_ids(       {0,             b_id2       }),
+    .u_ar_readys(   {ar_ready1,     ar_ready2   }),
+    .u_ar_valids(   {ar_valid1,     ar_valid2   }),
+    .u_ar_addrs(    {ar_addr1,      ar_addr2    }),
+    .u_ar_ids(      {ar_id1,        ar_id2      }),
+    .u_ar_lens(     {ar_len1,       ar_len2     }),
+    .u_ar_sizes(    {ar_size1,      ar_size2    }),
+    .u_ar_bursts(   {ar_burst1,     ar_burst2   }),
+    .u_r_readys(    {r_ready1,      r_ready2    }),
+    .u_r_valids(    {r_valid1,      r_valid2    }),
+    .u_r_resps(     {r_resp1,       r_resp2     }),
+    .u_r_datas(     {r_data1,       r_data2     }),
+    .u_r_lasts(     {r_last1,       r_last2     }),
+    .u_r_ids(       {r_id1,         r_id2       }),
+
+    .aw_ready(io_master_awready),
+    .aw_valid(io_master_awvalid),
+    .aw_addr(io_master_awaddr),
+    .aw_id(io_master_awid),
+    .aw_len(io_master_awlen),
+    .aw_size(io_master_awsize),
+    .aw_burst(io_master_awburst),
+    .w_ready(io_master_wready),
+    .w_valid(io_master_wvalid),
+    .w_data(io_master_wdata),
+    .w_strb(io_master_wstrb),
+    .w_last(io_master_wlast),
+    .b_ready(io_master_bready),
+    .b_valid(io_master_bvalid),
+    .b_resp(io_master_bresp),
+    .b_id(io_master_bid),
+    .ar_ready(io_master_arready),
+    .ar_valid(io_master_arvalid),
+    .ar_addr(io_master_araddr),
+    .ar_id(io_master_arid),
+    .ar_len(io_master_arlen),
+    .ar_size(io_master_arsize),
+    .ar_burst(io_master_arburst),
+    .r_ready(io_master_rready),
+    .r_valid(io_master_rvalid),
+    .r_resp(io_master_rresp),
+    .r_data(io_master_rdata),
+    .r_last(io_master_rlast),
+    .r_id(io_master_rid),
+
+    .grant_idx()
+);
+
 // /* xbar模块 */
 // xbar #(
 //     .USER_M_COUNT(2),
@@ -166,19 +282,19 @@ inst_fetch #(
     .b_valid(),
     .b_ready(),
     .b_resp(),
-    .ar_ready(io_master_arready),
-    .ar_valid(io_master_arvalid),
-    .ar_addr(io_master_araddr),
-    .ar_id(io_master_arid),
-    .ar_len(io_master_arlen),
-    .ar_size(io_master_arsize),
-    .ar_burst(io_master_arburst),
-    .r_ready(io_master_rready),
-    .r_valid(io_master_rvalid),
-    .r_resp(io_master_rresp),
-    .r_data(io_master_rdata),
-    .r_last(io_master_rlast),
-    .r_id(io_master_rid),
+    .ar_ready(ar_ready1),
+    .ar_valid(ar_valid1),
+    .ar_addr(ar_addr1),
+    .ar_id(ar_id1),
+    .ar_len(ar_len1),
+    .ar_size(ar_size1),
+    .ar_burst(ar_burst1),
+    .r_ready(r_ready1),
+    .r_valid(r_valid1),
+    .r_resp(r_resp1),
+    .r_data(r_data1),
+    .r_last(r_last1),
+    .r_id(r_id1),
 
     .enable(execute_time<=1 || valid),
     .next_ready(id_ready),
@@ -272,29 +388,35 @@ load_store #(
     .mem_result_width(ls_mem_result_width),
     .result_update_csr(ls_result_update_csr),
 
-    .aw_ready(io_master_awready),
-    .aw_valid(io_master_awvalid),
-    .aw_addr(io_master_awaddr),
-    .aw_id(io_master_awid),
-    .aw_len(io_master_awlen),
-    .aw_size(io_master_awsize),
-    .aw_burst(io_master_awburst),
-    .w_ready(io_master_wready),
-    .w_valid(io_master_wvalid),
-    .w_data(io_master_wdata),
-    .w_strb(io_master_wstrb),
-    .w_last(io_master_wlast),
-    .b_ready(io_master_bready),
-    .b_valid(io_master_bvalid),
-    .b_resp(io_master_bresp),
-    .b_id(io_master_bid),
-    .ar_valid(ar_valid_2),
-    .ar_ready(ar_ready_2),
-    .ar_addr(ar_addr_2),
-    .r_valid(r_valid_2),
-    .r_ready(r_ready_2),
-    .r_data(r_data_2),
-    .r_resp(r_resp_2),
+    .aw_ready(aw_ready2),
+    .aw_valid(aw_valid2),
+    .aw_addr(aw_addr2),
+    .aw_id(aw_id2),
+    .aw_len(aw_len2),
+    .aw_size(aw_size2),
+    .aw_burst(aw_burst2),
+    .w_ready(w_ready2),
+    .w_valid(w_valid2),
+    .w_data(w_data2),
+    .w_strb(w_strb2),
+    .w_last(w_last2),
+    .b_ready(b_ready2),
+    .b_valid(b_valid2),
+    .b_resp(b_resp2),
+    .b_id(b_id2),
+    .ar_ready(ar_ready2),
+    .ar_valid(ar_valid2),
+    .ar_addr(ar_addr2),
+    .ar_id(ar_id2),
+    .ar_len(ar_len2),
+    .ar_size(ar_size2),
+    .ar_burst(ar_burst2),
+    .r_ready(r_ready2),
+    .r_valid(r_valid2),
+    .r_resp(r_resp2),
+    .r_data(r_data2),
+    .r_last(r_last2),
+    .r_id(r_id2),
 
     .prev_ready(ls_ready),
     .prev_valid(id_valid && ls_enable),

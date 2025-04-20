@@ -3,7 +3,7 @@ module load_store #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter BRESP_WIDTH = 2,
-    parameter RRESP_WIDTH = 3
+    parameter RRESP_WIDTH = 2
 ) (
     input wire clk,
     input wire rst,
@@ -22,31 +22,36 @@ module load_store #(
     output wire [7:0] mem_result_width,
     output wire result_update_csr,
 
-    input  wire                         aw_ready,
-    output wire                         aw_valid,
-    output wire [ADDR_WIDTH-1:0]        aw_addr,
-    output wire [3:0]                   aw_id,
-    output wire [7:0]                   aw_len,
-    output wire [2:0]                   aw_size,
-    output wire [1:0]                   aw_burst,
-    input  wire                         w_ready,
-    output wire                         w_valid,
-    output wire [DATA_WIDTH-1:0]        w_data,
-    output wire [DATA_WIDTH/8-1:0]      w_strb,
-    output wire                         w_last,
-    output wire                         b_ready,
-    input  wire                         b_valid,
-    input  wire [BRESP_WIDTH-1:0]       b_resp,
-    input  wire [3:0]                   b_id,
+    input   wire                        aw_ready,
+    output  wire                        aw_valid,
+    output  wire [ADDR_WIDTH-1:0]       aw_addr,
+    output  wire [3:0]                  aw_id,
+    output  wire [7:0]                  aw_len,
+    output  wire [2:0]                  aw_size,
+    output  wire [1:0]                  aw_burst,
+    input   wire                        w_ready,
+    output  wire                        w_valid,
+    output  wire [DATA_WIDTH-1:0]       w_data,
+    output  wire [DATA_WIDTH/8-1:0]     w_strb,
+    output  wire                        w_last,
+    output  wire                        b_ready,
+    input   wire                        b_valid,
+    input   wire [BRESP_WIDTH-1:0]      b_resp,
+    input   wire [3:0]                  b_id,
 
-    output wire ar_valid,
-    input wire ar_ready,
-    output wire [ADDR_WIDTH-1:0] ar_addr,
-
-    input wire r_valid,
-    output wire r_ready,
-    input wire [DATA_WIDTH-1:0] r_data,
-    input wire [RRESP_WIDTH-1:0] r_resp,
+    input   wire                        ar_ready,
+    output  wire                        ar_valid,
+    output  wire [ADDR_WIDTH-1:0]       ar_addr,
+    output  wire [3:0]                  ar_id,
+    output  wire [7:0]                  ar_len,
+    output  wire [2:0]                  ar_size,
+    output  wire [1:0]                  ar_burst,
+    output  wire                        r_ready,
+    input   wire                        r_valid,
+    input   wire [RRESP_WIDTH-1:0]      r_resp,
+    input   wire [DATA_WIDTH-1:0]       r_data,
+    input   wire                        r_last,
+    input   wire [3:0]                  r_id,
 
     output wire prev_ready,
     input wire prev_valid,
@@ -72,7 +77,13 @@ reg r_w_last; // 写入最后一个数据时需要拉高
 reg r_b_ready;
 reg r_ar_valid;
 reg [ADDR_WIDTH-1:0] r_ar_addr;
+reg [3:0] r_ar_id;
+reg [7:0] r_ar_len;
+reg [2:0] r_ar_size;
+reg [1:0] r_ar_burst;
 reg r_r_ready;
+
+wire [2:0] write_status = {b_valid, w_valid, aw_valid};
 
 assign aw_valid = r_aw_valid;
 assign aw_addr = r_aw_addr;
@@ -83,9 +94,12 @@ assign w_data = r_w_data;
 assign w_strb = r_w_strb;
 assign w_last = r_w_last;
 assign b_ready = r_b_ready;
-wire [2:0] write_status = {b_valid, w_valid, aw_valid};
 assign ar_valid = r_ar_valid;
 assign ar_addr = r_ar_addr;
+assign ar_id = r_ar_id;
+assign ar_len = r_ar_len;
+assign ar_size = r_ar_size;
+assign ar_burst = r_ar_burst;
 assign r_ready = r_r_ready;
 
 reg [INST_WIDTH-1:0] r_dnpc;
@@ -123,6 +137,10 @@ always @(posedge clk or posedge rst) begin
         r_b_ready <= 0;
         r_ar_valid <= 0;
         r_ar_addr <= 0;
+        r_ar_id <= 0;
+        r_ar_len <= 0;
+        r_ar_size <= 0;
+        r_ar_burst <= 0;
         r_r_ready <= 0;
     end else begin
         r_dnpc <= r_dnpc;
@@ -141,6 +159,10 @@ always @(posedge clk or posedge rst) begin
         r_b_ready <= r_b_ready;
         r_ar_valid <= r_ar_valid;
         r_ar_addr <= r_ar_addr;
+        r_ar_id <= r_ar_id;
+        r_ar_len <= r_ar_len;
+        r_ar_size <= r_ar_size;
+        r_ar_burst <= r_ar_burst;
         r_r_ready <= r_r_ready;
 
         if (prev_valid && !prev_ready) begin
@@ -184,7 +206,7 @@ always @(posedge clk or posedge rst) begin
                     r_b_ready <= 0;
                     // check error response
                     if (b_resp!=0 || b_id!=`AXI4_ID_LSU) begin
-                        $error("Write data error, addr:%x data:%x resp:%x id:%x\n", src1 + imm, src2, b_resp, b_id);
+                        $error("LSU Write data error, addr:%x data:%x resp:%x id:%x\n", src1 + imm, src2, b_resp, b_id);
                     end
                 end
                 
@@ -207,11 +229,22 @@ always @(posedge clk or posedge rst) begin
                 end
                 // read request
                 if (!ar_valid && !r_valid) begin
-                    r_ar_addr <= signed_ar_addr; // 4字节对齐
                     r_ar_valid <= 1;
+                    r_ar_addr <= signed_ar_addr; // 4字节对齐
+                    r_ar_id <= `AXI4_ID_LSU;
+                    r_ar_len <= 0; // 读取数据总burst数量，2^n
+                    r_ar_size <= (inst_code==`INST_LB || inst_code==`INST_LBU) ? 0 :
+                                (inst_code==`INST_LH || inst_code==`INST_LHU) ? 1 :
+                                2; // 单个burst读取大小，2^n字节
+                    r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
                 end
                 if (ar_valid && ar_ready) begin
                     r_ar_valid <= 0;
+                    r_ar_addr <= 0;
+                    r_ar_id <= 0;
+                    r_ar_len <= 0;
+                    r_ar_size <= 0;
+                    r_ar_burst <= 0;
                 end
 
                 // read data
@@ -231,6 +264,10 @@ always @(posedge clk or posedge rst) begin
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;
+                    // check error response
+                    if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_LSU) begin
+                        $error("LSU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                    end
                 end
 
                 // notify prev module
