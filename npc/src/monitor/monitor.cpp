@@ -109,6 +109,8 @@ static size_t load_img()
     }
 
     int ret;
+    extern vaddr_t reset_pc;
+    uint8_t *pmem = guest_to_host(RESET_VECTOR);
     FILE *fd = fopen(file_path, "rb");
     Assert(fd, "Can not open '%s'", file_path);
 
@@ -125,9 +127,10 @@ static size_t load_img()
         Log("The file is missing bin_header information, magic %u", bin_header.magic);
         exit(-1);
     }
+    memcpy(&pmem[bin_header.text_start-sizeof(bin_header_t)], &bin_header, sizeof(bin_header_t));
+    Log("Load bin header to memory %#x size %#x", (uint32_t)(bin_header.text_start-sizeof(bin_header_t)),
+        (uint32_t)(sizeof(bin_header_t)));
 
-    extern vaddr_t reset_pc;
-    uint8_t *pmem = guest_to_host(RESET_VECTOR);
     ret = fread(&pmem[bin_header.text_start], readsize - sizeof(bin_header_t), 1, fd);
     assert(ret == 1 && "read bin context failed");
     /* 根据entry重置pc */
