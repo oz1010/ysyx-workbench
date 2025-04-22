@@ -5,22 +5,33 @@ static inline void outw(uintptr_t addr, uint16_t data) { *(volatile uint16_t *)a
 static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)addr = data; }
 static inline void outll(uintptr_t addr, uint64_t data) { *(volatile uint64_t *)addr = data; }
 
-static void ebreak(long arg0)
+static inline void ebreak(uint32_t arg0)
 {
-    asm volatile(
-        "addi a0, x0, %0;"
-        "ebreak"
-        :
-        : "i"(arg0));
-        // : "i"(arg0), "i"(arg1));
+    /* 判断是否arg0为常数，需要开优化后才能使用 */
+    if (__builtin_constant_p(arg0))
+        asm volatile(
+            "li a0, %0;"
+            "ebreak;"
+            :
+            : "i"(arg0)
+        );
+    else
+        asm volatile(
+            "mv a0, %0;"
+            "ebreak;"
+            :
+            : "r"(arg0)
+        );
+
+    // : "i"(arg0), "i"(arg1));
 }
 
-static void putch(char ch)
+void putch(char ch)
 {
     outb(0xa00003f8, ch);
 }
 
-static void putstr(const char *str)
+void putstr(const char *str)
 {
     if (!str) return;
     while(*str) {
@@ -35,7 +46,7 @@ volatile uint64_t *rtc_addr = (volatile uint64_t *)0xa0000048;
 #define UART16550_BASE      0x10000000
 #define UART16550_TX        0x0
 
-void _start()
+void init()
 {
     // for (int i=0; i<10; ++i) {
     //     // asm volatile(
