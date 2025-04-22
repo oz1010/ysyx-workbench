@@ -46,7 +46,7 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
 
 void init_mem() {
 #if   defined(CONFIG_PMEM_MALLOC)
-  pmem = malloc(CONFIG_MSIZE);
+  pmem = (uint8_t *)malloc(CONFIG_MSIZE);
   assert(pmem);
 #endif
   memset(pmem, CONFIG_MEM_INIT_VALUE, CONFIG_MSIZE);
