@@ -70,7 +70,11 @@ static void welcome()
 
 void sdb_set_batch_mode();
 
+#if   defined(CONFIG_PMEM_MALLOC)
+extern uint8_t *raw_memory;
+#else
 extern uint8_t raw_memory[CONFIG_MSIZE];
+#endif
 static char *cfg_img_file = NULL;
 static char *cfg_log_file = NULL;
 int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);

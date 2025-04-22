@@ -14,6 +14,7 @@ SECTIONS {
     /* -------- bin_header segment (放在最前面) -------- */
     .bin_header : {
         KEEP(*(.bin_header)) /* 确保bin_header被保留 */
+        . = ALIGN(4);
     } > MROM
 
     .text : {
@@ -23,6 +24,8 @@ SECTIONS {
         *(.text*)
         *(.rodata)
         *(.rodata*)
+        *(.srodata)
+        *(.srodata*)
         _text_end = .;
     } >MROM
     etext = .;
