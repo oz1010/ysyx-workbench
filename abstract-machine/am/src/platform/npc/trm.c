@@ -1,5 +1,8 @@
 #include <am.h>
 #include <npc.h>
+#include "file/bin_header.h"
+
+DECLARE_BIN_HEADER(_bin_header);
 
 extern char _heap_start;
 int main(const char *args);
