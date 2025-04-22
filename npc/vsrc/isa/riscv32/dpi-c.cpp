@@ -115,7 +115,9 @@ int read_raw_mem(int addr, int len)
 
 int get_reset_pc()
 {
-    return CONFIG_MBASE;
+    extern vaddr_t reset_pc;
+    // return CONFIG_MBASE;
+    return reset_pc;
 }
 
 #define _SEXT(val, bit_len)      \

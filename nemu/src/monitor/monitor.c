@@ -17,6 +17,17 @@
 #include <memory/paddr.h>
 #include <generated/autoconf.h>
 #include <utils.h>
+#include "file/bin_header.h"
+
+// this is not consistent with uint8_t
+// but it is ok since we do not access the array directly
+static const uint32_t img [] = {
+  0x00000297,  // auipc t0,0
+  0x00028823,  // sb  zero,16(t0)
+  0x0102c503,  // lbu a0,16(t0)
+  0x00100073,  // ebreak (used as nemu_trap)
+  0xdeadbeef,  // some data
+};
 
 void init_rand();
 void init_log(const char *log_file);
@@ -52,29 +63,59 @@ void sdb_set_batch_mode();
 
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
-static char *img_file = NULL;
+static char *file_path = NULL;
 static int difftest_port = 1234;
+bin_header_t bin_header;
 
 static long load_img() {
-  if (img_file == NULL) {
+  if (file_path == NULL) {
     Log("No image is given. Use the default build-in image.");
+    /* Load built-in image. */
+    memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
     return 4096; // built-in image size
   }
 
-  FILE *fp = fopen(img_file, "rb");
-  Assert(fp, "Can not open '%s'", img_file);
+  int ret;
+  FILE *fd = fopen(file_path, "rb");
+  Assert(fd, "Can not open '%s'", file_path);
 
-  fseek(fp, 0, SEEK_END);
-  long size = ftell(fp);
+  fseek(fd, 0, SEEK_END);
+  size_t readsize = ftell(fd);
 
-  Log("The image is %s, size = %ld", img_file, size);
+  Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
 
-  fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
-  assert(ret == 1);
+  fseek(fd, 0, SEEK_SET);
+  ret = fread(&bin_header, sizeof(bin_header_t), 1, fd);
+  assert(ret == 1 && "read bin header failed");
+  if (bin_header.magic != BIN_HEADER_MAGIC) {
+    Log("The file is missing bin_header information, magic %u", bin_header.magic);
+    exit(-1);
+  }
+  
+  extern vaddr_t reset_pc;
+  uint8_t * pmem = guest_to_host(RESET_VECTOR);
+  ret = fread(&pmem[bin_header.text_start], readsize-sizeof(bin_header_t), 1, fd);
+  assert(ret == 1 && "read bin context failed");
+  /* 根据entry重置pc */
+  reset_pc = bin_header.entry;
+  Log("Load code to memory %#x size %#x entry %#x", bin_header.text_start, (uint32_t)(readsize-sizeof(bin_header_t)), bin_header.entry);
+  
+  /* 进行.data和.bss内存初始化 */
+  paddr_t data_load=(paddr_t)bin_header.data_load;
+  paddr_t data_start=(paddr_t)bin_header.data_start;
+  paddr_t bss_start=(paddr_t)bin_header.bss_start;
+  for (; data_start<bin_header.data_end; data_start+=4,data_load+=4) {
+    word_t data = rom_read(data_load, 4);
+    paddr_write(data_start, 4, data);
+  }
+  for (; bss_start<bin_header.bss_end; bss_start+=4) {
+    paddr_write(bss_start, 4, 0);
+  }
+  Log("Init memory success, data [%#x, %#x) bss [%#x %#x)", 
+    bin_header.data_start, bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
 
-  fclose(fp);
-  return size;
+  fclose(fd);
+  return readsize;
 }
 
 static int parse_args(int argc, char *argv[]) {
@@ -93,7 +134,7 @@ static int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 1: img_file = optarg; return 0;
+      case 1: file_path = optarg; return 0;
       default:
         raw_stdout("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         raw_stdout("\t-b,--batch              run with batch mode\n");
@@ -125,14 +166,15 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize devices. */
   IFDEF(CONFIG_DEVICE, init_device());
 
+  /* Load the image to memory. This will overwrite the built-in image. */
+  load_img();
+
   /* Perform ISA dependent initialization. */
   init_isa();
 
-  /* Load the image to memory. This will overwrite the built-in image. */
-  long img_size = load_img();
-
   /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
+  // 需要拷贝整个内存，否则可能因为image重定向而读取到非法值
+  init_difftest(diff_so_file, CONFIG_MSIZE, difftest_port);
 
   /* Initialize the simple debugger. */
   init_sdb();

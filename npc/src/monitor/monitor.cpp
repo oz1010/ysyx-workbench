@@ -17,6 +17,17 @@
 #include <memory/paddr.h>
 #include <generated/autoconf.h>
 #include <utils.h>
+#include "file/bin_header.h"
+
+// this is not consistent with uint8_t
+// but it is ok since we do not access the array directly
+static const uint32_t img [] = {
+  0x00000297,  // auipc t0,0
+  0x00028823,  // sb  zero,16(t0)
+  0x0102c503,  // lbu a0,16(t0)
+  0x00100073,  // ebreak (used as npc_trap)
+  0xdeadbeef,  // some data
+};
 
 void init_rand();
 void init_log(const char *log_file);
@@ -65,12 +76,15 @@ static char *cfg_log_file = NULL;
 int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
 static char *cfg_difftest_so_file = NULL;
 static int cfg_difftest_port = 1234;
+bin_header_t bin_header;
 
 static size_t load_img()
 {
     if (cfg_img_file == NULL)
     {
         Log("No image is given. Use the default build-in image.");
+        /* Load built-in image. */
+        memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
         return 4096;  // built-in image size
     }
 
@@ -90,16 +104,50 @@ static size_t load_img()
         strcat(&file_path[strlen(file_path)], fpath);
     }
 
-    LOG_INFO("Load memory from file %s", file_path);
-    size_t membytes = CONFIG_MSIZE * sizeof(raw_memory[0]);
-    unsigned char *pmemstart = (unsigned char *)&raw_memory[0];
-    unsigned char *pmemend = pmemstart + membytes;
+    int ret;
     FILE *fd = fopen(file_path, "rb");
-    Assert(fd, "open file:%s failed", file_path);
+    Assert(fd, "Can not open '%s'", file_path);
 
-    size_t readsize = fread(pmemstart, 1, membytes, fd);
-    LOG_INFO("Load memory from file total size %lu", readsize);
-    (void)pmemend;
+    fseek(fd, 0, SEEK_END);
+    size_t readsize = ftell(fd);
+
+    Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
+
+    fseek(fd, 0, SEEK_SET);
+    ret = fread(&bin_header, sizeof(bin_header_t), 1, fd);
+    assert(ret == 1 && "read bin header failed");
+    if (bin_header.magic != BIN_HEADER_MAGIC)
+    {
+        Log("The file is missing bin_header information, magic %u", bin_header.magic);
+        exit(-1);
+    }
+
+    extern vaddr_t reset_pc;
+    uint8_t *pmem = guest_to_host(RESET_VECTOR);
+    ret = fread(&pmem[bin_header.text_start], readsize - sizeof(bin_header_t), 1, fd);
+    assert(ret == 1 && "read bin context failed");
+    /* 根据entry重置pc */
+    reset_pc = bin_header.entry;
+    Log("Load code to memory %#x size %#x entry %#x", bin_header.text_start,
+        (uint32_t)(readsize - sizeof(bin_header_t)), bin_header.entry);
+
+    /* 进行.data和.bss内存初始化 */
+    paddr_t data_load = (paddr_t)bin_header.data_load;
+    paddr_t data_start = (paddr_t)bin_header.data_start;
+    paddr_t bss_start = (paddr_t)bin_header.bss_start;
+    for (; data_start < bin_header.data_end; data_start += 4, data_load += 4)
+    {
+        word_t data = rom_read(data_load, 4);
+        paddr_write(data_start, 4, data);
+    }
+    for (; bss_start < bin_header.bss_end; bss_start += 4)
+    {
+        paddr_write(bss_start, 4, 0);
+    }
+    Log("Init memory success, data [%#x, %#x) bss [%#x %#x)", bin_header.data_start,
+        bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
+
+    fclose(fd);
     return readsize;
 }
 
@@ -162,14 +210,15 @@ void init_monitor(int argc, char *argv[])
     /* Initialize devices. */
     IFDEF(CONFIG_DEVICE, init_device());
 
+    /* Load the image to memory. This will overwrite the built-in image. */
+    load_img();
+
     /* Perform ISA dependent initialization. */
     init_isa(argc, argv);
 
-    /* Load the image to memory. This will overwrite the built-in image. */
-    size_t img_size = load_img();
-
     /* Initialize differential testing. */
-    init_difftest(cfg_difftest_so_file, img_size, cfg_difftest_port);
+    // 需要拷贝整个内存，否则可能因为image重定向而读取到非法值
+    init_difftest(cfg_difftest_so_file, CONFIG_MSIZE, cfg_difftest_port);
 
     /* Initialize the simple debugger. */
     init_sdb();
