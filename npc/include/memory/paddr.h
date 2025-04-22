@@ -28,8 +28,6 @@ uint8_t* guest_to_host(paddr_t paddr);
 paddr_t host_to_guest(uint8_t *haddr);
 
 void init_mem();
-int read_memory(paddr_t addr, int len, void *data);
-int write_memory(paddr_t addr, int len, void *data);
 
 static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;

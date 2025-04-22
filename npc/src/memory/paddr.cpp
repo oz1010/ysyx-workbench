@@ -26,7 +26,11 @@
               __FILE__, __LINE__, __FUNCTION__, ADDR, PMEM_LEFT, PMEM_RIGHT, cpu.pc);             \
     } while (0)
 
+#if   defined(CONFIG_PMEM_MALLOC)
+uint8_t *raw_memory = NULL;
+#else
 uint8_t raw_memory[CONFIG_MSIZE] = {0};
+#endif
 
 uint8_t* guest_to_host(paddr_t paddr)
 {
@@ -50,38 +54,14 @@ static void pmem_write(paddr_t addr, int len, word_t data)
 
 void init_mem()
 {
+#if   defined(CONFIG_PMEM_MALLOC)
+  raw_memory = (uint8_t *)malloc(CONFIG_MSIZE);
+  assert(raw_memory);
+#endif
     memset(raw_memory, CONFIG_MEM_INIT_VALUE, CONFIG_MSIZE);
     // IFDEF(CONFIG_MEM_RANDOM, memset(raw_memory, rand(), CONFIG_MSIZE));
     Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "] initialize value %#x", PMEM_LEFT,
         PMEM_RIGHT, CONFIG_MEM_INIT_VALUE);
-}
-
-int read_memory(paddr_t addr, int len, void* data)
-{
-    const uint32_t idx = addr - CONFIG_MBASE;
-
-    if (idx > (ARRAY_SIZE(raw_memory) - len))
-    {
-        LOG_ERROR("addr:%#.8x is out of range", addr);
-        return -1;
-    }
-
-    memcpy(data, &raw_memory[idx], len);
-    return 0;
-}
-
-int write_memory(paddr_t addr, int len, void* data)
-{
-    const uint32_t idx = addr - CONFIG_MBASE;
-
-    if (idx > (ARRAY_SIZE(raw_memory) - len))
-    {
-        LOG_ERROR("addr:%#.8x is out of range", addr);
-        return -1;
-    }
-
-    memcpy(&raw_memory[idx], data, len);
-    return 0;
 }
 
 word_t paddr_read(paddr_t addr, int len)
