@@ -2,7 +2,7 @@
 #include <npc.h>
 #include "file/bin_header.h"
 
-DECLARE_BIN_HEADER(_bin_header);
+DECLARE_BIN_HEADER(bin_header);
 
 extern char _heap_start;
 int main(const char *args);
@@ -29,6 +29,24 @@ void halt(int code) {
 }
 
 void _trm_init() {
+  // /* 初始化sram */
+  // uint32_t data_load = (uint32_t)bin_header.data_load;
+  // uint32_t data_start = (uint32_t)bin_header.data_start;
+  // uint32_t bss_start = (uint32_t)bin_header.bss_start;
+  // // *(volatile uint32_t *)(0x0f000ff0) = data_load;
+  // // *(volatile uint32_t *)(0x0f000ff4) = data_start;
+  // // *(volatile uint32_t *)(0x0f000ff8) = bss_start;
+  // // halt(1);
+  // for (; data_start < bin_header.data_end; data_start += 4, data_load += 4)
+  // {
+  //     uint32_t data = *(volatile uint32_t *)data_load;
+  //     *(volatile uint32_t *)data_start = data;
+  // }
+  // for (; bss_start < bin_header.bss_end; bss_start += 4)
+  // {
+  //     *(uint32_t *)bss_start = 0;
+  // }
+
   int ret = main(mainargs);
   halt(ret);
 }
