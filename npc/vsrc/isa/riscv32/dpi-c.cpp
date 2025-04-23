@@ -193,21 +193,34 @@ void dpi_uart_write(int addr, int len, int data){
 
 void dpi_dev_skip(int write, int addr, int len, int data)
 {
-#if CONFIG_DIFFTEST
+#if CONFIG_MTRACE
     const char *w_str = write ? "write" : "read";
-    int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
-    int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
-    int ar_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
     // uart 0x1000_0000~0x1000_0fff
     if (addr>=0x10000000 && addr<=0x10000fff) {
+        int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
         char c = (char)data;
         DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", w_str, (uint32_t)addr, aw_size, c, c);
         DIFFTEST_SKIP_REF();
     } else if (addr>=0x0f000000 && addr<=0x0fffffff) {
-        if (write)
-            DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
-        else
+        if (write) {
+            int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
+            int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+            int w_data = 0;
+            int start_bit = 0;
+            for (int i=0; i<4; ++i) {
+                if (w_strb&(0x1<<i)) {
+                    start_bit = i;
+                    break;
+                }
+            }
+            w_data = data >> (start_bit*8);
+            DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, w_data, aw_size);
+        }
+        else {
+            int ar_len = (len>>0)&0xff; // 读取数据总burst数量，2^n
+            int ar_size = 1<<((len>>4)&0x7); // 单个burst读取大小，2^n字节
             DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
+        }
     } else {
         DPI_DTRACE("unknown", "%s %#x %#x %#x", w_str, (uint32_t)addr, len, data);
     }

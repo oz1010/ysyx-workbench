@@ -3,17 +3,19 @@
 
 #include <stdint.h>
 
+extern void _start(void);
+extern uint8_t _text_start;
+extern uint8_t _text_end;
+extern uint8_t _data_load;
+extern uint8_t _data_start;
+extern uint8_t _data_end;
+extern uint8_t _bss_start;
+extern uint8_t _bss_end;
+extern uint8_t _stack_pointer;
+
 // 固定标识，0x7F "BIN"
 #define BIN_HEADER_MAGIC 0x7F42494E
 #define DECLARE_BIN_HEADER(name)                \
-    extern uint8_t _text_start;                 \
-    extern uint8_t _text_end;                   \
-    extern uint8_t _data_load;                  \
-    extern uint8_t _data_start;                 \
-    extern uint8_t _data_end;                   \
-    extern uint8_t _bss_start;                  \
-    extern uint8_t _bss_end;                    \
-    extern void _start(void);                   \
     __attribute__((section(".bin_header")))     \
     bin_header_t name = {                       \
         .magic      = 0x7F42494E,               \

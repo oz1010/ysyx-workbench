@@ -80,7 +80,9 @@ reg r_ar_valid;
 reg [ADDR_WIDTH-1:0] r_ar_addr;
 reg [3:0] r_ar_id;
 reg [7:0] r_ar_len;
+reg [7:0] r_record_ar_len;
 reg [2:0] r_ar_size;
+reg [2:0] r_record_ar_size;
 reg [1:0] r_ar_burst;
 reg r_r_ready;
 
@@ -116,8 +118,10 @@ assign result_update_csr = r_result_update_csr;
 wire [31:0] src1 = x[rs1];
 wire [31:0] src2 = x[rs2];
 
-wire [ADDR_WIDTH-1:0] signed_ar_addr = (src1 + imm) & (~32'h03); // 4字节对齐
-wire [DATA_WIDTH-1:0] signed_r_data_shift_bits = 8* ((src1 + imm) & (32'h03));
+wire [ADDR_WIDTH-1:0] signed_addr = (src1 + imm) & (~32'h03); // 4字节对齐
+wire [DATA_WIDTH-1:0] signed_data_shift_val = ((src1 + imm) & (32'h03));
+wire [DATA_WIDTH-1:0] shifted_r_data = r_data>>(8*signed_data_shift_val);
+wire [DATA_WIDTH-1:0] shifted_w_data = src2<<(8*signed_data_shift_val);
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -171,7 +175,7 @@ always @(posedge clk or posedge rst) begin
                 // write request
                 if (write_status==0 && !aw_valid) begin
                     r_aw_valid <= 1;
-                    r_aw_addr <= src1 + imm;
+                    r_aw_addr <= src1+imm; // sram会4字节对齐
                     r_aw_id <= `AXI4_ID_LSU;
                     r_aw_size <= (inst_code==`INST_SB) ? 0 :
                                 (inst_code==`INST_SH) ? 1 : 2;
@@ -189,9 +193,9 @@ always @(posedge clk or posedge rst) begin
                 if (aw_valid && aw_ready) begin
                     r_w_valid <= 1;
                     case (inst_code)
-                        `INST_SB:           begin r_w_strb <= 4'h1; r_w_data <= src2&32'h0000_00FF; r_w_last <= 1; end
-                        `INST_SH:           begin r_w_strb <= 4'h3; r_w_data <= src2&32'h0000_FFFF; r_w_last <= 1; end
-                        `INST_SW:           begin r_w_strb <= 4'hF; r_w_data <= src2&32'hFFFF_FFFF; r_w_last <= 1; end
+                        `INST_SB:           begin r_w_strb <= 4'h1<<signed_data_shift_val; r_w_data <= shifted_w_data; r_w_last <= 1; end
+                        `INST_SH:           begin r_w_strb <= 4'h3<<signed_data_shift_val; r_w_data <= shifted_w_data; r_w_last <= 1; end
+                        `INST_SW:           begin r_w_strb <= 4'hF<<signed_data_shift_val; r_w_data <= shifted_w_data; r_w_last <= 1; end
                         default: ;
                     endcase
                 end
@@ -235,14 +239,14 @@ always @(posedge clk or posedge rst) begin
                 // read request
                 if (!ar_valid && !r_valid) begin
                     r_ar_valid <= 1;
-                    r_ar_addr <= signed_ar_addr; // 4字节对齐
+                    r_ar_addr <= src1+imm; // sram会4字节对齐
                     r_ar_id <= `AXI4_ID_LSU;
                     r_ar_len <= 0; // 读取数据总burst数量，2^n
                     r_ar_size <= (inst_code==`INST_LB || inst_code==`INST_LBU) ? 0 :
                                 (inst_code==`INST_LH || inst_code==`INST_LHU) ? 1 :
                                 2; // 单个burst读取大小，2^n字节
                     r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
-                    check_dev_addr(signed_ar_addr, `DEV_ATTR_READ);
+                    check_dev_addr(src1+imm, `DEV_ATTR_READ);
                 end
                 if (ar_valid && ar_ready) begin
                     r_ar_valid <= 0;
@@ -251,6 +255,8 @@ always @(posedge clk or posedge rst) begin
                     r_ar_len <= 0;
                     r_ar_size <= 0;
                     r_ar_burst <= 0;
+                    r_record_ar_len <= r_ar_len;
+                    r_record_ar_size <= r_ar_size;
                 end
 
                 // read data
@@ -260,16 +266,24 @@ always @(posedge clk or posedge rst) begin
                 if (r_valid) begin
                     // 读取时需要按照4字节对齐计算偏移
                     case (inst_code)
-                        `INST_LB:           r_result <= sext((r_data>>signed_r_data_shift_bits) & 32'h000000FF, 8);
-                        `INST_LH:           r_result <= sext((r_data>>signed_r_data_shift_bits) & 32'h0000FFFF, 16);
-                        `INST_LW:           r_result <= sext((r_data>>signed_r_data_shift_bits) & 32'hFFFFFFFF, 32);
-                        `INST_LBU:          r_result <= (r_data>>signed_r_data_shift_bits) & 32'hFF;
-                        `INST_LHU:          r_result <= (r_data>>signed_r_data_shift_bits) & 32'hFFFF;
+                        `INST_LB:           r_result <= sext((shifted_r_data) & 32'h000000FF, 8);
+                        `INST_LH:           r_result <= sext((shifted_r_data) & 32'h0000FFFF, 16);
+                        `INST_LW:           r_result <= sext((shifted_r_data) & 32'hFFFFFFFF, 32);
+                        `INST_LBU:          r_result <= (shifted_r_data) & 32'hFF;
+                        `INST_LHU:          r_result <= (shifted_r_data) & 32'hFFFF;
                         default: ;
                     endcase
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;
+                    case (inst_code)
+                        `INST_LB:           dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, sext((shifted_r_data) & 32'h000000FF, 8));
+                        `INST_LH:           dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, sext((shifted_r_data) & 32'h0000FFFF, 16));
+                        `INST_LW:           dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, sext((shifted_r_data) & 32'hFFFFFFFF, 32));
+                        `INST_LBU:          dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, (shifted_r_data) & 32'hFF);
+                        `INST_LHU:          dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, (shifted_r_data) & 32'hFFFF);
+                        default: ;
+                    endcase
                     // check error response
                     if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_LSU) begin
                         $error("LSU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
