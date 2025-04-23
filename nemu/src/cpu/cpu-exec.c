@@ -144,11 +144,11 @@ void cpu_exec(uint64_t n) {
 
     case NEMU_END: case NEMU_ABORT:
       ITRACE_SHOW();
-      Log("nemu: %s at pc = " FMT_WORD,
+      Log("nemu: %s at pc = " FMT_WORD " ret: %#x",
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
-          nemu_state.halt_pc);
+          nemu_state.halt_pc, nemu_state.halt_ret);
       // fall through
     case NEMU_QUIT: statistic();
   }

@@ -196,8 +196,9 @@ always @(posedge clk or posedge rst) begin
                 end
                 if (w_valid && w_ready) begin
                     dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, r_w_data);
-                    r_w_strb <= 0;
                     r_w_valid <= 0;
+                    r_w_strb <= 0;
+                    r_w_data <= 0;
                     r_w_last <= 0;
                 end
 

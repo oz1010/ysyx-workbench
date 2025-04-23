@@ -135,24 +135,9 @@ static size_t load_img()
     assert(ret == 1 && "read bin context failed");
     /* 根据entry重置pc */
     reset_pc = bin_header.entry;
-    Log("Load code to memory %#x size %#x entry %#x", bin_header.text_start,
-        (uint32_t)(readsize - sizeof(bin_header_t)), bin_header.entry);
-
-    /* 进行.data和.bss内存初始化 */
-    paddr_t data_load = (paddr_t)bin_header.data_load;
-    paddr_t data_start = (paddr_t)bin_header.data_start;
-    paddr_t bss_start = (paddr_t)bin_header.bss_start;
-    for (; data_start < bin_header.data_end; data_start += 4, data_load += 4)
-    {
-        word_t data = rom_read(data_load, 4);
-        paddr_write(data_start, 4, data);
-    }
-    for (; bss_start < bin_header.bss_end; bss_start += 4)
-    {
-        paddr_write(bss_start, 4, 0);
-    }
-    Log("Init memory success, data [%#x, %#x) bss [%#x %#x)", bin_header.data_start,
-        bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
+    Log("Load code to memory %#x size %#x entry %#x data [%#x, %#x) bss [%#x %#x)", 
+        bin_header.text_start, (uint32_t)(readsize - sizeof(bin_header_t)), bin_header.entry, 
+        bin_header.data_start, bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
 
     fclose(fd);
     return readsize;

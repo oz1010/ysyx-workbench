@@ -43,7 +43,8 @@ $(OBJ_DIR)/%.o: %.cc
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
-$(IMG):
+$(IMG): image
+image:
 	@$(MAKE) -C $(NEMU_HOME)/resource/riscv32-bin
 
 # Depencies
