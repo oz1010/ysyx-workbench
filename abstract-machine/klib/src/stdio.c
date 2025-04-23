@@ -6,6 +6,8 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
+#define PRINTF_BUF_SIZE 128
+
 void reverse(char* str, int length)
 {
   int start = 0;
@@ -88,12 +90,12 @@ size_t int64_to_string(int64_t num, size_t base, char *str)
 }
 
 int printf(const char *fmt, ...) {
-  static char buf[102400];
+  char buf[PRINTF_BUF_SIZE];
   int ret = -1;
 
   va_list ap;
   va_start(ap, fmt);
-  ret = vsnprintf(buf, sizeof(buf)/sizeof(buf[0]), fmt, ap);
+  ret = vsnprintf(buf, PRINTF_BUF_SIZE, fmt, ap);
   va_end(ap);
 
   putstr(buf);

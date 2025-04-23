@@ -15,6 +15,12 @@ NPCFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
 # 默认NPC切换为批处理模式，查看函数sdb_mainloop实现
 NPCFLAGS += -b
 
+# Generate bin with flag
+# BINARY_FLG	:= -S --set-section-flags .bss=alloc,contents -O binary
+BINARY_FLG	:= -O binary
+BINARY_FLG	+= -S
+BINARY_FLG	+= -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/platform/npc/include
 .PHONY: $(AM_HOME)/am/src/platform/npc/trm.c
@@ -22,7 +28,7 @@ CFLAGS += -I$(AM_HOME)/am/src/platform/npc/include
 image: $(IMAGE).elf
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) $(BINARY_FLG) $(IMAGE).elf $(IMAGE).bin
 
 run: image
 	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
