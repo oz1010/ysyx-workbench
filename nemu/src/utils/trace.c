@@ -172,6 +172,15 @@ bool dtrace_limit_check(const char *name, paddr_t addr, int len)
 
 #endif
 
+#if CONFIG_MTRACE
+
+void mtrace_init()
+{
+    // Log("Start record memory trace.");
+}
+
+#endif
+
 void trace_init(void)
 {
     // extern const char *log_file_path;
@@ -179,4 +188,5 @@ void trace_init(void)
     // Assert(trace_fd, "Open file %s failed", log_file_path);
     IFDEF(CONFIG_ITRACE, itrace_init());
     IFDEF(CONFIG_DTRACE, dtrace_init());
+    IFDEF(CONFIG_MTRACE, mtrace_init());
 }

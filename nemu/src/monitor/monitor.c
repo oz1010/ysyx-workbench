@@ -40,8 +40,14 @@ void init_disasm(const char *triple);
 static void welcome() {
   Log("Trace: %s", MUXDEF(CONFIG_TRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
 #if CONFIG_TRACE
-  Log("Instruction Trace: %s", MUXDEF(CONFIG_ITRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
-  Log("Device Trace: %s", MUXDEF(CONFIG_DTRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+  Log("Instruction Trace: %s",
+      MUXDEF(CONFIG_ITRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+  Log("Device Trace: %s",
+      MUXDEF(CONFIG_DTRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+  Log("Exception Trace: %s",
+      MUXDEF(CONFIG_ETRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+  Log("Memory Trace: %s",
+      MUXDEF(CONFIG_MTRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
   IFDEF(CONFIG_TRACE, Log("If trace is enabled, a log file will be generated "
         "to record the trace. This may lead to a large log file. "
         "If it is not necessary, you can disable it in menuconfig"));
@@ -76,6 +82,8 @@ static long load_img() {
   }
 
   int ret;
+  extern vaddr_t reset_pc;
+  uint8_t * pmem = guest_to_host(RESET_VECTOR);
   FILE *fd = fopen(file_path, "rb");
   Assert(fd, "Can not open '%s'", file_path);
 
@@ -91,27 +99,16 @@ static long load_img() {
     Log("The file is missing bin_header information, magic %u", bin_header.magic);
     exit(-1);
   }
+  memcpy(&pmem[bin_header.text_start-sizeof(bin_header_t)], &bin_header, sizeof(bin_header_t));
+  Log("Load bin header to memory %#x size %#x", (uint32_t)(bin_header.text_start-sizeof(bin_header_t)),
+    (uint32_t)(sizeof(bin_header_t)));
   
-  extern vaddr_t reset_pc;
-  uint8_t * pmem = guest_to_host(RESET_VECTOR);
   ret = fread(&pmem[bin_header.text_start], readsize-sizeof(bin_header_t), 1, fd);
   assert(ret == 1 && "read bin context failed");
   /* 根据entry重置pc */
   reset_pc = bin_header.entry;
-  Log("Load code to memory %#x size %#x entry %#x", bin_header.text_start, (uint32_t)(readsize-sizeof(bin_header_t)), bin_header.entry);
-  
-  /* 进行.data和.bss内存初始化 */
-  paddr_t data_load=(paddr_t)bin_header.data_load;
-  paddr_t data_start=(paddr_t)bin_header.data_start;
-  paddr_t bss_start=(paddr_t)bin_header.bss_start;
-  for (; data_start<bin_header.data_end; data_start+=4,data_load+=4) {
-    word_t data = rom_read(data_load, 4);
-    paddr_write(data_start, 4, data);
-  }
-  for (; bss_start<bin_header.bss_end; bss_start+=4) {
-    paddr_write(bss_start, 4, 0);
-  }
-  Log("Init memory success, data [%#x, %#x) bss [%#x %#x)", 
+  Log("Load code to memory %#x size %#x entry %#x data [%#x, %#x) bss [%#x %#x)", 
+    bin_header.text_start, (uint32_t)(readsize-sizeof(bin_header_t)), bin_header.entry, 
     bin_header.data_start, bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
 
   fclose(fd);

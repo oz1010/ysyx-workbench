@@ -1,5 +1,8 @@
 #include <am.h>
 #include <nemu.h>
+#include "file/bin_header.h"
+
+DECLARE_BIN_HEADER(bin_header);
 
 extern char _heap_start;
 int main(const char *args);
@@ -22,6 +25,9 @@ void halt(int code) {
 }
 
 void _trm_init() {
+  /* 初始化sram */
+  init_sram_with_bin_header(&bin_header);
+
   int ret = main(mainargs);
   halt(ret);
 }

@@ -41,6 +41,12 @@ extern FILE *trace_fd;
 #define ETRACE_LOG(fmt, ...)
 #endif
 
+#if CONFIG_MTRACE
+#define MTRACE_ADD(fmt, ...) raw_out_fp(trace_fd, "<MT> " fmt "\n", ##__VA_ARGS__)
+#else
+#define MTRACE_ADD(fmt, ...)
+#endif
+
 typedef struct IRingBufItem
 {
     vaddr_t addr;

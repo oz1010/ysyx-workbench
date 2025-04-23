@@ -51,6 +51,10 @@ volatile uint64_t *rtc_addr = (volatile uint64_t *)0xa0000048;
 
 void init()
 {
+    init_sram_with_bin_header(&bin_header);
+
+    if (cnt != 0x76543210) ebreak(1);
+
     for (int i=0; i<10; ++i) {
         // asm volatile(
         //     "addi a0, x0, 0x50;"

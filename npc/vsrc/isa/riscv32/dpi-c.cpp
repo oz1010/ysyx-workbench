@@ -197,11 +197,19 @@ void dpi_dev_skip(int write, int addr, int len, int data)
     const char *w_str = write ? "write" : "read";
     int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
     int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+    int ar_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
     // uart 0x1000_0000~0x1000_0fff
     if (addr>=0x10000000 && addr<=0x10000fff) {
         char c = (char)data;
-        DPI_DTRACE("uart", "%s %#x %x '%c'(%#x)", w_str, (uint32_t)addr, aw_size, c, c);
+        DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", w_str, (uint32_t)addr, aw_size, c, c);
         DIFFTEST_SKIP_REF();
+    } else if (addr>=0x0f000000 && addr<=0x0fffffff) {
+        if (write)
+            DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
+        else
+            DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
+    } else {
+        DPI_DTRACE("unknown", "%s %#x %#x %#x", w_str, (uint32_t)addr, len, data);
     }
 #endif
 }
@@ -251,7 +259,17 @@ extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
 extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
     // assert(0);
-    *data = read_raw_mem(addr, 4);
+    // addr &= ~0x3u;  // 读写地址四字节对齐
+    if (unlikely(!in_pmem(addr))) {
+        raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, 4);
+        exit_simu(2);
+    }
+    int inst = paddr_read(addr, 4);
+    // DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, inst, len);
+    *data = inst;
+
+    // *data = read_raw_mem(addr, 4);
+
     // 临时返回固定的ebreak
     // *data = 0x00100073;
 }
