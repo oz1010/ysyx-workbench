@@ -78,7 +78,7 @@ READELF   = $(CROSS_COMPILE)readelf
 SIZE      = size
 
 ### Compilation flags
-INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, $(LIBS)))
+INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, $(LIBS))) $(AM_HOME)/../common/include
 INCFLAGS += $(addprefix -I, $(INC_PATH))
 
 ARCH_H := arch/$(ARCH).h
