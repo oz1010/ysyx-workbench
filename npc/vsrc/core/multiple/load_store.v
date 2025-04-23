@@ -175,6 +175,7 @@ always @(posedge clk or posedge rst) begin
                     r_aw_id <= `AXI4_ID_LSU;
                     r_aw_size <= (inst_code==`INST_SB) ? 0 :
                                 (inst_code==`INST_SH) ? 1 : 2;
+                    check_dev_addr(src1+imm, `DEV_ATTR_WRITE);
                 end
                 if (aw_valid && aw_ready) begin
                     r_record_aw_size <= r_aw_size;
@@ -241,6 +242,7 @@ always @(posedge clk or posedge rst) begin
                                 (inst_code==`INST_LH || inst_code==`INST_LHU) ? 1 :
                                 2; // 单个burst读取大小，2^n字节
                     r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
+                    check_dev_addr(signed_ar_addr, `DEV_ATTR_READ);
                 end
                 if (ar_valid && ar_ready) begin
                     r_ar_valid <= 0;

@@ -135,6 +135,7 @@ generate
                     (delay_ar_valid_enable && delay_ar_valid_cnt == 1)) begin
                     r_ar_valid <= 1;
                     r_ar_addr <= pc;
+                    check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                 end
                 if (r_ar_valid && ar_ready) begin
                     r_ar_valid <= 0;
@@ -204,6 +205,7 @@ generate
                     r_ar_len <= 0; // 读取数据总burst数量，2^n
                     r_ar_size <= 2; // 单个burst读取大小，2^n字节
                     r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
+                    check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                 end
                 if (ar_valid && ar_ready) begin
                     r_ar_valid <= 0;

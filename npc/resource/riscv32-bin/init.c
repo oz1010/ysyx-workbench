@@ -53,6 +53,14 @@ void init()
 {
     init_sram_with_bin_header(&bin_header);
 
+    // // 请求范围测试反例
+    // *(volatile uint64_t *)0x20001000 = 0;
+    // // rx权限测试反例
+    // void (*call_func)(void) = (void*)0x10000000;
+    // call_func();
+    // // w权限测试反例
+    // *(volatile uint64_t *)0x20000000 = 0;
+
     if (cnt != 0x76543210) ebreak(1);
 
     for (int i=0; i<10; ++i) {
