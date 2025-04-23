@@ -146,7 +146,7 @@ task check_dev_addr(
                 dev_infos[dev_id].endaddr, 
                 dev_infos[dev_id].attr);
         end
-        $error("requested addr(0x%x) is out of range.", addr);
+        $error("Access Fault, requested addr(0x%x) is out of range.", addr);
     end
 
     foreach (device_attrs[attr_id]) begin
@@ -159,7 +159,7 @@ task check_dev_addr(
                 dev_infos[match_dev_id].startaddr, 
                 dev_infos[match_dev_id].endaddr, 
                 dev_infos[match_dev_id].attr);
-            $error("requested attr(0x%x) does not match dev attr(0x%x) at addr(0x%x).", attr, dev_infos[match_dev_id].attr, addr);
+            $error("Access Fault, requested attr(0x%x) does not match dev attr(0x%x) at addr(0x%x).", attr, dev_infos[match_dev_id].attr, addr);
         end
     end
 
