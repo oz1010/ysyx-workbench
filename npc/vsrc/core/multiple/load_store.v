@@ -123,6 +123,36 @@ wire [DATA_WIDTH-1:0] signed_data_shift_val = ((src1 + imm) & (32'h03));
 wire [DATA_WIDTH-1:0] shifted_r_data = r_data>>(8*signed_data_shift_val);
 wire [DATA_WIDTH-1:0] shifted_w_data = src2<<(8*signed_data_shift_val);
 
+task get_unalign_parameter(
+    input logic [15:0] inst_code,
+    input logic [ADDR_WIDTH-1:0] addr,
+    output logic [7:0] len,
+    output logic [2:0] size,
+    output logic [3:0] strb[0:1],
+    output logic [1:0] shift_val
+);
+    static logic [ADDR_WIDTH-1:0] s_addr;
+    s_addr = addr & (~32'h03); // 4字节对齐
+    len = 0; // 数据总burst数量，2^n
+    size = 0; // 单个burst数据大小，2^n字节
+    strb = 0;
+    shift_val = addr[1:0]; // 4字节对齐
+    case (inst_code)
+        `INST_SB:           begin size=0; strb[0]=4'h1; end
+        `INST_SH:           begin size=1; strb[0]=4'h3; end
+        `INST_SW:           begin size=2; strb[0]=4'hF; end
+        default: ;
+    endcase
+
+    if ((4-shift_val)<(1<<size)) begin
+        len = 1;
+        strb[1] = strb[0] >> ((1<<size)-(4-shift_val));
+        strb[0] = strb[0] << shift_val;
+    end else begin
+        strb[0] = strb[0] << shift_val;
+    end
+endtask
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_dnpc <= get_reset_pc();
