@@ -29,8 +29,8 @@ void halt(int code) {
 }
 
 void _trm_init() {
-  /* 初始化sram */
-  init_sram_with_bin_header(&bin_header);
+  // /* 初始化sram */
+  // init_sram_with_bin_header(&bin_header);
 
   int ret = main(mainargs);
   halt(ret);

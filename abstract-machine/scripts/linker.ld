@@ -18,7 +18,7 @@ SECTIONS {
     } > MROM
 
     .text : {
-        _text_start = .;
+        _text_start = ALIGN(4);
         *(entry)
         *(.text)
         *(.text*)
@@ -26,7 +26,7 @@ SECTIONS {
         *(.rodata*)
         *(.srodata)
         *(.srodata*)
-        _text_end = .;
+        _text_end = ALIGN(4);
     } >MROM
     etext = .;
     _etext = .;
@@ -36,12 +36,12 @@ SECTIONS {
     } >SRAM AT>MROM */
     /* .data 的加载地址紧跟 .text，VMA 在 SRAM */
     .data : AT(_text_end) {
-        _data_start = .;
+        _data_start = ALIGN(4);
         *(.data)
         *(.data*)
         *(.sdata)
         *(.sdata*)
-        _data_end = .;
+        _data_end = ALIGN(4);
     } >SRAM
     edata = .;
     _data = .;
@@ -49,11 +49,11 @@ SECTIONS {
     _data_size = _data_end - _data_start;
 
     .bss : {
-        _bss_start = .;
+        _bss_start = ALIGN(4);
         *(.bss*)
         *(.sbss*)
         *(.scommon)
-        _bss_end = .;
+        _bss_end = ALIGN(4);
     } >SRAM
     _bss_size = _bss_end - _bss_start;
 

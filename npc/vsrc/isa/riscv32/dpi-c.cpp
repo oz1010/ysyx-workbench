@@ -194,12 +194,12 @@ void dpi_uart_write(int addr, int len, int data){
 void dpi_dev_skip(int write, int addr, int len, int data)
 {
 #if CONFIG_MTRACE
-    const char *w_str = write ? "write" : "read";
+    const char *rw_str = write ? "write" : "read";
     // uart 0x1000_0000~0x1000_0fff
     if (addr>=0x10000000 && addr<=0x10000fff) {
         int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
         char c = (char)data;
-        DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", w_str, (uint32_t)addr, aw_size, c, c);
+        DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
         DIFFTEST_SKIP_REF();
     } else if (addr>=0x0f000000 && addr<=0x0fffffff) {
         if (write) {
@@ -221,8 +221,10 @@ void dpi_dev_skip(int write, int addr, int len, int data)
             int ar_size = 1<<((len>>4)&0x7); // 单个burst读取大小，2^n字节
             DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
         }
+    } else if (addr>=0x20000000 && addr<=0x20000fff) {
+        DPI_DTRACE("mrom", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     } else {
-        DPI_DTRACE("unknown", "%s %#x %#x %#x", w_str, (uint32_t)addr, len, data);
+        DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     }
 #endif
 }
