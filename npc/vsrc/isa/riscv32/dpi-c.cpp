@@ -272,7 +272,7 @@ extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
 extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
     // assert(0);
-    // addr &= ~0x3u;  // 读写地址四字节对齐
+    addr &= ~0x3u;  // 读写地址四字节对齐
     if (unlikely(!in_pmem(addr))) {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
