@@ -165,4 +165,36 @@ task check_dev_addr(
 
 endtask
 
+task get_unalign_parameter(
+    input logic [15:0] inst_code,
+    input logic [31:0] addr,
+    output logic [7:0] len,
+    output logic [2:0] size,
+    output logic [3:0] strb[0:1],
+    output logic [1:0] shift_val
+);
+    static logic [31:0] s_addr;
+    s_addr = addr & (~32'h03); // 4字节对齐
+    len = 0; // 数据总burst数量，2^n
+    size = 0; // 单个burst数据大小，2^n字节
+    // strb = 0;
+    shift_val = addr[1:0]; // 4字节对齐
+    case (inst_code)
+        `INST_SB:           begin size=0; strb[0]=4'h1; end
+        `INST_SH:           begin size=1; strb[0]=4'h3; end
+        `INST_SW:           begin size=2; strb[0]=4'hF; end
+        default: ;
+    endcase
+
+    if ((4-shift_val)<(1<<size)) begin
+        len = 1;
+        strb[1] = strb[0] >> (4-shift_val);
+        strb[0] = strb[0] << shift_val;
+    end else begin
+        len = 0;
+        strb[1] = 0;
+        strb[0] = strb[0] << shift_val;
+    end
+endtask
+
 `endif
