@@ -23,6 +23,7 @@
 !/npc/tools/kconfig/lxdialog/*
 !/npc/tools/fixdep/*.c
 !/npc/test/addi/*
+!/npc/test/vsrc/**
 !/npc/**/filelist.mk
 !/npc/src/**/Kconfig
 !/npc/src/**/*.cpp
@@ -34,6 +35,7 @@
 !/npc/vsrc/**/*.cpp
 !/npc/vsrc/*.sdc
 !/npc/src/am-bin.S
+!/npc/test/**/*.v
 !/build_container/*
 !Makefile
 !README.md
