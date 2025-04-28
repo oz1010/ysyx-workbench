@@ -124,11 +124,11 @@ wire [ADDR_WIDTH-1:0] signed_addr = (src1 + imm) & (~32'h03); // 4字节对齐
 wire [DATA_WIDTH-1:0] signed_data_shift_val = ((src1 + imm) & (32'h03));
 wire [DATA_WIDTH-1:0] shifted_r_data = r_data>>(8*signed_data_shift_val);
 wire [DATA_WIDTH-1:0] shifted_w_data = src2<<(8*signed_data_shift_val);
-reg [7:0] s_aw_idx;
-reg [7:0] s_aw_len;
-reg [2:0] s_aw_size;
-reg [3:0] s_aw_strb[0:1];
-reg [1:0] s_aw_shift_val;
+reg [7:0] s_write_idx;
+reg [7:0] s_write_len;
+reg [2:0] s_write_size;
+reg [3:0] s_write_strb[0:1];
+reg [1:0] s_write_shift_val;
 reg [1:0] r_write_state;
 
 always @(posedge clk or posedge rst) begin
@@ -187,11 +187,11 @@ always @(posedge clk or posedge rst) begin
                         r_aw_valid <= 1;
                         r_aw_addr <= src1+imm; // sram会4字节对齐
                         r_aw_id <= `AXI4_ID_LSU;
-                        r_aw_len <= s_aw_len;
-                        r_aw_size <= s_aw_size;
+                        r_aw_len <= s_write_len;
+                        r_aw_size <= s_write_size;
                         check_dev_addr(src1+imm, `DEV_ATTR_WRITE);
-                        get_unalign_parameter(inst_code, src1+imm, s_aw_len, s_aw_size, s_aw_strb, s_aw_shift_val);
-                        s_aw_idx <= 0;
+                        get_unalign_parameter(inst_code, src1+imm, s_write_len, s_write_size, s_write_strb, s_write_shift_val);
+                        s_write_idx <= 0;
 
                         if (aw_valid && aw_ready) begin
                             r_record_aw_size <= r_aw_size;
@@ -205,29 +205,29 @@ always @(posedge clk or posedge rst) begin
                             r_write_state <= AXI4_COM_DATA;
                             /* 写下第一个字 */
                             r_w_valid <= 1;
-                            s_aw_idx <= s_aw_idx + 1;
-                            r_w_strb <= s_aw_strb[s_aw_idx[0:0]];
-                            case (s_aw_idx)
-                                0: r_w_data<=src2<<(8*s_aw_shift_val);
-                                1: r_w_data<=src2>>(32-8*s_aw_shift_val);
+                            s_write_idx <= s_write_idx + 1;
+                            r_w_strb <= s_write_strb[s_write_idx[0:0]];
+                            case (s_write_idx)
+                                0: r_w_data<=src2<<(8*s_write_shift_val);
+                                1: r_w_data<=src2>>(32-8*s_write_shift_val);
                                 default: $error("aw data unalign is error");
                             endcase
-                            if (s_aw_idx == ((8'h1<<s_aw_len)-1)) r_w_last <= 1;
+                            if (s_write_idx == ((8'h1<<s_write_len)-1)) r_w_last <= 1;
                         end
                     end
 
                     AXI4_COM_DATA: begin
-                        if (s_aw_idx <= ((8'h1<<s_aw_len)-1)) begin
+                        if (s_write_idx <= ((8'h1<<s_write_len)-1)) begin
                             /* 写下第二个字 */
                             r_w_valid <= 1;
-                            s_aw_idx <= s_aw_idx + 1;
-                            r_w_strb <= s_aw_strb[s_aw_idx[0:0]];
-                            case (s_aw_idx)
-                                0: r_w_data<=src2<<(8*s_aw_shift_val);
-                                1: r_w_data<=src2>>(32-8*s_aw_shift_val);
+                            s_write_idx <= s_write_idx + 1;
+                            r_w_strb <= s_write_strb[s_write_idx[0:0]];
+                            case (s_write_idx)
+                                0: r_w_data<=src2<<(8*s_write_shift_val);
+                                1: r_w_data<=src2>>(32-8*s_write_shift_val);
                                 default: $error("aw data unalign is error");
                             endcase
-                            if (s_aw_idx == ((8'h1<<s_aw_len)-1)) r_w_last <= 1;
+                            if (s_write_idx == ((8'h1<<s_write_len)-1)) r_w_last <= 1;
                         end
 
                         if (w_last) begin
@@ -236,7 +236,7 @@ always @(posedge clk or posedge rst) begin
                             r_w_strb <= 0;
                             r_w_data <= 0;
                             r_w_last <= 0;
-                            s_aw_idx <= 0;
+                            s_write_idx <= 0;
 
                             // switch to write response
                             r_write_state <= AXI4_COM_RESPONSE;
