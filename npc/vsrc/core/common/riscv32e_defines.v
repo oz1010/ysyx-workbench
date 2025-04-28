@@ -116,10 +116,10 @@ typedef struct {
     logic [31:0] endaddr;
 } device_info_t;
 
-typedef enum logic [3:0] {
-    AXI4_WRITE_ADDR,
-    AXI4_WRITE_DATA,
-    AXI4_WRITE_RESPONSE
+typedef enum logic [1:0] {
+    AXI4_COM_ADDR,
+    AXI4_COM_DATA,
+    AXI4_COM_RESPONSE
 } axi4_com_state_t;
 
 task check_dev_addr(
