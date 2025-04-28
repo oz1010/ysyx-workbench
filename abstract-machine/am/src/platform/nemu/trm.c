@@ -14,6 +14,7 @@ Area heap = RANGE(&_heap_start, PMEM_END);
 static const char mainargs[] = MAINARGS;
 
 void putch(char ch) {
+  SERILAL_STATUE_CHECK();
   outb(SERIAL_PORT, ch);
 }
 
@@ -24,9 +25,18 @@ void halt(int code) {
   while (1);
 }
 
+void init_uart16550()
+{
+    // uint8_t val = inb(UART16550_REG_LCR);
+    // outb(UART16550_REG_LCR, val|=bits(7));
+    // // 115200 : 1c200，暂时随便填写的值
+    // outb(UART16550_REG_DL1, 0x00);
+    // outb(UART16550_REG_DL0, 0x01);
+    // outb(UART16550_REG_LCR, val&=~bits(7));
+}
+
 void _trm_init() {
-  // /* 初始化sram */
-  // init_sram_with_bin_header(&bin_header);
+  init_uart16550();
 
   int ret = main(mainargs);
   halt(ret);
