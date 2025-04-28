@@ -186,7 +186,7 @@ always @(posedge clk or posedge rst) begin
             end
             
             read_t: begin
-                if (m_r_valids[r_grant_idx] && m_r_readys[r_grant_idx]) begin
+                if (m_r_lasts[r_grant_idx]) begin
                     state <= select_t;
                     r_grant_idx <= 0;
                 end
