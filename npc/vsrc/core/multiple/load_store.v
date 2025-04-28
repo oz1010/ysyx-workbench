@@ -124,11 +124,17 @@ wire [ADDR_WIDTH-1:0] signed_addr = (src1 + imm) & (~32'h03); // 4字节对齐
 wire [DATA_WIDTH-1:0] signed_data_shift_val = ((src1 + imm) & (32'h03));
 wire [DATA_WIDTH-1:0] shifted_r_data = r_data>>(8*signed_data_shift_val);
 wire [DATA_WIDTH-1:0] shifted_w_data = src2<<(8*signed_data_shift_val);
-reg [0:0] s_aw_idx;
+reg [7:0] s_aw_idx;
 reg [7:0] s_aw_len;
 reg [2:0] s_aw_size;
 reg [3:0] s_aw_strb[0:1];
 reg [1:0] s_aw_shift_val;
+reg [3:0] r_write_state;
+typedef enum logic [3:0] {
+    WRITE_ADDR = 0,
+    WRITE_DATA = 1,
+    WRITE_RESPONSE = 2
+} write_state_t;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -136,6 +142,7 @@ always @(posedge clk or posedge rst) begin
         r_result <= 0;
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
+        r_write_state <= WRITE_ADDR;
 
         r_prev_ready <= 0;
         r_aw_valid <= 0;
@@ -159,6 +166,7 @@ always @(posedge clk or posedge rst) begin
         r_result <= r_result;
         r_result_mem_width <= r_result_mem_width;
         r_result_update_csr <= r_result_update_csr;
+        r_write_state <= r_write_state;
 
         r_aw_valid <= r_aw_valid;
         r_aw_addr <= r_aw_addr;
@@ -179,74 +187,91 @@ always @(posedge clk or posedge rst) begin
 
         if (prev_valid && !prev_ready) begin
             if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
-                // write request
-                if (write_status==0 && !aw_valid) begin
-                    r_aw_valid <= 1;
-                    r_aw_addr <= src1+imm; // sram会4字节对齐
-                    r_aw_id <= `AXI4_ID_LSU;
-                    r_aw_size <= (inst_code==`INST_SB) ? 0 :
-                                (inst_code==`INST_SH) ? 1 : 2;
-                    check_dev_addr(src1+imm, `DEV_ATTR_WRITE);
-                    get_unalign_parameter(inst_code, src1+imm, s_aw_len, s_aw_size, s_aw_strb, s_aw_shift_val);
-                    r_aw_len <= s_aw_len;
-                    s_aw_idx <= 0;
-                end
-                if (aw_valid && aw_ready) begin
-                    r_record_aw_size <= r_aw_size;
-                    r_aw_valid <= 0;
-                    r_aw_addr <= 0;
-                    r_aw_id <= 0;
-                    r_aw_len <= 0;
-                    r_aw_size <= 0;
-                end
+                case (r_write_state)
+                    WRITE_ADDR: begin
+                        r_aw_valid <= 1;
+                        r_aw_addr <= src1+imm; // sram会4字节对齐
+                        r_aw_id <= `AXI4_ID_LSU;
+                        r_aw_len <= s_aw_len;
+                        r_aw_size <= s_aw_size;
+                        check_dev_addr(src1+imm, `DEV_ATTR_WRITE);
+                        get_unalign_parameter(inst_code, src1+imm, s_aw_len, s_aw_size, s_aw_strb, s_aw_shift_val);
+                        s_aw_idx <= 0;
 
-                // write data
-                if (aw_valid && aw_ready) begin
-                    r_w_valid <= 1;
-                    s_aw_idx <= s_aw_idx + 1;
-                    r_w_strb <= s_aw_strb[s_aw_idx];
-                    case (s_aw_idx)
-                        0: r_w_data<=src2<<(8*s_aw_shift_val);
-                        1: r_w_data<=src2;
-                        default: $error("aw data unalign is error");
-                    endcase
-                    if (s_aw_idx == ((8'h1<s_aw_len)-1)) r_w_last <= 1;
-                    // case (inst_code)
-                    //     `INST_SB:           begin r_w_strb <= 4'h1<<s_aw_shift_val; r_w_data <= shifted_w_data; end
-                    //     `INST_SH:           begin r_w_strb <= 4'h3<<s_aw_shift_val; r_w_data <= shifted_w_data; end
-                    //     `INST_SW:           begin r_w_strb <= 4'hF<<s_aw_shift_val; r_w_data <= shifted_w_data; end
-                    //     default: ;
-                    // endcase
-                end
-                if (w_valid && w_ready && w_last) begin
-                    dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, r_w_data);
-                    r_w_valid <= 0;
-                    r_w_strb <= 0;
-                    r_w_data <= 0;
-                    r_w_last <= 0;
-                end
+                        if (aw_valid && aw_ready) begin
+                            r_record_aw_size <= r_aw_size;
+                            r_aw_valid <= 0;
+                            r_aw_addr <= 0;
+                            r_aw_id <= 0;
+                            r_aw_len <= 0;
+                            r_aw_size <= 0;
 
-                // write response
-                if (w_valid && w_ready) begin
-                    r_b_ready <= 1;
-                end
-                if (b_valid && b_ready) begin
-                    r_b_ready <= 0;
-                    // check error response
-                    if (b_resp!=0 || b_id!=`AXI4_ID_LSU) begin
-                        $error("LSU Write data error, addr:%x data:%x resp:%x id:%x\n", src1 + imm, src2, b_resp, b_id);
+                            // switch to write data
+                            r_write_state <= WRITE_DATA;
+                            /* 写下第一个字 */
+                            r_w_valid <= 1;
+                            s_aw_idx <= s_aw_idx + 1;
+                            r_w_strb <= s_aw_strb[s_aw_idx[0:0]];
+                            case (s_aw_idx)
+                                0: r_w_data<=src2<<(8*s_aw_shift_val);
+                                1: r_w_data<=src2>>(32-8*s_aw_shift_val);
+                                default: $error("aw data unalign is error");
+                            endcase
+                            if (s_aw_idx == ((8'h1<<s_aw_len)-1)) r_w_last <= 1;
+                        end
                     end
-                end
-                
-                // notify prev module
-                if (b_valid && b_ready) begin
-                    // pc <= dnpc;
-                    r_dnpc <= pc + 4;
-                    r_result <= 0;
-                    r_result_mem_width <= 0;
-                    r_result_update_csr <= 0;
-                    r_prev_ready <= 1;
-                end
+
+                    WRITE_DATA: begin
+                        if (s_aw_idx <= ((8'h1<<s_aw_len)-1)) begin
+                            /* 写下第二个字 */
+                            r_w_valid <= 1;
+                            s_aw_idx <= s_aw_idx + 1;
+                            r_w_strb <= s_aw_strb[s_aw_idx[0:0]];
+                            case (s_aw_idx)
+                                0: r_w_data<=src2<<(8*s_aw_shift_val);
+                                1: r_w_data<=src2>>(32-8*s_aw_shift_val);
+                                default: $error("aw data unalign is error");
+                            endcase
+                            if (s_aw_idx == ((8'h1<<s_aw_len)-1)) r_w_last <= 1;
+                        end
+
+                        if (w_last) begin
+                            dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, r_w_data);
+                            r_w_valid <= 0;
+                            r_w_strb <= 0;
+                            r_w_data <= 0;
+                            r_w_last <= 0;
+                            s_aw_idx <= 0;
+
+                            // switch to write response
+                            r_write_state <= WRITE_RESPONSE;
+                            r_b_ready <= 1;
+                        end
+                    end
+
+                    WRITE_RESPONSE: begin
+                        if (b_valid && b_ready) begin
+                            r_b_ready <= 0;
+                            // check error response
+                            if (b_resp!=0 || b_id!=`AXI4_ID_LSU) begin
+                                $error("LSU Write data error, addr:%x data:%x resp:%x id:%x\n", src1 + imm, src2, b_resp, b_id);
+                            end
+
+                            // switch to write addr
+                            r_write_state <= WRITE_ADDR;
+                            
+                            // notify prev module
+                            // pc <= dnpc;
+                            r_dnpc <= pc + 4;
+                            r_result <= 0;
+                            r_result_mem_width <= 0;
+                            r_result_update_csr <= 0;
+                            r_prev_ready <= 1;
+                        end
+                    end
+
+                    default: $error("LSU write state is unknown %d", r_write_state);
+                endcase
 
             end else begin
                 if (inst_code==`INST_LB || 
