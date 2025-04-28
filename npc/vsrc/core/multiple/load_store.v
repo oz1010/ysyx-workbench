@@ -130,6 +130,13 @@ reg [2:0] s_write_size;
 reg [3:0] s_write_strb[0:1];
 reg [1:0] s_write_shift_val;
 reg [1:0] r_write_state;
+reg [7:0] s_read_idx;
+reg [7:0] s_read_len;
+reg [2:0] s_read_size;
+reg [3:0] s_read_strb[0:1];
+reg [1:0] s_read_shift_val;
+reg [1:0] r_read_state;
+reg [DATA_WIDTH-1:0] s_read_data;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -138,6 +145,7 @@ always @(posedge clk or posedge rst) begin
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
         r_write_state <= AXI4_COM_ADDR;
+        r_read_state <= AXI4_COM_ADDR;
 
         r_prev_ready <= 0;
         r_aw_valid <= 0;
@@ -162,6 +170,7 @@ always @(posedge clk or posedge rst) begin
         r_result_mem_width <= r_result_mem_width;
         r_result_update_csr <= r_result_update_csr;
         r_write_state <= r_write_state;
+        r_read_state <= r_read_state;
 
         r_aw_valid <= r_aw_valid;
         r_aw_addr <= r_aw_addr;
@@ -231,7 +240,7 @@ always @(posedge clk or posedge rst) begin
                         end
 
                         if (w_last) begin
-                            dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, r_w_data);
+                            dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, src2);
                             r_w_valid <= 0;
                             r_w_strb <= 0;
                             r_w_data <= 0;
@@ -265,77 +274,79 @@ always @(posedge clk or posedge rst) begin
                         end
                     end
 
-                    default: $error("LSU write state is unknown %d", r_write_state);
+                    default: $error("Found unknown write state(%d) in LSU", r_write_state);
                 endcase
 
-            end else begin
-                if (inst_code==`INST_LB || 
-                    inst_code==`INST_LH || 
-                    inst_code==`INST_LW || 
-                    inst_code==`INST_LBU || 
-                    inst_code==`INST_LHU) begin
-                end
-                // read request
-                if (!ar_valid && !r_valid) begin
-                    r_ar_valid <= 1;
-                    r_ar_addr <= src1+imm; // sram会4字节对齐
-                    r_ar_id <= `AXI4_ID_LSU;
-                    r_ar_len <= 0; // 读取数据总burst数量，2^n
-                    r_ar_size <= (inst_code==`INST_LB || inst_code==`INST_LBU) ? 0 :
-                                (inst_code==`INST_LH || inst_code==`INST_LHU) ? 1 :
-                                2; // 单个burst读取大小，2^n字节
-                    r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
-                    check_dev_addr(src1+imm, `DEV_ATTR_READ);
-                end
-                if (ar_valid && ar_ready) begin
-                    r_ar_valid <= 0;
-                    r_ar_addr <= 0;
-                    r_ar_id <= 0;
-                    r_ar_len <= 0;
-                    r_ar_size <= 0;
-                    r_ar_burst <= 0;
-                    r_record_ar_len <= r_ar_len;
-                    r_record_ar_size <= r_ar_size;
-                end
+            end else if (
+                inst_code==`INST_LB || 
+                inst_code==`INST_LH || 
+                inst_code==`INST_LW || 
+                inst_code==`INST_LBU || 
+                inst_code==`INST_LHU
+            ) begin
+                case (r_read_state)
+                    AXI4_COM_ADDR: begin
+                        // read request
+                        r_ar_valid <= 1;
+                        r_ar_addr <= src1+imm; // sram会4字节对齐
+                        r_ar_id <= `AXI4_ID_LSU;
+                        r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
+                        r_ar_size <= s_read_size;
+                        r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
+                        check_dev_addr(src1+imm, `DEV_ATTR_READ);
+                        get_unalign_parameter(inst_code, src1+imm, s_read_len, s_read_size, s_read_strb, s_read_shift_val);
+                        s_read_idx <= 0;
 
-                // read data
-                if (ar_valid && ar_ready) begin
-                    r_r_ready <= 1;
-                end
-                if (r_valid) begin
-                    // 读取时需要按照4字节对齐计算偏移
-                    case (inst_code)
-                        `INST_LB:           r_result <= sext((shifted_r_data) & 32'h000000FF, 8);
-                        `INST_LH:           r_result <= sext((shifted_r_data) & 32'h0000FFFF, 16);
-                        `INST_LW:           r_result <= sext((shifted_r_data) & 32'hFFFFFFFF, 32);
-                        `INST_LBU:          r_result <= (shifted_r_data) & 32'hFF;
-                        `INST_LHU:          r_result <= (shifted_r_data) & 32'hFFFF;
-                        default: ;
-                    endcase
-                end
-                if (r_valid && r_ready) begin
-                    r_r_ready <= 0;
-                    case (inst_code)
-                        `INST_LB:           dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, sext((shifted_r_data) & 32'h000000FF, 8));
-                        `INST_LH:           dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, sext((shifted_r_data) & 32'h0000FFFF, 16));
-                        `INST_LW:           dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, sext((shifted_r_data) & 32'hFFFFFFFF, 32));
-                        `INST_LBU:          dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, (shifted_r_data) & 32'hFF);
-                        `INST_LHU:          dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, (shifted_r_data) & 32'hFFFF);
-                        default: ;
-                    endcase
-                    // check error response
-                    if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_LSU) begin
-                        $error("LSU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                        if (ar_valid && ar_ready) begin
+                            r_ar_valid <= 0;
+                            r_ar_addr <= 0;
+                            r_ar_id <= 0;
+                            r_ar_len <= 0;
+                            r_ar_size <= 0;
+                            r_ar_burst <= 0;
+                            r_record_ar_len <= r_ar_len;
+                            r_record_ar_size <= r_ar_size;
+
+                            // switch to read data
+                            r_read_state <= AXI4_COM_DATA;
+                            r_r_ready <= 1;
+                            s_read_idx <= 0;
+                            r_result <= 0;
+                        end
+                    end 
+
+                    AXI4_COM_DATA: begin
+                        // read data
+                        if (r_valid) begin
+                            s_read_idx <= s_read_idx + 1;
+                            /* 依次读取非对齐数据 */
+                            read_unalign_data(s_read_idx, inst_code, r_data, s_read_shift_val, s_read_data);
+                            r_result <= s_read_data;
+                        end
+                        if (r_last) begin
+                            r_r_ready <= 0;
+                            s_read_idx <= 0;
+                            dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
+                            // check error response
+                            if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_LSU) begin
+                                $error("LSU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                            end
+
+                            // switch to read addr
+                            r_read_state <= AXI4_COM_ADDR;
+
+                            // notify prev module
+                            r_dnpc <= pc + 4;
+                            r_result_mem_width <= 0;
+                            r_result_update_csr <= 1;
+                            r_prev_ready <= 1;
+                        end
                     end
-                end
 
-                // notify prev module
-                if (r_valid && r_ready) begin
-                    r_dnpc <= pc + 4;
-                    r_result_mem_width <= 0;
-                    r_result_update_csr <= 1;
-                    r_prev_ready <= 1;
-                end
+                    default: $error("Found unknown read state(%d) in LSU", r_read_state);
+                endcase
+            end else begin
+                $error("Found unsopport inst_code(%x) in LSU", inst_code);
             end
 
         end

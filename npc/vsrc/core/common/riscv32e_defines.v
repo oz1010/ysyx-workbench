@@ -188,7 +188,12 @@ task get_unalign_parameter(
     case (inst_code)
         `INST_SB:           begin size=0; strb[0]=4'h1; end
         `INST_SH:           begin size=1; strb[0]=4'h3; end
-        `INST_SW:           begin size=2; strb[0]=4'hF; end
+        `INST_SW:           begin size=2; strb[0]=4'hf; end
+        `INST_LB:           begin size=0; strb[0]=4'h1; end
+        `INST_LH:           begin size=1; strb[0]=4'h3; end
+        `INST_LW:           begin size=2; strb[0]=4'hf; end
+        `INST_LBU:          begin size=0; strb[0]=4'h1; end
+        `INST_LHU:          begin size=1; strb[0]=4'h3; end
         default: ;
     endcase
 
@@ -201,6 +206,31 @@ task get_unalign_parameter(
         strb[1] = 0;
         strb[0] = strb[0] << shift_val;
     end
+endtask
+
+task read_unalign_data(
+    input logic [7:0] idx,
+    input logic [15:0] inst_code,
+    input logic [31:0] data,
+    input logic [1:0] shift_val,
+    output logic [31:0] result
+);
+    static logic [31:0] s_data;
+    case (idx)
+        0: s_data = data >> (8*shift_val);
+        1: s_data = s_data | (data<<(32-8*shift_val));
+        default: $error("read unalign data is error");
+    endcase
+
+    // 处理符号位
+    case (inst_code)
+        `INST_LB:           result = sext((s_data) & 32'h000000FF, 8);
+        `INST_LH:           result = sext((s_data) & 32'h0000FFFF, 16);
+        `INST_LW:           result = sext((s_data) & 32'hFFFFFFFF, 32);
+        `INST_LBU:          result = (s_data) & 32'hFF;
+        `INST_LHU:          result = (s_data) & 32'hFFFF;
+        default: ;
+    endcase
 endtask
 
 `endif

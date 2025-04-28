@@ -205,16 +205,16 @@ void dpi_dev_skip(int write, int addr, int len, int data)
         if (write) {
             int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
             int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
-            int w_data = 0;
-            int start_bit = 0;
-            for (int i=0; i<4; ++i) {
-                if (w_strb&(0x1<<i)) {
-                    start_bit = i;
-                    break;
-                }
-            }
-            w_data = data >> (start_bit*8);
-            DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, w_data, aw_size);
+            // int w_data = 0;
+            // int start_bit = 0;
+            // for (int i=0; i<4; ++i) {
+            //     if (w_strb&(0x1<<i)) {
+            //         start_bit = i;
+            //         break;
+            //     }
+            // }
+            // w_data = data >> (start_bit*8);
+            DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
         }
         else {
             int ar_len = (len>>0)&0xff; // 读取数据总burst数量，2^n
