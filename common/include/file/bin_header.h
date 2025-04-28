@@ -41,38 +41,38 @@ typedef struct _bin_header_s {
     uint32_t bss_end;
 } bin_header_t;
 
-static __attribute__((used)) int parse_bin_header(void *bin_buf, bin_header_t *bin_header)
-{
-    if (!bin_header || !bin_buf) return 1;
+// static __attribute__((used)) int parse_bin_header(void *bin_buf, bin_header_t *bin_header)
+// {
+//     if (!bin_header || !bin_buf) return 1;
     
-    bin_header_t *new_header = (bin_header_t *)bin_buf;
-    if (new_header->magic != BIN_HEADER_MAGIC) return 2;
+//     bin_header_t *new_header = (bin_header_t *)bin_buf;
+//     if (new_header->magic != BIN_HEADER_MAGIC) return 2;
 
-    *bin_header = *new_header;
+//     *bin_header = *new_header;
 
-    return 0;
-}
+//     return 0;
+// }
 
-static __attribute__((used)) int init_sram_with_bin_header(bin_header_t *bin_header)
-{
-    if (!bin_header) return 1;   
-    if (bin_header->magic != BIN_HEADER_MAGIC) return 2;
+// static __attribute__((used)) int init_sram_with_bin_header(bin_header_t *bin_header)
+// {
+//     if (!bin_header) return 1;   
+//     if (bin_header->magic != BIN_HEADER_MAGIC) return 2;
 
-    uintptr_t data_load = bin_header->data_load;
-    uintptr_t data_start = bin_header->data_start;
-    for (; data_start < bin_header->data_end; data_start += 4, data_load += 4)
-    {
-        uint32_t data = *(volatile uint32_t *)data_load;
-        *(volatile uint32_t *)data_start = data;
-    }
+//     uintptr_t data_load = bin_header->data_load;
+//     uintptr_t data_start = bin_header->data_start;
+//     for (; data_start < bin_header->data_end; data_start += 4, data_load += 4)
+//     {
+//         uint32_t data = *(volatile uint32_t *)data_load;
+//         *(volatile uint32_t *)data_start = data;
+//     }
 
-    uintptr_t bss_start = bin_header->bss_start;
-    for (; bss_start < bin_header->bss_end; bss_start += 4)
-    {
-        *(uint32_t *)bss_start = 0;
-    }
+//     uintptr_t bss_start = bin_header->bss_start;
+//     for (; bss_start < bin_header->bss_end; bss_start += 4)
+//     {
+//         *(uint32_t *)bss_start = 0;
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
 #endif
