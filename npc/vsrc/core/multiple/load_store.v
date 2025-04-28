@@ -130,11 +130,6 @@ reg [2:0] s_aw_size;
 reg [3:0] s_aw_strb[0:1];
 reg [1:0] s_aw_shift_val;
 reg [3:0] r_write_state;
-typedef enum logic [3:0] {
-    WRITE_ADDR = 0,
-    WRITE_DATA = 1,
-    WRITE_RESPONSE = 2
-} write_state_t;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -142,7 +137,7 @@ always @(posedge clk or posedge rst) begin
         r_result <= 0;
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
-        r_write_state <= WRITE_ADDR;
+        r_write_state <= AXI4_WRITE_ADDR;
 
         r_prev_ready <= 0;
         r_aw_valid <= 0;
@@ -188,7 +183,7 @@ always @(posedge clk or posedge rst) begin
         if (prev_valid && !prev_ready) begin
             if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
                 case (r_write_state)
-                    WRITE_ADDR: begin
+                    AXI4_WRITE_ADDR: begin
                         r_aw_valid <= 1;
                         r_aw_addr <= src1+imm; // sram会4字节对齐
                         r_aw_id <= `AXI4_ID_LSU;
@@ -207,7 +202,7 @@ always @(posedge clk or posedge rst) begin
                             r_aw_size <= 0;
 
                             // switch to write data
-                            r_write_state <= WRITE_DATA;
+                            r_write_state <= AXI4_WRITE_DATA;
                             /* 写下第一个字 */
                             r_w_valid <= 1;
                             s_aw_idx <= s_aw_idx + 1;
@@ -221,7 +216,7 @@ always @(posedge clk or posedge rst) begin
                         end
                     end
 
-                    WRITE_DATA: begin
+                    AXI4_WRITE_DATA: begin
                         if (s_aw_idx <= ((8'h1<<s_aw_len)-1)) begin
                             /* 写下第二个字 */
                             r_w_valid <= 1;
@@ -244,12 +239,12 @@ always @(posedge clk or posedge rst) begin
                             s_aw_idx <= 0;
 
                             // switch to write response
-                            r_write_state <= WRITE_RESPONSE;
+                            r_write_state <= AXI4_WRITE_RESPONSE;
                             r_b_ready <= 1;
                         end
                     end
 
-                    WRITE_RESPONSE: begin
+                    AXI4_WRITE_RESPONSE: begin
                         if (b_valid && b_ready) begin
                             r_b_ready <= 0;
                             // check error response
@@ -258,7 +253,7 @@ always @(posedge clk or posedge rst) begin
                             end
 
                             // switch to write addr
-                            r_write_state <= WRITE_ADDR;
+                            r_write_state <= AXI4_WRITE_ADDR;
                             
                             // notify prev module
                             // pc <= dnpc;
