@@ -240,6 +240,9 @@ void dpi_dev_skip(int write, int addr, int len, int data)
         char c = (char)data;
         DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
         DIFFTEST_SKIP_REF();
+    } else if (addr>=0x10001000 && addr<=0x10001fff) {
+        DPI_DTRACE("spi_master", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
+        DIFFTEST_SKIP_REF();
     } else if (addr>=0x20000000 && addr<=0x20000fff) {
         DPI_DTRACE("mrom", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
         DIFFTEST_SKIP_REF();
