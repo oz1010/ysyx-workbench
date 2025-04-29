@@ -48,4 +48,12 @@ typedef uintptr_t PTE;
 
 #define PGSIZE    4096
 
+#define UART16550_REG_LCR (SERIAL_PORT+0x3)
+#define UART16550_REG_LSR (SERIAL_PORT+0x5)
+// value=sys_clk/(16*baud), 需要先写DL1，写DL0模块会立即开始工作
+#define UART16550_REG_DL0 (SERIAL_PORT+0x0)
+#define UART16550_REG_DL1 (SERIAL_PORT+0x1)
+#define bits(n) (0x1<<(n))
+#define SERILAL_STATUE_CHECK()
+
 #endif
