@@ -45,6 +45,7 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #define RECORD_TRACE_VCD()
 #endif
 
+void init_dpi();
 std::shared_ptr<VerilatedContext> contextp;
 std::shared_ptr<TOP_ROOT_CLASS> top;
 std::shared_ptr<VerilatedVcdC> tfp;
@@ -122,6 +123,9 @@ void init_vsimu(int argc, char *argv[])
     tfp->open("build/logs/simu_top.vcd");
     LOG_INFO("Start trace ...\n");
 #endif
+
+    // 初始化dpi
+    init_dpi();
 
     // 上电复位
     uint32_t clock = 0;
