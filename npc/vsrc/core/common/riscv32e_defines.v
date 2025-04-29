@@ -130,6 +130,7 @@ task check_dev_addr(
     static device_info_t dev_infos[] = '{
         '{name:"SRAM",          startaddr:32'h0f00_0000,    endaddr:32'h0fff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE|`DEV_ATTR_EXEC)},
         '{name:"UART16550",     startaddr:32'h1000_0000,    endaddr:32'h1000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
+        '{name:"SPI_MASTER",    startaddr:32'h1000_1000,    endaddr:32'h1000_1fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
         '{name:"MROM",          startaddr:32'h2000_0000,    endaddr:32'h2000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)},
         '{name:"FLASH",         startaddr:32'h3000_0000,    endaddr:32'h30ff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)}
     };
