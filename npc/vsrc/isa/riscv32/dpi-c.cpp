@@ -32,6 +32,25 @@ do                                                              \
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 
+#define FLASH_SIZE (16*1024*1024)
+#if   defined(CONFIG_PMEM_MALLOC)
+uint8_t* flash_context = NULL;
+#else
+uint8_t flash_context[FLASH_SIZE] = {0};
+#endif
+
+void init_dpi()
+{
+    // 模拟初始化
+#if defined(CONFIG_PMEM_MALLOC)
+    flash_context = (uint8_t *)malloc(FLASH_SIZE);
+#endif
+    assert(flash_context);
+    for(size_t i=0; i<16; ++i) {
+        flash_context[i] = 0x30 + i;
+    }
+}
+
 void exit_simu(int code)
 {
     set_npc_state(NPC_END, cpu.pc, code);
@@ -193,15 +212,10 @@ void dpi_uart_write(int addr, int len, int data){
 
 void dpi_dev_skip(int write, int addr, int len, int data)
 {
-#if CONFIG_MTRACE
+#if CONFIG_DTRACE
     const char *rw_str = write ? "write" : "read";
     // uart 0x1000_0000~0x1000_0fff
-    if (addr>=0x10000000 && addr<=0x10000fff) {
-        int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
-        char c = (char)data;
-        DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
-        DIFFTEST_SKIP_REF();
-    } else if (addr>=0x0f000000 && addr<=0x0fffffff) {
+    if (addr>=0x0f000000 && addr<=0x0fffffff) {
         if (write) {
             int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
             int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
@@ -221,8 +235,17 @@ void dpi_dev_skip(int write, int addr, int len, int data)
             int ar_size = 1<<((len>>4)&0x7); // 单个burst读取大小，2^n字节
             DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
         }
+    } else if (addr>=0x10000000 && addr<=0x10000fff) {
+        int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+        char c = (char)data;
+        DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
+        DIFFTEST_SKIP_REF();
     } else if (addr>=0x20000000 && addr<=0x20000fff) {
         DPI_DTRACE("mrom", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
+        DIFFTEST_SKIP_REF();
+    } else if (addr>=0x30000000 && addr<=0x30ffffff) {
+        DPI_DTRACE("flash", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
+        DIFFTEST_SKIP_REF();
     } else {
         DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     }
@@ -270,7 +293,23 @@ int dpi_rtc_read(int addr, int len)
     return ret;
 }
 
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void flash_read(int32_t addr, int32_t *data)
+{
+    // assert(0);
+    // if (!(addr>=0x30000000 && addr<=0x30ffffff)) {
+    if (!(addr>=0 && addr<FLASH_SIZE)) {
+        raw_stdout("Read flash is out of range, addr:%#.8x len:%d\n", addr, 4);
+        exit_simu(2);
+    }
+
+    if (addr&0x3u) {
+        raw_stdout("Read flash dont support unalign-read, addr:%#.8x\n", addr);
+        exit_simu(2);
+    }
+
+    *data = (*(int32_t *)(&flash_context[addr]));
+}
+
 extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
     // assert(0);
