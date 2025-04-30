@@ -19,6 +19,7 @@
 !/npc/scripts/*.mk
 !/npc/tools/*.mk
 !/npc/resource/riscv32-bin/*
+!/npc/resource/char-test/*
 !/npc/tools/kconfig/*
 !/npc/tools/kconfig/lxdialog/*
 !/npc/tools/fixdep/*.c
