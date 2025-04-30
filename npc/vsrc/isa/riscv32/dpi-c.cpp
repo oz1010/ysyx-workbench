@@ -31,6 +31,7 @@ do                                                              \
 #endif
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
+static uint32_t hw_flash_idx = 0;
 
 #define FLASH_SIZE (16*1024*1024)
 #if   defined(CONFIG_PMEM_MALLOC)
@@ -46,8 +47,33 @@ void init_dpi()
     flash_context = (uint8_t *)malloc(FLASH_SIZE);
 #endif
     assert(flash_context);
-    for(size_t i=0; i<16; ++i) {
-        flash_context[i] = 0x30 + i;
+}
+
+void switch_flash_context(uint32_t flash_idx)
+{
+    hw_flash_idx = flash_idx;
+    switch (hw_flash_idx)
+    {
+    case 1:
+        for(size_t i=0; i<16; ++i) {
+            flash_context[i] = 0x30 + i;
+        }
+        break;
+    
+    case 2: {
+        uint32_t *flash32 = (uint32_t *)flash_context;
+        uint32_t i=0;
+        flash32[i++] = 0x100007b7;
+        flash32[i++] = 0x04100713;
+        flash32[i++] = 0x00e78023;
+        flash32[i++] = 0x00a00713;
+        flash32[i++] = 0x00e78023;
+        flash32[i++] = 0x0000006f;
+        break;
+    }
+
+    default:
+        break;
     }
 }
 
@@ -253,6 +279,21 @@ void dpi_dev_skip(int write, int addr, int len, int data)
         DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     }
 #endif
+}
+
+int dpi_test_intf(int write, int addr, int len, int data)
+{
+    const char *rw_str = write ? "write" : "read";
+    // if (write && addr>=0x0f002000 && addr<=0x0fffffff) {
+    if (write && addr>=0x0f002000 && addr<=0x0f002000) {
+        switch_flash_context(data);
+        DPI_MTRACE("test_intf W [%#.8x] <= %#.8x %d", addr, data, len);
+        DIFFTEST_SKIP_REF();
+    } else {
+        LOG_ERROR("test_intf only support writing to 0x0f002000, addr:%#x len:%d data:%#x", addr, len, data);
+        exit_simu(2);
+    }
+    return 0;
 }
 
 int dpi_rtc_read(int addr, int len)
