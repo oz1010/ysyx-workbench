@@ -33,6 +33,12 @@ extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 static uint32_t hw_flash_idx = 0;
 
+#if   defined(CONFIG_PMEM_MALLOC)
+extern uint8_t *raw_memory;
+#else
+extern uint8_t raw_memory[CONFIG_MSIZE];
+#endif
+
 #define FLASH_SIZE (16*1024*1024)
 #if   defined(CONFIG_PMEM_MALLOC)
 uint8_t* flash_context = NULL;
@@ -68,7 +74,9 @@ void switch_flash_context(uint32_t flash_idx)
         flash32[i++] = 0x00e78023;
         flash32[i++] = 0x00a00713;
         flash32[i++] = 0x00e78023;
-        flash32[i++] = 0x0000006f;
+        flash32[i++] = 0x00000513;
+        flash32[i++] = 0x00100073;
+        flash32[i++] = 0x00008067;
         break;
     }
 
@@ -241,10 +249,19 @@ void dpi_dev_skip(int write, int addr, int len, int data)
 #if CONFIG_DTRACE
     const char *rw_str = write ? "write" : "read";
     // uart 0x1000_0000~0x1000_0fff
-    if (addr>=0x0f000000 && addr<=0x0fffffff) {
+    if (addr>=0x0f000000 && addr<=0x0f001fff) {
         if (write) {
             int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
             int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+            // 同步对内存的修改，避免调试反汇编异常
+            switch (aw_size)
+            {
+                case 1: raw_memory[addr] = data&0xff; break;
+                case 2: (*(uint16_t *)&raw_memory[addr]) = data&0xffff; break;
+                case 4: (*(uint32_t *)&raw_memory[addr]) = data; break;
+                default: break;
+            }
+                
             // int w_data = 0;
             // int start_bit = 0;
             // for (int i=0; i<4; ++i) {

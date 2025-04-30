@@ -36,7 +36,7 @@ BINARY_FLG	+= -S
 BINARY_FLG	+= -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
 SRCS		:=
-SRCS		+= init.c
+SRCS		+= char-test.c
 
 INC_FILES   += $(AM_HOME)/../common/include
 INC_FILES   += $(AM_HOME)/am/src
