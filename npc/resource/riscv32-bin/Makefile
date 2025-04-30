@@ -5,10 +5,10 @@ INC_FILES		:=
 ASFLAGS			:=
 CFLAGS			:= -I$(AM_HOME)/am/src/platform/npc/include 
 LDFLAGS			:=
-# DEFINES		+=-D__ARCH__=riscv32e-npc
-# DEFINES		+=-D__ARCH_RISCV32E_NPC
-# DEFINES		+=-D__PLATFORM__=npc
-# DEFINES		+=-D__PLATFORM_NPC
+DEFINES			+=-D__ARCH__=riscv32e-npc
+DEFINES			+=-D__ARCH_RISCV32E_NPC
+DEFINES			+=-D__PLATFORM__=npc
+DEFINES			+=-D__PLATFORM_NPC
 
 CROSS_COMPILE	:= riscv64-linux-gnu-
 AS        		:= $(CROSS_COMPILE)gcc
@@ -38,15 +38,14 @@ SRCS		+= start.S
 SRCS		+= init.c
 
 INC_FILES   += $(AM_HOME)/../common/include
-# INC_FILES   += $(AM_HOME)/am/src
-# INC_FILES   += $(AM_HOME)/am/include
-# INC_FILES   += $(AM_HOME)/am/include
-# INC_FILES   += $(AM_HOME)/klib/include
+INC_FILES   += $(AM_HOME)/am/src
+INC_FILES   += $(AM_HOME)/am/include
+INC_FILES   += $(AM_HOME)/klib/include
 
-# DEFINES		+=-D__GUEST_ISA__=riscv32e
-# DEFINES		+=-D__ISA__="riscv32e"
-# DEFINES		+=-D__ISA_RISCV32E__
-# DEFINES		+=-DARCH_H="arch/riscv.h"
+DEFINES		+=-D__GUEST_ISA__=riscv32e
+DEFINES		+=-D__ISA__="riscv32e"
+DEFINES		+=-D__ISA_RISCV32E__
+DEFINES		+=-DARCH_H=\"arch/riscv.h\"
 
 # COMFLAGS	+= -O0 -g
 COMFLAGS	+= -O2
@@ -69,7 +68,7 @@ $(BUILD_DIR)/%.o: %.S
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@) && echo + CC $<
-	@$(CC) -std=gnu11 $(CFLAGS) -c -o $@ $(realpath $<)
+	$(CC) -std=gnu11 $(CFLAGS) -c -o $@ $(realpath $<)
 
 # ${CC} -ffreestanding -nostdlib -static -Wl,-Ttext=0 -O2 -o $@ $<
 # ${TAGET}: a.c
