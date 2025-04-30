@@ -13,6 +13,7 @@ import "DPI-C" function int dpi_query_intr();
 import "DPI-C" function void dpi_uart_write(input int addr, input int len, input int inst);
 import "DPI-C" function int dpi_rtc_read(input int addr, input int len);
 import "DPI-C" function void dpi_dev_skip(input int write, input int addr, input int len, input int data);
+import "DPI-C" function int dpi_test_intf(input int write, input int addr, input int len, input int data);
 
 `include "riscv32e_defines.v"
 

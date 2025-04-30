@@ -190,7 +190,14 @@ always @(posedge clk or posedge rst) begin
         r_r_ready <= r_r_ready;
 
         if (prev_valid && !prev_ready) begin
-            if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
+            if ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff) begin
+                // notify next
+                r_dnpc <= pc + 4;
+                r_result <= dpi_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2);
+                r_result_mem_width <= 0;
+                r_result_update_csr <= 0;
+                r_prev_ready <= 1;
+            end else if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
                 case (r_write_state)
                     AXI4_COM_ADDR: begin
                         r_aw_valid <= 1;
