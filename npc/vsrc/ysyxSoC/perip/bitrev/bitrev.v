@@ -6,7 +6,6 @@ module bitrev (
 );
 
 typedef enum[1:0] {
-    BITREV_IDLE,
     BITREV_IN,
     BITREV_OUT,
     BITREV_WAIT
@@ -19,20 +18,14 @@ reg out_bit;
 
 assign miso = out_bit;
 
-always @(posedge sck) begin
+always @(posedge sck or posedge ss) begin
     if (ss) begin
         bits <= 0;
         cnt <= 0;
-        state <= BITREV_IDLE;
+        state <= BITREV_IN;
         out_bit <= 1;
     end else begin
         case (state)
-            BITREV_IDLE: begin
-                cnt <= 0;
-                state <= BITREV_IN;
-                out_bit <= 1;
-            end
-
             BITREV_IN: begin
                 cnt <= cnt + 1;
                 bits[cnt] <= mosi;
