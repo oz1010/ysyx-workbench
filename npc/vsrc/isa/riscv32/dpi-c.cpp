@@ -305,10 +305,11 @@ extern "C" void flash_read(int32_t addr, int32_t *data)
         exit_simu(2);
     }
 
-    if (addr&0x3u) {
-        raw_stdout("Read flash dont support unalign-read, addr:%#.8x\n", addr);
-        exit_simu(2);
-    }
+    // SPI需要支持非对齐访问
+    // if (addr&0x3u) {
+    //     raw_stdout("Read flash dont support unalign-read, addr:%#.8x\n", addr);
+    //     exit_simu(2);
+    // }
 
     *data = (*(int32_t *)(&flash_context[addr]));
 }

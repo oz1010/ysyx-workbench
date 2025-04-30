@@ -2,6 +2,7 @@
 #define __SPI_H__
 
 #include <stdint.h>
+#include "macro.h"
 
 // ref. git@gitee.com:uu90909/ysyxSoC.git ysyxSoC/perip/spi/doc/spi.pdf
 
@@ -28,7 +29,7 @@ typedef union {
         uint32_t go_bsy:1;      // write 1 to start util transfer is done
         uint32_t rx_neg:1;      // slave是否在下降沿接收数据，与tx_neg相反
         uint32_t tx_neg:1;      // master是否在下降沿发送数据，与rx_neg相反
-        uint32_t lsb:1;         // 是否先发送LSB
+        uint32_t lsb:1;         // 是否先发送LSB：LSB是先发送低字节的bit0；MSB是先发送高字节的bit7
         uint32_t ie:1;          // 中断使能
         uint32_t ass:1;         // 自动使能ss信号，flash -- bit0 bitrev -- bit7
         uint32_t reserved1:18;
@@ -62,6 +63,29 @@ typedef struct {
     spi_ss_t ss;
 } spi_dev_t;
 
+typedef enum {
+    SPI_TRANSFER_ASYNC,
+    SPI_TRANSFER_SYNC,
+} spi_transfer_flag_t;
+
 static volatile spi_dev_t *spi_dev=(volatile spi_dev_t *)SPI_BASEADDR;
+
+UNUSED_FUNC int spi_init(spi_ctrl_t ctrl_val, uint32_t slave_id) {
+    spi_dev->divider.divider = 0;
+    spi_dev->ctrl.raw_data = ctrl_val.raw_data;
+    spi_dev->ss.ss = slave_id;
+    return 0;
+}
+
+UNUSED_FUNC volatile uint32_t* spi_transfer(uint32_t* buf, int buf_size, spi_transfer_flag_t flag) {
+    for (int i=0; i<buf_size; ++i) {
+        spi_dev->tx[i] = buf[i];
+    }
+
+    spi_dev->ctrl.go_bsy = 1;
+    while((flag == SPI_TRANSFER_SYNC) && spi_dev->ctrl.go_bsy) ;
+
+    return (volatile uint32_t*)SPI_RX0;
+}
 
 #endif
