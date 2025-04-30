@@ -2,6 +2,7 @@
 #define __SPI_H__
 
 #include <stdint.h>
+#include "klib-macros.h"
 #include "macro.h"
 
 // ref. git@gitee.com:uu90909/ysyxSoC.git ysyxSoC/perip/spi/doc/spi.pdf
@@ -78,10 +79,13 @@ UNUSED_FUNC int spi_init(spi_ctrl_t ctrl_val, uint32_t slave_id) {
 }
 
 UNUSED_FUNC volatile uint32_t* spi_transfer(uint32_t* buf, int buf_size, spi_transfer_flag_t flag) {
+    if (spi_dev->ss.ss == 0) {
+        puterr("You should init spi firstly");
+        halt(2);
+    }
     for (int i=0; i<buf_size; ++i) {
         spi_dev->tx[i] = buf[i];
     }
-
     spi_dev->ctrl.go_bsy = 1;
     while((flag == SPI_TRANSFER_SYNC) && spi_dev->ctrl.go_bsy) ;
 

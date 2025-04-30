@@ -15,6 +15,9 @@
 #define putstr(s) \
   ({ for (const char *p = s; *p; p++) putch(*p); })
 
+#define puterr(s) \
+  ({ putstr("\033[1;31m[ERROR] "); putstr(s); putstr("\033[0m\n"); })
+
 #define putnum_debug(num)           \
   do{                               \
     char str[32] = {0};             \
