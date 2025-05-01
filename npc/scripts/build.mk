@@ -72,7 +72,7 @@ $(VOBJS): $(VSRCS)
 
 # Some convenient rules
 
-.PHONY: app clean image
+.PHONY: app clean image $(VOBJS)
 
 app: $(BINARY) $(IMG)
 
