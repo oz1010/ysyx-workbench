@@ -103,104 +103,128 @@ always @(posedge clock) begin
         if (is_xip) begin
             case (xip_state)
                 XIP_IDLE: begin
-                    xip_in_paddr <= 5'h14;
-                    xip_in_pwdata <= 0;
-                    xip_in_pstrb <= 4'h3;
-                    xip_in_pwrite <= 1;
                     xip_in_psel <= 1;
-                    xip_in_penable <= 1;
+                    xip_in_penable <= 0;
                     xip_state <= XIP_INIT_DIVIDER;
                     if (in_paddr[1:0]>0) $error("Only support align addr access to flash %x", in_paddr);
                 end
 
                 XIP_INIT_DIVIDER: begin
-                    if (u0_in_pready) begin
-                        xip_in_paddr <= 5'h18;
-                        xip_in_pwdata <= 32'h1;
-                        xip_in_pstrb <= 4'h1;
+                    if (!xip_in_penable) begin
+                        xip_in_paddr <= 5'h14;
+                        xip_in_pwdata <= 0;
+                        xip_in_pstrb <= 4'h3;
                         xip_in_pwrite <= 1;
-                        xip_in_psel <= 1;
                         xip_in_penable <= 1;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
+                        xip_in_penable <= 0;
                         xip_state <= XIP_INIT_SS;
                     end
                 end
 
                 XIP_INIT_SS: begin
-                    if (u0_in_pready) begin
-                        xip_in_paddr <= 5'h00;
-                        xip_in_pwdata <= 32'h0;
+                    if (!xip_in_penable) begin
+                        xip_in_paddr <= 5'h18;
+                        xip_in_pwdata <= 32'h1;
                         xip_in_pstrb <= 4'hf;
                         xip_in_pwrite <= 1;
-                        xip_in_psel <= 1;
                         xip_in_penable <= 1;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
+                        xip_in_penable <= 0;
                         xip_state <= XIP_INIT_TX0;
                     end
                 end
 
                 XIP_INIT_TX0: begin
-                    if (u0_in_pready) begin
-                        xip_in_paddr <= 5'h04;
-                        xip_in_pwdata <= {8'h03, in_paddr[23:2], 2'h0};
+                    if (!xip_in_penable) begin
+                        xip_in_paddr <= 5'h00;
+                        xip_in_pwdata <= 32'h0;
                         xip_in_pstrb <= 4'hf;
                         xip_in_pwrite <= 1;
-                        xip_in_psel <= 1;
                         xip_in_penable <= 1;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
+                        xip_in_penable <= 0;
                         xip_state <= XIP_INIT_TX1;
                     end
                 end
 
                 XIP_INIT_TX1: begin
-                    if (u0_in_pready) begin
-                        xip_in_paddr <= 5'h10;
-                        xip_in_pwdata <= 32'h2540;
+                    if (!xip_in_penable) begin
+                        xip_in_paddr <= 5'h04;
+                        xip_in_pwdata <= {8'h03, in_paddr[23:2], 2'h0};
                         xip_in_pstrb <= 4'hf;
                         xip_in_pwrite <= 1;
-                        xip_in_psel <= 1;
                         xip_in_penable <= 1;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
+                        xip_in_penable <= 0;
                         xip_state <= XIP_INIT_CTRL;
                     end
                 end
                 
                 XIP_INIT_CTRL: begin
-                    if (u0_in_pready) begin
+                    if (!xip_in_penable) begin
                         xip_in_paddr <= 5'h10;
-                        xip_in_pwdata <= 32'h0;
+                        xip_in_pwdata <= 32'h2540;
                         xip_in_pstrb <= 4'hf;
-                        xip_in_pwrite <= 0;
-                        xip_in_psel <= 1;
+                        xip_in_pwrite <= 1;
                         xip_in_penable <= 1;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
+                        xip_in_penable <= 0;
                         xip_state <= XIP_WAIT_TRANSFER;
                     end
                 end
 
                 XIP_WAIT_TRANSFER: begin
-                    if (!u0_in_prdata[8] && u0_in_pready) begin
-                        xip_in_paddr <= 5'h0;
+                    if (!xip_in_penable) begin
+                        xip_in_paddr <= 5'h10;
                         xip_in_pwdata <= 32'h0;
-                        xip_in_pstrb <= in_pstrb;
+                        xip_in_pstrb <= 4'hf;
                         xip_in_pwrite <= 0;
-                        xip_in_psel <= 1;
                         xip_in_penable <= 1;
-                        xip_state <= XIP_READ_DATA;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
+                        xip_in_penable <= 0;
+                        if (!u0_in_prdata[8]) xip_state <= XIP_READ_DATA;
                     end
                 end
                 
                 XIP_READ_DATA: begin
-                    if (u0_in_pready) begin
+                    if (!xip_in_penable) begin
+                        xip_in_paddr <= 5'h0;
+                        xip_in_pwdata <= 32'h0;
+                        xip_in_pstrb <= in_pstrb;
+                        xip_in_pwrite <= 0;
+                        xip_in_penable <= 1;
+                    end
+                    if (u0_in_pready && xip_in_penable) begin
                         // 0x30313233
-                        // xip_in_prdata <= {u0_in_prdata[7:0], u0_in_prdata[15:8], u0_in_prdata[23:16], u0_in_prdata[31:24]};
-                        xip_in_prdata <= u0_in_prdata;
+                        xip_in_prdata <= {u0_in_prdata[7:0], u0_in_prdata[15:8], u0_in_prdata[23:16], u0_in_prdata[31:24]};
+                        // xip_in_prdata <= u0_in_prdata;
                         xip_in_pready <= 1;
+
+                        xip_in_penable <= 0;
                         xip_state <= XIP_READ_DONE;
+                        xip_in_psel <= 0;
                     end
                 end
 
-                XIP_READ_DONE: xip_state <= XIP_READ_DONE;
+                XIP_READ_DONE: begin
+                    xip_state <= XIP_IDLE;
+                    xip_in_pready <= 0;
+                end
 
                 default: $error("Found unknown state %d", xip_state);
             endcase
         end else begin
+            xip_in_psel <= 0;
+            xip_in_penable <= 0;
             xip_state <= XIP_IDLE;
+            xip_in_pready <= 0;
         end
     end
 end
