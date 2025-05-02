@@ -39,20 +39,11 @@ extern uint8_t *raw_memory;
 extern uint8_t raw_memory[CONFIG_MSIZE];
 #endif
 
-#define FLASH_SIZE (16*1024*1024)
-#if   defined(CONFIG_PMEM_MALLOC)
-uint8_t* flash_context = NULL;
-#else
-uint8_t flash_context[FLASH_SIZE] = {0};
-#endif
+#define FLASH_SIZE                          (16*1024*1024)
+#define TEST_INIF_FLASH_BASEADDR            0x30f00000
 
 void init_dpi()
 {
-    // 模拟初始化
-#if defined(CONFIG_PMEM_MALLOC)
-    flash_context = (uint8_t *)malloc(FLASH_SIZE);
-#endif
-    assert(flash_context);
 }
 
 void switch_flash_context(uint32_t flash_idx)
@@ -62,12 +53,12 @@ void switch_flash_context(uint32_t flash_idx)
     {
     case 1:
         for(size_t i=0; i<16; ++i) {
-            flash_context[i] = 0x30 + i;
+            raw_memory[TEST_INIF_FLASH_BASEADDR+i] = 0x30 + i;
         }
         break;
     
     case 2: {
-        uint32_t *flash32 = (uint32_t *)flash_context;
+        uint32_t *flash32 = (uint32_t *)&raw_memory[TEST_INIF_FLASH_BASEADDR];
         uint32_t i=0;
         flash32[i++] = 0x100007b7;
         flash32[i++] = 0x04100713;
@@ -369,7 +360,7 @@ extern "C" void flash_read(int32_t addr, int32_t *data)
     //     exit_simu(2);
     // }
 
-    *data = (*(int32_t *)(&flash_context[addr]));
+    *data = (*(int32_t *)(&raw_memory[0x30000000+addr]));
 }
 
 extern "C" void mrom_read(int32_t addr, int32_t *data)
