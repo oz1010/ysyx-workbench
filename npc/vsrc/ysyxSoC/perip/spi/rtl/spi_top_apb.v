@@ -106,7 +106,7 @@ always @(posedge clock) begin
                     xip_in_psel <= 1;
                     xip_in_penable <= 0;
                     xip_state <= XIP_INIT_DIVIDER;
-                    if (in_paddr[1:0]>0) $error("Only support align addr access to flash %x", in_paddr);
+                    // if (in_paddr[1:0]>0) $error("Only support align addr access to flash %x", in_paddr);
                 end
 
                 XIP_INIT_DIVIDER: begin
@@ -154,7 +154,9 @@ always @(posedge clock) begin
                 XIP_INIT_TX1: begin
                     if (!xip_in_penable) begin
                         xip_in_paddr <= 5'h04;
+                        // 4字节对齐访问
                         xip_in_pwdata <= {8'h03, in_paddr[23:2], 2'h0};
+                        // xip_in_pwdata <= {8'h03, in_paddr[23:0]};
                         xip_in_pstrb <= 4'hf;
                         xip_in_pwrite <= 1;
                         xip_in_penable <= 1;
