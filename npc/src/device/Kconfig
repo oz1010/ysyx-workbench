@@ -27,7 +27,7 @@ config SERIAL_MMIO
   default 0xa00003f8
 
 config SERIAL_INPUT_FIFO
-  bool "Enable input FIFO with /tmp/nemu.serial"
+  bool "Enable input FIFO with /tmp/npc.serial"
   default n
 endif # HAS_SERIAL
 

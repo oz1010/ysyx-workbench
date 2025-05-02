@@ -1,6 +1,7 @@
 #include <am.h>
 #include <npc.h>
 #include "file/bin_header.h"
+#include "klib.h"
 
 DECLARE_BIN_HEADER(bin_header);
 
@@ -39,8 +40,24 @@ void init_uart16550()
     outb(UART16550_REG_LCR, val&=~bits(7));
 }
 
+void print_machine_info()
+{
+    union
+    {
+        uint32_t id;
+        uint8_t str[8];
+    } vendor_info;
+    uint32_t mvendorid, marchid;
+    asm volatile("csrr %0, mvendorid" : "=r"(mvendorid));
+    asm volatile("csrr %0, marchid" : "=r"(marchid));
+    memset(&vendor_info, 0, sizeof(vendor_info));
+    vendor_info.id=mvendorid;
+    printf("Machine info: %s_%d\n", vendor_info.str, marchid);
+}
+
 void _trm_init() {
   init_uart16550();
+  print_machine_info();
 
   int ret = main(mainargs);
   halt(ret);

@@ -30,6 +30,11 @@ static void restart() {
    * 针对riscv64, 你需要将mstatus初始化为0xa00001800.
    */
   cpu.csr[CSR_MSTATUS] = MUXDEF(CONFIG_RV64, 0xa00001800, 0x1800);
+  /** https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
+   * 
+   */
+  cpu.csr[CSR_MVENDORID] = 0x79737978;
+  cpu.csr[CSR_MARCHID] = 0x15FDF47;
 }
 
 void init_isa() {

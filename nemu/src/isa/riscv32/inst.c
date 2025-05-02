@@ -23,7 +23,11 @@
 extern CPU_state cpu;
 
 #define R(i) gpr(i)
-#define CSR(i) (cpu.csr[i])
+// #define CSR(i) (cpu.csr[i])
+// #define READ_CSR(i) CSR(i)
+// #define WRITE_CSR(i,d) (CSR(i)=(d))
+#define READ_CSR(i) read_csr(i)
+#define WRITE_CSR(i,d) write_csr((i),(d))
 #define Mr vaddr_read
 #define Mw vaddr_write
 
@@ -49,6 +53,15 @@ enum {
 #define signed_lt(a,b,wide) ({int32_t sa = SEXT(a, wide);int32_t sb = SEXT(b, wide);(sa<sb);})
 // fixme: a>=b => !(a<b)
 #define signed_bge(a,b,wide) (!signed_lt(a,b,wide))
+
+static word_t read_csr(int idx)
+{
+    return cpu.csr[idx];
+}
+static void write_csr(int idx, word_t data)
+{
+    cpu.csr[idx]=data;
+}
 
 static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst.val;
@@ -120,8 +133,8 @@ static int decode_exec(Decode *s) {
   // INSTPAT("??????? ????? ????? 000 ????? 00100 11", fence.i, I, xxx );
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , I, s->dnpc = RAISE_INTR((0<<31|11<<0), s->pc) ); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , I, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
-  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, t = CSR(imm); CSR(imm)=src1; R(rd) = t );
-  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, t = CSR(imm); CSR(imm) = t | src1; R(rd) = t );
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, t = READ_CSR(imm); WRITE_CSR(imm,src1); R(rd) = t );
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, t = READ_CSR(imm); WRITE_CSR(imm,t|src1); R(rd) = t );
   // INSTPAT("??????? ????? ????? 000 ????? 00100 11", csrrc  , I, xxx );
   // INSTPAT("??????? ????? ????? 000 ????? 00100 11", csrrwi , I, xxx );
   // INSTPAT("??????? ????? ????? 000 ????? 00100 11", csrrsi , I, xxx );
