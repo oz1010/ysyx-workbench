@@ -1,4 +1,5 @@
 MEMORY {
+    FLASH   (rx)  : ORIGIN = 0x30000000, LENGTH = 16M
     MROM    (rx)  : ORIGIN = 0x20000000, LENGTH = 4096
     SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 8K
 }
@@ -15,7 +16,7 @@ SECTIONS {
     .bin_header : {
         KEEP(*(.bin_header)) /* 确保bin_header被保留 */
         . = ALIGN(4);
-    } > MROM
+    } > FLASH
 
     .text : {
         _text_start = ALIGN(4);
@@ -27,13 +28,13 @@ SECTIONS {
         *(.srodata)
         *(.srodata*)
         _text_end = ALIGN(4);
-    } >MROM
+    } >FLASH
     etext = .;
     _etext = .;
 
     /* .data : {
         *(.data)
-    } >SRAM AT>MROM */
+    } >SRAM AT>FLASH */
     /* .data 的加载地址紧跟 .text，VMA 在 SRAM */
     .data : AT(_text_end) {
         _data_start = ALIGN(4);
@@ -45,7 +46,7 @@ SECTIONS {
     } >SRAM
     edata = .;
     _data = .;
-    _data_load = LOADADDR(.data);  /* 在 MROM 中的地址 */
+    _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
     _data_size = _data_end - _data_start;
 
     .bss : {
