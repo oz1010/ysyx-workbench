@@ -5,6 +5,5 @@
 
 int main()
 {
-    flash_init();
     return 0;
 }
