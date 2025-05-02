@@ -194,8 +194,11 @@ int sext(int x, int len)
 
 void write_raw_csr(int idx, int data)
 {
-    unsigned int ri = (unsigned int)idx;
-    if (ri >= CSR_COUNT) return;
+    int ri = (idx < 0) ? CSR_COUNT + idx : idx;
+    if (ri >= CSR_COUNT || ri < 0) {
+        LOG_ERROR("write csr is out of range, idx:%d ri:%d data:%x", idx, ri, data);
+        exit_simu(2);
+    }
     // printf("write csr %d %d\n", ri, data);
     // int ri = ri % CSR_COUNT;
     cpu.csr[ri] = data;
@@ -203,9 +206,12 @@ void write_raw_csr(int idx, int data)
 
 int read_raw_csr(int idx)
 {
-    unsigned int ri = (unsigned int)idx;
-    if (ri >= CSR_COUNT) return 0;
-
+    int ri = (idx < 0) ? CSR_COUNT + idx : idx;
+    if (ri >= CSR_COUNT || ri < 0) {
+        LOG_ERROR("read csr is out of range, idx:%d ri:%d", idx, ri);
+        exit_simu(2);
+    }
+    
     int ret = cpu.csr[ri];
     // printf("read csr %d %d\n", ri, ret);
     return ret;

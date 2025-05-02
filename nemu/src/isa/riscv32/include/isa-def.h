@@ -25,13 +25,17 @@
 */
 enum {
   /* Machine Trap Setup */
-  CSR_MSTATUS     = 0x300,  // mstatus寄存器 - 存放处理器的状态
-  CSR_MTVEC       = 0x305,  // mtvec寄存器 - 存放trap-handler基地址
+  CSR_MSTATUS       = 0x300,  // mstatus寄存器 - 存放处理器的状态
+  CSR_MTVEC         = 0x305,  // mtvec寄存器 - 存放trap-handler基地址
   /* Machine Trap Handling */
-  CSR_MEPC        = 0x341,  // mepc寄存器 - 存放触发异常的PC
-  CSR_MCAUSE      = 0x342,  // mcause寄存器 - 存放触发异常的原因
+  CSR_MEPC          = 0x341,  // mepc寄存器 - 存放触发异常的PC
+  CSR_MCAUSE        = 0x342,  // mcause寄存器 - 存放触发异常的原因
 
-  CSR_COUNT       = 2048    // 查看csrrw中csr占12位推算需要占用2048个csr寄存器
+  /* Machine Information Registers */
+  CSR_MVENDORID     = 0xf11, // Vendor ID, ysyx的ASCII码, 即0x79737978
+  CSR_MARCHID       = 0xf12, // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
+
+  CSR_COUNT         = 4096    // 查看csrrw中csr占12位推算需要占用4096个csr寄存器
 };
 
 typedef struct {
