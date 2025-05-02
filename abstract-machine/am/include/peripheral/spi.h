@@ -71,22 +71,14 @@ typedef enum {
 
 static volatile spi_dev_t *spi_dev=(volatile spi_dev_t *)SPI_BASEADDR;
 
-UNUSED_FUNC int spi_init(spi_ctrl_t ctrl_val, uint32_t slave_id) {
+UNUSED_FUNC volatile uint32_t* spi_transfer(spi_ctrl_t ctrl_val, uint32_t slave_id, uint32_t* buf, int buf_size, spi_transfer_flag_t flag) {
+    ctrl_val.go_bsy = 1;
     spi_dev->divider.divider = 0;
-    spi_dev->ctrl.raw_data = ctrl_val.raw_data;
     spi_dev->ss.ss = slave_id;
-    return 0;
-}
-
-UNUSED_FUNC volatile uint32_t* spi_transfer(uint32_t* buf, int buf_size, spi_transfer_flag_t flag) {
-    if (spi_dev->ss.ss == 0) {
-        puterr("You should init spi firstly");
-        halt(2);
-    }
     for (int i=0; i<buf_size; ++i) {
         spi_dev->tx[i] = buf[i];
     }
-    spi_dev->ctrl.go_bsy = 1;
+    spi_dev->ctrl.raw_data = ctrl_val.raw_data;
     while((flag == SPI_TRANSFER_SYNC) && spi_dev->ctrl.go_bsy) ;
 
     return (volatile uint32_t*)SPI_RX0;

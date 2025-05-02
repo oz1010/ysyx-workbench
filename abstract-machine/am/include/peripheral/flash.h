@@ -25,28 +25,23 @@
 */
 #define FLASH_CMD_READ_DATA         (0x03)
 
-UNUSED_FUNC int flash_init(void)
-{
-    return spi_init(
-        (spi_ctrl_t){
-            .char_len = 64,
-            .go_bsy = 0,
-            .rx_neg = 0,
-            .tx_neg = 1,
-            .lsb = 0,
-            .ie = 0,
-            .ass = 1,
-        }, 
-        SPI_SLAVE_FLASH);
-}
-
 UNUSED_FUNC uint32_t flash_read(uint32_t addr)
 {
     uint32_t datas[2] = {
         0,
         ((FLASH_CMD_READ_DATA&0xFF)<<24) | ((addr&0xFFFFFF)<<0),
     };
-    volatile uint32_t *rx = spi_transfer(datas, 2, SPI_TRANSFER_SYNC);
+    volatile uint32_t *rx = spi_transfer((spi_ctrl_t){
+        .char_len = 64,
+        .go_bsy = 1,
+        .rx_neg = 0,
+        .tx_neg = 1,
+        .lsb = 0,
+        .ie = 0,
+        .ass = 1,
+    }, 
+    SPI_SLAVE_FLASH,
+    datas, 2, SPI_TRANSFER_SYNC);
     return swap_uint32(rx[0]);
 }
 
