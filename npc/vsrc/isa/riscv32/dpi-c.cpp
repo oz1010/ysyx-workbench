@@ -33,10 +33,13 @@ extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 static uint32_t hw_flash_idx = 0;
 
+#define PSRAM_SIZE                          (4*1024*1024)
 #if   defined(CONFIG_PMEM_MALLOC)
 extern uint8_t *raw_memory;
+uint8_t *raw_psram;
 #else
 extern uint8_t raw_memory[CONFIG_MSIZE];
+uint8_t raw_psram[PSRAM_SIZE];
 #endif
 
 #define FLASH_SIZE                          (16*1024*1024)
@@ -44,6 +47,10 @@ extern uint8_t raw_memory[CONFIG_MSIZE];
 
 void init_dpi()
 {
+#if   defined(CONFIG_PMEM_MALLOC)
+    raw_psram = (uint8_t *)malloc(PSRAM_SIZE);
+#endif
+    assert(raw_psram);
 }
 
 void switch_flash_context(uint32_t flash_idx)
@@ -70,6 +77,21 @@ void switch_flash_context(uint32_t flash_idx)
         flash32[i++] = 0x00008067;
         break;
     }
+
+    default:
+        break;
+    }
+}
+
+void switch_psram_context(uint32_t psram_idx)
+{
+    switch (psram_idx)
+    {
+    case 1:
+        for(size_t i=0; i<16; ++i) {
+            raw_psram[i] = 0x30 + i;
+        }
+        break;
 
     default:
         break;
@@ -301,7 +323,11 @@ int dpi_test_intf(int write, int addr, int len, int data)
     // if (write && addr>=0x0f002000 && addr<=0x0fffffff) {
     if (write && addr>=0x0f002000 && addr<=0x0f002000) {
         switch_flash_context(data);
-        DPI_MTRACE("test_intf W [%#.8x] <= %#.8x %d", addr, data, len);
+        DPI_MTRACE("test_intf flash W [%#.8x] <= %#.8x %d", addr, data, len);
+        DIFFTEST_SKIP_REF();
+    } else if (write && addr>=0x0f002004 && addr<=0x0f002004) {
+        switch_psram_context(data);
+        DPI_MTRACE("test_intf psram W [%#.8x] <= %#.8x %d", addr, data, len);
         DIFFTEST_SKIP_REF();
     } else {
         LOG_ERROR("test_intf only support writing to 0x0f002000, addr:%#x len:%d data:%#x", addr, len, data);
@@ -349,6 +375,27 @@ int dpi_rtc_read(int addr, int len)
     DIFFTEST_SKIP_REF();
 
     return ret;
+}
+
+void dpi_psram_write(int addr, int len, int data)
+{
+    if (!(addr>=0 && addr<PSRAM_SIZE)) {
+        raw_stdout("Write psram is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+    }
+    
+    (*(int32_t *)(&raw_psram[addr])) = data;
+}
+
+int dpi_psram_read(int addr, int len)
+{
+    if (!(addr>=0 && addr<PSRAM_SIZE)) {
+        raw_stdout("Read psram is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+    }
+
+    int data = (*(int32_t *)(&raw_psram[addr]));
+    return data;
 }
 
 extern "C" void flash_read(int32_t addr, int32_t *data)

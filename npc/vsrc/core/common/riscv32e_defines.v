@@ -132,7 +132,8 @@ task check_dev_addr(
         '{name:"UART16550",     startaddr:32'h1000_0000,    endaddr:32'h1000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
         '{name:"SPI_MASTER",    startaddr:32'h1000_1000,    endaddr:32'h1000_1fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
         '{name:"MROM",          startaddr:32'h2000_0000,    endaddr:32'h2000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)},
-        '{name:"FLASH",         startaddr:32'h3000_0000,    endaddr:32'h30ff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)}
+        '{name:"FLASH",         startaddr:32'h3000_0000,    endaddr:32'h30ff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)},
+        '{name:"PSRAM",         startaddr:32'h8000_0000,    endaddr:32'h9fff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE|`DEV_ATTR_EXEC)}
     };
     static logic [3:0] device_attrs[] = '{`DEV_ATTR_READ, `DEV_ATTR_WRITE, `DEV_ATTR_EXEC};
     static int match_dev_id;
