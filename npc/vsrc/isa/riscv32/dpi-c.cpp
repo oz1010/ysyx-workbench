@@ -383,8 +383,24 @@ void dpi_psram_write(int addr, int len, int data)
         raw_stdout("Write psram is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
+
+    switch (len)
+    {
+    case 1:
+        (*(uint8_t *)(&raw_psram[addr])) = data&0xff;
+        break;
+    case 2:
+        (*(int16_t *)(&raw_psram[addr])) = data&0xffff;
+        break;
+    case 4:
+        (*(int32_t *)(&raw_psram[addr])) = data;
+        break;
     
-    (*(int32_t *)(&raw_psram[addr])) = data;
+    default:
+        raw_stdout("Write psram len is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+        break;
+    }
 }
 
 int dpi_psram_read(int addr, int len)
