@@ -39,8 +39,9 @@ module EF_PSRAM_CTRL_wb (
     output  wire [3:0]      douten
 );
 
-    localparam  ST_IDLE = 1'b0,
-                ST_WAIT = 1'b1;
+    localparam  ST_IDLE = 2'h0,
+                ST_WAIT = 2'h1,
+                ST_QPI = 2'h2;
 
     wire        mr_sck;
     wire        mr_ce_n;
@@ -54,27 +55,45 @@ module EF_PSRAM_CTRL_wb (
     wire [3:0]  mw_dout;
     wire        mw_doe;
 
+    wire        sw_sck;
+    wire        sw_ce_n;
+    wire [3:0]  sw_din;
+    wire [3:0]  sw_dout;
+    wire        sw_doe;
+
     // PSRAM Reader and Writer wires
     wire        mr_rd;
     wire        mr_done;
     wire        mw_wr;
     wire        mw_done;
+    wire        sw_req;
+    wire        sw_done;
 
     //wire        doe;
 
     // WB Control Signals
-    wire        wb_valid        =   cyc_i & stb_i;
+    wire        wb_valid        =   (~qpi_mode | qpi_en) & cyc_i & stb_i;
     wire        wb_we           =   we_i & wb_valid;
     wire        wb_re           =   ~we_i & wb_valid;
     //wire[3:0]   wb_byte_sel     =   sel_i & {4{wb_we}};
 
     // The FSM
-    reg         state, nstate;
+    reg [1:0]   state, nstate;
+    reg         qpi_en;
+    wire        qpi_mode = 1;
     always @ (posedge clk_i or posedge rst_i)
-        if(rst_i)
-            state <= ST_IDLE;
-        else
-            state <= nstate;
+        if(rst_i) begin
+            state <= qpi_mode ? ST_QPI : ST_IDLE;
+            qpi_en <= 0;
+        end else begin
+            if (qpi_mode && ~qpi_en && sw_done) begin
+                qpi_en <= 1;
+                state <= ST_IDLE;
+            end
+
+            if (qpi_mode && qpi_en) state <= nstate;
+            else if (~qpi_mode) state <= nstate;
+        end
 
     always @* begin
         case(state)
@@ -89,6 +108,8 @@ module EF_PSRAM_CTRL_wb (
                     nstate = ST_IDLE;
                 else
                     nstate = ST_WAIT;
+
+            default : ;
         endcase
     end
 
@@ -133,6 +154,7 @@ module EF_PSRAM_CTRL_wb (
     PSRAM_READER MR (
         .clk(clk_i),
         .rst_n(~rst_i),
+        .qpi_en(qpi_en),
         .addr({adr_i[23:2],2'b0}),
         .rd(mr_rd),
         //.size(size), Always read a word
@@ -149,6 +171,7 @@ module EF_PSRAM_CTRL_wb (
     PSRAM_WRITER MW (
         .clk(clk_i),
         .rst_n(~rst_i),
+        .qpi_en(qpi_en),
         .addr({adr_i[23:0]}),
         .wr(mw_wr),
         .size(size),
@@ -161,12 +184,25 @@ module EF_PSRAM_CTRL_wb (
         .douten(mw_doe)
     );
 
-    assign sck  = wb_we ? mw_sck  : mr_sck;
-    assign ce_n = wb_we ? mw_ce_n : mr_ce_n;
-    assign dout = wb_we ? mw_dout : mr_dout;
-    assign douten  = wb_we ? {4{mw_doe}}  : {4{mr_doe}};
+    PSRAM_SWITCHER SW (
+        .clk(clk_i),
+        .rst_n(~rst_i),
+        .sw((qpi_mode && ~qpi_en)),
+        .done(sw_done),
+        .sck(sw_sck),
+        .ce_n(sw_ce_n),
+        .din(sw_din),
+        .dout(sw_dout),
+        .douten(sw_doe)
+    );
+
+    assign sck  = (qpi_mode && ~qpi_en) ? sw_sck : wb_we ? mw_sck  : mr_sck;
+    assign ce_n = (qpi_mode && ~qpi_en) ? sw_ce_n : wb_we ? mw_ce_n : mr_ce_n;
+    assign dout = (qpi_mode && ~qpi_en) ? sw_dout : wb_we ? mw_dout : mr_dout;
+    assign douten  = (qpi_mode && ~qpi_en) ? {3'hz, sw_doe} : wb_we ? {4{mw_doe}}  : {4{mr_doe}};
 
     assign mw_din = din;
     assign mr_din = din;
-    assign ack_o = wb_we ? mw_done :mr_done ;
+    assign sw_din = din;
+    assign ack_o = (qpi_mode && ~qpi_en) ? sw_done : wb_we ? mw_done :mr_done ;
 endmodule
