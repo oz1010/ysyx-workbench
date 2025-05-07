@@ -56,11 +56,11 @@ enum {
 
 static word_t read_csr(int idx)
 {
-    return cpu.csr[idx];
+    return cpu.csr[idx&0xfff];
 }
 static void write_csr(int idx, word_t data)
 {
-    cpu.csr[idx]=data;
+    cpu.csr[idx&0xfff]=data;
 }
 
 static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
