@@ -217,25 +217,14 @@ int sext(int x, int len)
 
 void write_raw_csr(int idx, int data)
 {
-    int ri = (idx < 0) ? CSR_COUNT + idx : idx;
-    if (ri >= CSR_COUNT || ri < 0) {
-        LOG_ERROR("write csr is out of range, idx:%d ri:%d data:%x", idx, ri, data);
-        exit_simu(2);
-    }
     // printf("write csr %d %d\n", ri, data);
     // int ri = ri % CSR_COUNT;
-    cpu.csr[ri] = data;
+    cpu.csr[idx&0xfff] = data;
 }
 
 int read_raw_csr(int idx)
 {
-    int ri = (idx < 0) ? CSR_COUNT + idx : idx;
-    if (ri >= CSR_COUNT || ri < 0) {
-        LOG_ERROR("read csr is out of range, idx:%d ri:%d", idx, ri);
-        exit_simu(2);
-    }
-    
-    int ret = cpu.csr[ri];
+    int ret = cpu.csr[idx&0xfff];
     // printf("read csr %d %d\n", ri, ret);
     return ret;
 }
