@@ -312,6 +312,9 @@ void dpi_dev_skip(int write, int addr, int len, int data)
     } else if (addr>=0x30000000 && addr<=0x30ffffff) {
         DPI_DTRACE("flash", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
         DIFFTEST_SKIP_REF();
+    } else if (addr>=0x80000000 && addr<=0x803fffff) {
+        DPI_DTRACE("psram", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
+        DIFFTEST_SKIP_REF();
     } else {
         DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     }

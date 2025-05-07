@@ -2,6 +2,7 @@ MEMORY {
     FLASH   (rx)  : ORIGIN = 0x30000000, LENGTH = 16M
     MROM    (rx)  : ORIGIN = 0x20000000, LENGTH = 4096
     SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 8K
+    PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
 }
 
 /* 定义堆栈大小 */
@@ -15,11 +16,10 @@ SECTIONS {
     /* -------- bin_header segment (放在最前面) -------- */
     .bin_header : {
         KEEP(*(.bin_header)) /* 确保bin_header被保留 */
-        . = ALIGN(4);
     } > FLASH
 
     .text : {
-        _text_start = ALIGN(4);
+        _text_start = .;
         *(entry)
         *(.text)
         *(.text*)
@@ -34,8 +34,8 @@ SECTIONS {
 
     /* .data : {
         *(.data)
-    } >SRAM AT>FLASH */
-    /* .data 的加载地址紧跟 .text，VMA 在 SRAM */
+    } >PSRAM AT>FLASH */
+    /* .data 的加载地址紧跟 .text，VMA 在 PSRAM */
     .data : AT(_text_end) {
         _data_start = ALIGN(4);
         *(.data)
@@ -43,7 +43,7 @@ SECTIONS {
         *(.sdata)
         *(.sdata*)
         _data_end = ALIGN(4);
-    } >SRAM
+    } >PSRAM
     edata = .;
     _data = .;
     _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
@@ -55,7 +55,7 @@ SECTIONS {
         *(.sbss*)
         *(.scommon)
         _bss_end = ALIGN(4);
-    } >SRAM
+    } >PSRAM
     _bss_size = _bss_end - _bss_start;
 
     /* 用户堆栈段 */
@@ -68,5 +68,5 @@ SECTIONS {
         _end = .;
         /* _heap_start = ALIGN(0x1000); */
         _heap_start = ALIGN(16);
-    } >SRAM
+    } >PSRAM
 }
