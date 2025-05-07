@@ -205,29 +205,35 @@ module PSRAM_WRITER (
         else state <= nstate;
 
     // Drive the Serial Clock (sck) @ clk/2
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clk or negedge rst_n) begin
         if(!rst_n)
             sck <= 1'b0;
         else if(~ce_n)
             sck <= ~ sck;
         else if(state == IDLE)
             sck <= 1'b0;
+        if (done)
+            sck <= 1'b0;
+    end
 
     // ce_n logic
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clk or negedge rst_n) begin
         if(!rst_n)
             ce_n <= 1'b1;
         else if(state == WRITE)
             ce_n <= 1'b0;
         else
             ce_n <= 1'b1;
+        if (done)
+            ce_n <= 1'b1;
+    end
 
     always @ (posedge clk or negedge rst_n)
         if(!rst_n)
             counter <= 8'b0;
         else if(sck & ~done)
             counter <= counter + 1'b1;
-        else if(state == IDLE)
+        else if(state == IDLE || done)
             counter <= 8'b0;
 
     always @ (posedge clk or negedge rst_n)
