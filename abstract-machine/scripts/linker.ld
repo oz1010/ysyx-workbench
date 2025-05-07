@@ -67,5 +67,6 @@ SECTIONS {
         _end = .;
         /* _heap_start = ALIGN(0x1000); */
         _heap_start = ALIGN(16);
+        _pmem_start = .;
     } >SRAM
 }

@@ -8,8 +8,8 @@ AM_SRCS := platform/npc/trm.c \
            platform/npc/mpe.c
 
 CFLAGS    += -fdata-sections -ffunction-sections
-LDFLAGS   += -T $(AM_HOME)/scripts/linker-npc.ld \
-             --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
+LDFLAGS   += -T $(AM_HOME)/scripts/linker-npc.ld
+            #  --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections -e _start
 NPCFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
 # 默认NPC切换为批处理模式，查看函数sdb_mainloop实现
