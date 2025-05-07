@@ -39,6 +39,7 @@ typedef struct _bin_header_s {
     uint32_t data_end;
     uint32_t bss_start;
     uint32_t bss_end;
+    uint32_t reverse0;
 } bin_header_t;
 
 // static __attribute__((used)) int parse_bin_header(void *bin_buf, bin_header_t *bin_header)
