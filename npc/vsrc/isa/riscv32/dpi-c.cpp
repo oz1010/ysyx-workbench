@@ -34,6 +34,7 @@ static uint64_t hw_tick = 0;
 static uint32_t hw_flash_idx = 0;
 
 #define PSRAM_SIZE                          (4*1024*1024)
+#define TEST_INIF_PSRAM_OFFSET              0x00300000
 #if   defined(CONFIG_PMEM_MALLOC)
 extern uint8_t *raw_memory;
 uint8_t *raw_psram;
@@ -89,7 +90,7 @@ void switch_psram_context(uint32_t psram_idx)
     {
     case 1:
         for(size_t i=0; i<16; ++i) {
-            raw_psram[i] = 0x30 + i;
+            raw_psram[TEST_INIF_PSRAM_OFFSET+i] = 0x30 + i;
         }
         break;
 
