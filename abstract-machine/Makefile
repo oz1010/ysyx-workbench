@@ -40,6 +40,13 @@ GUEST_ISA  ?= $(ISA)
 ifeq ($(flavor SRCS), undefined)
   $(error Nothing to build)
 endif
+# 用户强行指定SKIP_AM_START即可
+# 或者当用户包含了start.S，SKIP_AM_START为true，不会包含默认start.S
+ifeq ($(filter %start.S, $(SRCS)),)
+    SKIP_AM_START ?= false
+else
+	SKIP_AM_START ?= true
+endif
 
 ### Checks end here
 endif
@@ -82,7 +89,7 @@ INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, 
 INCFLAGS += $(addprefix -I, $(INC_PATH))
 
 ARCH_H := arch/$(ARCH).h
-CFLAGS   += -O2 -MMD -Wall -Werror $(INCFLAGS) \
+CFLAGS   += -Os -MMD -Wall -Werror $(INCFLAGS) \
 			-D__GUEST_ISA__=$(GUEST_ISA) \
             -D__ISA__=\"$(ISA)\" -D__ISA_$(shell echo $(ISA) | tr a-z A-Z)__ \
             -D__ARCH__=$(ARCH) -D__ARCH_$(shell echo $(ARCH) | tr a-z A-Z | tr - _) \
@@ -131,7 +138,7 @@ $(DST_DIR)/%.o: %.S
 
 ### Rule (recursive make): build a dependent library (am, klib, ...)
 $(LIBS): %:
-	@$(MAKE) -s -C $(AM_HOME)/$* archive
+	@SKIP_AM_START=$(SKIP_AM_START) $(MAKE) -s -C $(AM_HOME)/$* archive
 
 ### Rule (link): objects (`*.o`) and libraries (`*.a`) -> `IMAGE.elf`, the final ELF binary to be packed into image (ld)
 $(IMAGE).elf: $(OBJS) $(LIBS)
