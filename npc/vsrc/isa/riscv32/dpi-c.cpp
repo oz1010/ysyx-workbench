@@ -255,7 +255,7 @@ void dpi_uart_write(int addr, int len, int data){
 
 void dpi_dev_skip(int write, int addr, int len, int data)
 {
-#if CONFIG_DTRACE
+// #if CONFIG_DTRACE
     const char *rw_str = write ? "write" : "read";
     // uart 0x1000_0000~0x1000_0fff
     if (addr>=0x0f000000 && addr<=0x0f001fff) {
@@ -307,7 +307,7 @@ void dpi_dev_skip(int write, int addr, int len, int data)
     } else {
         DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     }
-#endif
+// #endif
 }
 
 int dpi_test_intf(int write, int addr, int len, int data)
