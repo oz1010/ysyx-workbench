@@ -4,7 +4,10 @@ CFLAGS  += -DISA_H=\"riscv/riscv.h\"
 COMMON_CFLAGS += -march=rv32em_zicsr -mabi=ilp32e  # overwrite
 LDFLAGS       += -melf32lriscv                    # overwrite
 
-AM_SRCS += riscv/npc/start.S \
-           riscv/npc/cte.c \
+# 当用户包含了start.S，SKIP_AM_START为true，则不包含默认start.S
+ifeq ($(SKIP_AM_START),false)
+    AM_SRCS += riscv/npc/start.S
+endif
+AM_SRCS += riscv/npc/cte.c \
            riscv/npc/trap.S \
            riscv/npc/vme.c
