@@ -15,11 +15,11 @@
 
 #define DPI_MTRACE(fmt, ...) MTRACE_ADD("DPI-" fmt, ##__VA_ARGS__)
 #if CONFIG_DTRACE
-#define DPI_DTRACE(name, fmt, ...)                                  \
+#define DPI_DTRACE(name, fmt, ...)                              \
 do                                                              \
 {                                                               \
-    if (dtrace_limit_check(name, addr, len))                    \
-    DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);    \
+    /* if (dtrace_limit_check(name, addr, len)) */              \
+    DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);        \
 } while (false)
 #else
 #define DPI_DTRACE(name, fmt, ...)
@@ -257,11 +257,13 @@ void dpi_dev_skip(int write, int addr, int len, int data)
 {
 // #if CONFIG_DTRACE
     const char *rw_str = write ? "write" : "read";
+    int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
+    int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+    int ar_len = (len>>0)&0xff; // 读取数据总burst数量，2^n
+    int ar_size = 1<<((len>>4)&0x7); // 单个burst读取大小，2^n字节
     // uart 0x1000_0000~0x1000_0fff
     if (addr>=0x0f000000 && addr<=0x0f001fff) {
         if (write) {
-            int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
-            int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
             // 同步对内存的修改，避免调试反汇编异常
             switch (aw_size)
             {
@@ -283,8 +285,6 @@ void dpi_dev_skip(int write, int addr, int len, int data)
             DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
         }
         else {
-            int ar_len = (len>>0)&0xff; // 读取数据总burst数量，2^n
-            int ar_size = 1<<((len>>4)&0x7); // 单个burst读取大小，2^n字节
             DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
         }
     } else if (addr>=0x10000000 && addr<=0x10000fff) {
@@ -302,7 +302,10 @@ void dpi_dev_skip(int write, int addr, int len, int data)
         DPI_DTRACE("flash", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
         DIFFTEST_SKIP_REF();
     } else if (addr>=0x80000000 && addr<=0x803fffff) {
-        DPI_DTRACE("psram", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
+        if (write)
+            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, len, aw_size, w_strb);
+        else
+            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, len, ar_size, ar_len);
         DIFFTEST_SKIP_REF();
     } else {
         DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
