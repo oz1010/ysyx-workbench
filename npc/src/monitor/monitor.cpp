@@ -119,24 +119,22 @@ static size_t load_img()
 
     Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
 
+    /* 加载bin文件到flash */
     fseek(fd, 0, SEEK_SET);
-    ret = fread(&bin_header, sizeof(bin_header_t), 1, fd);
-    assert(ret == 1 && "read bin header failed");
+    vaddr_t flash_start = 0x30000000;
+    ret = fread(&pmem[flash_start], readsize, 1, fd);
+    assert(ret == 1 && "read bin to flash failed");
+    /* 解析bin_header信息 */
+    memcpy(&bin_header, &pmem[flash_start], sizeof(bin_header_t));
     if (bin_header.magic != BIN_HEADER_MAGIC)
     {
         Log("The file is missing bin_header information, magic %u", bin_header.magic);
         exit(-1);
     }
-    memcpy(&pmem[bin_header.text_start-sizeof(bin_header_t)], &bin_header, sizeof(bin_header_t));
-    Log("Load bin header to memory %#x size %#x", (uint32_t)(bin_header.text_start-sizeof(bin_header_t)),
-        (uint32_t)(sizeof(bin_header_t)));
-
-    ret = fread(&pmem[bin_header.text_start], readsize - sizeof(bin_header_t), 1, fd);
-    assert(ret == 1 && "read bin context failed");
     /* 根据entry重置pc */
     reset_pc = bin_header.entry;
-    Log("Load code to memory %#x size %#x entry %#x data %#x => [%#x, %#x) bss [%#x %#x)", 
-        bin_header.text_start, (uint32_t)(readsize - sizeof(bin_header_t)), bin_header.entry, 
+    Log("Load code to flash %#x size %#x entry %#x data %#x => [%#x, %#x) bss [%#x %#x)", 
+        flash_start, (uint32_t)readsize, bin_header.entry, 
         bin_header.data_load, bin_header.data_start, bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
 
     fclose(fd);
