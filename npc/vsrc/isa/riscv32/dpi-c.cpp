@@ -29,11 +29,10 @@ do                                                              \
 #else
 #define DIFFTEST_SKIP_REF()
 #endif
+#define ADDR_IN_RANGE(_addr, _baseaddr, _maxsize) ( ((_addr)>=(_baseaddr)) && ((_addr)<((_baseaddr)+(_maxsize))) )
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 static uint32_t hw_flash_idx = 0;
-uint32_t hw_pc = 0;
-uint32_t hw_inst = 0;
 
 #define PSRAM_SIZE                          (4*1024*1024)
 #define TEST_INIF_PSRAM_OFFSET              0x00300000
@@ -54,6 +53,25 @@ void init_dpi()
     raw_psram = (uint8_t *)malloc(PSRAM_SIZE);
 #endif
     assert(raw_psram);
+}
+
+void hw_storage_access(int write, int addr, uint32_t *data, int32_t len)
+{
+    if (write || len!=4) {
+        raw_stdout("Hardware storage only support 4-bytes-read, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(3);
+    }
+
+    if (ADDR_IN_RANGE(addr, 0x0f000000, 8*1024)) {
+        *data = (*(uint32_t *)&raw_memory[addr]);
+    } else if (ADDR_IN_RANGE(addr, 0x30000000, 16*1024*1024)) {
+        *data = (*(uint32_t *)&raw_memory[addr]);
+    } else if (ADDR_IN_RANGE(addr, 0x80000000, 4*1024*1024)) {
+        *data = raw_psram[addr-0x80000000];
+    } else {
+        raw_stdout("Hardware storage access is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+    }
 }
 
 void switch_flash_context(uint32_t flash_idx)
@@ -414,12 +432,6 @@ int dpi_psram_read(int addr, int len)
 
     int data = (*(int32_t *)(&raw_psram[addr]));
     return data;
-}
-
-void dpi_record_inst(int pc, int inst)
-{
-    hw_pc = pc;
-    hw_inst = inst;
 }
 
 extern "C" void flash_read(int32_t addr, int32_t *data)

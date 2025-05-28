@@ -17,9 +17,12 @@
 
 #include <memory/vaddr.h>
 
+void hw_storage_access(int write, int addr, uint32_t *data, int32_t len);
+
 static inline uint32_t inst_fetch(vaddr_t *pc, int len)
 {
-    uint32_t inst = vaddr_ifetch(*pc, len);
+    uint32_t inst = 0;
+    hw_storage_access(0, *pc, &inst, len);
     (*pc) += len;
     return inst;
 }

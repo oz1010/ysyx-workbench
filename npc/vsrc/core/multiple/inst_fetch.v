@@ -148,7 +148,6 @@ generate
                 end
                 if (r_valid) begin
                     r_inst <= r_data;
-                    dpi_record_inst(pc, r_data);
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;
@@ -224,7 +223,6 @@ generate
                 if (r_valid) begin
                     r_inst <= r_data;
                     r_r_ready <= 1;
-                    dpi_record_inst(pc, r_data);
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;

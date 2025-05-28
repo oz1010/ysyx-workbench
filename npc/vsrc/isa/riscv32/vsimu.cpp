@@ -45,8 +45,6 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #define RECORD_TRACE_VCD()
 #endif
 
-extern uint32_t hw_pc;
-extern uint32_t hw_inst;
 void init_dpi();
 std::shared_ptr<VerilatedContext> contextp;
 std::shared_ptr<TOP_ROOT_CLASS> top;
@@ -96,7 +94,6 @@ int exec_vsimu(Decode *s)
 
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
-    s->isa.inst.val = hw_inst;
 
     s->dnpc = cpu.pc;
 
