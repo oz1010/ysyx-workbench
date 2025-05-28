@@ -1,7 +1,8 @@
 MEMORY {
     FLASH   (rx)  : ORIGIN = 0x30000000, LENGTH = 16M
     MROM    (rx)  : ORIGIN = 0x20000000, LENGTH = 4096
-    SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 4M    /* nemu等模拟使用，可以占用大一点 */
+    SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 8K
+    PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
 }
 
 /* 定义堆栈大小 */
@@ -12,14 +13,15 @@ ENTRY(_start)
 /* PHDRS { text PT_LOAD; data PT_LOAD; } */
 
 SECTIONS {
-    /* -------- bin_header segment (放在最前面) -------- */
-    .bin_header : {
-        KEEP(*(.bin_header)) /* 确保bin_header被保留 */
-    } > FLASH
-
-    .text : {
-        _text_start = .;
+    /* -------- 直接从FLASH启动 -------- */
+    .bootloader : {
+        KEEP(*(.bin_header))
         *(entry)
+    } >FLASH
+
+    /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
+    .text : {
+        _text_start = ALIGN(4);
         *(.text)
         *(.text*)
         *(.rodata)
@@ -27,22 +29,24 @@ SECTIONS {
         *(.srodata)
         *(.srodata*)
         _text_end = ALIGN(4);
-    } >FLASH
+    } >SRAM AT>FLASH
     etext = .;
     _etext = .;
+    _text_load = LOADADDR(.text);
 
     /* .data : {
         *(.data)
     } >SRAM AT>FLASH */
     /* .data 的加载地址紧跟 .text，VMA 在 SRAM */
-    .data : AT(_text_end) {
+    /* .data : AT(_text_end) { */
+    .data : {
         _data_start = ALIGN(4);
         *(.data)
         *(.data*)
         *(.sdata)
         *(.sdata*)
         _data_end = ALIGN(4);
-    } >SRAM
+    } >SRAM AT>FLASH
     edata = .;
     _data = .;
     _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
