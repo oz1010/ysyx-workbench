@@ -7,8 +7,10 @@ AM_SRCS := platform/nemu/trm.c \
            platform/nemu/ioe/disk.c \
            platform/nemu/mpe.c
 
+LINKER_FILE ?= $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld
+
 CFLAGS    += -fdata-sections -ffunction-sections
-LDFLAGS   += -T $(AM_HOME)/scripts/platform/nemu/linker.ld
+LDFLAGS   += -T $(LINKER_FILE)
             #  --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections -e _start
 NEMUFLAGS += -l $(shell dirname $(IMAGE).elf)/nemu-log.txt
