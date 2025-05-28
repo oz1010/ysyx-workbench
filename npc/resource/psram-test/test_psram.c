@@ -20,6 +20,8 @@ static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)a
 
 #define PSRAM_ADDR          0x80000000
 #define PSRAM_SIZE          0x00400000
+// #define PSRAM_MIX_SIZE      (PSRAM_SIZE >> 0)   // 全域混合测试
+#define PSRAM_MIX_SIZE      (PSRAM_SIZE >> 7)   // 全域混合测试
 
 #define PSRAM_ADDR_START1   0x80000000
 #define PSRAM_SIZE1         0x00000400
@@ -41,6 +43,7 @@ static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)a
 int main() {
     uint32_t addr;
 
+    /* 非字节对齐访问检测 */
     for (uint32_t offset=0; offset<1; ++offset) {
         for (addr=PSRAM_ADDR_START1+offset; addr<PSRAM_ADDR_END1; addr+=1) 
             outb(addr, addr);
@@ -60,6 +63,34 @@ int main() {
             outl(addr, addr);
         for (addr=PSRAM_ADDR_START3+offset; addr<PSRAM_ADDR_END3; addr+=4) 
             CHECK_DATA(uint32_t, inl(addr), addr);
+    }
+
+    /* 全域混合读写访问检测 */
+    uint32_t asizes[] = {1,2,4};
+    uint32_t asize;
+    for (addr=PSRAM_ADDR; addr<(PSRAM_ADDR+PSRAM_MIX_SIZE);) {
+        for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
+            asize = asizes[idx];
+            switch(asize) {
+                case 1: outb(addr, addr); break;
+                case 2: outw(addr, addr); break;
+                case 4: outl(addr, addr); break;
+                default: halt(-1);
+            }
+            addr += asize;
+        }
+    }
+    for (addr=PSRAM_ADDR; addr<(PSRAM_ADDR+PSRAM_MIX_SIZE);) {
+        for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
+            asize = asizes[idx];
+            switch(asize) {
+                case 1: CHECK_DATA(uint8_t, inb(addr), addr); break;
+                case 2: CHECK_DATA(uint16_t, inw(addr), addr); break;
+                case 4: CHECK_DATA(uint32_t, inl(addr), addr); break;
+                default: halt(-1);
+            }
+            addr += asize;
+        }
     }
 
     return 0;
