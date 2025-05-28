@@ -388,6 +388,10 @@ void dpi_psram_write(int addr, int len, int data)
     case 2:
         (*(int16_t *)(&raw_psram[addr])) = data&0xffff;
         break;
+    case 3:
+        (*(int16_t *)(&raw_psram[addr])) = data&0xffff;
+        (*(uint8_t *)(&raw_psram[addr+2])) = (data>>16)&0xff;
+        break;
     case 4:
         (*(int32_t *)(&raw_psram[addr])) = data;
         break;
