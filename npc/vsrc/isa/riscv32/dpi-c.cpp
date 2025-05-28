@@ -32,6 +32,8 @@ do                                                              \
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 static uint32_t hw_flash_idx = 0;
+uint32_t hw_pc = 0;
+uint32_t hw_inst = 0;
 
 #define PSRAM_SIZE                          (4*1024*1024)
 #define TEST_INIF_PSRAM_OFFSET              0x00300000
@@ -412,6 +414,12 @@ int dpi_psram_read(int addr, int len)
 
     int data = (*(int32_t *)(&raw_psram[addr]));
     return data;
+}
+
+void dpi_record_inst(int pc, int inst)
+{
+    hw_pc = pc;
+    hw_inst = inst;
 }
 
 extern "C" void flash_read(int32_t addr, int32_t *data)
