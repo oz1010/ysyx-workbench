@@ -191,6 +191,7 @@ always @(posedge clk or posedge rst) begin
 
         if (prev_valid && !prev_ready) begin
             if ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff) begin
+                // 用于调试的地址段，向这里写数据会触发内置的调试函数
                 // notify next
                 r_dnpc <= pc + 4;
                 r_result <= dpi_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2);
@@ -247,7 +248,11 @@ always @(posedge clk or posedge rst) begin
                         end
 
                         if (w_last) begin
-                            dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, r_w_strb}, src2);
+                            if (s_write_idx < 2)
+                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strb[0]}, src2);
+                            else
+                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strb[0]|s_write_strb[1]}, src2);
+
                             r_w_valid <= 0;
                             r_w_strb <= 0;
                             r_w_data <= 0;
