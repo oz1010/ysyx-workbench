@@ -31,7 +31,7 @@ MEM_TARGET  	:= $(addsuffix .mem, $(basename $(TAGET)))
 # Generate bin with flag
 BINARY_FLG	:= -O binary
 BINARY_FLG	+= -S
-BINARY_FLG	+= -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+BINARY_FLG	+= -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
 SRCS		:=
 SRCS		+= start.S
@@ -59,7 +59,7 @@ ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -ma
 
 CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
 
-LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/linker.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections -e _start
+LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections -e _start
 
 all: ${BINARY} ${OBJ_TARGET}
 
@@ -74,7 +74,7 @@ $(BUILD_DIR)/%.o: %.c
 # ${CC} -ffreestanding -nostdlib -static -Wl,-Ttext=0 -O2 -o $@ $<
 # ${TAGET}: a.c
 # 	@mkdir -p $(dir $@)
-# 	${CC} -march=rv32i -mabi=ilp32 -ffreestanding -nostdlib -static -T $(AM_HOME)/scripts/linker.ld -Wl,-Ttext=${CONFIG_MBASE} -O0 -g -o $@ $<
+# 	${CC} -march=rv32i -mabi=ilp32 -ffreestanding -nostdlib -static -T $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld -Wl,-Ttext=${CONFIG_MBASE} -O0 -g -o $@ $<
 ${TAGET}: $(OBJS)
 	@mkdir -p $(dir $@) && echo + LD "->" $@
 	@$(LD) $(LDFLAGS) -o $@ $^
