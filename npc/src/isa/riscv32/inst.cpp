@@ -27,6 +27,7 @@ extern int exec_vsimu(Decode *s);
 int isa_exec_once(Decode *s)
 {
 #if CONFIG_DEBUG_MODULE
+    printf("%s %#x may cause error\n", __FUNCTION__, s->snpc);
     // read instruction before debug
     vaddr_t snpc1 = s->snpc;
     s->isa.inst.val = inst_fetch(&snpc1, 4);
@@ -36,8 +37,6 @@ int isa_exec_once(Decode *s)
     vaddr_t snpc2 = s->snpc;
     s->isa.inst.val = inst_fetch(&snpc2, 4);
     s->snpc = snpc2;
-#else
-    s->isa.inst.val = inst_fetch(&s->snpc, 4);
 #endif
 
     int ret = exec_vsimu(s);
