@@ -21,6 +21,7 @@ static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)a
 #define PSRAM_ADDR          0x80000000
 #define PSRAM_SIZE          0x00400000
 #define PSRAM_MIX_SIZE      (PSRAM_SIZE >> 0)   // 全域混合测试
+#define PSRAM_MIX_STEP      0x00001000          // 全域混合测试，单步跳转
 // #define PSRAM_MIX_SIZE      (PSRAM_SIZE >> 7)   // 全域混合测试
 
 #define PSRAM_ADDR_START1   0x80000000
@@ -79,6 +80,7 @@ int main() {
             }
             addr += asize;
         }
+        addr += PSRAM_MIX_STEP;
     }
     for (addr=PSRAM_ADDR; addr<(PSRAM_ADDR+PSRAM_MIX_SIZE-3);) {
         for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
@@ -91,6 +93,7 @@ int main() {
             }
             addr += asize;
         }
+        addr += PSRAM_MIX_STEP;
     }
 
     return 0;
