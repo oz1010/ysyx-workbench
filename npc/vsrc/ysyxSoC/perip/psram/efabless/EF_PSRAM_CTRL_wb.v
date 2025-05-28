@@ -113,29 +113,53 @@ module EF_PSRAM_CTRL_wb (
         endcase
     end
 
-    wire [2:0]  size =  (sel_i == 4'b0001) ? 1 :
+    /* axi4地址已经4字节对齐，而转换为spi接口没有掩码。需要根据掩码sel_i计算偏移地址来支持非对齐访问。 */
+    wire [1:0] addr_offset =
+                        (sel_i == 4'b0010) ? 1 :
+                        (sel_i == 4'b0100) ? 2 :
+                        (sel_i == 4'b1000) ? 3 :
+                        (sel_i == 4'b0110) ? 1 :
+                        (sel_i == 4'b1100) ? 2 :
+                        (sel_i == 4'b1110) ? 1 :
+                        0;
+
+    wire [2:0]  size =
+                        (sel_i == 4'b0001) ? 1 :
                         (sel_i == 4'b0010) ? 1 :
                         (sel_i == 4'b0100) ? 1 :
                         (sel_i == 4'b1000) ? 1 :
                         (sel_i == 4'b0011) ? 2 :
+                        (sel_i == 4'b0110) ? 2 :
                         (sel_i == 4'b1100) ? 2 :
-                        (sel_i == 4'b1111) ? 4 : 4;
+                        (sel_i == 4'b0111) ? 3 :
+                        (sel_i == 4'b1110) ? 3 :
+                        (sel_i == 4'b1111) ? 4 :
+                        1;
 
-
-
-    wire [7:0]  byte0 = (sel_i[0])          ? dat_i[7:0]   :
-                        (sel_i[1] & size==1)? dat_i[15:8]  :
-                        (sel_i[2] & size==1)? dat_i[23:16] :
-                        (sel_i[3] & size==1)? dat_i[31:24] :
-                        (sel_i[2] & size==2)? dat_i[23:16] :
+    wire [7:0]  byte0 =
+                        (sel_i == 4'b0010) ? dat_i[15:8] :
+                        (sel_i == 4'b0100) ? dat_i[23:16] :
+                        (sel_i == 4'b1000) ? dat_i[31:24] :
+                        (sel_i == 4'b0110) ? dat_i[15:8] :
+                        (sel_i == 4'b1100) ? dat_i[23:16] :
+                        (sel_i == 4'b1110) ? dat_i[15:8] :
                         dat_i[7:0];
 
-    wire [7:0]  byte1 = (sel_i[1])          ? dat_i[15:8]  :
+    wire [7:0]  byte1 =
+                        (size < 2) ? 0 :
+                        (sel_i == 4'b0110) ? dat_i[23:16] :
+                        (sel_i == 4'b1100) ? dat_i[31:24] :
+                        (sel_i == 4'b1110) ? dat_i[23:16] :
+                        dat_i[15:8];
+
+    wire [7:0]  byte2 =
+                        (size < 3) ? 0 :
+                        (sel_i == 4'b1110) ? dat_i[31:24] :
+                        dat_i[23:16];
+
+    wire [7:0]  byte3 = 
+                        (size < 4) ? 0 :
                         dat_i[31:24];
-
-    wire [7:0]  byte2 = dat_i[23:16];
-
-    wire [7:0]  byte3 = dat_i[31:24];
 
     wire [31:0] wdata = {byte3, byte2, byte1, byte0};
 
@@ -172,7 +196,7 @@ module EF_PSRAM_CTRL_wb (
         .clk(clk_i),
         .rst_n(~rst_i),
         .qpi_en(qpi_en),
-        .addr({adr_i[23:0]}),
+        .addr({adr_i[23:2], addr_offset}), // 已经4字节对齐，转换为spi命令需要恢复为非对齐地址；否则写入有问题
         .wr(mw_wr),
         .size(size),
         .done(mw_done),
