@@ -37,6 +37,8 @@ int isa_exec_once(Decode *s)
     vaddr_t snpc2 = s->snpc;
     s->isa.inst.val = inst_fetch(&snpc2, 4);
     s->snpc = snpc2;
+#else
+    s->isa.inst.val = inst_fetch(&s->snpc, 4);
 #endif
 
     int ret = exec_vsimu(s);
