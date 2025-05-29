@@ -7,6 +7,7 @@
     la a0, \load_sym
     la a1, \start_sym
     la a2, \end_sym
+    beq a0, zero, 2f
 
 1:  /* 加载模式 */
     bge a1, a2, 3f
