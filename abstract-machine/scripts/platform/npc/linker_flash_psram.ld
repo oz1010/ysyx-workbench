@@ -5,9 +5,11 @@ MEMORY {
     PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
 }
 
+#define DEF_LOC >PSRAM AT>FLASH
+
 /* 定义堆栈大小 */
-_STACK_SIZE = 0x0400;    /* 1KB栈 */
-_HEAP_SIZE = 0x0400;     /* 1KB堆 */
+_STACK_SIZE = 0x1000;    /* 4KB栈 */
+_HEAP_SIZE = 0x1000;     /* 4KB堆 */
 
 ENTRY(_start)
 /* PHDRS { text PT_LOAD; data PT_LOAD; } */

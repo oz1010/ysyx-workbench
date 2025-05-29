@@ -7,7 +7,7 @@ AM_SRCS := platform/npc/trm.c \
            platform/npc/ioe/disk.c \
            platform/npc/mpe.c
 
-LINKER_FILE ?= $(AM_HOME)/scripts/platform/npc/linker_flash_sram.ld
+LINKER_FILE ?= $(AM_HOME)/scripts/platform/npc/linker_flash_psram.ld
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)
@@ -21,7 +21,8 @@ NPCFLAGS += -b
 # BINARY_FLG	:= -S --set-section-flags .bss=alloc,contents -O binary
 BINARY_FLG	:= -O binary
 BINARY_FLG	+= -S
-BINARY_FLG	+= -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+BINARY_FLG	+= --set-section-flags .bss=alloc,contents
+BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/platform/npc/include

@@ -31,7 +31,8 @@ MEM_TARGET  	:= $(addsuffix .mem, $(basename $(TAGET)))
 # Generate bin with flag
 BINARY_FLG	:= -O binary
 BINARY_FLG	+= -S
-BINARY_FLG	+= -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+BINARY_FLG	+= --set-section-flags .bss=alloc,contents
+BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
 SRCS		:=
 SRCS		+= start.S
