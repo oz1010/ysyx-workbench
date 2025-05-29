@@ -25,4 +25,7 @@ void __muldf3() {
 void __fixdfdi() {
     panic("unimplement __fixdfdi");
 }
+void __ashldi3() {
+    panic("unimplement __ashldi3");
+}
 #endif
