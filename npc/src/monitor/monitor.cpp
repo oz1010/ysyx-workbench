@@ -133,9 +133,10 @@ static size_t load_img()
     }
     /* 根据entry重置pc */
     reset_pc = bin_header.entry;
-    Log("Load code to flash %#x size %#x entry %#x data %#x => [%#x, %#x) bss [%#x %#x)", 
+    Log("Load code to flash %#x size %#x entry %#x data %#x => [%#x, %#x)-%dK bss [%#x %#x)-%dK", 
         flash_start, (uint32_t)readsize, bin_header.entry, 
-        bin_header.data_load, bin_header.data_start, bin_header.data_end, bin_header.bss_start, bin_header.bss_end);
+        bin_header.data_load, bin_header.data_start, bin_header.data_end, (bin_header.data_end-bin_header.data_start)/1024,
+        bin_header.bss_start, bin_header.bss_end, (bin_header.bss_end-bin_header.bss_start)/1024);
 
     fclose(fd);
     return readsize;
