@@ -21,7 +21,8 @@ NEMUFLAGS += -b
 # BINARY_FLG	:= -S --set-section-flags .bss=alloc,contents -O binary
 BINARY_FLG	:= -O binary
 BINARY_FLG	+= -S
-BINARY_FLG	+= -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+BINARY_FLG	+= --set-section-flags .bss=alloc,contents
+BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/platform/nemu/include

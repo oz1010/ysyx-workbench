@@ -5,6 +5,8 @@ MEMORY {
     PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
 }
 
+#define DEF_LOC >SRAM AT>FLASH
+
 /* 定义堆栈大小 */
 _STACK_SIZE = 0x0400;    /* 1KB栈 */
 _HEAP_SIZE = 0x0400;     /* 1KB堆 */
