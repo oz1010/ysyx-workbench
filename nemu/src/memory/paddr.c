@@ -19,6 +19,9 @@
 #include <isa.h>
 #include <macro.h>
 
+static word_t mem_read(void *mem_item_arg, vaddr_t addr, int len);
+static void mem_write(void *mem_item_arg, vaddr_t addr, int len, word_t data);
+
 #if !CONFIG_PMEM_MALLOC
 #if CONFIG_MEM_TYPE_MULTI
 static uint8_t raw_sram[MEM_SRAM_SIZE] PG_ALIGN = {};
@@ -38,24 +41,32 @@ mem_item_t mem_items[] = {
     .startaddr = MEM_SRAM_BASE,
     .endaddr = (MEM_SRAM_BASE+MEM_SRAM_SIZE),
     .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_sram),
+    .read = mem_read,
+    .write = mem_write,
   },
   {
     .name = "mrom",
     .startaddr = MEM_MROM_BASE,
     .endaddr = (MEM_MROM_BASE+MEM_MROM_SIZE),
     .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_mrom),
+    .read = mem_read,
+    .write = mem_write,
   },
   {
     .name = "flash",
     .startaddr = MEM_FLASH_BASE,
     .endaddr = (MEM_FLASH_BASE+MEM_FLASH_SIZE),
     .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_flash),
+    .read = mem_read,
+    .write = mem_write,
   },
   {
     .name = "psram",
     .startaddr = MEM_PSRAM_BASE,
     .endaddr = (MEM_PSRAM_BASE+MEM_PSRAM_SIZE),
     .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_psram),
+    .read = mem_read,
+    .write = mem_write,
   },
 #else
   {
@@ -63,6 +74,8 @@ mem_item_t mem_items[] = {
     .startaddr = CONFIG_MBASE,
     .endaddr = (CONFIG_MBASE+CONFIG_MSIZE),
     .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_memory),
+    .read = mem_read,
+    .write = mem_write,
   },
 #endif
 };
@@ -82,13 +95,16 @@ uint8_t* guest_to_host(paddr_t paddr) {
   return item->raw_mem + paddr - item->startaddr;
 }
 
-static word_t mem_read(paddr_t addr, int len) {
-  word_t ret = host_read(guest_to_host(addr), len);
+static word_t mem_read(void *mem_item_arg, vaddr_t addr, int len)
+{
+  mem_item_t *item = (mem_item_t *)mem_item_arg;
+  word_t ret = host_read(item->raw_mem + addr - item->startaddr, len);
   return ret;
 }
-
-static void mem_write(paddr_t addr, int len, word_t data) {
-  host_write(guest_to_host(addr), len, data);
+static void mem_write(void *mem_item_arg, vaddr_t addr, int len, word_t data)
+{
+  mem_item_t *item = (mem_item_t *)mem_item_arg;
+  host_write(item->raw_mem + addr - item->startaddr, len, data);
 }
 
 const char* size_str(uint32_t size_b) {
@@ -149,14 +165,21 @@ mem_item_t* find_mem_item(paddr_t addr) {
 }
 
 word_t paddr_read(paddr_t addr, int len) {
-  if (likely(find_mem_item(addr)!=NULL)) return mem_read(addr, len);
+  mem_item_t *item = find_mem_item(addr);
+  if (likely(item != NULL))
+    return item->read(item, addr, len);
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   out_of_bound(addr);
   return 0;
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
-  if (likely(find_mem_item(addr)!=NULL)) { mem_write(addr, len, data); return; }
+  mem_item_t *item = find_mem_item(addr);
+  if (likely(item != NULL))
+  {
+    item->write(item, addr, len, data);
+    return;
+  }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }

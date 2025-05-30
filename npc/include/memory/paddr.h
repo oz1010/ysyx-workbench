@@ -1,37 +1,42 @@
 /***************************************************************************************
-* Copyright (c) 2014-2022 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
+ * Copyright (c) 2014-2022 Zihao Yu, Nanjing University
+ *
+ * NEMU is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ *
+ * See the Mulan PSL v2 for more details.
+ ***************************************************************************************/
 
 #ifndef __MEMORY_PADDR_H__
 #define __MEMORY_PADDR_H__
 
 #include <common.h>
 
-#define MEM_SRAM_BASE    0x0f000000
-#define MEM_SRAM_SIZE    0x00002000
-#define MEM_MROM_BASE    0x20000000
-#define MEM_MROM_SIZE    0x00001000
-#define MEM_FLASH_BASE   0x30000000
-#define MEM_FLASH_SIZE   0x01000000
-#define MEM_PSRAM_BASE   0x80000000
-#define MEM_PSRAM_SIZE   0x00400000
+#define MEM_SRAM_BASE 0x0f000000
+#define MEM_SRAM_SIZE 0x00002000
+#define MEM_MROM_BASE 0x20000000
+#define MEM_MROM_SIZE 0x00001000
+#define MEM_FLASH_BASE 0x30000000
+#define MEM_FLASH_SIZE 0x01000000
+#define MEM_PSRAM_BASE 0x80000000
+#define MEM_PSRAM_SIZE 0x00400000
 
-typedef struct {
-  const char *  name;
-  paddr_t       startaddr;
-  paddr_t       endaddr;    /* 不包含边界 */
-  uint8_t *     raw_mem;
+typedef struct _mem_item
+{
+    const char* name;
+    paddr_t startaddr;
+    paddr_t endaddr; /* 不包含边界 */
+    uint8_t* raw_mem;
+    struct {
+        word_t (*read)(void *mem_item_arg, vaddr_t addr, int len);
+        void (*write)(void *mem_item_arg, vaddr_t addr, int len, word_t data);
+    };
 } mem_item_t;
 
 extern mem_item_t mem_items[];
