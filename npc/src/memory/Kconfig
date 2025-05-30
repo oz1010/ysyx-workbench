@@ -1,18 +1,30 @@
 menu "Memory Configuration"
 
+choice
+  prompt "Using memory type"
+  default MEM_TYPE_MULTI
+config MEM_TYPE_SINGLE
+  bool "single"
+config MEM_TYPE_MULTI
+  bool "multi"
+endchoice
+
+if MEM_TYPE_SINGLE
 config MBASE
   hex "Memory base address"
   default 0x0        if ISA_x86
-  default 0x00000000
-
+  default 0x0
+  
 config MSIZE
   hex "Memory size"
   default 0x40000000
+endif # end MEM_TYPE_SINGLE
 
-config PC_RESET_OFFSET
-  hex "Offset of reset vector from the base of memory"
+config IMG_LOAD
+  hex "Image load address from the base of memory"
   default 0x100000 if ISA_x86
-  default 0
+  default MBASE if MEM_TYPE_SINGLE
+  default 0x30000000 if MEM_TYPE_MULTI
 
 choice
   prompt "Physical memory definition"
@@ -36,5 +48,10 @@ config MEM_INIT_VALUE
 #   default y
 #   help
 #     This may help to find undefined behaviors.
+
+config DIFF_MSIZE
+  hex "Memory size in differential testing"
+  depends on DIFFTEST
+  default 0x40000000
 
 endmenu #MEMORY

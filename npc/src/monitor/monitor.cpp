@@ -21,12 +21,12 @@
 
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
-static const uint32_t img [] = {
-  0x00000297,  // auipc t0,0
-  0x00028823,  // sb  zero,16(t0)
-  0x0102c503,  // lbu a0,16(t0)
-  0x00100073,  // ebreak (used as npc_trap)
-  0xdeadbeef,  // some data
+static const uint32_t img[] = {
+    0x00000297,  // auipc t0,0
+    0x00028823,  // sb  zero,16(t0)
+    0x0102c503,  // lbu a0,16(t0)
+    0x00100073,  // ebreak (used as npc_trap)
+    0xdeadbeef,  // some data
 };
 
 void init_rand();
@@ -70,7 +70,7 @@ static void welcome()
 
 void sdb_set_batch_mode();
 
-#if   defined(CONFIG_PMEM_MALLOC)
+#if defined(CONFIG_PMEM_MALLOC)
 extern uint8_t *raw_memory;
 #else
 extern uint8_t raw_memory[CONFIG_MSIZE];
@@ -84,11 +84,15 @@ bin_header_t bin_header;
 
 static size_t load_img()
 {
+    mem_item_t *mem_item = find_mem_item(CONFIG_IMG_LOAD);
+    assert(mem_item);
+    uint8_t *pmem = mem_item->raw_mem;
+
     if (cfg_img_file == NULL)
     {
         Log("No image is given. Use the default build-in image.");
         /* Load built-in image. */
-        memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
+        memcpy(pmem, img, sizeof(img));
         return 4096;  // built-in image size
     }
 
@@ -110,7 +114,6 @@ static size_t load_img()
 
     int ret;
     extern vaddr_t reset_pc;
-    uint8_t *pmem = guest_to_host(RESET_VECTOR);
     FILE *fd = fopen(file_path, "rb");
     Assert(fd, "Can not open '%s'", file_path);
 
@@ -121,11 +124,10 @@ static size_t load_img()
 
     /* 加载bin文件到flash */
     fseek(fd, 0, SEEK_SET);
-    vaddr_t flash_start = 0x30000000;
-    ret = fread(&pmem[flash_start], readsize, 1, fd);
+    ret = fread(&pmem[0], readsize, 1, fd);
     assert(ret == 1 && "read bin to flash failed");
     /* 解析bin_header信息 */
-    memcpy(&bin_header, &pmem[flash_start], sizeof(bin_header_t));
+    memcpy(&bin_header, &pmem[0], sizeof(bin_header_t));
     if (bin_header.magic != BIN_HEADER_MAGIC)
     {
         Log("The file is missing bin_header information, magic %u", bin_header.magic);
@@ -133,10 +135,11 @@ static size_t load_img()
     }
     /* 根据entry重置pc */
     reset_pc = bin_header.entry;
-    Log("Load code to flash %#x size %#x entry %#x data %#x => [%#x, %#x)-%dK bss [%#x %#x)-%dK", 
-        flash_start, (uint32_t)readsize, bin_header.entry, 
-        bin_header.data_load, bin_header.data_start, bin_header.data_end, (bin_header.data_end-bin_header.data_start)/1024,
-        bin_header.bss_start, bin_header.bss_end, (bin_header.bss_end-bin_header.bss_start)/1024);
+    Log("Load code to %s %#x size %#x entry %#x data %#x => [%#x, %#x)-%s bss [%#x %#x)-%s",
+        mem_item->name, mem_item->startaddr, (uint32_t)readsize, bin_header.entry,
+        bin_header.data_load, bin_header.data_start, bin_header.data_end,
+        size_str(bin_header.data_end - bin_header.data_start), bin_header.bss_start,
+        bin_header.bss_end, size_str(bin_header.bss_end - bin_header.bss_start));
 
     fclose(fd);
     return readsize;
@@ -202,14 +205,14 @@ void init_monitor(int argc, char *argv[])
     IFDEF(CONFIG_DEVICE, init_device());
 
     /* Load the image to memory. This will overwrite the built-in image. */
-    load_img();
+    long img_size = load_img();
 
     /* Perform ISA dependent initialization. */
     init_isa(argc, argv);
 
     /* Initialize differential testing. */
     // 需要拷贝整个内存，否则可能因为image重定向而读取到非法值
-    init_difftest(cfg_difftest_so_file, CONFIG_MSIZE, cfg_difftest_port);
+    init_difftest(cfg_difftest_so_file, img_size, cfg_difftest_port);
 
     /* Initialize the simple debugger. */
     init_sdb();

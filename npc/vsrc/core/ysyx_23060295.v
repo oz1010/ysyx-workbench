@@ -12,7 +12,7 @@ import "DPI-C" function int dpi_raise_intr(input int NO, input int epc);
 import "DPI-C" function int dpi_query_intr();
 import "DPI-C" function void dpi_uart_write(input int addr, input int len, input int inst);
 import "DPI-C" function int dpi_rtc_read(input int addr, input int len);
-import "DPI-C" function void dpi_dev_skip(input int write, input int addr, input int len, input int data);
+import "DPI-C" function void dpi_dev_skip(input int write, input int addr, input int req_info, input int data);
 import "DPI-C" function int dpi_test_intf(input int write, input int addr, input int len, input int data);
 import "DPI-C" function void dpi_psram_write(input int addr, input int len, input int data);
 import "DPI-C" function int dpi_psram_read(input int addr, input int len);
