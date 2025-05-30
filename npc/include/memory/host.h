@@ -48,7 +48,7 @@ static inline void host_write(void *addr, int len, word_t data)
             *(uint32_t *)addr = data;
             return;
             IFDEF(CONFIG_ISA64, case 8 : *(uint64_t *)addr = data; return);
-            IFDEF(CONFIG_RT_CHECK, default : assert(0));
+            IFDEF(CONFIG_RT_CHECK, default : raw_all("host write don't support addr:" FMT_PADDR " len:%d\n", (paddr_t)(uint64_t)addr, len);assert(0));
     }
 }
 

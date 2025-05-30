@@ -15,12 +15,12 @@
 
 #define DPI_MTRACE(fmt, ...) MTRACE_ADD("DPI-" fmt, ##__VA_ARGS__)
 #if CONFIG_DTRACE
-#define DPI_DTRACE(name, fmt, ...)                              \
-do                                                              \
-{                                                               \
-    /* if (dtrace_limit_check(name, addr, len)) */              \
-    DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__);        \
-} while (false)
+#define DPI_DTRACE(name, fmt, ...)                           \
+    do                                                       \
+    {                                                        \
+        /* if (dtrace_limit_check(name, addr, len)) */       \
+        DTRACE_LOG("<DT> DPI-%s " fmt, name, ##__VA_ARGS__); \
+    } while (false)
 #else
 #define DPI_DTRACE(name, fmt, ...)
 #endif
@@ -29,78 +29,81 @@ do                                                              \
 #else
 #define DIFFTEST_SKIP_REF()
 #endif
-#define ADDR_IN_RANGE(_addr, _baseaddr, _maxsize) ( ((_addr)>=(_baseaddr)) && ((_addr)<((_baseaddr)+(_maxsize))) )
+#define ADDR_IN_RANGE(_addr, _baseaddr, _maxsize) \
+    (((_addr) >= (_baseaddr)) && ((_addr) < ((_baseaddr) + (_maxsize))))
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 static uint64_t hw_tick = 0;
 static uint32_t hw_flash_idx = 0;
 
-#define PSRAM_SIZE                          (4*1024*1024)
-#define TEST_INIF_PSRAM_OFFSET              0x00300000
-#if   defined(CONFIG_PMEM_MALLOC)
-extern uint8_t *raw_memory;
-uint8_t *raw_psram;
-#else
-extern uint8_t raw_memory[CONFIG_MSIZE];
-uint8_t raw_psram[PSRAM_SIZE];
-#endif
+#define PSRAM_SIZE (4 * 1024 * 1024)
+#define TEST_INIF_PSRAM_OFFSET 0x00300000
+// #if defined(CONFIG_PMEM_MALLOC)
+// extern uint8_t *raw_memory;
+// uint8_t *raw_psram;
+// #else
+// extern uint8_t raw_memory[CONFIG_MSIZE];
+// uint8_t raw_psram[PSRAM_SIZE];
+// #endif
 
-#define FLASH_SIZE                          (16*1024*1024)
-#define TEST_INIF_FLASH_BASEADDR            0x30f00000
+#define FLASH_SIZE (16 * 1024 * 1024)
+#define TEST_INIF_FLASH_BASEADDR 0x30f00000
 
 void init_dpi()
 {
-#if   defined(CONFIG_PMEM_MALLOC)
-    raw_psram = (uint8_t *)malloc(PSRAM_SIZE);
-#endif
-    assert(raw_psram);
+    // #if defined(CONFIG_PMEM_MALLOC)
+    //     raw_psram = (uint8_t *)malloc(PSRAM_SIZE);
+    // #endif
+    //     assert(raw_psram);
 }
 
 void hw_storage_access(int write, int addr, uint32_t *data, int32_t len)
 {
-    if (write || len!=4) {
+    if (write || len != 4)
+    {
         raw_stdout("Hardware storage only support 4-bytes-read, addr:%#.8x len:%d\n", addr, len);
         exit_simu(3);
     }
 
-    if (ADDR_IN_RANGE(addr, 0x0f000000, 8*1024)) {
-        *data = (*(uint32_t *)&raw_memory[addr]);
-    } else if (ADDR_IN_RANGE(addr, 0x30000000, 16*1024*1024)) {
-        *data = (*(uint32_t *)&raw_memory[addr]);
-    } else if (ADDR_IN_RANGE(addr, 0x80000000, 4*1024*1024)) {
-        *data = raw_psram[addr-0x80000000];
-    } else {
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (!mem_item)
+    {
         raw_stdout("Hardware storage access is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
+
+    *data = paddr_read(addr, len);
 }
 
 void switch_flash_context(uint32_t flash_idx)
 {
+    mem_item_t *mem_item = NULL;
     hw_flash_idx = flash_idx;
+
     switch (hw_flash_idx)
     {
-    case 1:
-        for(size_t i=0; i<16; ++i) {
-            raw_memory[TEST_INIF_FLASH_BASEADDR+i] = 0x30 + i;
-        }
-        break;
-    
-    case 2: {
-        uint32_t *flash32 = (uint32_t *)&raw_memory[TEST_INIF_FLASH_BASEADDR];
-        uint32_t i=0;
-        flash32[i++] = 0x100007b7;
-        flash32[i++] = 0x04100713;
-        flash32[i++] = 0x00e78023;
-        flash32[i++] = 0x00a00713;
-        flash32[i++] = 0x00e78023;
-        flash32[i++] = 0x00000513;
-        flash32[i++] = 0x00100073;
-        flash32[i++] = 0x00008067;
-        break;
-    }
+        case 1:
+            for (size_t i = 0; i < 16; ++i)
+            {
+                paddr_write(TEST_INIF_FLASH_BASEADDR + i, 1, 0x30 + i);
+            }
+            break;
 
-    default:
-        break;
+        case 2:
+        {
+            uint32_t flash_codes[] = {
+                0x100007b7, 0x04100713, 0x00e78023, 0x00a00713,
+                0x00e78023, 0x00000513, 0x00100073, 0x00008067,
+            };
+            for (size_t i = 0; i < ARRLEN(flash_codes); ++i)
+            {
+                paddr_write(TEST_INIF_FLASH_BASEADDR + sizeof(flash_codes[0]) * i,
+                            sizeof(flash_codes[0]), flash_codes[i]);
+            }
+            break;
+        }
+
+        default:
+            break;
     }
 }
 
@@ -108,14 +111,15 @@ void switch_psram_context(uint32_t psram_idx)
 {
     switch (psram_idx)
     {
-    case 1:
-        for(size_t i=0; i<16; ++i) {
-            raw_psram[TEST_INIF_PSRAM_OFFSET+i] = 0x30 + i;
-        }
-        break;
+        case 1:
+            for (size_t i = 0; i < 16; ++i)
+            {
+                paddr_write(TEST_INIF_PSRAM_OFFSET + i, 1, 0x30 + i);
+            }
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 }
 
@@ -133,10 +137,10 @@ void invalid_inst(int thispc, int inst)
 
     uint8_t *p = (uint8_t *)temp;
     raw_stdout("invalid opcode(PC = " FMT_WORD
-             "):\n"
-             "\t%02x %02x %02x %02x %02x %02x %02x %02x ...\n"
-             "\t%08x %08x...\n",
-             thispc, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], temp[0], temp[1]);
+               "):\n"
+               "\t%02x %02x %02x %02x %02x %02x %02x %02x ...\n"
+               "\t%08x %08x...\n",
+               thispc, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], temp[0], temp[1]);
 
     raw_stdout(
         "There are two cases which will trigger this unexpected exception:\n"
@@ -145,29 +149,33 @@ void invalid_inst(int thispc, int inst)
         "2. Something is implemented incorrectly.\n",
         thispc);
     raw_stdout("Find this PC(" FMT_WORD
-             ") in the disassembling result to distinguish which case it is.\n\n",
-             thispc);
+               ") in the disassembling result to distinguish which case it is.\n\n",
+               thispc);
     raw_stdout(ANSI_FMT("If it is the first case, see\n%s\nfor more details.\n\n"
-                      "If it is the second case, remember:\n"
-                      "* The machine is always right!\n"
-                      "* Every line of untested code is always wrong!\n\n",
-                      ANSI_FG_RED),
-             isa_logo);
+                        "If it is the second case, remember:\n"
+                        "* The machine is always right!\n"
+                        "* Every line of untested code is always wrong!\n\n",
+                        ANSI_FG_RED),
+               isa_logo);
     set_npc_state(NPC_ABORT, thispc, -1);
 }
 
 void dpi_execute_time_ctrl(int delta)
 {
-    if (delta == 0) {
+    if (delta == 0)
+    {
         hw_tick = 0;
-    } else {
+    }
+    else
+    {
         hw_tick += delta;
     }
 }
 
 int fetch_inst(int addr)
 {
-    if (unlikely(!in_pmem(addr))) {
+    if (unlikely(find_mem_item(addr) != NULL))
+    {
         raw_stdout("fetch inst is out of range, addr:%#.8x\n", addr);
         exit_simu(2);
     }
@@ -180,7 +188,8 @@ void write_raw_mem(int addr, int len, int data)
 {
     // raw_stdout("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
-    if (unlikely(!in_pmem(addr))) {
+    if (unlikely(find_mem_item(addr) != NULL))
+    {
         raw_stdout("Write mem is out of range, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
         exit_simu(2);
     }
@@ -191,7 +200,8 @@ void write_raw_mem(int addr, int len, int data)
 int read_raw_mem(int addr, int len)
 {
     // addr &= ~0x3u;  // 读写地址四字节对齐
-    if (unlikely(!in_pmem(addr))) {
+    if (unlikely(find_mem_item(addr) != NULL))
+    {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
@@ -213,7 +223,7 @@ int get_reset_pc()
         {                        \
             int64_t n : bit_len; \
         } __x = {.n = val};      \
-        (uint64_t) __x.n;        \
+        (uint64_t)__x.n;         \
     })
 int sext(int x, int len)
 {
@@ -228,7 +238,7 @@ int sext(int x, int len)
     else
     {
         raw_stdout(ANSI_FMT("%s:%d %s input len(%d) is error\n", ANSI_FG_RED), __FILE__, __LINE__,
-                 __FUNCTION__, len);
+                   __FUNCTION__, len);
         set_npc_state(NPC_ABORT, cpu.pc, -3);
     }
 
@@ -239,12 +249,12 @@ void write_raw_csr(int idx, int data)
 {
     // printf("write csr %d %d\n", ri, data);
     // int ri = ri % CSR_COUNT;
-    cpu.csr[idx&0xfff] = data;
+    cpu.csr[idx & 0xfff] = data;
 }
 
 int read_raw_csr(int idx)
 {
-    int ret = cpu.csr[idx&0xfff];
+    int ret = cpu.csr[idx & 0xfff];
     // printf("read csr %d %d\n", ri, ret);
     return ret;
 }
@@ -259,9 +269,11 @@ int dpi_query_intr()
     return QUERY_INTR();
 }
 
-void dpi_uart_write(int addr, int len, int data){
+void dpi_uart_write(int addr, int len, int data)
+{
     char c = (char)data;
-    if (addr != 0xa00003f8) {
+    if (addr != 0xa00003f8)
+    {
         LOG_ERROR("uart write is out of range, addr:%#x len:%d", addr, len);
         exit_simu(2);
         return;
@@ -273,80 +285,91 @@ void dpi_uart_write(int addr, int len, int data){
     DIFFTEST_SKIP_REF();
 }
 
-void dpi_dev_skip(int write, int addr, int len, int data)
+void dpi_dev_skip(int write, int addr, int req_info, int data)
 {
-// #if CONFIG_DTRACE
     const char *rw_str = write ? "write" : "read";
-    int w_strb = (len>>0)&0xf; // 单次burst数据有效掩码
-    int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
-    int ar_len = (len>>0)&0xff; // 读取数据总burst数量，2^n
-    int ar_size = 1<<((len>>4)&0x7); // 单个burst读取大小，2^n字节
-    // uart 0x1000_0000~0x1000_0fff
-    if (addr>=0x0f000000 && addr<=0x0f001fff) {
-        if (write) {
-            // 同步对内存的修改，避免调试反汇编异常
-            switch (aw_size)
-            {
-                case 1: raw_memory[addr] = data&0xff; break;
-                case 2: (*(uint16_t *)&raw_memory[addr]) = data&0xffff; break;
-                case 4: (*(uint32_t *)&raw_memory[addr]) = data; break;
-                default: break;
-            }
-                
-            // int w_data = 0;
-            // int start_bit = 0;
-            // for (int i=0; i<4; ++i) {
-            //     if (w_strb&(0x1<<i)) {
-            //         start_bit = i;
-            //         break;
-            //     }
-            // }
-            // w_data = data >> (start_bit*8);
+    int w_strb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
+    int aw_size = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
+    int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
+    int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
+
+    // 同步对内存的修改，避免调试反汇编异常
+    if (write)
+    {
+        if (find_mem_item(addr))
+        {
+            paddr_write(addr, aw_size, data);
+        }
+    }
+
+    if (addr >= 0x0f000000 && addr <= 0x0f001fff)
+    {
+        if (write)
+        {
             DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
         }
-        else {
+        else
+        {
             DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
         }
-    } else if (addr>=0x10000000 && addr<=0x10000fff) {
-        int aw_size = 1<<((len>>4)&0x7); // 单次burst数据大小，2^n
+    }
+    else if (addr >= 0x10000000 && addr <= 0x10000fff)
+    {
         char c = (char)data;
         DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
         DIFFTEST_SKIP_REF();
-    } else if (addr>=0x10001000 && addr<=0x10001fff) {
-        DPI_DTRACE("spi_master", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
-        DIFFTEST_SKIP_REF();
-    } else if (addr>=0x20000000 && addr<=0x20000fff) {
-        DPI_DTRACE("mrom", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
-        DIFFTEST_SKIP_REF();
-    } else if (addr>=0x30000000 && addr<=0x30ffffff) {
-        DPI_DTRACE("flash", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
-        DIFFTEST_SKIP_REF();
-    } else if (addr>=0x80000000 && addr<=0x803fffff) {
-        if (write)
-            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, len, aw_size, w_strb);
-        else
-            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, len, ar_size, ar_len);
-        DIFFTEST_SKIP_REF();
-    } else {
-        DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, len);
     }
-// #endif
+    else if (addr >= 0x10001000 && addr <= 0x10001fff)
+    {
+        DPI_DTRACE("spi_master", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
+        DIFFTEST_SKIP_REF();
+    }
+    else if (addr >= 0x20000000 && addr <= 0x20000fff)
+    {
+        DPI_DTRACE("mrom", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
+        DIFFTEST_SKIP_REF();
+    }
+    else if (addr >= 0x30000000 && addr <= 0x30ffffff)
+    {
+        DPI_DTRACE("flash", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
+        DIFFTEST_SKIP_REF();
+    }
+    else if (addr >= 0x80000000 && addr <= 0x803fffff)
+    {
+        if (write)
+            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, req_info,
+                       aw_size, w_strb);
+        else
+            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, req_info,
+                       ar_size, ar_len);
+        DIFFTEST_SKIP_REF();
+    }
+    else
+    {
+        DPI_DTRACE("unknown", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
+    }
 }
 
 int dpi_test_intf(int write, int addr, int len, int data)
 {
     const char *rw_str = write ? "write" : "read";
     // if (write && addr>=0x0f002000 && addr<=0x0fffffff) {
-    if (write && addr>=0x0f002000 && addr<=0x0f002000) {
+    if (write && addr >= 0x0f002000 && addr <= 0x0f002000)
+    {
         switch_flash_context(data);
         DPI_MTRACE("test_intf flash W [%#.8x] <= %#.8x %d", addr, data, len);
         DIFFTEST_SKIP_REF();
-    } else if (write && addr>=0x0f002004 && addr<=0x0f002004) {
+    }
+    else if (write && addr >= 0x0f002004 && addr <= 0x0f002004)
+    {
         switch_psram_context(data);
         DPI_MTRACE("test_intf psram W [%#.8x] <= %#.8x %d", addr, data, len);
         DIFFTEST_SKIP_REF();
-    } else {
-        LOG_ERROR("test_intf only support writing to 0x0f002000, addr:%#x len:%d data:%#x", addr, len, data);
+    }
+    else
+    {
+        LOG_ERROR("test_intf only support writing to 0x0f002000, addr:%#x len:%d data:%#x", addr,
+                  len, data);
         exit_simu(2);
     }
     return 0;
@@ -359,17 +382,19 @@ int dpi_rtc_read(int addr, int len)
     static uint64_t last_tick = 0;
     int ret = 0;
 
-    switch ((uint32_t)addr) {
+    switch ((uint32_t)addr)
+    {
         /* Get up time */
         case 0xa0000048:
-            if ((hw_tick - last_tick) > 10000) {
+            if ((hw_tick - last_tick) > 10000)
+            {
                 last_tick = hw_tick;
                 local_execute_time = get_time();
             }
             ret = (int)local_execute_time;
             break;
         case 0xa000004c:
-            ret = (int)(local_execute_time>>32);
+            ret = (int)(local_execute_time >> 32);
             break;
 
         /* Get linux date */
@@ -378,7 +403,7 @@ int dpi_rtc_read(int addr, int len)
             ret = (int)local_time_info.time_raw_val;
             break;
         case 0xa0000054:
-            ret = (int)(local_time_info.time_raw_val>>32);
+            ret = (int)(local_time_info.time_raw_val >> 32);
             break;
 
         default:
@@ -395,68 +420,57 @@ int dpi_rtc_read(int addr, int len)
 
 void dpi_psram_write(int addr, int len, int data)
 {
-    if (!(addr>=0 && addr<PSRAM_SIZE)) {
+    if (!(addr >= 0 && addr < PSRAM_SIZE))
+    {
         raw_stdout("Write psram is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
-
-    switch (len)
+    if (len < 1 || len > 4)
     {
-    case 1:
-        (*(uint8_t *)(&raw_psram[addr])) = data&0xff;
-        break;
-    case 2:
-        (*(int16_t *)(&raw_psram[addr])) = data&0xffff;
-        break;
-    case 3:
-        (*(int16_t *)(&raw_psram[addr])) = data&0xffff;
-        (*(uint8_t *)(&raw_psram[addr+2])) = (data>>16)&0xff;
-        break;
-    case 4:
-        (*(int32_t *)(&raw_psram[addr])) = data;
-        break;
-    
-    default:
         raw_stdout("Write psram len is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
-        break;
     }
+
+    /* 0b0111数据写入，底层不支持这种方式。需要修改为4字节对齐方式 */
+    if (len == 3)
+    {
+        uint32_t high_data = paddr_read(addr + 3, 1);
+        data = (data & 0x00ffffff) | (high_data << 24);
+        len = 4;
+    }
+
+    paddr_write(addr, len, data);
 }
 
 int dpi_psram_read(int addr, int len)
 {
-    if (!(addr>=0 && addr<PSRAM_SIZE)) {
+    if (!(addr >= 0 && addr < PSRAM_SIZE))
+    {
         raw_stdout("Read psram is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
 
-    int data = (*(int32_t *)(&raw_psram[addr]));
+    int data = paddr_read(addr, 4);
     return data;
 }
 
 extern "C" void flash_read(int32_t addr, int32_t *data)
 {
-    // assert(0);
-    // if (!(addr>=0x30000000 && addr<=0x30ffffff)) {
-    if (!(addr>=0 && addr<FLASH_SIZE)) {
+    if (!(addr >= 0 && addr < FLASH_SIZE))
+    {
         raw_stdout("Read flash is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
 
-    // SPI需要支持非对齐访问
-    // if (addr&0x3u) {
-    //     raw_stdout("Read flash dont support unalign-read, addr:%#.8x\n", addr);
-    //     exit_simu(2);
-    // }
-
-    *data = (*(int32_t *)(&raw_memory[0x30000000+addr]));
+    *data = paddr_read(0x30000000 + addr, 4);
 }
 
 extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
     // assert(0);
     addr &= ~0x3u;  // 读写地址四字节对齐
-    if (unlikely(!in_pmem(addr))) {
+    if (unlikely(find_mem_item(addr) != NULL))
+    {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }

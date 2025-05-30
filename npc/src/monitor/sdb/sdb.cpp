@@ -122,7 +122,7 @@ static int cmd_x(char *args)
     {
         len = strtoul(argv[1], NULL, 10);
     }
-    if (addr >= PMEM_LEFT && addr <= PMEM_RIGHT)
+    if (find_mem_item(addr))
     {
         // read from physical memory
         uint32_t i = 0, j = 0;
