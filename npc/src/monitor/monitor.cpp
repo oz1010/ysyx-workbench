@@ -134,7 +134,7 @@ static size_t load_img()
         exit(-1);
     }
     /* 快速加载到ram */
-    if (bin_header.flag | BIN_HEADER_FLAG_FAST_BOOT)
+    if (bin_header.flag & BIN_HEADER_FLAG_FAST_BOOT)
     {
         // 加载text段
         for (uint32_t addr = bin_header.text_start, load_addr = bin_header.text_load;
@@ -155,8 +155,9 @@ static size_t load_img()
         {
             paddr_write(addr, 4, 0);
         }
-        Log("Fast load done %#x", bin_header.flag);
+        Log("Fast load done");
     }
+    Log("Load bin_header flag %#x", bin_header.flag);
     /* 根据entry重置pc */
     reset_pc = bin_header.entry;
     Log("Load code to %s %#x size %#x entry %#x", mem_item->name, mem_item->startaddr,
