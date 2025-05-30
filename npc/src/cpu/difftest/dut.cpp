@@ -20,6 +20,7 @@
 #include "memory/paddr.h"
 #include "utils.h"
 #include "generated/autoconf.h"
+#include "file/bin_header.h"
 
 typedef void (*ref_difftest_memcpy_t)(paddr_t addr, void *buf, size_t n, bool direction);
 typedef void (*ref_difftest_regcpy_t)(void *dut, bool direction);
@@ -101,7 +102,17 @@ void init_difftest(char *ref_so_file, long img_size, int port)
     Log("Differential testing: %s", ANSI_FMT("ON", ANSI_FG_GREEN));
 
     ref_difftest_init(port);
-    ref_difftest_memcpy(CONFIG_IMG_LOAD, guest_to_host(CONFIG_IMG_LOAD), img_size, DIFFTEST_TO_REF);
+    bin_header_t bin_header;
+    uint8_t *pmem = guest_to_host(CONFIG_IMG_LOAD);
+    memcpy(&bin_header, pmem, sizeof(bin_header_t));
+    if (bin_header.magic == BIN_HEADER_MAGIC && bin_header.flag & BIN_HEADER_FLAG_FAST_BOOT)
+    {
+        ref_difftest_memcpy(bin_header.text_start, guest_to_host(bin_header.text_start), bin_header.text_end-bin_header.text_start, DIFFTEST_TO_REF);
+        ref_difftest_memcpy(bin_header.data_start, guest_to_host(bin_header.data_start), bin_header.data_end-bin_header.data_start, DIFFTEST_TO_REF);
+        ref_difftest_memcpy(bin_header.bss_start, guest_to_host(bin_header.bss_start), bin_header.bss_end-bin_header.bss_start, DIFFTEST_TO_REF);
+        Log("Fast boot done in diff");
+    }
+    ref_difftest_memcpy(CONFIG_IMG_LOAD, pmem, img_size, DIFFTEST_TO_REF);
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
