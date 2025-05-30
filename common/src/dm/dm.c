@@ -236,7 +236,7 @@ static int dm_access_cpu_memory(dm_reg_command_t *cmd, uint32_t size, uint32_t *
         access_len = size - i;
         access_len = access_len > 4 ? 4 : access_len;
 
-        if (addr >= PMEM_LEFT && addr <= PMEM_RIGHT) {
+        if (find_mem_item(addr) != NULL) {
             ctx->cpu_opt->access_mem(write, addr, access_len, (uint8_t *)arg0);
             // if (write) {
             //     ctx->cpu_opt->vaddr_write(addr, access_len, *arg0);

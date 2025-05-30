@@ -17,6 +17,7 @@
 #include "dm/cpu_interface.h"
 #include "dm/dm_define.h"
 #include "memory/vaddr.h"
+#include "memory/paddr.h"
 
 void init_monitor(int, char *[]);
 void am_init_monitor();
@@ -32,11 +33,10 @@ word_t * rv_get_gpr(CPU_state *c, size_t idx)
 
 int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
 {
-	const uint32_t addr = pc - CONFIG_MBASE;
-
   assert(size<=4 && "access memory size is greater than 4");
+  const mem_item_t *mem_item = find_mem_item(pc);
 
-	if (addr <= CONFIG_MSIZE) {
+	if (mem_item) {
 		// 内存区域
 		if (write) {
 			vaddr_write(pc, size, *(uint32_t *)data);
@@ -45,7 +45,8 @@ int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
       memcpy(data, &mem_val, 4);
 		}
 	} else {
-		LOG_ERROR("%s memory is out of range, pc:%#x addr:%#x size:%u check:%d CONFIG_MSIZE:%u", write?"write":"read", pc, addr, size, (addr <= CONFIG_MSIZE), CONFIG_MSIZE);
+    show_mem();
+		LOG_ERROR("%s memory is out of range, pc:%#x size:%u", write?"write":"read", pc, size);
 		assert(0);
 	}
 

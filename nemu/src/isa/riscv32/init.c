@@ -16,7 +16,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 
-vaddr_t reset_pc = RESET_VECTOR;
+vaddr_t reset_pc = CONFIG_IMG_LOAD;
 
 static void restart() {
   /* Set the initial program counter. */
