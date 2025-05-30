@@ -296,17 +296,15 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
     int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
     int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
 
-    // 同步对内存的修改，避免调试反汇编异常
-    mem_item_t *mem_item = find_mem_item(addr);
-    if (write && mem_item)
-    {
-        mem_item->write(mem_item, addr, aw_size, data);
-    }
-
     if (addr >= 0x0f000000 && addr <= 0x0f001fff)
     {
         if (write)
         {
+            // 同步对内存的修改，避免调试反汇编异常
+            mem_item_t *mem_item = find_mem_item(addr);
+
+            if (write && mem_item) mem_item->write(mem_item, addr, aw_size, data);
+
             DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
         }
         else
@@ -419,9 +417,11 @@ int dpi_rtc_read(int addr, int len)
     return ret;
 }
 
-void dpi_psram_write(int addr, int len, int data)
+void dpi_psram_write(int addr_idx, int len, int data)
 {
-    if (!(addr >= 0 && addr < PSRAM_SIZE))
+    uint32_t addr = addr_idx + MEM_PSRAM_BASE;
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (!mem_item)
     {
         raw_stdout("Write psram is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
@@ -435,41 +435,46 @@ void dpi_psram_write(int addr, int len, int data)
     /* 0b0111数据写入，底层不支持这种方式。需要修改为4字节对齐方式 */
     if (len == 3)
     {
-        uint32_t high_data = paddr_read(addr + 3, 1);
+        uint32_t high_data = mem_item->read(mem_item, addr + 3, 1);
         data = (data & 0x00ffffff) | (high_data << 24);
         len = 4;
     }
 
-    paddr_write(addr, len, data);
+    mem_item->write(mem_item, addr, len, data);
 }
 
-int dpi_psram_read(int addr, int len)
+int dpi_psram_read(int addr_idx, int len)
 {
-    if (!(addr >= 0 && addr < PSRAM_SIZE))
+    uint32_t addr = addr_idx + MEM_PSRAM_BASE;
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (!mem_item)
     {
         raw_stdout("Read psram is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
 
-    int data = paddr_read(addr, 4);
+    int data = mem_item->read(mem_item, addr, 4);
     return data;
 }
 
-extern "C" void flash_read(int32_t addr, int32_t *data)
+extern "C" void flash_read(int32_t addr_idx, int32_t *data)
 {
-    if (!(addr >= 0 && addr < FLASH_SIZE))
+    uint32_t addr = addr_idx + MEM_FLASH_BASE;
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (!mem_item)
     {
         raw_stdout("Read flash is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
 
-    *data = paddr_read(0x30000000 + addr, 4);
+    *data = mem_item->read(mem_item, addr, 4);
 }
 
-extern "C" void mrom_read(int32_t addr, int32_t *data)
+extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
 {
     // assert(0);
-    addr &= ~0x3u;  // 读写地址四字节对齐
+    addr_idx &= ~0x3u;  // 读写地址四字节对齐
+    uint32_t addr = addr_idx + MEM_MROM_BASE;
     mem_item_t *mem_item = find_mem_item(addr);
     if (unlikely(mem_item != NULL))
     {
