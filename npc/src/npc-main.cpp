@@ -23,18 +23,18 @@ word_t *rv_get_gpr(CPU_state *c, size_t idx)
 int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
 {
     assert(size <= 4 && "access memory size is greater than 4");
-    const mem_item_t *mem_item = find_mem_item(pc);
+    mem_item_t *mem_item = find_mem_item(pc);
 
     if (mem_item)
     {
         // 内存区域
         if (write)
         {
-            vaddr_write(pc, size, *(uint32_t *)data);
+            mem_item->write(mem_item, pc, size, *(uint32_t *)data);
         }
         else
         {
-            word_t mem_val = vaddr_read(pc, size);
+            word_t mem_val = mem_item->read(mem_item, pc, size);
             memcpy(data, &mem_val, 4);
         }
     }

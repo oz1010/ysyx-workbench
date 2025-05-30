@@ -71,7 +71,7 @@ void hw_storage_access(int write, int addr, uint32_t *data, int32_t len)
         exit_simu(2);
     }
 
-    *data = paddr_read(addr, len);
+    *data = mem_item->read(mem_item, addr, len);
 }
 
 void switch_flash_context(uint32_t flash_idx)
@@ -174,13 +174,14 @@ void dpi_execute_time_ctrl(int delta)
 
 int fetch_inst(int addr)
 {
-    if (unlikely(find_mem_item(addr) != NULL))
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (unlikely(mem_item != NULL))
     {
         raw_stdout("fetch inst is out of range, addr:%#.8x\n", addr);
         exit_simu(2);
     }
     addr &= ~0x3u;  // 读写地址四字节对齐
-    int inst = paddr_read(addr, 4);
+    int inst = mem_item->read(mem_item, addr, 4);
     return inst;
 }
 
@@ -188,24 +189,26 @@ void write_raw_mem(int addr, int len, int data)
 {
     // raw_stdout("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
-    if (unlikely(find_mem_item(addr) != NULL))
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (unlikely(mem_item != NULL))
     {
         raw_stdout("Write mem is out of range, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
         exit_simu(2);
     }
-    paddr_write(addr, len, data);
+    mem_item->write(mem_item, addr, len, data);
     DPI_MTRACE("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
 
 int read_raw_mem(int addr, int len)
 {
     // addr &= ~0x3u;  // 读写地址四字节对齐
-    if (unlikely(find_mem_item(addr) != NULL))
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (unlikely(mem_item != NULL))
     {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
-    int data = paddr_read(addr, len);
+    int data = mem_item->read(mem_item, addr, len);
     DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, data, len);
     return data;
 }
@@ -294,12 +297,10 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
     int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
 
     // 同步对内存的修改，避免调试反汇编异常
-    if (write)
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (write && mem_item)
     {
-        if (find_mem_item(addr))
-        {
-            paddr_write(addr, aw_size, data);
-        }
+        mem_item->write(mem_item, addr, aw_size, data);
     }
 
     if (addr >= 0x0f000000 && addr <= 0x0f001fff)
@@ -469,12 +470,13 @@ extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
     // assert(0);
     addr &= ~0x3u;  // 读写地址四字节对齐
-    if (unlikely(find_mem_item(addr) != NULL))
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (unlikely(mem_item != NULL))
     {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
-    int inst = paddr_read(addr, 4);
+    int inst = mem_item->read(mem_item, addr, 4);
     // DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, inst, len);
     *data = inst;
 
