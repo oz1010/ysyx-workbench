@@ -101,7 +101,7 @@ int fmt_instruction(IRingBufItem_t *item, vaddr_t addr)
     p += snprintf(p, sizeof(item->buf), FMT_WORD ":", addr);
     int ilen = 4;
     int i;
-    if (unlikely(!in_pmem(addr)))
+    if (unlikely(find_mem_item(addr)!=NULL))
     {
         return -1;
     }
