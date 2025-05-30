@@ -19,7 +19,6 @@
 build/
 
 # 特定目录或文件规则
-## include文件夹规则
 include/config/
 include/generated/
 tools/nemu-diff/include/
