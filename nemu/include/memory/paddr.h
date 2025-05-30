@@ -41,7 +41,6 @@ uint8_t* guest_to_host(paddr_t paddr);
 
 word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, int len, word_t data);
-word_t rom_read(paddr_t addr, int len);
 const char* size_str(uint32_t size_b);
 void show_mem();
 mem_item_t* find_mem_item(paddr_t addr);
