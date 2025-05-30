@@ -1,7 +1,8 @@
 
+# 禁用所有文件，适用于所有路径
 *.*
 *
-!*/
+# 保留文件，适用于所有路径
 !Makefile
 !*.mk
 !*.ld
@@ -10,5 +11,9 @@
 !.gitignore
 !README.md
 !Kconfig
-include/config
-include/generated
+# 保留所有文件夹
+!*/
+
+# 特定目录或文件规则
+include/config/
+include/generated/
