@@ -133,13 +133,40 @@ static size_t load_img()
         Log("The file is missing bin_header information, magic %u", bin_header.magic);
         exit(-1);
     }
+    /* 快速加载到ram */
+    if (bin_header.flag | BIN_HEADER_FLAG_FAST_BOOT)
+    {
+        // 加载text段
+        for (uint32_t addr = bin_header.text_start, load_addr = bin_header.text_load;
+             addr < bin_header.text_end; addr += 4, load_addr += 4)
+        {
+            uint32_t data = paddr_read(load_addr, 4);
+            paddr_write(addr, 4, data);
+        }
+        // 加载data段
+        for (uint32_t addr = bin_header.data_start, load_addr = bin_header.data_load;
+             addr < bin_header.data_end; addr += 4, load_addr += 4)
+        {
+            uint32_t data = paddr_read(load_addr, 4);
+            paddr_write(addr, 4, data);
+        }
+        // 清理bss段
+        for (uint32_t addr = bin_header.bss_start; addr < bin_header.bss_end; addr += 4)
+        {
+            paddr_write(addr, 4, 0);
+        }
+        Log("Fast load done %#x", bin_header.flag);
+    }
     /* 根据entry重置pc */
     reset_pc = bin_header.entry;
-    Log("Load code to %s %#x size %#x entry %#x data %#x => [%#x, %#x)-%s bss [%#x %#x)-%s",
-        mem_item->name, mem_item->startaddr, (uint32_t)readsize, bin_header.entry,
-        bin_header.data_load, bin_header.data_start, bin_header.data_end,
-        size_str(bin_header.data_end - bin_header.data_start), bin_header.bss_start,
-        bin_header.bss_end, size_str(bin_header.bss_end - bin_header.bss_start));
+    Log("Load code to %s %#x size %#x entry %#x", mem_item->name, mem_item->startaddr,
+        (uint32_t)readsize, bin_header.entry);
+    Log("Section text [%#x] => [%#x, %#x)-%s", bin_header.text_load, bin_header.text_start,
+        bin_header.text_end, size_str(bin_header.text_end - bin_header.text_start));
+    Log("Section data [%#x] => [%#x, %#x)-%s", bin_header.data_load, bin_header.data_start,
+        bin_header.data_end, size_str(bin_header.data_end - bin_header.data_start));
+    Log("Section bss 0 => [%#x %#x)-%s", bin_header.bss_start, bin_header.bss_end,
+        size_str(bin_header.bss_end - bin_header.bss_start));
 
     fclose(fd);
     return readsize;

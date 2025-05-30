@@ -58,6 +58,9 @@ INCS 		= $(addprefix -I, $(INC_FILES))
 ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e
 
 CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
+ifeq ($(CONFIG_FAST_LOAD), y)
+    CFLAGS	+= -DCONFIG_FAST_LOAD=1
+endif
 
 LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/platform/npc/linker_flash_sram.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections -e _start
 

@@ -97,6 +97,11 @@ CFLAGS   += -Os -MMD -Wall -Werror $(INCFLAGS) \
             -DARCH_H=\"$(ARCH_H)\" \
             -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector \
             -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden
+KEEP_DEFINE += SKIP_AM_START=$(SKIP_AM_START)
+KEEP_DEFINE += CONFIG_FAST_LOAD=$(CONFIG_FAST_LOAD)
+ifeq ($(CONFIG_FAST_LOAD), y)
+    CFLAGS	+= -DCONFIG_FAST_LOAD=1
+endif
 # Default AM Debug Flag
 # CFLAGS += -O0 -g
 CXXFLAGS +=  $(CFLAGS) -ffreestanding -fno-rtti -fno-exceptions
@@ -138,7 +143,7 @@ $(DST_DIR)/%.o: %.S
 
 ### Rule (recursive make): build a dependent library (am, klib, ...)
 $(LIBS): %:
-	@SKIP_AM_START=$(SKIP_AM_START) $(MAKE) -s -C $(AM_HOME)/$* archive
+	@$(KEEP_DEFINE) $(MAKE) -s -C $(AM_HOME)/$* archive
 
 ### Rule (link): objects (`*.o`) and libraries (`*.a`) -> `IMAGE.elf`, the final ELF binary to be packed into image (ld)
 $(IMAGE).elf: $(OBJS) $(LIBS)
