@@ -291,21 +291,23 @@ void dpi_uart_write(int addr, int len, int data)
 void dpi_dev_skip(int write, int addr, int req_info, int data)
 {
     const char *rw_str = write ? "write" : "read";
-
+    int w_strb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
+    int aw_size = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
+    int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
+    int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
     mem_item_t *mem_item = find_mem_item(addr);
     if (mem_item)
     {
-        int w_strb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
-        int aw_size = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
-        int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
-        int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
-
         if (write)
+        {
             DPI_DTRACE(mem_item->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
                        req_info, aw_size, w_strb);
+        }
         else
+        {
             DPI_DTRACE(mem_item->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
                        req_info, ar_size, ar_len);
+        }
 
         switch (mem_item->startaddr)
         {
