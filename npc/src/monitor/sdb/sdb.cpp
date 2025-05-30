@@ -122,7 +122,8 @@ static int cmd_x(char *args)
     {
         len = strtoul(argv[1], NULL, 10);
     }
-    if (find_mem_item(addr))
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (mem_item)
     {
         // read from physical memory
         uint32_t i = 0, j = 0;
@@ -131,7 +132,7 @@ static int cmd_x(char *args)
             raw_stdout("0x%8x:", addr);
             for (j = 0; j < line_len && i < len; ++i, ++j)
             {
-                word_t value = vaddr_ifetch(addr, 1) & 0xFF;
+                word_t value = mem_item->read(mem_item, addr, 1) & 0xFF;
                 raw_stdout("%s%02x", (j != 0 && j % 4 == 0 ? "   " : " "), value);
                 addr += 1;
             }
