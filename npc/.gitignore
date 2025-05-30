@@ -1,0 +1,27 @@
+
+# 禁用所有文件，适用于所有路径
+*.*
+*
+# 保留文件，适用于所有路径
+!Makefile
+!*.mk
+!*.ld
+!*.[vchS]
+!*.cc
+!*.cpp
+!*.sdc
+!.gitignore
+!README.md
+!Kconfig
+# 保留所有文件夹
+!*/
+# 禁用文件夹
+build/
+
+# 特定目录或文件规则
+## include文件夹规则
+include/config/
+include/generated/
+tools/nemu-diff/include/
+.config
+.config.old
