@@ -120,6 +120,7 @@ static void execute(uint64_t n)
 
 static void statistic()
 {
+    extern uint64_t hw_tick;
     IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") "lu"
     Log("host time spent = " NUMBERIC_FMT " us", npc_ctx.timer);
@@ -129,6 +130,10 @@ static void statistic()
             npc_ctx.nr_guest_inst * 1000000 / npc_ctx.timer);
     else
         Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+    Log("hardware total ticks = " NUMBERIC_FMT, hw_tick);
+    if (npc_ctx.nr_guest_inst > 0)
+        Log("hardware execute frequency = " NUMBERIC_FMT " ticks/inst",
+            hw_tick / npc_ctx.nr_guest_inst);
 }
 
 void assert_fail_msg()

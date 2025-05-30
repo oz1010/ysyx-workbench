@@ -32,8 +32,8 @@
 #define ADDR_IN_RANGE(_addr, _baseaddr, _maxsize) \
     (((_addr) >= (_baseaddr)) && ((_addr) < ((_baseaddr) + (_maxsize))))
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
-static uint64_t hw_tick = 0;
-static uint32_t hw_flash_idx = 0;
+uint64_t hw_tick = 0;
+uint32_t hw_flash_idx = 0;
 
 #define PSRAM_SIZE (4 * 1024 * 1024)
 #define TEST_INIF_PSRAM_OFFSET 0x00300000
@@ -291,28 +291,44 @@ void dpi_uart_write(int addr, int len, int data)
 void dpi_dev_skip(int write, int addr, int req_info, int data)
 {
     const char *rw_str = write ? "write" : "read";
-    int w_strb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
-    int aw_size = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
-    int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
-    int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
 
-    if (addr >= 0x0f000000 && addr <= 0x0f001fff)
+    mem_item_t *mem_item = find_mem_item(addr);
+    if (mem_item)
     {
+        int w_strb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
+        int aw_size = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
+        int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
+        int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
+
         if (write)
-        {
-            // 同步对内存的修改，避免调试反汇编异常
-            mem_item_t *mem_item = find_mem_item(addr);
-
-            if (write && mem_item) mem_item->write(mem_item, addr, aw_size, data);
-
-            DPI_DTRACE("sram", "W [%#.8x] <= %#.8x %d", (uint32_t)addr, data, aw_size);
-        }
+            DPI_DTRACE(mem_item->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
+                       req_info, aw_size, w_strb);
         else
+            DPI_DTRACE(mem_item->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
+                       req_info, ar_size, ar_len);
+
+        switch (mem_item->startaddr)
         {
-            DPI_DTRACE("sram", "R [%#.8x] => %#.8x %d", (uint32_t)addr, data, ar_size);
+            case MEM_SRAM_BASE:
+                // 同步对内存的修改，避免调试反汇编异常
+                if (write)
+                    mem_item->write(mem_item, addr, aw_size, data);
+                break;
+
+            case MEM_MROM_BASE:
+            case MEM_FLASH_BASE:
+            case MEM_PSRAM_BASE:
+                break;
+
+            default:
+                DPI_DTRACE("unknown-mem", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
+                break;
         }
+
+        return;
     }
-    else if (addr >= 0x10000000 && addr <= 0x10000fff)
+
+    if (addr >= 0x10000000 && addr <= 0x10000fff)
     {
         char c = (char)data;
         DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
@@ -321,26 +337,6 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
     else if (addr >= 0x10001000 && addr <= 0x10001fff)
     {
         DPI_DTRACE("spi_master", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
-        DIFFTEST_SKIP_REF();
-    }
-    else if (addr >= 0x20000000 && addr <= 0x20000fff)
-    {
-        DPI_DTRACE("mrom", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
-        DIFFTEST_SKIP_REF();
-    }
-    else if (addr >= 0x30000000 && addr <= 0x30ffffff)
-    {
-        DPI_DTRACE("flash", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
-        DIFFTEST_SKIP_REF();
-    }
-    else if (addr >= 0x80000000 && addr <= 0x803fffff)
-    {
-        if (write)
-            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, req_info,
-                       aw_size, w_strb);
-        else
-            DPI_DTRACE("psram", "%s %#x %#x %#x(%d %#x)", rw_str, (uint32_t)addr, data, req_info,
-                       ar_size, ar_len);
         DIFFTEST_SKIP_REF();
     }
     else
