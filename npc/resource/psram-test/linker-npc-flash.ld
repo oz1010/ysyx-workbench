@@ -14,9 +14,11 @@ ENTRY(_start)
 SECTIONS {
     /* -------- 直接从FLASH启动 -------- */
     .bootloader : {
+        _bin_start = ALIGN(4);
         KEEP(*(.bin_header))
         *(entry)
     } >FLASH
+    _bin_flag = _bin_start + 4;
 
     /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
     .text : {

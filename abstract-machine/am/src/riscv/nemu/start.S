@@ -26,20 +26,18 @@
 3:
 .endm
 
-_start:
-    mv s0, zero
-    la sp, _stack_pointer
-    jal _init_ram
-    // 通过寄存器进行单向跳转，直接jal _trm_init跳转会出错
-    la a0, _trm_init
-    jalr a0
-1:  j 1b // 不会跳转到此处
-
 _init_ram:
+    // 快速加载模式
+    la t0, _bin_flag
+    lw t1, 0(t0)
+    la t0, 0x1
+    and t2, t1, t0        # t2 = t1 & 0x1 (提取最低位)
+    beq t2, t0, _skip_init_ram # if (t2 == t0) 跳过_skip_init_ram
     // .text段加载到RAM
     LOAD_TO_RAM   _text_load, _text_start, _text_end
     // .data段加载到RAM
     LOAD_TO_RAM   _data_load, _data_start, _data_end
     // .bss段直接清理
     LOAD_TO_RAM   0, _bss_start, _bss_end
+_skip_init_ram:
     ret

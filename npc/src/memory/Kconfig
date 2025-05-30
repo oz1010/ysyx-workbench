@@ -26,6 +26,11 @@ config IMG_LOAD
   default MBASE if MEM_TYPE_SINGLE
   default 0x30000000 if MEM_TYPE_MULTI
 
+config FAST_LOAD
+  bool "Image load to ram fastly"
+  default false if ISA_x86
+  default true
+
 choice
   prompt "Physical memory definition"
   default PMEM_MALLOC
