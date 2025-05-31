@@ -102,12 +102,18 @@
 `define DEV_UART_ADDR_END   32'ha000_03ff
 
 `define DEV_RTC_IDX         2
-`define DEV_RTC_ADDR_BASE   32'ha000_0048
-`define DEV_RTC_ADDR_END    32'ha000_0057
+`define DEV_RTC_ADDR_BASE   32'h0200_0048
+`define DEV_RTC_ADDR_END    32'h0200_0057
 
 `define DEV_ATTR_READ       4'b0001
 `define DEV_ATTR_WRITE      4'b0010
 `define DEV_ATTR_EXEC       4'b0100
+
+typedef struct {
+    string name;
+    logic [31:0] startaddr;
+    logic [31:0] endaddr;
+} slave_info_t;
 
 typedef struct {
     string name;
@@ -128,6 +134,7 @@ task check_dev_addr(
     // output int match_dev_id,
 );
     static device_info_t dev_infos[] = '{
+        '{name:"CLIN",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
         '{name:"SRAM",          startaddr:32'h0f00_0000,    endaddr:32'h0f00_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE|`DEV_ATTR_EXEC)},
         '{name:"UART16550",     startaddr:32'h1000_0000,    endaddr:32'h1000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
         '{name:"SPI_MASTER",    startaddr:32'h1000_1000,    endaddr:32'h1000_1fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
