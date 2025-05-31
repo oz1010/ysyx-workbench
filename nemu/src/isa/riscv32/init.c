@@ -41,3 +41,8 @@ void init_isa() {
   /* Initialize this virtual computer system. */
   restart();
 }
+
+void set_pc(paddr_t addr) {
+    reset_pc = addr;
+    cpu.pc = addr;
+}

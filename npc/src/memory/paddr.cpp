@@ -19,12 +19,13 @@
 #include <isa.h>
 #include <macro.h>
 
+extern uint8_t *get_vsimu_sram_addr();
+
 static word_t mem_read(void *mem_item_arg, vaddr_t addr, int len);
 static void mem_write(void *mem_item_arg, vaddr_t addr, int len, word_t data);
 
 #if !CONFIG_PMEM_MALLOC
 #if CONFIG_MEM_TYPE_MULTI
-static uint8_t raw_sram[MEM_SRAM_SIZE] PG_ALIGN = {};
 static uint8_t raw_mrom[MEM_MROM_SIZE] PG_ALIGN = {};
 static uint8_t raw_flash[MEM_FLASH_SIZE] PG_ALIGN = {};
 static uint8_t raw_psram[MEM_PSRAM_SIZE] PG_ALIGN = {};
@@ -40,7 +41,7 @@ mem_item_t mem_items[] = {
         .name = "sram",
         .startaddr = MEM_SRAM_BASE,
         .endaddr = (MEM_SRAM_BASE + MEM_SRAM_SIZE),
-        .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_sram),
+        .raw_mem = 0,
         .read = mem_read,
         .write = mem_write,
     },
@@ -143,7 +144,13 @@ void init_mem()
         mem_item_t *item = &mem_items[idx];
         uint32_t size = (item->endaddr - item->startaddr);
         int init_val = MUXDEF(CONFIG_MEM_RANDOM, rand(), CONFIG_MEM_INIT_VALUE);
-        if (!item->raw_mem)
+
+        if (item->startaddr == MEM_SRAM_BASE)
+        {
+            // 硬件已经实现sram，直接获取地址即可
+            item->raw_mem = get_vsimu_sram_addr();
+        }
+        else if (!item->raw_mem)
         {
             item->raw_mem = (uint8_t *)malloc(size);
             if (!item->raw_mem)

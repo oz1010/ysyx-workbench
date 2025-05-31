@@ -36,6 +36,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
 void init_disasm(const char *triple);
+extern void set_pc(paddr_t addr);
 
 static void welcome()
 {
@@ -113,7 +114,6 @@ static size_t load_img()
     }
 
     int ret;
-    extern vaddr_t reset_pc;
     FILE *fd = fopen(file_path, "rb");
     Assert(fd, "Can not open '%s'", file_path);
 
@@ -159,7 +159,7 @@ static size_t load_img()
     }
     Log("Load bin_header flag %#x", bin_header.flag);
     /* 根据entry重置pc */
-    reset_pc = bin_header.entry;
+    set_pc(bin_header.entry);
     Log("Load code to %s %#x size %#x entry %#x", mem_item->name, mem_item->startaddr,
         (uint32_t)readsize, bin_header.entry);
     Log("Section text [%#x] => [%#x, %#x)-%s", bin_header.text_load, bin_header.text_start,
@@ -226,6 +226,9 @@ void init_monitor(int argc, char *argv[])
     /* Open the log file. */
     init_log(cfg_log_file);
 
+    /* Perform ISA dependent initialization. */
+    init_isa(argc, argv);
+
     /* Initialize memory. */
     init_mem();
 
@@ -234,9 +237,6 @@ void init_monitor(int argc, char *argv[])
 
     /* Load the image to memory. This will overwrite the built-in image. */
     long img_size = load_img();
-
-    /* Perform ISA dependent initialization. */
-    init_isa(argc, argv);
 
     /* Initialize differential testing. */
     // 需要拷贝整个内存，否则可能因为image重定向而读取到非法值

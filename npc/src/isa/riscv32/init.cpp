@@ -17,6 +17,7 @@
 #include <memory/paddr.h>
 
 extern void init_vsimu(int argc, char *argv[]);
+extern void set_vsimu_pc(paddr_t addr);
 
 vaddr_t reset_pc = CONFIG_IMG_LOAD;
 
@@ -45,4 +46,10 @@ void init_isa(int argc, char *argv[]) {
 
   /* Initialize verilog simu env. */
   init_vsimu(argc, argv);
+}
+
+void set_pc(paddr_t addr) {
+    reset_pc = addr;
+    cpu.pc = addr;
+    set_vsimu_pc(addr);
 }
