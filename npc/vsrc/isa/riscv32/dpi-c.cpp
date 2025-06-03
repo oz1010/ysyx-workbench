@@ -472,9 +472,9 @@ extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
 {
     // assert(0);
     addr_idx &= ~0x3u;  // 读写地址四字节对齐
-    uint32_t addr = addr_idx + MEM_MROM_BASE;
+    uint32_t addr = addr_idx;
     mem_item_t *mem_item = find_mem_item(addr);
-    if (unlikely(mem_item != NULL))
+    if (unlikely(mem_item == NULL))
     {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);

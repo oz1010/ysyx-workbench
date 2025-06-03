@@ -87,7 +87,6 @@ module ysyx_23060295 (
     output wire [3:0]   io_slave_rid
 );
 
-// TODO 没有用到的需要赋值，避免ysyxSOC报错
 // assign io_master_awvalid = 0;
 // assign io_master_awaddr = 0;
 // assign io_master_awid = 0;
@@ -106,17 +105,17 @@ module ysyx_23060295 (
 // assign io_master_arsize = 0;
 // assign io_master_arburst = 0;
 // assign io_master_rready = 0;
-assign io_slave_awready = 0;
-assign io_slave_wready = 0;
-assign io_slave_bvalid = 0;
-assign io_slave_bresp = 0;
-assign io_slave_bid = 0;
-assign io_slave_arready = 0;
-assign io_slave_rvalid = 0;
-assign io_slave_rresp = 0;
-assign io_slave_rdata = 0;
-assign io_slave_rlast = 0;
-assign io_slave_rid = 0;
+// assign io_slave_awready = 0;
+// assign io_slave_wready = 0;
+// assign io_slave_bvalid = 0;
+// assign io_slave_bresp = 0;
+// assign io_slave_bid = 0;
+// assign io_slave_arready = 0;
+// assign io_slave_rvalid = 0;
+// assign io_slave_rresp = 0;
+// assign io_slave_rdata = 0;
+// assign io_slave_rlast = 0;
+// assign io_slave_rid = 0;
 
 wire clk = clock;
 wire rst = reset;
