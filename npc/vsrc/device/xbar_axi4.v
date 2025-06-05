@@ -1,10 +1,11 @@
 // 单master多slave选择器
 module xbar_axi4 #(
-    parameter SLAVE_COUNT = 1,
+    parameter USER_S_COUNT = 1,
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter BRESP_WIDTH = 3,
-    parameter RRESP_WIDTH = 3
+    parameter RRESP_WIDTH = 3,
+    parameter SLAVE_COUNT = USER_S_COUNT + 1
 ) (
     input wire clk,
     input wire rst,
@@ -39,42 +40,106 @@ module xbar_axi4 #(
     output  wire                        r_last,
     output  wire [3:0]                  r_id,
 
-    input   wire                        s_aw_readys[0:SLAVE_COUNT-1],
-    output  wire                        s_aw_valids[0:SLAVE_COUNT-1],
-    output  wire [ADDR_WIDTH-1:0]       s_aw_addrs[0:SLAVE_COUNT-1],
-    output  wire [3:0]                  s_aw_ids[0:SLAVE_COUNT-1],
-    output  wire [7:0]                  s_aw_lens[0:SLAVE_COUNT-1],
-    output  wire [2:0]                  s_aw_sizes[0:SLAVE_COUNT-1],
-    output  wire [1:0]                  s_aw_bursts[0:SLAVE_COUNT-1],
-    input   wire                        s_w_readys[0:SLAVE_COUNT-1],
-    output  wire                        s_w_valids[0:SLAVE_COUNT-1],
-    output  wire [DATA_WIDTH-1:0]       s_w_datas[0:SLAVE_COUNT-1],
-    output  wire [DATA_WIDTH/8-1:0]     s_w_strbs[0:SLAVE_COUNT-1],
-    output  wire                        s_w_lasts[0:SLAVE_COUNT-1],
-    output  wire                        s_b_readys[0:SLAVE_COUNT-1],
-    input   wire                        s_b_valids[0:SLAVE_COUNT-1],
-    input   wire [BRESP_WIDTH-1:0]      s_b_resps[0:SLAVE_COUNT-1],
-    input   wire [3:0]                  s_b_ids[0:SLAVE_COUNT-1],
-    input   wire                        s_ar_readys[0:SLAVE_COUNT-1],
-    output  wire                        s_ar_valids[0:SLAVE_COUNT-1],
-    output  wire [ADDR_WIDTH-1:0]       s_ar_addrs[0:SLAVE_COUNT-1],
-    output  wire [3:0]                  s_ar_ids[0:SLAVE_COUNT-1],
-    output  wire [7:0]                  s_ar_lens[0:SLAVE_COUNT-1],
-    output  wire [2:0]                  s_ar_sizes[0:SLAVE_COUNT-1],
-    output  wire [1:0]                  s_ar_bursts[0:SLAVE_COUNT-1],
-    output  wire                        s_r_readys[0:SLAVE_COUNT-1],
-    input   wire                        s_r_valids[0:SLAVE_COUNT-1],
-    input   wire [RRESP_WIDTH-1:0]      s_r_resps[0:SLAVE_COUNT-1],
-    input   wire [DATA_WIDTH-1:0]       s_r_datas[0:SLAVE_COUNT-1],
-    input   wire                        s_r_lasts[0:SLAVE_COUNT-1],
-    input   wire [3:0]                  s_r_ids[0:SLAVE_COUNT-1],
+    input   wire                        u_aw_readys[0:USER_S_COUNT-1],
+    output  wire                        u_aw_valids[0:USER_S_COUNT-1],
+    output  wire [ADDR_WIDTH-1:0]       u_aw_addrs[0:USER_S_COUNT-1],
+    output  wire [3:0]                  u_aw_ids[0:USER_S_COUNT-1],
+    output  wire [7:0]                  u_aw_lens[0:USER_S_COUNT-1],
+    output  wire [2:0]                  u_aw_sizes[0:USER_S_COUNT-1],
+    output  wire [1:0]                  u_aw_bursts[0:USER_S_COUNT-1],
+    input   wire                        u_w_readys[0:USER_S_COUNT-1],
+    output  wire                        u_w_valids[0:USER_S_COUNT-1],
+    output  wire [DATA_WIDTH-1:0]       u_w_datas[0:USER_S_COUNT-1],
+    output  wire [DATA_WIDTH/8-1:0]     u_w_strbs[0:USER_S_COUNT-1],
+    output  wire                        u_w_lasts[0:USER_S_COUNT-1],
+    output  wire                        u_b_readys[0:USER_S_COUNT-1],
+    input   wire                        u_b_valids[0:USER_S_COUNT-1],
+    input   wire [BRESP_WIDTH-1:0]      u_b_resps[0:USER_S_COUNT-1],
+    input   wire [3:0]                  u_b_ids[0:USER_S_COUNT-1],
+    input   wire                        u_ar_readys[0:USER_S_COUNT-1],
+    output  wire                        u_ar_valids[0:USER_S_COUNT-1],
+    output  wire [ADDR_WIDTH-1:0]       u_ar_addrs[0:USER_S_COUNT-1],
+    output  wire [3:0]                  u_ar_ids[0:USER_S_COUNT-1],
+    output  wire [7:0]                  u_ar_lens[0:USER_S_COUNT-1],
+    output  wire [2:0]                  u_ar_sizes[0:USER_S_COUNT-1],
+    output  wire [1:0]                  u_ar_bursts[0:USER_S_COUNT-1],
+    output  wire                        u_r_readys[0:USER_S_COUNT-1],
+    input   wire                        u_r_valids[0:USER_S_COUNT-1],
+    input   wire [RRESP_WIDTH-1:0]      u_r_resps[0:USER_S_COUNT-1],
+    input   wire [DATA_WIDTH-1:0]       u_r_datas[0:USER_S_COUNT-1],
+    input   wire                        u_r_lasts[0:USER_S_COUNT-1],
+    input   wire [3:0]                  u_r_ids[0:USER_S_COUNT-1],
 
-    input   slave_info_t                s_slave_infos[0:SLAVE_COUNT-1],
+    input   slave_info_t                u_slave_infos[0:USER_S_COUNT-1],
     output  wire [log2(SLAVE_COUNT):0] grant_idx
 );
 
 typedef enum [2:0] { select_t, read_t, write_t, err_t } state_t;
 reg [2:0]  state;
+
+// 默认slave，避免切设备时造成响应错误
+wire                        s_aw_readys[0:SLAVE_COUNT-1];
+wire                        s_aw_valids[0:SLAVE_COUNT-1];
+wire [ADDR_WIDTH-1:0]       s_aw_addrs[0:SLAVE_COUNT-1];
+wire [3:0]                  s_aw_ids[0:SLAVE_COUNT-1];
+wire [7:0]                  s_aw_lens[0:SLAVE_COUNT-1];
+wire [2:0]                  s_aw_sizes[0:SLAVE_COUNT-1];
+wire [1:0]                  s_aw_bursts[0:SLAVE_COUNT-1];
+wire                        s_w_readys[0:SLAVE_COUNT-1];
+wire                        s_w_valids[0:SLAVE_COUNT-1];
+wire [DATA_WIDTH-1:0]       s_w_datas[0:SLAVE_COUNT-1];
+wire [DATA_WIDTH/8-1:0]     s_w_strbs[0:SLAVE_COUNT-1];
+wire                        s_w_lasts[0:SLAVE_COUNT-1];
+wire                        s_b_readys[0:SLAVE_COUNT-1];
+reg                         s_b_valids[0:SLAVE_COUNT-1];
+wire [BRESP_WIDTH-1:0]      s_b_resps[0:SLAVE_COUNT-1];
+wire [3:0]                  s_b_ids[0:SLAVE_COUNT-1];
+wire                        s_ar_readys[0:SLAVE_COUNT-1];
+wire                        s_ar_valids[0:SLAVE_COUNT-1];
+wire [ADDR_WIDTH-1:0]       s_ar_addrs[0:SLAVE_COUNT-1];
+wire [3:0]                  s_ar_ids[0:SLAVE_COUNT-1];
+wire [7:0]                  s_ar_lens[0:SLAVE_COUNT-1];
+wire [2:0]                  s_ar_sizes[0:SLAVE_COUNT-1];
+wire [1:0]                  s_ar_bursts[0:SLAVE_COUNT-1];
+wire                        s_r_readys[0:SLAVE_COUNT-1];
+reg                         s_r_valids[0:SLAVE_COUNT-1];
+wire [RRESP_WIDTH-1:0]      s_r_resps[0:SLAVE_COUNT-1];
+wire [DATA_WIDTH-1:0]       s_r_datas[0:SLAVE_COUNT-1];
+wire                        s_r_lasts[0:SLAVE_COUNT-1];
+wire [3:0]                  s_r_ids[0:SLAVE_COUNT-1];
+assign s_aw_readys = {0, u_aw_readys};
+assign s_w_readys = {0, u_w_readys};
+assign s_b_valids = {0, u_b_valids};
+assign s_b_resps = {0, u_b_resps};
+assign s_b_ids = {0, u_b_ids};
+assign s_ar_readys = {0, u_ar_readys};
+assign s_r_valids = {0, u_r_valids};
+assign s_r_resps = {0, u_r_resps};
+assign s_r_datas = {0, u_r_datas};
+assign s_r_lasts = {0, u_r_lasts};
+assign s_r_ids = {0, u_r_ids};
+assign u_aw_valids = s_aw_valids[1:SLAVE_COUNT-1];
+assign u_aw_addrs = s_aw_addrs[1:SLAVE_COUNT-1];
+assign u_aw_ids = s_aw_ids[1:SLAVE_COUNT-1];
+assign u_aw_lens = s_aw_lens[1:SLAVE_COUNT-1];
+assign u_aw_sizes = s_aw_sizes[1:SLAVE_COUNT-1];
+assign u_aw_bursts = s_aw_bursts[1:SLAVE_COUNT-1];
+assign u_w_valids = s_w_valids[1:SLAVE_COUNT-1];
+assign u_w_datas = s_w_datas[1:SLAVE_COUNT-1];
+assign u_w_strbs = s_w_strbs[1:SLAVE_COUNT-1];
+assign u_w_lasts = s_w_lasts[1:SLAVE_COUNT-1];
+assign u_b_readys = s_b_readys[1:SLAVE_COUNT-1];
+assign u_ar_valids = s_ar_valids[1:SLAVE_COUNT-1];
+assign u_ar_addrs = s_ar_addrs[1:SLAVE_COUNT-1];
+assign u_ar_ids = s_ar_ids[1:SLAVE_COUNT-1];
+assign u_ar_lens = s_ar_lens[1:SLAVE_COUNT-1];
+assign u_ar_sizes = s_ar_sizes[1:SLAVE_COUNT-1];
+assign u_ar_bursts = s_ar_bursts[1:SLAVE_COUNT-1];
+assign u_r_readys = s_r_readys[1:SLAVE_COUNT-1];
+
+slave_info_t s_slave_infos[0:SLAVE_COUNT-1];
+assign s_slave_infos[0] = '{name:"DEFAULT",          startaddr:32'h0000_0000,    endaddr:32'h0000_0000};
+assign s_slave_infos[1:SLAVE_COUNT-1] = u_slave_infos;
 
 reg [SLAVE_COUNT-1:0] s_signal_en;
 reg [SLAVE_COUNT-1:0] s_write_en;

@@ -106,35 +106,65 @@ wire [DATA_WIDTH-1:0]       r_data2;
 wire                        r_last2;
 wire [3:0]                  r_id2;
 /* 仲裁后的 axi4信号 */
-wire         m_awready;
-wire         m_awvalid;
-wire [31:0]  m_awaddr;
-wire [3:0]   m_awid;
-wire [7:0]   m_awlen;
-wire [2:0]   m_awsize;
-wire [1:0]   m_awburst;
-wire         m_wready;
-wire         m_wvalid;
-wire [31:0]  m_wdata;
-wire [3:0]   m_wstrb;
-wire         m_wlast;
-wire         m_bready;
-wire         m_bvalid;
-wire [1:0]   m_bresp;
-wire [3:0]   m_bid;
-wire         m_arready;
-wire         m_arvalid;
-wire [31:0]  m_araddr;
-wire [3:0]   m_arid;
-wire [7:0]   m_arlen;
-wire [2:0]   m_arsize;
-wire [1:0]   m_arburst;
-wire         m_rready;
-wire         m_rvalid;
-wire [1:0]   m_rresp;
-wire [31:0]  m_rdata;
-wire         m_rlast;
-wire [3:0]   m_rid;
+wire                        m_awready;
+wire                        m_awvalid;
+wire [31:0]                 m_awaddr;
+wire [3:0]                  m_awid;
+wire [7:0]                  m_awlen;
+wire [2:0]                  m_awsize;
+wire [1:0]                  m_awburst;
+wire                        m_wready;
+wire                        m_wvalid;
+wire [31:0]                 m_wdata;
+wire [3:0]                  m_wstrb;
+wire                        m_wlast;
+wire                        m_bready;
+wire                        m_bvalid;
+wire [1:0]                  m_bresp;
+wire [3:0]                  m_bid;
+wire                        m_arready;
+wire                        m_arvalid;
+wire [31:0]                 m_araddr;
+wire [3:0]                  m_arid;
+wire [7:0]                  m_arlen;
+wire [2:0]                  m_arsize;
+wire [1:0]                  m_arburst;
+wire                        m_rready;
+wire                        m_rvalid;
+wire [1:0]                  m_rresp;
+wire [31:0]                 m_rdata;
+wire                        m_rlast;
+wire [3:0]                  m_rid;
+/* clint axi4信号 */
+wire                        s_awready[0:0];
+wire                        s_awvalid[0:0];
+wire [31:0]                 s_awaddr[0:0];
+wire [3:0]                  s_awid[0:0];
+wire [7:0]                  s_awlen[0:0];
+wire [2:0]                  s_awsize[0:0];
+wire [1:0]                  s_awburst[0:0];
+wire                        s_wready[0:0];
+wire                        s_wvalid[0:0];
+wire [31:0]                 s_wdata[0:0];
+wire [3:0]                  s_wstrb[0:0];
+wire                        s_wlast[0:0];
+wire                        s_bready[0:0];
+wire                        s_bvalid[0:0];
+wire [1:0]                  s_bresp[0:0];
+wire [3:0]                  s_bid[0:0];
+wire                        s_arready[0:0];
+wire                        s_arvalid[0:0];
+wire [31:0]                 s_araddr[0:0];
+wire [3:0]                  s_arid[0:0];
+wire [7:0]                  s_arlen[0:0];
+wire [2:0]                  s_arsize[0:0];
+wire [1:0]                  s_arburst[0:0];
+wire                        s_rready[0:0];
+wire                        s_rvalid[0:0];
+wire [1:0]                  s_rresp[0:0];
+wire [31:0]                 s_rdata[0:0];
+wire                        s_rlast[0:0];
+wire [3:0]                  s_rid[0:0];
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
@@ -238,7 +268,7 @@ arbiter_axi4 #(
 
 /* xbar模块 */
 xbar_axi4 #(
-    .SLAVE_COUNT(2),
+    .USER_S_COUNT(2),
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
@@ -276,42 +306,82 @@ xbar_axi4 #(
     .r_last(m_rlast),
     .r_id(m_rid),
 
-    .s_aw_readys(   {   0,      io_master_awready   } ),
-    .s_aw_valids(   {   0,      io_master_awvalid   } ),
-    .s_aw_addrs(    {   0,      io_master_awaddr    } ),
-    .s_aw_ids(      {   0,      io_master_awid      } ),
-    .s_aw_lens(     {   0,      io_master_awlen     } ),
-    .s_aw_sizes(    {   0,      io_master_awsize    } ),
-    .s_aw_bursts(   {   0,      io_master_awburst   } ),
-    .s_w_readys(    {   0,      io_master_wready    } ),
-    .s_w_valids(    {   0,      io_master_wvalid    } ),
-    .s_w_datas(     {   0,      io_master_wdata     } ),
-    .s_w_strbs(     {   0,      io_master_wstrb     } ),
-    .s_w_lasts(     {   0,      io_master_wlast     } ),
-    .s_b_readys(    {   0,      io_master_bready    } ),
-    .s_b_valids(    {   0,      io_master_bvalid    } ),
-    .s_b_resps(     {   0,      io_master_bresp     } ),
-    .s_b_ids(       {   0,      io_master_bid       } ),
-    .s_ar_readys(   {   0,      io_master_arready   } ),
-    .s_ar_valids(   {   0,      io_master_arvalid   } ),
-    .s_ar_addrs(    {   0,      io_master_araddr    } ),
-    .s_ar_ids(      {   0,      io_master_arid      } ),
-    .s_ar_lens(     {   0,      io_master_arlen     } ),
-    .s_ar_sizes(    {   0,      io_master_arsize    } ),
-    .s_ar_bursts(   {   0,      io_master_arburst   } ),
-    .s_r_readys(    {   0,      io_master_rready    } ),
-    .s_r_valids(    {   0,      io_master_rvalid    } ),
-    .s_r_resps(     {   0,      io_master_rresp     } ),
-    .s_r_datas(     {   0,      io_master_rdata     } ),
-    .s_r_lasts(     {   0,      io_master_rlast     } ),
-    .s_r_ids(       {   0,      io_master_rid       } ),
-    .s_slave_infos('{
+    .u_aw_readys(   {   s_awready[0],       io_master_awready   } ),
+    .u_aw_valids(   {   s_awvalid[0],       io_master_awvalid   } ),
+    .u_aw_addrs(    {   s_awaddr[0],        io_master_awaddr    } ),
+    .u_aw_ids(      {   s_awid[0],          io_master_awid      } ),
+    .u_aw_lens(     {   s_awlen[0],         io_master_awlen     } ),
+    .u_aw_sizes(    {   s_awsize[0],        io_master_awsize    } ),
+    .u_aw_bursts(   {   s_awburst[0],       io_master_awburst   } ),
+    .u_w_readys(    {   s_wready[0],        io_master_wready    } ),
+    .u_w_valids(    {   s_wvalid[0],        io_master_wvalid    } ),
+    .u_w_datas(     {   s_wdata[0],         io_master_wdata     } ),
+    .u_w_strbs(     {   s_wstrb[0],         io_master_wstrb     } ),
+    .u_w_lasts(     {   s_wlast[0],         io_master_wlast     } ),
+    .u_b_readys(    {   s_bready[0],        io_master_bready    } ),
+    .u_b_valids(    {   s_bvalid[0],        io_master_bvalid    } ),
+    .u_b_resps(     {   s_bresp[0],         io_master_bresp     } ),
+    .u_b_ids(       {   s_bid[0],           io_master_bid       } ),
+    .u_ar_readys(   {   s_arready[0],       io_master_arready   } ),
+    .u_ar_valids(   {   s_arvalid[0],       io_master_arvalid   } ),
+    .u_ar_addrs(    {   s_araddr[0],        io_master_araddr    } ),
+    .u_ar_ids(      {   s_arid[0],          io_master_arid      } ),
+    .u_ar_lens(     {   s_arlen[0],         io_master_arlen     } ),
+    .u_ar_sizes(    {   s_arsize[0],        io_master_arsize    } ),
+    .u_ar_bursts(   {   s_arburst[0],       io_master_arburst   } ),
+    .u_r_readys(    {   s_rready[0],        io_master_rready    } ),
+    .u_r_valids(    {   s_rvalid[0],        io_master_rvalid    } ),
+    .u_r_resps(     {   s_rresp[0],         io_master_rresp     } ),
+    .u_r_datas(     {   s_rdata[0],         io_master_rdata     } ),
+    .u_r_lasts(     {   s_rlast[0],         io_master_rlast     } ),
+    .u_r_ids(       {   s_rid[0],           io_master_rid       } ),
+    .u_slave_infos('{
         '{name:"CLIN",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff},
         /* 优先匹配其他项，若其他项匹配不上，则发送给master */
         '{name:"MASTER",        startaddr:32'h0000_0000,    endaddr:32'hffff_ffff}
     }),
 
     .grant_idx()
+);
+
+/* clint 模块 */
+clint #(
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH)
+) m_clint(
+    .clk(clk),
+    .rst(rst),
+    .aw_ready(s_awready[0]),
+    .aw_valid(s_awvalid[0]),
+    .aw_addr(s_awaddr[0]),
+    .aw_id(s_awid[0]),
+    .aw_len(s_awlen[0]),
+    .aw_size(s_awsize[0]),
+    .aw_burst(s_awburst[0]),
+    .w_ready(s_wready[0]),
+    .w_valid(s_wvalid[0]),
+    .w_data(s_wdata[0]),
+    .w_strb(s_wstrb[0]),
+    .w_last(s_wlast[0]),
+    .b_ready(s_bready[0]),
+    .b_valid(s_bvalid[0]),
+    .b_resp(s_bresp[0]),
+    .b_id(s_bid[0]),
+    .ar_ready(s_arready[0]),
+    .ar_valid(s_arvalid[0]),
+    .ar_addr(s_araddr[0]),
+    .ar_id(s_arid[0]),
+    .ar_len(s_arlen[0]),
+    .ar_size(s_arsize[0]),
+    .ar_burst(s_arburst[0]),
+    .r_ready(s_rready[0]),
+    .r_valid(s_rvalid[0]),
+    .r_resp(s_rresp[0]),
+    .r_data(s_rdata[0]),
+    .r_last(s_rlast[0]),
+    .r_id(s_rid[0])
 );
 
 /* 取指if */
