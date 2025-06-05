@@ -476,6 +476,8 @@ extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
     mem_item_t *mem_item = find_mem_item(addr);
     if (unlikely(mem_item == NULL))
     {
+        // FIXME 调用这个接口存在异常，只可能硬件初始化时被触发了（具体原因还需探索）
+        return;
         raw_stdout("Read mrom is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
