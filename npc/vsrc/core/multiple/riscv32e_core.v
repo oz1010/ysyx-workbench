@@ -105,32 +105,6 @@ wire [RRESP_WIDTH-1:0]      r_resp2;
 wire [DATA_WIDTH-1:0]       r_data2;
 wire                        r_last2;
 wire [3:0]                  r_id2;
-/* ifu axi4 信号 */
-wire ar_valid_1;
-wire ar_ready_1;
-wire [ADDR_WIDTH-1:0] ar_addr_1;
-wire r_valid_1;
-wire r_ready_1;
-wire [DATA_WIDTH-1:0] r_data_1;
-wire [RRESP_WIDTH-1:0] r_resp_1;
-/* lsu axi4 信号 */
-wire aw_valid_2;
-wire aw_ready_2;
-wire [ADDR_WIDTH-1:0] aw_addr_2;
-wire w_valid_2;
-wire w_ready_2;
-wire [DATA_WIDTH-1:0] w_data_2;
-wire [DATA_WIDTH/8-1:0] w_strb_2;
-wire b_valid_2;
-wire b_ready_2;
-wire [BRESP_WIDTH-1:0] b_resp_2;
-wire ar_valid_2;
-wire ar_ready_2;
-wire [ADDR_WIDTH-1:0] ar_addr_2;
-wire r_valid_2;
-wire r_ready_2;
-wire [DATA_WIDTH-1:0] r_data_2;
-wire [RRESP_WIDTH-1:0] r_resp_2;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
