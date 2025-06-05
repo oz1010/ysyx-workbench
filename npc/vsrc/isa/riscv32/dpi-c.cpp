@@ -476,7 +476,7 @@ extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
     mem_item_t *mem_item = find_mem_item(addr);
     if (unlikely(mem_item == NULL))
     {
-        raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, 4);
+        raw_stdout("Read mrom is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
     int inst = mem_item->read(mem_item, addr, 4);
