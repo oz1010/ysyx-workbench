@@ -377,17 +377,20 @@ int dpi_rtc_read(int addr, int len)
     static hw_time_info_t local_time_info = {0};
     static uint64_t local_execute_time = 0;
     static uint64_t last_tick = 0;
+    static uint64_t update_ticks = 10240;
     int ret = 0;
 
-    switch ((uint32_t)addr)
+    if ((addr==0x02000048 || addr==0x02000050) && ((hw_tick - last_tick) >= update_ticks))
+    {
+        last_tick += update_ticks;
+        local_execute_time = get_time();
+        get_hw_time_info(&local_time_info);
+    }
+
+    switch (addr)
     {
         /* Get up time */
         case 0x02000048:
-            if ((hw_tick - last_tick) > 10000)
-            {
-                last_tick = hw_tick;
-                local_execute_time = get_time();
-            }
             ret = (int)local_execute_time;
             break;
         case 0x0200004c:
@@ -396,7 +399,6 @@ int dpi_rtc_read(int addr, int len)
 
         /* Get linux date */
         case 0x02000050:
-            get_hw_time_info(&local_time_info);
             ret = (int)local_time_info.time_raw_val;
             break;
         case 0x02000054:
