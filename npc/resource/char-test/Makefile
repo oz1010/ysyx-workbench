@@ -62,7 +62,7 @@ ifeq ($(CONFIG_FAST_LOAD), y)
     CFLAGS	+= -DCONFIG_FAST_LOAD=1
 endif
 
-LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/linker.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections -e _start
+LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/linker.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections
 
 all: ${BINARY} ${OBJ_TARGET}
 

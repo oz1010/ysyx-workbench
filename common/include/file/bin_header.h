@@ -45,7 +45,7 @@ extern uint8_t _stack_pointer;
 #define DECLARE_BIN_HEADER(name)                \
     __attribute__((section(".bin_header")))     \
     bin_header_t name = {                       \
-        .magic      = 0x7F42494E,               \
+        .magic      = BIN_HEADER_MAGIC,         \
         .flag       = BIN_HEADER_FLAG_VALUE,    \
         .entry      = (uint32_t)&_start,        \
         .text_load = (uint32_t)&_text_load,     \

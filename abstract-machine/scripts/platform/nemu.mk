@@ -12,7 +12,7 @@ LINKER_FILE ?= $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)
             #  --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
-LDFLAGS   += --gc-sections -e _start
+LDFLAGS   += --gc-sections
 NEMUFLAGS += -l $(shell dirname $(IMAGE).elf)/nemu-log.txt
 # 默认NEMU切换为批处理模式，查看函数sdb_mainloop实现
 NEMUFLAGS += -b
