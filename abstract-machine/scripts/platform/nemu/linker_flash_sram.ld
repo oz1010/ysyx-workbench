@@ -4,9 +4,14 @@ MEMORY {
     SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 4M    /* nemu等模拟使用，可以占用大一点 */
 }
 
+/* 定义主内存区域，便于RT-Thread等操作系统初始化堆 */
+_pmem_start = ORIGIN(SRAM);
+_pmem_size = LENGTH(SRAM);
+_pmem_end = _pmem_start + _pmem_size;
+
 /* 定义堆栈大小 */
-_STACK_SIZE = 0x0400;    /* 1KB栈 */
-_HEAP_SIZE = 0x0400;     /* 1KB堆 */
+_STACK_SIZE = 0x1000;    /* 4KB栈 */
+_HEAP_SIZE = 0x1000;     /* 4KB堆 */
 
 ENTRY(_start)
 /* PHDRS { text PT_LOAD; data PT_LOAD; } */
@@ -62,16 +67,15 @@ SECTIONS {
     } >SRAM
     _bss_size = _bss_end - _bss_start;
 
-    /* 用户堆栈段 */
-    ._user_heap_stack : {
-        /* _stack_top = ALIGN(0x1000); */
+    /* 用户栈段 */
+    ._user_stack : {
         _stack_top = ALIGN(16);
         . = _stack_top + _STACK_SIZE;
         _stack_pointer = .;
-        end = .;
-        _end = .;
-        /* _heap_start = ALIGN(0x1000); */
+    } >SRAM
+
+    /* 用户堆段 */
+    ._user_heap : {
         _heap_start = ALIGN(16);
-        _pmem_start = .;
     } >SRAM
 }
