@@ -31,7 +31,7 @@ SECTIONS {
         _ssbl_start = ALIGN(4);
         KEEP(*(entry.ssbl))
         _ssbl_end = ALIGN(4);
-    } >SRAM AT>MROM
+    } >SRAM AT>FLASH
     _ssbl_load = LOADADDR(.bootloader.ssbl);
 
     /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
