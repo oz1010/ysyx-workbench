@@ -5,6 +5,11 @@ MEMORY {
     PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
 }
 
+/* 定义主内存区域，便于RT-Thread等操作系统初始化堆 */
+_pmem_start = ORIGIN(PSRAM);
+_pmem_size = LENGTH(PSRAM);
+_pmem_end = _pmem_start + _pmem_size;
+
 #define DEF_LOC >PSRAM AT>FLASH
 
 /* 定义堆栈大小 */
@@ -65,16 +70,15 @@ SECTIONS {
     } >PSRAM
     _bss_size = _bss_end - _bss_start;
 
-    /* 用户堆栈段 */
-    ._user_heap_stack : {
-        /* _stack_top = ALIGN(0x1000); */
+    /* 用户栈段 */
+    ._user_stack : {
         _stack_top = ALIGN(16);
         . = _stack_top + _STACK_SIZE;
         _stack_pointer = .;
-        end = .;
-        _end = .;
-        /* _heap_start = ALIGN(0x1000); */
-        _heap_start = ALIGN(16);
-        _pmem_start = .;
     } >SRAM
+
+    /* 用户堆段 */
+    ._user_heap : {
+        _heap_start = ALIGN(16);
+    } >PSRAM
 }
