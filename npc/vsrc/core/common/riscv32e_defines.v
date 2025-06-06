@@ -156,11 +156,14 @@ task check_dev_addr(
     if (match_dev_id < 0) begin
         $display("valid dev info is below:");
         for (integer dev_id=0; dev_id<dev_infos.size; ++dev_id) begin
-            $display("    %-12s - [0x%08x 0x%08x] 0x%x", 
+            $display("    %-12s - [0x%08x 0x%08x] attr: %s%s%s", 
                 dev_infos[dev_id].name, 
                 dev_infos[dev_id].startaddr, 
                 dev_infos[dev_id].endaddr, 
-                dev_infos[dev_id].attr);
+                (dev_infos[dev_id].attr&`DEV_ATTR_READ)!=0?"r":"-",
+                (dev_infos[dev_id].attr&`DEV_ATTR_WRITE)!=0?"w":"-",
+                (dev_infos[dev_id].attr&`DEV_ATTR_EXEC)!=0?"x":"-"
+            );
         end
         $error("Access Fault, requested addr(0x%x) is out of range.", addr);
     end
