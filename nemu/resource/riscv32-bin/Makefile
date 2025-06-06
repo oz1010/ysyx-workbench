@@ -31,8 +31,10 @@ MEM_TARGET  	:= $(addsuffix .mem, $(basename $(TAGET)))
 # Generate bin with flag
 BINARY_FLG	:= -O binary
 BINARY_FLG	+= -S
-BINARY_FLG	+= --set-section-flags .bss=alloc,contents
-BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+# # 指定contents属性会使.bss保留内容0，造成生成文件过大。适合加载bin文件后不初始化.bss的场景
+# BINARY_FLG	+= --set-section-flags .bss=alloc,contents
+# # 只复制特定段到bin中
+# BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
 SRCS		:=
 SRCS		+= start.S
