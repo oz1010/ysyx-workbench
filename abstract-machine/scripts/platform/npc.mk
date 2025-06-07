@@ -7,7 +7,7 @@ AM_SRCS := platform/npc/trm.c \
            platform/npc/ioe/disk.c \
            platform/npc/mpe.c
 
-LINKER_FILE ?= $(AM_HOME)/scripts/platform/npc/linker_flash_psram.ld
+LINKER_FILE ?= ${AM_HOME}/scripts/platform/npc/linker_flash_psram_ssbl.ld
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)
