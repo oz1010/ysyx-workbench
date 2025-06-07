@@ -33,7 +33,8 @@ void init_rand();
 void init_log(const char *log_file);
 void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
-void init_device();
+// void init_device();
+void init_vdev();
 void init_sdb();
 void init_disasm(const char *triple);
 extern void set_pc(paddr_t addr);
@@ -233,7 +234,8 @@ void init_monitor(int argc, char *argv[])
     init_mem();
 
     /* Initialize devices. */
-    IFDEF(CONFIG_DEVICE, init_device());
+    // IFDEF(CONFIG_DEVICE, init_device());
+    IFDEF(CONFIG_DEVICE, init_vdev());
 
     /* Load the image to memory. This will overwrite the built-in image. */
     long img_size = load_img();
@@ -272,7 +274,8 @@ void am_init_monitor()
     init_mem();
     init_isa();
     load_img();
-    IFDEF(CONFIG_DEVICE, init_device());
+    // IFDEF(CONFIG_DEVICE, init_device());
+    IFDEF(CONFIG_DEVICE, init_vdev());
     welcome();
 }
 #endif

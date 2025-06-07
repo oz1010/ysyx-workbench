@@ -29,6 +29,7 @@ void init_audio();
 void init_disk();
 void init_sdcard();
 void init_alarm();
+void init_vdev();
 
 void send_key(uint8_t, bool);
 void vga_update_screen();
