@@ -64,7 +64,7 @@ ifeq ($(CONFIG_FAST_LOAD), y)
     CFLAGS	+= -DCONFIG_FAST_LOAD=1
 endif
 
-LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/platform/npc/linker_flash_sram.ld --gc-sections -e _start
+LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/platform/npc/linker_flash_sram.ld --gc-sections
 # --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
 
 all: ${BINARY} ${OBJ_TARGET}

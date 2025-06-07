@@ -49,11 +49,6 @@ SECTIONS {
     _etext = .;
     _text_load = LOADADDR(.text);
 
-    /* .data : {
-        *(.data)
-    } >PSRAM AT>FLASH */
-    /* .data 的加载地址紧跟 .text，VMA 在 PSRAM */
-    /* .data : AT(_text_end) { */
     .data : {
         _data_start = ALIGN(4);
         *(.data)

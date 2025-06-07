@@ -12,7 +12,7 @@ LINKER_FILE ?= $(AM_HOME)/scripts/platform/npc/linker_flash_psram.ld
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)
             #  --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
-LDFLAGS   += --gc-sections -e _start
+LDFLAGS   += --gc-sections
 NPCFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
 # 默认NPC切换为批处理模式，查看函数sdb_mainloop实现
 NPCFLAGS += -b
