@@ -15,7 +15,7 @@
 
 #include <memory/host.h>
 #include <memory/paddr.h>
-#include <device/mmio.h>
+#include <device/vdev.h>
 #include <isa.h>
 #include <macro.h>
 
@@ -198,7 +198,7 @@ word_t paddr_read(paddr_t addr, int len)
     mem_item_t *item = find_mem_item(addr);
     if (likely(item != NULL))
         return item->read(item, addr, len);
-    IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
+    IFDEF(CONFIG_DEVICE, return vdev_read(addr, len));
     out_of_bound(addr);
     return 0;
 }
@@ -211,6 +211,6 @@ void paddr_write(paddr_t addr, int len, word_t data)
         item->write(item, addr, len, data);
         return;
     }
-    IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
+    IFDEF(CONFIG_DEVICE, vdev_write(addr, len, data); return);
     out_of_bound(addr);
 }

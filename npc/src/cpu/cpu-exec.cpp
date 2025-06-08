@@ -29,7 +29,7 @@
 
 CPU_state cpu = {};
 
-void device_update();
+void vdev_update();
 extern bool scan_wp();
 extern bool scan_bp();
 
@@ -114,7 +114,7 @@ static void execute(uint64_t n)
         trace_and_difftest(&s, cpu.pc);
         if (npc_ctx.state != NPC_RUNNING)
             break;
-        IFDEF(CONFIG_DEVICE, device_update());
+        IFDEF(CONFIG_DEVICE, vdev_update());
     }
 }
 
