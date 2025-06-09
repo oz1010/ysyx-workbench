@@ -33,8 +33,8 @@ typedef struct
 } vdev_item_t;
 
 vdev_item_t* add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, uint8_t *raw_mem, uint32_t len, uint32_t attr, vdev_handler_t handler);
-word_t vdev_read(paddr_t addr, int len);
-void vdev_write(paddr_t addr, int len, word_t data);
+word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len);
+void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data);
 vdev_item_t *find_vdev_item(paddr_t addr);
 void show_vdev(void);
 

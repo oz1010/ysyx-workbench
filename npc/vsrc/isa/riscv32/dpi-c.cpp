@@ -72,7 +72,7 @@ void hw_storage_access(int write, int addr, uint32_t *data, int32_t len)
         exit_simu(2);
     }
 
-    *data = vdev_read(addr, len);
+    *data = vdev_read(vdev, addr, len);
 }
 
 void switch_flash_context(uint32_t flash_idx)
@@ -182,7 +182,7 @@ int fetch_inst(int addr)
         exit_simu(2);
     }
     addr &= ~0x3u;  // 读写地址四字节对齐
-    int inst = vdev_read(addr, 4);
+    int inst = vdev_read(vdev, addr, 4);
     return inst;
 }
 
@@ -196,7 +196,7 @@ void write_raw_mem(int addr, int len, int data)
         raw_stdout("Write mem is out of range, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
         exit_simu(2);
     }
-    vdev_write(addr, len, data);
+    vdev_write(vdev, addr, len, data);
     DPI_MTRACE("W [%#.8x] <= %#.8x %d", addr, data, len);
 }
 
@@ -209,7 +209,7 @@ int read_raw_mem(int addr, int len)
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
-    int data = vdev_read(addr, len);
+    int data = vdev_read(vdev, addr, len);
     DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, data, len);
     return data;
 }
@@ -315,7 +315,7 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
             case MEM_SRAM_BASE:
                 // 同步对内存的修改，避免调试反汇编异常
                 if (write)
-                    vdev_write(addr, aw_size, data);
+                    vdev_write(vdev, addr, aw_size, data);
                 break;
 
             case MEM_MROM_BASE:
@@ -436,12 +436,12 @@ void dpi_psram_write(int addr_idx, int len, int data)
     /* 0b0111数据写入，底层不支持这种方式。需要修改为4字节对齐方式 */
     if (len == 3)
     {
-        uint32_t high_data = vdev_read(addr + 3, 1);
+        uint32_t high_data = vdev_read(vdev, addr + 3, 1);
         data = (data & 0x00ffffff) | (high_data << 24);
         len = 4;
     }
 
-    vdev_write(addr, len, data);
+    vdev_write(vdev, addr, len, data);
 }
 
 int dpi_psram_read(int addr_idx, int len)
@@ -454,7 +454,7 @@ int dpi_psram_read(int addr_idx, int len)
         exit_simu(2);
     }
 
-    int data = vdev_read(addr, 4);
+    int data = vdev_read(vdev, addr, 4);
     return data;
 }
 
@@ -468,7 +468,7 @@ extern "C" void flash_read(int32_t addr_idx, int32_t *data)
         exit_simu(2);
     }
 
-    *data = vdev_read(addr, 4);
+    *data = vdev_read(vdev, addr, 4);
 }
 
 extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
@@ -484,7 +484,7 @@ extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
         raw_stdout("Read mrom is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
-    int inst = vdev_read(addr, 4);
+    int inst = vdev_read(vdev, addr, 4);
     // DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, inst, len);
     *data = inst;
 

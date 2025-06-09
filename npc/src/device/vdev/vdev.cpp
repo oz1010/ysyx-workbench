@@ -94,17 +94,11 @@ void init_vdev()
     IFDEF(CONFIG_HAS_SPI_MASTER, init_spi_master());
 }
 
-word_t vdev_read(paddr_t addr, int len)
+word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len)
 {
-    vdev_item_t* vdev = find_vdev_item(addr);
     if (vdev == NULL)
     {
-        panic("read address (" FMT_PADDR ") is out of bound at pc = " FMT_WORD, addr, cpu.pc);
-        return 0;
-    }
-    else if ((vdev->attr & VDEV_ATTR_READ) == 0)
-    {
-        panic("vdev attr (%#x) don't support READ at pc = " FMT_WORD, vdev->attr, cpu.pc);
+        panic("read item address (" FMT_PADDR ") is out of bound at pc = " FMT_WORD, addr, cpu.pc);
         return 0;
     }
 
@@ -123,17 +117,11 @@ word_t vdev_read(paddr_t addr, int len)
     return data;
 }
 
-void vdev_write(paddr_t addr, int len, word_t data)
+void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data)
 {
-    vdev_item_t* vdev = find_vdev_item(addr);
     if (vdev == NULL)
     {
-        panic("write address (" FMT_PADDR ") is out of bound at pc = " FMT_WORD, addr, cpu.pc);
-        return;
-    }
-    else if ((vdev->attr & VDEV_ATTR_WRITE) == 0)
-    {
-        panic("vdev attr (%#x) don't support WRITE at pc = " FMT_WORD, vdev->attr, cpu.pc);
+        panic("write item address (" FMT_PADDR ") is out of bound at pc = " FMT_WORD, addr, cpu.pc);
         return;
     }
 
