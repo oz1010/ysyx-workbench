@@ -1,16 +1,24 @@
 #ifndef __V_DEV_H__
 #define __V_DEV_H__
 
-#include <common.h>
+#include "common.h"
+#include "memory/vmem.h"
 
-typedef void (*vdev_handler_t)(uint32_t offset, int len, bool is_write);
+#define VDEV_UPDATE_HZ 60
+
+#define VDEV_ATTR_READ           (1<<0)
+#define VDEV_ATTR_WRITE          (1<<1)
+#define VDEV_ATTR_EXEC           (1<<2)
+
+// 读写处理函数
+typedef void (*vdev_handler_t)(void *item_arg, bool is_write, vaddr_t addr, int len, word_t *data);
 
 typedef enum
 {
     VDEV_IVALID,        // 无效设备
     VDEV_MEM,           // 内存设备
-    VDEV_INNER_DEV,     // 内置设备，比如：serial
-    VDEV_EXTER_DEV,     // 外置设备，比如：clint
+    VDEV_INNER,         // 内置设备，比如：serial
+    VDEV_EXTER,         // 外置设备，比如：clint
 } vdev_type_t;
 
 typedef struct
@@ -19,17 +27,15 @@ typedef struct
     const char* name;
     paddr_t startaddr;
     paddr_t endaddr; /* 不包含边界 */
-    void* raw_mem;
-    struct {
-        word_t (*read)(void *mem_item_arg, vaddr_t addr, int len);
-        void (*write)(void *mem_item_arg, vaddr_t addr, int len, word_t data);
-        vdev_handler_t handler;
-    };
+    uint8_t* raw_mem;
+    vdev_handler_t handler;
+    uint32_t attr;  /* 属性权限 */
 } vdev_item_t;
 
-void add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, void *raw_mem, uint32_t len, vdev_handler_t handler);
+vdev_item_t* add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, uint8_t *raw_mem, uint32_t len, uint32_t attr, vdev_handler_t handler);
 word_t vdev_read(paddr_t addr, int len);
 void vdev_write(paddr_t addr, int len, word_t data);
 vdev_item_t *find_vdev_item(paddr_t addr);
+void show_vdev(void);
 
 #endif

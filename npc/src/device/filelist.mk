@@ -25,7 +25,8 @@
 
 # SRCS-BLACKLIST-$(CONFIG_TARGET_AM) += src/device/alarm.cpp
 
-SRCS-$(CONFIG_DEVICE) += src/device/vdev.cpp
+# SRCS-$(CONFIG_DEVICE) += src/device/vdev.cpp
+DIRS-y += src/device/vdev
 
 ifdef CONFIG_DEVICE
 ifndef CONFIG_TARGET_AM

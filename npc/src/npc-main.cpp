@@ -5,6 +5,7 @@
 #include <memory>
 #include "memory/paddr.h"
 #include "memory/vaddr.h"
+#include "device/vdev.h"
 #include "dm/dtm.h"
 #include "utils.h"
 
@@ -23,24 +24,16 @@ word_t *rv_get_gpr(CPU_state *c, size_t idx)
 int rv_access_mem(uint32_t write, uint32_t pc, uint32_t size, uint8_t *data)
 {
     assert(size <= 4 && "access memory size is greater than 4");
-    mem_item_t *mem_item = find_mem_item(pc);
+    vdev_item_t *mem_item = find_vdev_item(pc);
 
-    if (mem_item)
+    if (mem_item && mem_item->handler)
     {
         // 内存区域
-        if (write)
-        {
-            mem_item->write(mem_item, pc, size, *(uint32_t *)data);
-        }
-        else
-        {
-            word_t mem_val = mem_item->read(mem_item, pc, size);
-            memcpy(data, &mem_val, 4);
-        }
+        mem_item->handler(mem_item, write, pc, size, (word_t *)data);
     }
     else
     {
-        show_mem();
+        show_vdev();
         LOG_ERROR("%s memory is out of range, pc:%#x size:%u", write ? "write" : "read", pc, size);
         assert(0);
     }
