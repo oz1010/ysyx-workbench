@@ -27,20 +27,6 @@
 #define MEM_PSRAM_BASE 0x80000000
 #define MEM_PSRAM_SIZE 0x00400000
 
-typedef struct _mem_item
-{
-    const char* name;
-    paddr_t startaddr;
-    paddr_t endaddr; /* 不包含边界 */
-    uint8_t* raw_mem;
-    struct {
-        word_t (*read)(void *mem_item_arg, vaddr_t addr, int len);
-        void (*write)(void *mem_item_arg, vaddr_t addr, int len, word_t data);
-    };
-} mem_item_t;
-
-extern mem_item_t mem_items[];
-
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 uint8_t* guest_to_host(paddr_t paddr);
 
@@ -49,7 +35,5 @@ void init_mem();
 word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, int len, word_t data);
 const char* size_str(uint32_t size_b);
-void show_mem();
-mem_item_t* find_mem_item(paddr_t addr);
 
 #endif

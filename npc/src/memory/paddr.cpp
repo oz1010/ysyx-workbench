@@ -15,99 +15,48 @@
 
 #include <memory/host.h>
 #include <memory/paddr.h>
+#include <memory/vmem.h>
 #include <device/vdev.h>
 #include <isa.h>
 #include <macro.h>
+#include "generated/autoconf.h"
 
 extern uint8_t *get_vsimu_sram_addr();
 
-static word_t mem_read(void *mem_item_arg, vaddr_t addr, int len);
-static void mem_write(void *mem_item_arg, vaddr_t addr, int len, word_t data);
-
-#if !CONFIG_PMEM_MALLOC
-#if CONFIG_MEM_TYPE_MULTI
-static uint8_t raw_mrom[MEM_MROM_SIZE] PG_ALIGN = {};
-static uint8_t raw_flash[MEM_FLASH_SIZE] PG_ALIGN = {};
-static uint8_t raw_psram[MEM_PSRAM_SIZE] PG_ALIGN = {};
-#else
-static uint8_t raw_memory[CONFIG_MSIZE] PG_ALIGN = {};
-#endif
-#endif
-
-// 推荐按地址从小到大排列
-mem_item_t mem_items[] = {
-#if CONFIG_MEM_TYPE_MULTI
-    {
-        .name = "sram",
-        .startaddr = MEM_SRAM_BASE,
-        .endaddr = (MEM_SRAM_BASE + MEM_SRAM_SIZE),
-        .raw_mem = 0,
-        .read = mem_read,
-        .write = mem_write,
-    },
-    {
-        .name = "mrom",
-        .startaddr = MEM_MROM_BASE,
-        .endaddr = (MEM_MROM_BASE + MEM_MROM_SIZE),
-        .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_mrom),
-        .read = mem_read,
-        .write = mem_write,
-    },
-    {
-        .name = "flash",
-        .startaddr = MEM_FLASH_BASE,
-        .endaddr = (MEM_FLASH_BASE + MEM_FLASH_SIZE),
-        .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_flash),
-        .read = mem_read,
-        .write = mem_write,
-    },
-    {
-        .name = "psram",
-        .startaddr = MEM_PSRAM_BASE,
-        .endaddr = (MEM_PSRAM_BASE + MEM_PSRAM_SIZE),
-        .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_psram),
-        .read = mem_read,
-        .write = mem_write,
-    },
-#else
-    {
-        .name = "memory",
-        .startaddr = CONFIG_MBASE,
-        .endaddr = (CONFIG_MBASE + CONFIG_MSIZE),
-        .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_memory),
-        .read = mem_read,
-        .write = mem_write,
-    },
-#endif
-};
+static vdev_item_t *mitems[16] = {};
+static int mitems_cnt = 0;
 
 #define out_of_bound(ADDR)                                     \
     do                                                         \
     {                                                          \
-        show_mem();                                            \
-        panic("[%s:%d %s] NEMU access address = " FMT_PADDR    \
+        show_vdev();                                           \
+        panic("[%s:%d %s] NPC access address = " FMT_PADDR     \
               " is out of bound of mem at pc = " FMT_WORD,     \
               __FILE__, __LINE__, __FUNCTION__, ADDR, cpu.pc); \
     } while (0)
 
 uint8_t *guest_to_host(paddr_t paddr)
 {
-    mem_item_t *item = find_mem_item(paddr);
+    vdev_item_t *item = find_vdev_item(paddr);
     if (!item)
         out_of_bound(paddr);
     return item->raw_mem + paddr - item->startaddr;
 }
 
-static word_t mem_read(void *mem_item_arg, vaddr_t addr, int len)
+static void mem_handler(void *item_arg, bool is_write, vaddr_t addr, int len, word_t *data)
 {
-    mem_item_t *item = (mem_item_t *)mem_item_arg;
-    word_t ret = host_read(item->raw_mem + addr - item->startaddr, len);
-    return ret;
-}
-static void mem_write(void *mem_item_arg, vaddr_t addr, int len, word_t data)
-{
-    mem_item_t *item = (mem_item_t *)mem_item_arg;
-    host_write(item->raw_mem + addr - item->startaddr, len, data);
+    vdev_item_t *vdev = (vdev_item_t *)item_arg;
+    assert(vdev);
+
+    if (is_write)
+    {
+        host_write((uint8_t *)vdev->raw_mem + addr - vdev->startaddr, len, *data);
+    }
+    else
+    {
+        word_t ret = host_read((uint8_t *)vdev->raw_mem + addr - vdev->startaddr, len);
+        *data = ret;
+    }
 }
 
 const char *size_str(uint32_t size_b)
@@ -139,78 +88,72 @@ const char *size_str(uint32_t size_b)
 
 void init_mem()
 {
-    for (int idx = 0; idx < ARRLEN(mem_items); ++idx)
+    init_vmem();
+
+#if CONFIG_MEM_TYPE_MULTI
+    mitems[mitems_cnt++] =
+        add_vdev_item(VDEV_MEM, "sram", CONFIG_SRAM_BASE, get_vsimu_sram_addr(), CONFIG_SRAM_SIZE,
+                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE | VDEV_ATTR_EXEC), mem_handler);
+
+    uint8_t *mrom_space = new_vmem(CONFIG_MROM_SIZE);
+    mitems[mitems_cnt++] =
+        add_vdev_item(VDEV_MEM, "mrom", CONFIG_MROM_BASE, mrom_space, CONFIG_MROM_SIZE,
+                      (VDEV_ATTR_READ | VDEV_ATTR_EXEC), mem_handler);
+
+    uint8_t *flash_space = new_vmem(CONFIG_FLASH_SIZE);
+    mitems[mitems_cnt++] =
+        add_vdev_item(VDEV_MEM, "flash", CONFIG_FLASH_BASE, flash_space, CONFIG_FLASH_SIZE,
+                      (VDEV_ATTR_READ | VDEV_ATTR_EXEC), mem_handler);
+
+    uint8_t *psram_space = new_vmem(CONFIG_PSRAM_SIZE);
+    mitems[mitems_cnt++] =
+        add_vdev_item(VDEV_MEM, "psram", CONFIG_PSRAM_BASE, psram_space, CONFIG_PSRAM_SIZE,
+                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE), mem_handler);
+
+    uint8_t *sdram_space = new_vmem(CONFIG_SDRAM_SIZE);
+    mitems[mitems_cnt++] =
+        add_vdev_item(VDEV_MEM, "sdram", CONFIG_SDRAM_BASE, sdram_space, CONFIG_SDRAM_SIZE,
+                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE), mem_handler);
+#else
+    uint8_t *memory_space = new_vmem(CONFIG_MSIZE);
+    mitems[mitems_cnt++] =
+        add_vdev_item(VDEV_MEM, "memory", CONFIG_MBASE, memory_space, CONFIG_MSIZE,
+                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE | VDEV_ATTR_EXEC), mem_handler);
+#endif
+
+    // 初始化内存
+    assert(mitems_cnt < ARRLEN(mitems));
+    for (int idx = 0; idx < ARRLEN(mitems); ++idx)
     {
-        mem_item_t *item = &mem_items[idx];
-        uint32_t size = (item->endaddr - item->startaddr);
+        vdev_item_t *vdev = mitems[idx];
+        if (!vdev)
+            continue;
+
         int init_val = MUXDEF(CONFIG_MEM_RANDOM, rand(), CONFIG_MEM_INIT_VALUE);
-
-        if (item->startaddr == MEM_SRAM_BASE)
-        {
-            // 硬件已经实现sram，直接获取地址即可
-            item->raw_mem = get_vsimu_sram_addr();
-        }
-        else if (!item->raw_mem)
-        {
-            item->raw_mem = (uint8_t *)malloc(size);
-            if (!item->raw_mem)
-            {
-                Log("Memory item malloc failed, %s [" FMT_PADDR ", " FMT_PADDR ")-%s", item->name,
-                    item->startaddr, item->endaddr, size_str(size));
-                exit(-1);
-            }
-        }
-
-        memset(item->raw_mem, init_val, size);
-        Log("Memory item init success, %s [" FMT_PADDR ", " FMT_PADDR ")-%s initialize value %#x",
-            item->name, item->startaddr, item->endaddr, size_str(size), init_val);
+        uint32_t size = (vdev->endaddr - vdev->startaddr);
+        memset(vdev->raw_mem, init_val, size);
+        Log("Memory vdev init success, %s [" FMT_PADDR ", " FMT_PADDR ")-%s initialize value %#x",
+            vdev->name, vdev->startaddr, vdev->endaddr, size_str(size), init_val);
     }
-}
-
-void show_mem()
-{
-    raw_all(ANSI_FMT("Memory item info:\n", ANSI_FG_GREEN));
-    for (int idx = 0; idx < ARRLEN(mem_items); ++idx)
-    {
-        mem_item_t *item = &mem_items[idx];
-        uint32_t size = (item->endaddr - item->startaddr);
-        raw_all("\t%s [" FMT_PADDR ", " FMT_PADDR ")-%s\n", item->name, item->startaddr,
-                item->endaddr, size_str(size));
-    }
-}
-
-mem_item_t *find_mem_item(paddr_t addr)
-{
-    for (int idx = 0; idx < ARRLEN(mem_items); ++idx)
-    {
-        mem_item_t *item = &mem_items[idx];
-        if (addr < item->endaddr && addr >= item->startaddr)
-        {
-            return item;
-        }
-    }
-
-    return NULL;
 }
 
 word_t paddr_read(paddr_t addr, int len)
 {
-    mem_item_t *item = find_mem_item(addr);
+    vdev_item_t *item = find_vdev_item(addr);
     if (likely(item != NULL))
-        return item->read(item, addr, len);
-    IFDEF(CONFIG_DEVICE, return vdev_read(addr, len));
+        return vdev_read(addr, len);
     out_of_bound(addr);
     return 0;
 }
 
 void paddr_write(paddr_t addr, int len, word_t data)
 {
-    mem_item_t *item = find_mem_item(addr);
+    vdev_item_t *item = find_vdev_item(addr);
+
     if (likely(item != NULL))
     {
-        item->write(item, addr, len, data);
+        vdev_write(addr, len, data);
         return;
     }
-    IFDEF(CONFIG_DEVICE, vdev_write(addr, len, data); return);
     out_of_bound(addr);
 }

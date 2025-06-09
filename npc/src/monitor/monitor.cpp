@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include "device/vdev.h"
 #include <generated/autoconf.h>
 #include <utils.h>
 #include "file/bin_header.h"
@@ -86,9 +87,9 @@ bin_header_t bin_header;
 
 static size_t load_img()
 {
-    mem_item_t *mem_item = find_mem_item(CONFIG_IMG_LOAD);
-    assert(mem_item);
-    uint8_t *pmem = mem_item->raw_mem;
+    vdev_item_t* vdev = find_vdev_item(CONFIG_IMG_LOAD);
+    assert(vdev);
+    uint8_t *pmem = vdev->raw_mem;
 
     if (cfg_img_file == NULL)
     {
@@ -161,7 +162,7 @@ static size_t load_img()
     Log("Load bin_header flag %#x", bin_header.flag);
     /* 根据entry重置pc */
     set_pc(bin_header.entry);
-    Log("Load code to %s %#x size %#x entry %#x", mem_item->name, mem_item->startaddr,
+    Log("Load code to %s %#x size %#x entry %#x", vdev->name, vdev->startaddr,
         (uint32_t)readsize, bin_header.entry);
     Log("Section text [%#x] => [%#x, %#x)-%s", bin_header.text_load, bin_header.text_start,
         bin_header.text_end, size_str(bin_header.text_end - bin_header.text_start));
