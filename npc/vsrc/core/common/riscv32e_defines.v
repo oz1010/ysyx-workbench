@@ -133,55 +133,10 @@ task check_dev_addr(
     input logic [3:0] attr,
     // output int match_dev_id,
 );
-    static device_info_t dev_infos[] = '{
-        '{name:"CLIN",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
-        '{name:"SRAM",          startaddr:32'h0f00_0000,    endaddr:32'h0f00_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE|`DEV_ATTR_EXEC)},
-        '{name:"UART16550",     startaddr:32'h1000_0000,    endaddr:32'h1000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
-        '{name:"SPI_MASTER",    startaddr:32'h1000_1000,    endaddr:32'h1000_1fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE)},
-        '{name:"MROM",          startaddr:32'h2000_0000,    endaddr:32'h2000_0fff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)},
-        '{name:"FLASH",         startaddr:32'h3000_0000,    endaddr:32'h30ff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_EXEC)},
-        '{name:"PSRAM",         startaddr:32'h8000_0000,    endaddr:32'h9fff_ffff,  attr:(`DEV_ATTR_READ|`DEV_ATTR_WRITE|`DEV_ATTR_EXEC)}
-    };
-    static logic [3:0] device_attrs[] = '{`DEV_ATTR_READ, `DEV_ATTR_WRITE, `DEV_ATTR_EXEC};
-    static int match_dev_id;
-
-    match_dev_id = -1;
-    foreach (dev_infos[dev_id]) begin
-        if (addr>=dev_infos[dev_id].startaddr && addr<=dev_infos[dev_id].endaddr) begin
-            match_dev_id = dev_id;
-            break;
-        end
-    end
-
-    if (match_dev_id < 0) begin
-        $display("valid dev info is below:");
-        for (integer dev_id=0; dev_id<dev_infos.size; ++dev_id) begin
-            $display("    %-12s - [0x%08x 0x%08x] attr: %s%s%s", 
-                dev_infos[dev_id].name, 
-                dev_infos[dev_id].startaddr, 
-                dev_infos[dev_id].endaddr, 
-                (dev_infos[dev_id].attr&`DEV_ATTR_READ)!=0?"r":"-",
-                (dev_infos[dev_id].attr&`DEV_ATTR_WRITE)!=0?"w":"-",
-                (dev_infos[dev_id].attr&`DEV_ATTR_EXEC)!=0?"x":"-"
-            );
-        end
-        $error("Access Fault, requested addr(0x%x) is out of range.", addr);
-    end
-
-    foreach (device_attrs[attr_id]) begin
-        if ((attr&device_attrs[attr_id])==0) continue;
-
-        if ((dev_infos[match_dev_id].attr&device_attrs[attr_id])==0) begin
-            $display("matched dev info is below:");
-            $display("    %-12s - [0x%08x 0x%08x] 0x%x", 
-                dev_infos[match_dev_id].name, 
-                dev_infos[match_dev_id].startaddr, 
-                dev_infos[match_dev_id].endaddr, 
-                dev_infos[match_dev_id].attr);
-            $error("Access Fault, requested attr(0x%x) does not match dev attr(0x%x) at addr(0x%x).", attr, dev_infos[match_dev_id].attr, addr);
-        end
-    end
-
+    static int ret;
+    ret = dpi_check_dev_addr(addr, {28'h0, attr});
+    if (ret == 1) $error("Access Fault");
+    else if (ret == 2) $error("Access Fault.");
 endtask
 
 task get_unalign_parameter(

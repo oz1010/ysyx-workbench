@@ -10,10 +10,8 @@
 #include "trace.h"
 #include "device/alarm.h"
 
-#define NR_VDEV_ITEMS 16
-
 static int vdev_items_cnt = 0;
-static vdev_item_t vdev_items[NR_VDEV_ITEMS] = {};
+vdev_item_t vdev_items[NR_VDEV_ITEMS] = {};
 
 void init_clint();
 void init_uart16550();
@@ -30,7 +28,7 @@ static void report_vdev_overlap(const char* name1, paddr_t l1, paddr_t r1, const
           name1, l1, r1, name2, l2, r2);
 }
 
-static const char* vdev_type_str(vdev_type_t type)
+const char* vdev_type_str(vdev_type_t type)
 {
     static const char* strs[] = {
         "IVALID",

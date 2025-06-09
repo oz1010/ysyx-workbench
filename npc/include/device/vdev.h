@@ -4,6 +4,7 @@
 #include "common.h"
 #include "memory/vmem.h"
 
+#define NR_VDEV_ITEMS 16
 #define VDEV_UPDATE_HZ 60
 
 #define VDEV_ATTR_READ           (1<<0)
@@ -37,5 +38,6 @@ word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len);
 void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data);
 vdev_item_t *find_vdev_item(paddr_t addr);
 void show_vdev(void);
+const char* vdev_type_str(vdev_type_t type);
 
 #endif

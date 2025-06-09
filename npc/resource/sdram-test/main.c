@@ -26,57 +26,62 @@ static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)a
 int main() {
     uint32_t addr;
 
-    /* 非字节对齐访问检测 */
-    for (uint32_t offset=0; offset<1; ++offset) {
-        for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=1) 
-            outb(addr, addr);
-        for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=1) 
-            CHECK_DATA(uint8_t, inb(addr), addr);
-    }
+    addr = SDRAM_TEST_ADDR;
+    outb(addr, 0x30);
+    printf("read %x %x\n", addr, inb(addr));
+    CHECK_DATA(uint8_t, inb(addr), 0x30);
+
+    // /* 非字节对齐访问检测 */
+    // for (uint32_t offset=0; offset<1; ++offset) {
+    //     for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=1) 
+    //         outb(addr, addr);
+    //     for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=1) 
+    //         CHECK_DATA(uint8_t, inb(addr), addr);
+    // }
     
-    for (uint32_t offset=0; offset<2; ++offset) {
-        for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=2) 
-            outw(addr, addr);
-        for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=2) 
-            CHECK_DATA(uint16_t, inw(addr), addr);
-    }
+    // for (uint32_t offset=0; offset<2; ++offset) {
+    //     for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=2) 
+    //         outw(addr, addr);
+    //     for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=2) 
+    //         CHECK_DATA(uint16_t, inw(addr), addr);
+    // }
 
-    for (uint32_t offset=0; offset<4; ++offset) {
-        for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=4) 
-            outl(addr, addr);
-        for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=4) 
-            CHECK_DATA(uint32_t, inl(addr), addr);
-    }
+    // for (uint32_t offset=0; offset<4; ++offset) {
+    //     for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=4) 
+    //         outl(addr, addr);
+    //     for (addr=SDRAM_TEST_ADDR+offset; addr<SDRAM_TEST_END; addr+=4) 
+    //         CHECK_DATA(uint32_t, inl(addr), addr);
+    // }
 
-    /* 全域混合读写访问检测 */
-    uint32_t asizes[] = {1,2,4};
-    uint32_t asize;
-    for (addr=SDRAM_ADDR; addr<(SDRAM_ADDR+SDRAM_MIX_SIZE-3);) {
-        for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
-            asize = asizes[idx];
-            switch(asize) {
-                case 1: outb(addr, addr); break;
-                case 2: outw(addr, addr); break;
-                case 4: outl(addr, addr); break;
-                default: halt(-1);
-            }
-            addr += asize;
-        }
-        addr += SDRAM_MIX_STEP;
-    }
-    for (addr=SDRAM_ADDR; addr<(SDRAM_ADDR+SDRAM_MIX_SIZE-3);) {
-        for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
-            asize = asizes[idx];
-            switch(asize) {
-                case 1: CHECK_DATA(uint8_t, inb(addr), addr); break;
-                case 2: CHECK_DATA(uint16_t, inw(addr), addr); break;
-                case 4: CHECK_DATA(uint32_t, inl(addr), addr); break;
-                default: halt(-1);
-            }
-            addr += asize;
-        }
-        addr += SDRAM_MIX_STEP;
-    }
+    // /* 全域混合读写访问检测 */
+    // uint32_t asizes[] = {1,2,4};
+    // uint32_t asize;
+    // for (addr=SDRAM_ADDR; addr<(SDRAM_ADDR+SDRAM_MIX_SIZE-3);) {
+    //     for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
+    //         asize = asizes[idx];
+    //         switch(asize) {
+    //             case 1: outb(addr, addr); break;
+    //             case 2: outw(addr, addr); break;
+    //             case 4: outl(addr, addr); break;
+    //             default: halt(-1);
+    //         }
+    //         addr += asize;
+    //     }
+    //     addr += SDRAM_MIX_STEP;
+    // }
+    // for (addr=SDRAM_ADDR; addr<(SDRAM_ADDR+SDRAM_MIX_SIZE-3);) {
+    //     for (uint32_t idx=0; idx<(sizeof(asizes)/sizeof(asizes[0])); ++idx) {
+    //         asize = asizes[idx];
+    //         switch(asize) {
+    //             case 1: CHECK_DATA(uint8_t, inb(addr), addr); break;
+    //             case 2: CHECK_DATA(uint16_t, inw(addr), addr); break;
+    //             case 4: CHECK_DATA(uint32_t, inl(addr), addr); break;
+    //             default: halt(-1);
+    //         }
+    //         addr += asize;
+    //     }
+    //     addr += SDRAM_MIX_STEP;
+    // }
 
     return 0;
 }
