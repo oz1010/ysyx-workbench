@@ -91,29 +91,35 @@ void init_mem()
     init_vmem();
 
 #if CONFIG_MEM_TYPE_MULTI
+#if CONFIG_SRAM
     mitems[mitems_cnt++] =
         add_vdev_item(VDEV_MEM, "sram", CONFIG_SRAM_BASE, get_vsimu_sram_addr(), CONFIG_SRAM_SIZE,
                       (VDEV_ATTR_READ | VDEV_ATTR_WRITE | VDEV_ATTR_EXEC), mem_handler);
-
+#endif
+#if CONFIG_MROM
     uint8_t *mrom_space = new_vmem(CONFIG_MROM_SIZE);
     mitems[mitems_cnt++] =
         add_vdev_item(VDEV_MEM, "mrom", CONFIG_MROM_BASE, mrom_space, CONFIG_MROM_SIZE,
                       (VDEV_ATTR_READ | VDEV_ATTR_EXEC), mem_handler);
-
+#endif
+#if CONFIG_FLASH
     uint8_t *flash_space = new_vmem(CONFIG_FLASH_SIZE);
     mitems[mitems_cnt++] =
         add_vdev_item(VDEV_MEM, "flash", CONFIG_FLASH_BASE, flash_space, CONFIG_FLASH_SIZE,
                       (VDEV_ATTR_READ | VDEV_ATTR_EXEC), mem_handler);
-
+#endif
+#if CONFIG_PSRAM
     uint8_t *psram_space = new_vmem(CONFIG_PSRAM_SIZE);
     mitems[mitems_cnt++] =
         add_vdev_item(VDEV_MEM, "psram", CONFIG_PSRAM_BASE, psram_space, CONFIG_PSRAM_SIZE,
-                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE), mem_handler);
-
+                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE | VDEV_ATTR_EXEC), mem_handler);
+#endif
+#if CONFIG_SDRAM
     uint8_t *sdram_space = new_vmem(CONFIG_SDRAM_SIZE);
     mitems[mitems_cnt++] =
         add_vdev_item(VDEV_MEM, "sdram", CONFIG_SDRAM_BASE, sdram_space, CONFIG_SDRAM_SIZE,
-                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE), mem_handler);
+                      (VDEV_ATTR_READ | VDEV_ATTR_WRITE | VDEV_ATTR_EXEC), mem_handler);
+#endif
 #else
     uint8_t *memory_space = new_vmem(CONFIG_MSIZE);
     mitems[mitems_cnt++] =

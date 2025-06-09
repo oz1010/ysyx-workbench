@@ -45,6 +45,7 @@ uint32_t hw_flash_idx = 0;
 // extern uint8_t raw_memory[CONFIG_MSIZE];
 // uint8_t raw_psram[PSRAM_SIZE];
 // #endif
+extern vdev_item_t vdev_items[NR_VDEV_ITEMS];
 
 #define FLASH_SIZE (16 * 1024 * 1024)
 #define TEST_INIF_FLASH_BASEADDR 0x30f00000
@@ -456,6 +457,40 @@ int dpi_psram_read(int addr_idx, int len)
 
     int data = vdev_read(vdev, addr, 4);
     return data;
+}
+
+int dpi_check_dev_addr(int addr, int attr)
+{
+    vdev_item_t *vdev = find_vdev_item(addr);
+    if (!vdev)
+    {
+        show_vdev();
+        raw_stdout("Request addr(%#.8x) is out of range.\n", addr);
+        return 1;
+    }
+
+    uint32_t device_attrs[] = {
+        VDEV_ATTR_READ,
+        VDEV_ATTR_WRITE,
+        VDEV_ATTR_EXEC,
+    };
+    for (int idx = 0; idx < ARRLEN(device_attrs); idx++)
+    {
+        uint32_t detect_attr = device_attrs[idx];
+        if ((attr&detect_attr) == 0) continue;
+
+        if ((vdev->attr&detect_attr) == 0) {
+            raw_stdout("matched vdev info is below:\n");
+            raw_stdout("    %-12s - [0x%08x 0x%08x) attr: %s%s%s type:%-8s\n", vdev->name,
+                   vdev->startaddr, vdev->endaddr, (vdev->attr & VDEV_ATTR_READ) != 0 ? "r" : "-",
+                   (vdev->attr & VDEV_ATTR_WRITE) != 0 ? "w" : "-",
+                   (vdev->attr & VDEV_ATTR_EXEC) != 0 ? "x" : "-", vdev_type_str(vdev->type));
+            raw_stdout("Request attr(%#x) does not match dev attr(%#x) at addr(%#x).\n", attr, vdev->attr, addr);
+            return 2;
+        }
+    }
+
+    return 0;
 }
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)
