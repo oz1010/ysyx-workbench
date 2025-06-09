@@ -37,10 +37,10 @@ static int mitems_cnt = 0;
 
 uint8_t *guest_to_host(paddr_t paddr)
 {
-    vdev_item_t *item = find_vdev_item(paddr);
-    if (!item)
+    vdev_item_t *vdev = find_vdev_item(paddr);
+    if (!vdev)
         out_of_bound(paddr);
-    return item->raw_mem + paddr - item->startaddr;
+    return vdev->raw_mem + paddr - vdev->startaddr;
 }
 
 static void mem_handler(void *item_arg, bool is_write, vaddr_t addr, int len, word_t *data)
@@ -139,20 +139,20 @@ void init_mem()
 
 word_t paddr_read(paddr_t addr, int len)
 {
-    vdev_item_t *item = find_vdev_item(addr);
-    if (likely(item != NULL))
-        return vdev_read(addr, len);
+    vdev_item_t *vdev = find_vdev_item(addr);
+    if (likely(vdev != NULL))
+        return vdev_read(vdev, addr, len);
     out_of_bound(addr);
     return 0;
 }
 
 void paddr_write(paddr_t addr, int len, word_t data)
 {
-    vdev_item_t *item = find_vdev_item(addr);
+    vdev_item_t *vdev = find_vdev_item(addr);
 
-    if (likely(item != NULL))
+    if (likely(vdev != NULL))
     {
-        vdev_write(addr, len, data);
+        vdev_write(vdev, addr, len, data);
         return;
     }
     out_of_bound(addr);
