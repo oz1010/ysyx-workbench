@@ -26,10 +26,10 @@ static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)a
 int main() {
     uint32_t addr;
 
-    addr = SDRAM_TEST_ADDR;
-    outb(addr, 0x30);
-    printf("read %x %x\n", addr, inb(addr));
-    CHECK_DATA(uint8_t, inb(addr), 0x30);
+    addr = SDRAM_TEST_ADDR + 0x98;
+    outl(addr, 0x33323130);
+    printf("read %x %x\n", addr, inl(addr));
+    CHECK_DATA(uint32_t, inl(addr), 0x33323130);
 
     // /* 非字节对齐访问检测 */
     // for (uint32_t offset=0; offset<1; ++offset) {
