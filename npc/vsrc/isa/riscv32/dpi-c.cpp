@@ -301,12 +301,12 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
     {
         if (write)
         {
-            DPI_DTRACE(mem_item->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
+            DPI_DTRACE(vdev->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
                        req_info, aw_size, w_strb);
         }
         else
         {
-            DPI_DTRACE(mem_item->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
+            DPI_DTRACE(vdev->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
                        req_info, ar_size, ar_len);
         }
 
