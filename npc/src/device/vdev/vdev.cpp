@@ -118,7 +118,7 @@ word_t vdev_read(paddr_t addr, int len)
     }
     else if (vdev->type == VDEV_EXTER)
     {
-        DTRACE_LOG("<DT> <VDEV> %s R [%#.8x] => %#.8x %d", vdev->name, addr, data, len)
+        DTRACE_LOG("<DT> <VDEV> %s R [%#.8x] => %#.8x %d", vdev->name, addr, data, len);
     }
     return data;
 }
