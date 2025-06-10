@@ -12,18 +12,22 @@ module sdram(
 );
     // ref. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
 
-    // TODO 需要解决读写序号问题
-    assign dq = (state==read_t && counter==cas_latency-1) ? read_data[15:0] :
-                (state==read_t && (counter==cas_latency)) ? read_data[31:16] :
+    assign dq = (state==read_t && counter==cas_latency-1) ? rdata[15:0] :
+                (state==read_t && (counter==cas_latency)) ? rdata[31:16] :
                 16'bz;
+
+    wire [3:0] input_cmd = {cs, ras, cas, we};
 
     typedef enum [2:0] { idle_t, active_t, read_t, write_t, err_t } state_t;
     reg [2:0] state;
     reg [7:0] counter;
     reg [31:0] addr;
-    reg [31:0] read_data;
-    reg [31:0] write_data;
-    wire [3:0] input_cmd = {cs, ras, cas, we};
+    reg [31:0] rdata;
+
+    reg [31:0] wdata;
+    reg [3:0] wmask;
+    reg [1:0] woffset;
+    reg [2:0] wsize;
 
     // reg. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
     //   Mode Register Definition
@@ -37,7 +41,8 @@ module sdram(
         state = idle_t;
         counter = 0;
         addr = 0;
-        read_data = 0;
+        rdata = 0;
+        wmask = 0;
     end
 
     always @(posedge clk) begin
@@ -58,12 +63,12 @@ module sdram(
                  * ref. Functional Description
                  * ref. Figure 3: 16 Meg x 16 Functional Block Diagram
                  *   每个bank范围：(8192 x 512 x 16)
-                 * 地址结构：[row-13bits][bank-2bits][column-9bits][read_data-16bits]
+                 * 地址结构：[row-13bits][bank-2bits][column-9bits][rdata-16bits]
                  * 需要注意数据总线为16bit，及2字节数据，所以地址最低位一直为0
                  */
-                addr[31:25] <= 0;
-                addr[24:12] <= a;   // select the row
-                addr[11:10] <= ba;  // select the bank
+                addr[31:25] <= 7'h50;   // a000_0000固定地址
+                addr[24:12] <= a;       // select the row
+                addr[11:10] <= ba;      // select the bank
                 addr[0] <= 0;
                 if (burst_length!=2) $error("sdram don't support burst_length=%x", burst_length);
                 if (mx_cas_latency!=2) $error("sdram only support cas_latency=%x", mx_cas_latency);
@@ -83,7 +88,8 @@ module sdram(
                     state <= write_t;
                     addr[9:1] <= a[8:0];    // select the column
                     // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
-                    write_data[15:0] <= dq;
+                    wdata <= {dq, wdata[31:16]};
+                    wmask <= {~dqm, wmask[3:2]};
                 end
             end
 
@@ -129,12 +135,12 @@ module sdram(
 
             read_t: begin
                 if (counter == 0) begin
-                    // read read_data
-                    read_data <= dpi_vdev_read((32'ha0000000+addr), 4);
+                    // read rdata
+                    rdata <= dpi_vdev_read(addr, 4);
                 end
 
                 if (counter == cas_latency) begin
-                    // end read read_data
+                    // end read rdata
                     // $display("read data done addr %x counter %x", addr, counter);
                     state <= idle_t;
                 end
@@ -142,13 +148,16 @@ module sdram(
 
             write_t: begin
                 if (counter == 0) begin
-                    write_data[31:16] <= dq;
+                    wdata <= {dq, wdata[31:16]};
+                    wmask <= {~dqm, wmask[3:2]};
+                    get_unalign_from_mask({~dqm, wmask[3:2]}, woffset, wsize);
                     // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
                 end else begin
-                    // end write read_data
-                    dpi_vdev_write((32'ha0000000+addr), write_data, 4);
-                    // $display("write data done addr %x data %x counter %x", addr, write_data, counter);
+                    // end write rdata
+                    dpi_vdev_write((addr+{30'h0,woffset}), (wdata>>(8*woffset)), {29'h0,wsize});
+                    // $display("write data done addr %x data %x counter %x", addr, wdata, counter);
                     state <= idle_t;
+                    wmask <= 0;
                 end
             end
 
