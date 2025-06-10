@@ -300,48 +300,65 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
     vdev_item_t *vdev = find_vdev_item(addr);
     if (vdev)
     {
-        if (write)
+        if (vdev->type == VDEV_EXTER)
         {
-            DPI_DTRACE(vdev->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
-                       req_info, aw_size, w_strb);
-        }
-        else
-        {
-            DPI_DTRACE(vdev->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
-                       req_info, ar_size, ar_len);
-        }
-
-        switch (vdev->startaddr)
-        {
-            case MEM_SRAM_BASE:
-                // 同步对内存的修改，避免调试反汇编异常
+            DIFFTEST_SKIP_REF();
+            if (vdev->startaddr == CONFIG_UART_BASE_ADDR)
+            {
+                char c = (char)data;
+                DPI_DTRACE(vdev->name, "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c,
+                           c);
+            }
+            else if (vdev->startaddr == CONFIG_SPI_MASTER_BASE_ADDR)
+            {
+                DPI_DTRACE(vdev->name, "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
+            }
+            else
+            {
                 if (write)
-                    vdev_write(vdev, addr, aw_size, data);
-                break;
+                {
+                    DPI_DTRACE(vdev->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
+                               req_info, aw_size, w_strb);
+                }
+                else
+                {
+                    DPI_DTRACE(vdev->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
+                               req_info, ar_size, ar_len);
+                }
+            }
+        }
+        else if (vdev->type == VDEV_MEM)
+        {
+            if (write)
+            {
+                DPI_MTRACE("%s W [%#.8x] <= %#.8x %d %#x", vdev->name, addr, data, aw_size, w_strb);
+            }
+            else
+            {
+                DPI_MTRACE("%s R [%#.8x] => %#.8x %d %#x", vdev->name, addr, data, ar_size, ar_len);
+            }
+            switch (vdev->startaddr)
+            {
+                case CONFIG_SRAM_BASE:
+                    // 同步对内存的修改，避免调试反汇编异常
+                    if (write)
+                        vdev_write(vdev, addr, aw_size, data);
+                    break;
 
-            case MEM_MROM_BASE:
-            case MEM_FLASH_BASE:
-            case MEM_PSRAM_BASE:
-                break;
+                case CONFIG_MROM_BASE:
+                case CONFIG_FLASH_BASE:
+                case CONFIG_PSRAM_BASE:
+                case CONFIG_SDRAM_BASE:
+                    break;
 
-            default:
-                DPI_DTRACE("unknown-mem", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
-                break;
+                default:
+                    DPI_DTRACE("unknown-mem", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data,
+                               req_info);
+                    break;
+            }
         }
 
         return;
-    }
-
-    if (addr >= 0x10000000 && addr <= 0x10000fff)
-    {
-        char c = (char)data;
-        DPI_DTRACE("uart", "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c, c);
-        DIFFTEST_SKIP_REF();
-    }
-    else if (addr >= 0x10001000 && addr <= 0x10001fff)
-    {
-        DPI_DTRACE("spi_master", "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
-        DIFFTEST_SKIP_REF();
     }
     else
     {
@@ -382,7 +399,7 @@ int dpi_rtc_read(int addr, int len)
     static uint64_t update_ticks = 10240;
     int ret = 0;
 
-    if ((addr==0x02000048 || addr==0x02000050) && ((hw_tick - last_tick) >= update_ticks))
+    if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_tick - last_tick) >= update_ticks))
     {
         last_tick += update_ticks;
         local_execute_time = get_time();
@@ -421,7 +438,7 @@ int dpi_rtc_read(int addr, int len)
 
 void dpi_psram_write(int addr_idx, int len, int data)
 {
-    uint32_t addr = addr_idx + MEM_PSRAM_BASE;
+    uint32_t addr = addr_idx + CONFIG_PSRAM_BASE;
     vdev_item_t *vdev = find_vdev_item(addr);
     if (!vdev)
     {
@@ -447,7 +464,7 @@ void dpi_psram_write(int addr_idx, int len, int data)
 
 int dpi_psram_read(int addr_idx, int len)
 {
-    uint32_t addr = addr_idx + MEM_PSRAM_BASE;
+    uint32_t addr = addr_idx + CONFIG_PSRAM_BASE;
     vdev_item_t *vdev = find_vdev_item(addr);
     if (!vdev)
     {
@@ -477,15 +494,19 @@ int dpi_check_dev_addr(int addr, int attr)
     for (int idx = 0; idx < ARRLEN(device_attrs); idx++)
     {
         uint32_t detect_attr = device_attrs[idx];
-        if ((attr&detect_attr) == 0) continue;
+        if ((attr & detect_attr) == 0)
+            continue;
 
-        if ((vdev->attr&detect_attr) == 0) {
+        if ((vdev->attr & detect_attr) == 0)
+        {
             raw_stdout("matched vdev info is below:\n");
             raw_stdout("    %-12s - [0x%08x 0x%08x) attr: %s%s%s type:%-8s\n", vdev->name,
-                   vdev->startaddr, vdev->endaddr, (vdev->attr & VDEV_ATTR_READ) != 0 ? "r" : "-",
-                   (vdev->attr & VDEV_ATTR_WRITE) != 0 ? "w" : "-",
-                   (vdev->attr & VDEV_ATTR_EXEC) != 0 ? "x" : "-", vdev_type_str(vdev->type));
-            raw_stdout("Request attr(%#x) does not match dev attr(%#x) at addr(%#x).\n", attr, vdev->attr, addr);
+                       vdev->startaddr, vdev->endaddr,
+                       (vdev->attr & VDEV_ATTR_READ) != 0 ? "r" : "-",
+                       (vdev->attr & VDEV_ATTR_WRITE) != 0 ? "w" : "-",
+                       (vdev->attr & VDEV_ATTR_EXEC) != 0 ? "x" : "-", vdev_type_str(vdev->type));
+            raw_stdout("Request attr(%#x) does not match dev attr(%#x) at addr(%#x).\n", attr,
+                       vdev->attr, addr);
             return 2;
         }
     }
@@ -501,7 +522,7 @@ int dpi_vdev_read(int addr, int len)
         raw_stdout("DPI vdev read is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
     }
-    
+
     int data = vdev_read(vdev, addr, len);
     return data;
 }
@@ -528,7 +549,7 @@ void dpi_vdev_write(int addr, int data, int len)
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)
 {
-    uint32_t addr = addr_idx + MEM_FLASH_BASE;
+    uint32_t addr = addr_idx + CONFIG_FLASH_BASE;
     vdev_item_t *vdev = find_vdev_item(addr);
     if (!vdev)
     {

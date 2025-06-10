@@ -92,7 +92,7 @@ void init_vdev()
     IFDEF(CONFIG_HAS_SPI_MASTER, init_spi_master());
 }
 
-word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len)
+word_t vdev_read_with_trace(vdev_item_t* vdev, paddr_t addr, int len, bool trace_en)
 {
     if (vdev == NULL)
     {
@@ -103,6 +103,9 @@ word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len)
     word_t data;
     if (vdev->handler)
         vdev->handler(vdev, false, addr, len, &data);
+
+    if (!trace_en)
+        return data;
 
     if (vdev->type == VDEV_MEM)
     {
@@ -115,7 +118,7 @@ word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len)
     return data;
 }
 
-void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data)
+void vdev_write_with_trace(vdev_item_t* vdev, paddr_t addr, int len, word_t data, bool trace_en)
 {
     if (vdev == NULL)
     {
@@ -126,6 +129,9 @@ void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data)
     if (vdev->handler)
         vdev->handler(vdev, true, addr, len, &data);
 
+    if (!trace_en)
+        return;
+
     if (vdev->type == VDEV_MEM)
     {
         MTRACE_ADD("%s W [%#.8x] <= %#.8x %d", vdev->name, addr, data, len);
@@ -134,6 +140,16 @@ void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data)
     {
         DTRACE_LOG("<DT> <VDEV> %s W [%#.8x] <= %#.8x %d", vdev->name, addr, data, len);
     }
+}
+
+word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len)
+{
+    return vdev_read_with_trace(vdev, addr, len, false);
+}
+
+void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data)
+{
+    vdev_write_with_trace(vdev, addr, len, data, false);
 }
 
 vdev_item_t* add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, uint8_t* raw_mem,

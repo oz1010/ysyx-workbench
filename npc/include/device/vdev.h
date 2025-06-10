@@ -36,6 +36,8 @@ typedef struct
 vdev_item_t* add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, uint8_t *raw_mem, uint32_t len, uint32_t attr, vdev_handler_t handler);
 word_t vdev_read(vdev_item_t* vdev, paddr_t addr, int len);
 void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data);
+word_t vdev_read_with_trace(vdev_item_t* vdev, paddr_t addr, int len, bool trace_en);
+void vdev_write_with_trace(vdev_item_t* vdev, paddr_t addr, int len, word_t data, bool trace_en);
 vdev_item_t *find_vdev_item(paddr_t addr);
 void show_vdev(void);
 const char* vdev_type_str(vdev_type_t type);
