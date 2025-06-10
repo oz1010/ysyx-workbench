@@ -17,6 +17,12 @@ module sdram(
     reg [15:0] read_data;
     reg [15:0] write_data;
 
+    // reg. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
+    //   Mode Register Definition
+    reg [12:0] mx;
+    wire [2:0] mx_burst_length = mx[2:0]; // 2^n，有效值：0~3 (1~8)
+    wire [2:0] mx_cas_latency = mx[6:4]; // 设定dq执行READ命令几个周期后数据有效，有效取值：1~3，其他保留
+
     always @(posedge clk) begin
     casez ({cs, ras, cas, we})
         // COMMAND INHIBIT 无命令
@@ -51,6 +57,8 @@ module sdram(
         // Mode寄存器只需要实现CAS Latency和Burst Length, 其他字段可忽略
         // LOAD MODE REGISTER 设置Mode寄存器
         4'b0000: begin
+            mx <= a;
+            // $display("set mx => %x", a);
         end
 
         default: begin
