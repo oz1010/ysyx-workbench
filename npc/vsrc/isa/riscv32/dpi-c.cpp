@@ -524,6 +524,12 @@ int dpi_vdev_read(int addr, int len)
     }
 
     int data = vdev_read(vdev, addr, len);
+
+    if (vdev->startaddr == CONFIG_SDRAM_BASE)
+    {
+        // raw_stdout("====== DPI read sdram addr %#x data %#x len %d\n", addr, data, len);
+    }
+
     return data;
 }
 
@@ -545,6 +551,11 @@ void dpi_vdev_write(int addr, int data, int len)
     }
 
     vdev_write(vdev, addr, len, data);
+
+    if (vdev->startaddr == CONFIG_SDRAM_BASE)
+    {
+        // raw_stdout("====== DPI write sdram addr %#x data %#x len %d\n", addr, data, len);
+    }
 }
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)
