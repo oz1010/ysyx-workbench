@@ -201,4 +201,26 @@ task read_unalign_data(
     endcase
 endtask
 
+// 由掩码（1为有效位）计算偏移和数据大小
+task get_unalign_from_mask(
+    input logic[3:0] mask,
+    output logic[1:0] offset,
+    output logic[2:0] size
+);
+
+    case(mask)
+        4'b0001: begin offset=0; size=1; end
+        4'b0010: begin offset=1; size=1; end
+        4'b0100: begin offset=2; size=1; end
+        4'b1000: begin offset=3; size=1; end
+        4'b0011: begin offset=0; size=2; end
+        4'b0110: begin offset=1; size=2; end
+        4'b1100: begin offset=2; size=2; end
+        4'b0111: begin offset=0; size=3; end
+        4'b1110: begin offset=1; size=3; end
+        4'b1111: begin offset=0; size=4; end
+        default: begin offset=0; size=0; end
+    endcase
+endtask
+
 `endif

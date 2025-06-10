@@ -515,6 +515,14 @@ void dpi_vdev_write(int addr, int data, int len)
         exit_simu(2);
     }
 
+    /* 0b0111数据写入，底层不支持这种方式。需要修改为4字节对齐方式 */
+    if (len == 3)
+    {
+        uint32_t high_data = vdev_read(vdev, addr + 3, 1);
+        data = (data & 0x00ffffff) | (high_data << 24);
+        len = 4;
+    }
+
     vdev_write(vdev, addr, len, data);
 }
 
