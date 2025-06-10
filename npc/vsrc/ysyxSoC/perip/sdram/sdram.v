@@ -13,17 +13,17 @@ module sdram(
     // ref. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
 
     // TODO 需要解决读写序号问题
-    assign dq = (state==read_t && counter==cas_latency-1) ? data[15:0] :
-                (state==read_t && (counter==cas_latency)) ? data[31:16] :
+    assign dq = (state==read_t && counter==cas_latency-1) ? read_data[15:0] :
+                (state==read_t && (counter==cas_latency)) ? read_data[31:16] :
                 16'bz;
 
     typedef enum [2:0] { idle_t, active_t, read_t, write_t, err_t } state_t;
     reg [2:0] state;
     reg [7:0] counter;
     reg [31:0] addr;
-    reg [31:0] data;
-    reg [15:0] read_data;
-    reg [15:0] write_data;
+    reg [31:0] read_data;
+    reg [31:0] write_data;
+    wire [3:0] input_cmd = {cs, ras, cas, we};
 
     // reg. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
     //   Mode Register Definition
@@ -37,11 +37,11 @@ module sdram(
         state = idle_t;
         counter = 0;
         addr = 0;
-        data = 0;
+        read_data = 0;
     end
 
     always @(posedge clk) begin
-        casez ({cs, ras, cas, we})
+        casez (input_cmd)
             // COMMAND INHIBIT 无命令
             4'b1zzz: begin
                 state <= idle_t;
@@ -58,7 +58,7 @@ module sdram(
                  * ref. Functional Description
                  * ref. Figure 3: 16 Meg x 16 Functional Block Diagram
                  *   每个bank范围：(8192 x 512 x 16)
-                 * 地址结构：[row-13bits][bank-2bits][column-9bits][data-16bits]
+                 * 地址结构：[row-13bits][bank-2bits][column-9bits][read_data-16bits]
                  * 需要注意数据总线为16bit，及2字节数据，所以地址最低位一直为0
                  */
                 addr[31:25] <= 0;
@@ -71,7 +71,7 @@ module sdram(
 
             // READ 读出目标存储体的一列
             4'b0101: begin
-                if (state == active_t) begin
+                if (state == active_t || state == idle_t) begin
                     state <= read_t;
                     addr[9:1] <= a[8:0];    // select the column
                 end
@@ -79,6 +79,12 @@ module sdram(
 
             // WRITE 写入目标存储体的一列
             4'b0100: begin
+                if (state == active_t || state == idle_t) begin
+                    state <= write_t;
+                    addr[9:1] <= a[8:0];    // select the column
+                    // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
+                    write_data[15:0] <= dq;
+                end
             end
 
             // BURST TERMINATE 停止当前的突发传输
@@ -103,15 +109,16 @@ module sdram(
             end
 
             default: begin
-                $error("sdram don't support other command {cs,ras,cas,we}=0x%x.", {cs, ras, cas, we});
+                $error("sdram don't support other command 0x%x.", input_cmd);
             end
         endcase
     end
 
     always @(posedge clk) begin
         case(state)
+            idle_t: counter <= 0;
             read_t, write_t: counter <= counter + 1;
-            default: counter <= 0;
+            default: counter <= counter;
         endcase
     end
 
@@ -122,19 +129,29 @@ module sdram(
 
             read_t: begin
                 if (counter == 0) begin
-                    // read data
-                    $display("====== set debug data %x at addr %x", addr, 32'ha0000000 + addr);
-                    data <= 32'ha0000000 + addr;
+                    // read read_data
+                    read_data <= dpi_vdev_read((32'ha0000000+addr), 4);
                 end
 
-                if (counter == (cas_latency+1)) begin
-                    // end read data
+                if (counter == cas_latency) begin
+                    // end read read_data
                     // $display("read data done addr %x counter %x", addr, counter);
                     state <= idle_t;
                 end
             end
 
-            write_t: ;
+            write_t: begin
+                if (counter == 0) begin
+                    write_data[31:16] <= dq;
+                    // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
+                end else begin
+                    // end write read_data
+                    dpi_vdev_write((32'ha0000000+addr), write_data, 4);
+                    // $display("write data done addr %x data %x counter %x", addr, write_data, counter);
+                    state <= idle_t;
+                end
+            end
+
             err_t: ;
             default: ;
         endcase

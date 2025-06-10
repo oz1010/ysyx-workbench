@@ -493,6 +493,31 @@ int dpi_check_dev_addr(int addr, int attr)
     return 0;
 }
 
+int dpi_vdev_read(int addr, int len)
+{
+    vdev_item_t *vdev = find_vdev_item(addr);
+    if (!vdev)
+    {
+        raw_stdout("DPI vdev read is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+    }
+    
+    int data = vdev_read(vdev, addr, len);
+    return data;
+}
+
+void dpi_vdev_write(int addr, int data, int len)
+{
+    vdev_item_t *vdev = find_vdev_item(addr);
+    if (!vdev)
+    {
+        raw_stdout("DPI vdev write is out of range, addr:%#.8x len:%d\n", addr, len);
+        exit_simu(2);
+    }
+
+    vdev_write(vdev, addr, len, data);
+}
+
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)
 {
     uint32_t addr = addr_idx + MEM_FLASH_BASE;
