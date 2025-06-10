@@ -26,7 +26,7 @@ static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)a
 int main() {
     uint32_t addr;
 
-    addr = SDRAM_TEST_ADDR + 0x98;
+    addr = SDRAM_TEST_ADDR + 0x987654;
     outl(addr, 0x33323130);
     printf("read %x %x\n", addr, inl(addr));
     CHECK_DATA(uint32_t, inl(addr), 0x33323130);
