@@ -80,7 +80,7 @@ module sdram(
                 state <= active_t;
                 active_rows[ba] <= a;   // 先存储激活的row
                 if (burst_length!=2&&burst_length!=1) $error("sdram don't support burst_length=%x", burst_length);
-                if (mx_cas_latency!=2) $error("sdram only support cas_latency=%x", mx_cas_latency);
+                if (mx_cas_latency!=2&&mx_cas_latency!=1) $error("sdram only support cas_latency=%x", mx_cas_latency);
             end
 
             // READ 读出目标存储体的一列

@@ -11,7 +11,7 @@ static inline void outb(uintptr_t addr, uint8_t data) { *(volatile uint8_t *)add
 static inline void outw(uintptr_t addr, uint16_t data) { *(volatile uint16_t *)addr = data; }
 static inline void outl(uintptr_t addr, uint32_t data) { *(volatile uint32_t *)addr = data; }
 
-#define CHECK_DATA(type, a, b) do{ type a_v=(a); type b_v=(b); if(a_v!=b_v) { printf("error.\n"); printf("current addr: %#x data: %#x check: %x\n", addr, a_v, b_v); halt((int)b_v);} }while(0)
+#define CHECK_DATA(type, a, b) do{ type a_v=(a); type b_v=(b); if(a_v!=b_v) { printf("error.\n"); printf("current addr: %#x data: %#x check: %#x\n", addr, a_v, b_v); halt((int)b_v);} }while(0)
 
 #define SDRAM_ADDR          0xa0000000
 #define SDRAM_SIZE          0x02000000
