@@ -2041,6 +2041,7 @@ module APBSDRAM(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRA
   output [12:0] sdram_bundle_a,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRAM.scala:89:26
   output [1:0]  sdram_bundle_ba,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRAM.scala:89:26
   output [`SDRAM_DATA_MASK_BITS-1:0]  sdram_bundle_dqm,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRAM.scala:89:26
+  output [`SDRAM_BLK_NUM-1:0] sdram_bundle_bsel,
   inout  [`SDRAM_DATA_BITS-1:0] sdram_bundle_dq	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRAM.scala:89:26
 );
 
@@ -2066,6 +2067,7 @@ module APBSDRAM(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRA
     .sdram_a    (sdram_bundle_a),
     .sdram_ba   (sdram_bundle_ba),
     .sdram_dqm  (sdram_bundle_dqm),
+    .sdram_bsel (sdram_bundle_bsel),
     .sdram_dq   (sdram_bundle_dq)
   );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/device/SDRAM.scala:91:24
 endmodule
@@ -3564,6 +3566,7 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   output [12:0] sdram_a,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:89:19
   output [1:0]  sdram_ba,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:89:19
   output [`SDRAM_DATA_MASK_BITS-1:0]  sdram_dqm,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:89:19
+  output [`SDRAM_BLK_NUM-1:0]  sdram_bsel,
   inout  [`SDRAM_DATA_BITS-1:0] sdram_dq,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:89:19
   output [15:0] gpio_out,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:90:18
   input  [15:0] gpio_in,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:90:18
@@ -4273,6 +4276,7 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .sdram_bundle_a   (sdram_a),
     .sdram_bundle_ba  (sdram_ba),
     .sdram_bundle_dqm (sdram_dqm),
+    .sdram_bundle_bsel(sdram_bsel),
     .sdram_bundle_dq  (sdram_dq)
   );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:47:60
   apb_delayer apbdelay_delayer (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/APBDelayer.scala:34:27
@@ -4503,6 +4507,7 @@ module ysyxSoCFull(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   wire [12:0] _asic_sdram_a;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
   wire [1:0]  _asic_sdram_ba;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
   wire [`SDRAM_DATA_MASK_BITS-1:0]  _asic_sdram_dqm;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+  wire [`SDRAM_BLK_NUM-1:0] _asic_sdram_bsel;
   wire [3:0]  _dio_wire;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:143:23
   wire [`SDRAM_DATA_BITS-1:0] _dq_wire;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:145:23
   ysyxSoCASIC asic (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
@@ -4526,6 +4531,7 @@ module ysyxSoCFull(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .sdram_a    (_asic_sdram_a),
     .sdram_ba   (_asic_sdram_ba),
     .sdram_dqm  (_asic_sdram_dqm),
+    .sdram_bsel (_asic_sdram_bsel),
     .sdram_dq   (_dq_wire),
     .gpio_out   (externalPins_gpio_out),
     .gpio_in    (externalPins_gpio_in),
@@ -4565,22 +4571,25 @@ module ysyxSoCFull(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:143:23
   // sdram实现位扩展-根据位宽生成多个实例
   generate
-    genvar i;
-    for (i=0; i<(`SDRAM_DATA_BITS/16); i=i+1) begin : sdram_list
-      sdram #(
-        .BASE_ADDR_OFFSET(i*2)
-      ) sdram (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:145:23
-        .clk (_asic_sdram_clk),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .cke (_asic_sdram_cke),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .cs  (_asic_sdram_cs),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .ras (_asic_sdram_ras),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .cas (_asic_sdram_cas),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .we  (_asic_sdram_we),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .a   (_asic_sdram_a),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .ba  (_asic_sdram_ba),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .dqm (_asic_sdram_dqm[2*(i+1)-1:2*i]),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
-        .dq  (_dq_wire[16*(i+1)-1:16*i])
-      );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:145:23
+    genvar bits_idx,blk_idx;
+    for (blk_idx=0; blk_idx<`SDRAM_BLK_NUM; blk_idx+=1) begin : sdram_blk_list
+        for (bits_idx=0; bits_idx<(`SDRAM_DATA_BITS/16); bits_idx+=1) begin : sdram_bits_list
+            sdram #(
+                .BASE_ADDR_OFFSET(blk_idx*32'h02000000 + bits_idx*2)
+            ) sdram (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:145:23
+                .clk (_asic_sdram_clk),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .cke (_asic_sdram_cke),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .cs  (_asic_sdram_cs),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .ras (_asic_sdram_ras),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .cas (_asic_sdram_cas),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .we  (_asic_sdram_we),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .a   (_asic_sdram_a),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .ba  (_asic_sdram_ba),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .dqm (_asic_sdram_dqm[2*(bits_idx+1)-1:2*bits_idx]),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+                .bsel(_asic_sdram_bsel[blk_idx]),
+                .dq  (_dq_wire[16*(bits_idx+1)-1:16*bits_idx])
+            );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:145:23
+        end
     end
   endgenerate
 endmodule

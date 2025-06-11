@@ -74,6 +74,7 @@ module sdram_axi
     ,output          sdram_cas_o
     ,output          sdram_we_o
     ,output [  1:0]  sdram_dqm_o
+    ,output [`SDRAM_BLK_NUM-1:0]  sdram_bsel_o
     ,output [ 12:0]  sdram_addr_o
     ,output [  1:0]  sdram_ba_o
     ,output [ 15:0]  sdram_data_output_o
@@ -182,6 +183,7 @@ u_core
     ,.sdram_cas_o(sdram_cas_o)
     ,.sdram_we_o(sdram_we_o)
     ,.sdram_dqm_o(sdram_dqm_o)
+    ,.sdram_bsel_o(sdram_bsel_o)
     ,.sdram_addr_o(sdram_addr_o)
     ,.sdram_ba_o(sdram_ba_o)
     ,.sdram_data_output_o(sdram_data_output_o)
