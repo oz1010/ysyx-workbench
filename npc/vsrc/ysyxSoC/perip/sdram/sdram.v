@@ -10,6 +10,9 @@ module sdram(
   input [ 1:0] dqm,
   inout [15:0] dq
 );
+
+    parameter BASE_ADDR_OFFSET = 32'h0;
+
     // ref. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
 
     assign dq = (state==read_t && counter==cas_latency-1) ? rdata[15:0] :
@@ -38,7 +41,7 @@ module sdram(
         ba,                 // [11:10]  select the bank
         a[8:0],             // [9:1]    select the column
         1'h0                // [0:0]    固定的地址
-    };
+    } + BASE_ADDR_OFFSET;
 
     reg [31:0] wdata;
     reg [3:0] wmask;
