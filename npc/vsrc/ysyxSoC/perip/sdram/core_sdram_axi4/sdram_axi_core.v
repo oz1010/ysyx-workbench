@@ -42,7 +42,7 @@ module sdram_axi_core
     ,input  [  7:0]  inport_len_i
     ,input  [ 31:0]  inport_addr_i
     ,input  [ 31:0]  inport_write_data_i
-    ,input  [ 15:0]  sdram_data_input_i
+    ,input  [ `SDRAM_DATA_BITS-1:0]  sdram_data_input_i
 
     // Outputs
     ,output          inport_accept_o
@@ -58,7 +58,7 @@ module sdram_axi_core
     ,output [  1:0]  sdram_dqm_o
     ,output [ 12:0]  sdram_addr_o
     ,output [  1:0]  sdram_ba_o
-    ,output [ 15:0]  sdram_data_output_o
+    ,output [ `SDRAM_DATA_BITS-1:0]  sdram_data_output_o
     ,output          sdram_data_out_en_o
 );
 
@@ -702,8 +702,16 @@ assign ram_accept_w = (state_q == STATE_READ || state_q == STATE_WRITE0);
 //-----------------------------------------------------------------
 assign sdram_clk_o           = ~clk_i;
 assign sdram_data_out_en_o   = ~data_rd_en_q;
-assign sdram_data_output_o   =  data_q;
-assign sdram_data_in_w       = sdram_data_input_i;
+
+// 输出位扩展
+generate
+    genvar i;
+    for(i=0; i<(`SDRAM_DATA_BITS/16); ++i) begin : sdram_data_output_o_gen
+        assign sdram_data_output_o[16*(i+1)-1:16*i] = data_q;
+    end
+endgenerate
+// 输入位扩展，数据完全相同，选择最低位即可
+assign sdram_data_in_w       = sdram_data_input_i[15:0];
 
 assign sdram_cke_o  = cke_q;
 assign sdram_cs_o   = command_q[3];

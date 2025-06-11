@@ -109,6 +109,8 @@
 `define DEV_ATTR_WRITE      4'b0010
 `define DEV_ATTR_EXEC       4'b0100
 
+`define SDRAM_DATA_BITS     16
+
 typedef struct {
     string name;
     logic [31:0] startaddr;

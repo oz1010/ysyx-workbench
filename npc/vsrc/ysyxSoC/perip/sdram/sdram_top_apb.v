@@ -21,12 +21,12 @@ module sdram_top_apb (
   output [12:0] sdram_a,
   output [ 1:0] sdram_ba,
   output [ 1:0] sdram_dqm,
-  inout  [15:0] sdram_dq
+  inout  [`SDRAM_DATA_BITS-1:0] sdram_dq
 );
 
   wire sdram_dout_en;
-  wire [15:0] sdram_dout;
-  assign sdram_dq = sdram_dout_en ? sdram_dout : 16'bz;
+  wire [`SDRAM_DATA_BITS-1:0] sdram_dout;
+  assign sdram_dq = sdram_dout_en ? sdram_dout : {`SDRAM_DATA_BITS{1'bz}};
 
   typedef enum [1:0] { ST_IDLE, ST_WAIT_ACCEPT, ST_WAIT_ACK } state_t;
   reg [1:0] state;
