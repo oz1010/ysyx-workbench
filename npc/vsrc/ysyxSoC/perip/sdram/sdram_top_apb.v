@@ -20,7 +20,7 @@ module sdram_top_apb (
   output        sdram_we,
   output [12:0] sdram_a,
   output [ 1:0] sdram_ba,
-  output [ 1:0] sdram_dqm,
+  output [ `SDRAM_DATA_MASK_BITS-1:0] sdram_dqm,
   inout  [`SDRAM_DATA_BITS-1:0] sdram_dq
 );
 

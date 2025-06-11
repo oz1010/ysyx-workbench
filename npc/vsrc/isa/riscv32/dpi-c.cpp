@@ -550,12 +550,12 @@ void dpi_vdev_write(int addr, int data, int len)
         len = 4;
     }
 
-    vdev_write(vdev, addr, len, data);
-
     if (vdev->startaddr == CONFIG_SDRAM_BASE)
     {
         // raw_stdout("====== DPI write sdram addr %#x data %#x len %d\n", addr, data, len);
     }
+
+    vdev_write(vdev, addr, len, data);
 }
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)

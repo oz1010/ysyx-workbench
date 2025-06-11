@@ -109,7 +109,8 @@
 `define DEV_ATTR_WRITE      4'b0010
 `define DEV_ATTR_EXEC       4'b0100
 
-`define SDRAM_DATA_BITS     16
+`define SDRAM_DATA_BITS     32
+`define SDRAM_DATA_MASK_BITS (`SDRAM_DATA_BITS/8)
 
 typedef struct {
     string name;

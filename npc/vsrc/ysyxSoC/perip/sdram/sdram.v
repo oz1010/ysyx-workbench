@@ -79,7 +79,7 @@ module sdram(
             4'b0011: begin
                 state <= active_t;
                 active_rows[ba] <= a;   // 先存储激活的row
-                if (burst_length!=2) $error("sdram don't support burst_length=%x", burst_length);
+                if (burst_length!=2&&burst_length!=1) $error("sdram don't support burst_length=%x", burst_length);
                 if (mx_cas_latency!=2) $error("sdram only support cas_latency=%x", mx_cas_latency);
             end
 
@@ -97,8 +97,15 @@ module sdram(
                     state <= write_t;
                     addr <= ram_addr;
                     // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
-                    wdata <= {dq, wdata[31:16]};
-                    wmask <= {~dqm, wmask[3:2]};
+
+                    if (burst_length == 1) begin
+                        wdata <= {16'h0, dq};
+                        wmask <= {2'h0, ~dqm};
+                        get_unalign_from_mask({2'h0, ~dqm}, woffset, wsize);
+                    end else begin
+                        wdata <= {dq, wdata[31:16]};
+                        wmask <= {~dqm, wmask[3:2]}; 
+                    end
                 end
             end
 
@@ -145,7 +152,11 @@ module sdram(
             read_t: begin
                 if (counter == 0) begin
                     // read rdata
-                    rdata <= dpi_vdev_read(addr, 4);
+                    if (burst_length == 1) begin
+                        rdata <= dpi_vdev_read(addr, 2);
+                    end else begin
+                        rdata <= dpi_vdev_read(addr, 4);
+                    end
                 end
 
                 if (counter == cas_latency) begin
@@ -156,17 +167,26 @@ module sdram(
             end
 
             write_t: begin
-                if (counter == 0) begin
-                    wdata <= {dq, wdata[31:16]};
-                    wmask <= {~dqm, wmask[3:2]};
-                    get_unalign_from_mask({~dqm, wmask[3:2]}, woffset, wsize);
-                    // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
-                end else begin
-                    // end write rdata
-                    dpi_vdev_write((addr+{30'h0,woffset}), (wdata>>(8*woffset)), {29'h0,wsize});
-                    // $display("write data done addr %x data %x counter %x", addr, wdata, counter);
+                if (burst_length == 1) begin
+                    if (wsize != 0) begin // 当数据量为0时，无需写入任何数据
+                        dpi_vdev_write((addr+{30'h0,woffset}), (wdata>>(8*woffset)), {29'h0,wsize});
+                        // $display("write data done addr %x data %x counter %x", addr, wdata, counter);
+                    end
                     state <= idle_t;
                     wmask <= 0;
+                end else begin
+                    if (counter == 0) begin
+                        wdata <= {dq, wdata[31:16]};
+                        wmask <= {~dqm, wmask[3:2]};
+                        get_unalign_from_mask({~dqm, wmask[3:2]}, woffset, wsize);
+                        // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
+                    end else begin
+                        // end write rdata
+                        dpi_vdev_write((addr+{30'h0,woffset}), (wdata>>(8*woffset)), {29'h0,wsize});
+                        // $display("write data done addr %x data %x counter %x", addr, wdata, counter);
+                        state <= idle_t;
+                        wmask <= 0;
+                    end
                 end
             end
 
