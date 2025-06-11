@@ -23,6 +23,22 @@ module sdram(
     reg [7:0] counter;
     reg [31:0] addr;
     reg [31:0] rdata;
+    reg [12:0] active_rows[0:3]; /* 存储当前激活的bank对应的row，减少active命令发送 */
+    wire [6:0] addr_fixed = 7'h50; // a000_0000固定地址
+    /**
+     * ref. Functional Description
+     * ref. Figure 3: 16 Meg x 16 Functional Block Diagram
+     *   每个bank范围：(8192 x 512 x 16)
+     * 地址结构：[row-13bits][bank-2bits][column-9bits][rdata-16bits]
+     * 需要注意数据总线为16bit，及2字节数据，所以地址最低位一直为0
+     */
+    wire [31:0] ram_addr = {
+        7'h50,              // [31:25]  a000_0000固定地址
+        active_rows[ba],    // [24:12]  select the row
+        ba,                 // [11:10]  select the bank
+        a[8:0],             // [9:1]    select the column
+        1'h0                // [0:0]    固定的地址
+    };
 
     reg [31:0] wdata;
     reg [3:0] wmask;
@@ -59,17 +75,7 @@ module sdram(
             // ACTIVE 激活目标存储体的一行
             4'b0011: begin
                 state <= active_t;
-                /**
-                 * ref. Functional Description
-                 * ref. Figure 3: 16 Meg x 16 Functional Block Diagram
-                 *   每个bank范围：(8192 x 512 x 16)
-                 * 地址结构：[row-13bits][bank-2bits][column-9bits][rdata-16bits]
-                 * 需要注意数据总线为16bit，及2字节数据，所以地址最低位一直为0
-                 */
-                addr[31:25] <= 7'h50;   // a000_0000固定地址
-                addr[24:12] <= a;       // select the row
-                addr[11:10] <= ba;      // select the bank
-                addr[0] <= 0;
+                active_rows[ba] <= a;   // 先存储激活的row
                 if (burst_length!=2) $error("sdram don't support burst_length=%x", burst_length);
                 if (mx_cas_latency!=2) $error("sdram only support cas_latency=%x", mx_cas_latency);
             end
@@ -78,7 +84,7 @@ module sdram(
             4'b0101: begin
                 if (state == active_t || state == idle_t) begin
                     state <= read_t;
-                    addr[9:1] <= a[8:0];    // select the column
+                    addr <= ram_addr;
                 end
             end
 
@@ -86,7 +92,7 @@ module sdram(
             4'b0100: begin
                 if (state == active_t || state == idle_t) begin
                     state <= write_t;
-                    addr[9:1] <= a[8:0];    // select the column
+                    addr <= ram_addr;
                     // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
                     wdata <= {dq, wdata[31:16]};
                     wmask <= {~dqm, wmask[3:2]};
