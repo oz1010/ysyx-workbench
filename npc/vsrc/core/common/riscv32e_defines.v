@@ -109,8 +109,12 @@
 `define DEV_ATTR_WRITE      4'b0010
 `define DEV_ATTR_EXEC       4'b0100
 
+// sdram数据位宽扩展
 `define SDRAM_DATA_BITS     32
 `define SDRAM_DATA_MASK_BITS (`SDRAM_DATA_BITS/8)
+// sdram字扩展，增大容量
+`define SDRAM_BLK_BITS      1
+`define SDRAM_BLK_NUM      (1<<`SDRAM_BLK_BITS)
 
 typedef struct {
     string name;

@@ -8,6 +8,7 @@ module sdram(
   input [12:0] a,
   input [ 1:0] ba,
   input [ 1:0] dqm,
+  input        bsel,
   inout [15:0] dq
 );
 
@@ -65,75 +66,79 @@ module sdram(
     end
 
     always @(posedge clk) begin
-        casez (input_cmd)
-            // COMMAND INHIBIT 无命令
-            4'b1zzz: begin
-                state <= idle_t;
-            end
-
-            // NO OPERATION NOP
-            4'b0111: begin
-            end
-            
-            // ACTIVE 激活目标存储体的一行
-            4'b0011: begin
-                state <= active_t;
-                active_rows[ba] <= a;   // 先存储激活的row
-                if (burst_length!=2&&burst_length!=1) $error("sdram don't support burst_length=%x", burst_length);
-                if (mx_cas_latency!=2&&mx_cas_latency!=1) $error("sdram only support cas_latency=%x", mx_cas_latency);
-            end
-
-            // READ 读出目标存储体的一列
-            4'b0101: begin
-                if (state == active_t || state == idle_t) begin
-                    state <= read_t;
-                    addr <= ram_addr;
+        if (bsel) begin
+            casez (input_cmd)
+                // COMMAND INHIBIT 无命令
+                4'b1zzz: begin
+                    state <= idle_t;
                 end
-            end
 
-            // WRITE 写入目标存储体的一列
-            4'b0100: begin
-                if (state == active_t || state == idle_t) begin
-                    state <= write_t;
-                    addr <= ram_addr;
-                    // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
+                // NO OPERATION NOP
+                4'b0111: begin
+                end
+                
+                // ACTIVE 激活目标存储体的一行
+                4'b0011: begin
+                    state <= active_t;
+                    active_rows[ba] <= a;   // 先存储激活的row
+                    if (burst_length!=2&&burst_length!=1) $error("sdram don't support burst_length=%x", burst_length);
+                    if (mx_cas_latency!=2&&mx_cas_latency!=1) $error("sdram only support cas_latency=%x", mx_cas_latency);
+                end
 
-                    if (burst_length == 1) begin
-                        wdata <= {16'h0, dq};
-                        wmask <= {2'h0, ~dqm};
-                        get_unalign_from_mask({2'h0, ~dqm}, woffset, wsize);
-                    end else begin
-                        wdata <= {dq, wdata[31:16]};
-                        wmask <= {~dqm, wmask[3:2]}; 
+                // READ 读出目标存储体的一列
+                4'b0101: begin
+                    if (state == active_t || state == idle_t) begin
+                        state <= read_t;
+                        addr <= ram_addr;
                     end
                 end
-            end
 
-            // BURST TERMINATE 停止当前的突发传输
-            4'b0110: begin
-            end
+                // WRITE 写入目标存储体的一列
+                4'b0100: begin
+                    if (state == active_t || state == idle_t) begin
+                        state <= write_t;
+                        addr <= ram_addr;
+                        // $display("write data is dq:%x(%x) counter %x", dq, dqm, counter);
 
-            // PRECHARGE和AUTO REFRESH命令与存储单元的电气特性相关, 在仿真环境中不必考虑, 因此可以将其实现成NOP.
-            // PERCHARGE 关闭存储体中已激活的行（预充电）
-            4'b0010: begin
-            end
+                        if (burst_length == 1) begin
+                            wdata <= {16'h0, dq};
+                            wmask <= {2'h0, ~dqm};
+                            get_unalign_from_mask({2'h0, ~dqm}, woffset, wsize);
+                        end else begin
+                            wdata <= {dq, wdata[31:16]};
+                            wmask <= {~dqm, wmask[3:2]}; 
+                        end
+                    end
+                end
 
-            // PRECHARGE和AUTO REFRESH命令与存储单元的电气特性相关, 在仿真环境中不必考虑, 因此可以将其实现成NOP.
-            // AUTO REFRESH 刷新
-            4'b0001: begin
-            end
+                // BURST TERMINATE 停止当前的突发传输
+                4'b0110: begin
+                end
 
-            // Mode寄存器只需要实现CAS Latency和Burst Length, 其他字段可忽略
-            // LOAD MODE REGISTER 设置Mode寄存器
-            4'b0000: begin
-                mx <= a;
-                // $display("set mx => %x", a);
-            end
+                // PRECHARGE和AUTO REFRESH命令与存储单元的电气特性相关, 在仿真环境中不必考虑, 因此可以将其实现成NOP.
+                // PERCHARGE 关闭存储体中已激活的行（预充电）
+                4'b0010: begin
+                end
 
-            default: begin
-                $error("sdram don't support other command 0x%x.", input_cmd);
-            end
-        endcase
+                // PRECHARGE和AUTO REFRESH命令与存储单元的电气特性相关, 在仿真环境中不必考虑, 因此可以将其实现成NOP.
+                // AUTO REFRESH 刷新
+                4'b0001: begin
+                end
+
+                // Mode寄存器只需要实现CAS Latency和Burst Length, 其他字段可忽略
+                // LOAD MODE REGISTER 设置Mode寄存器
+                4'b0000: begin
+                    mx <= a;
+                    // $display("set mx => %x", a);
+                end
+
+                default: begin
+                    $error("sdram don't support other command 0x%x.", input_cmd);
+                end
+            endcase
+        end else begin
+            state <= idle_t;
+        end
     end
 
     always @(posedge clk) begin

@@ -42,7 +42,7 @@ module sdram_axi_core
     ,input  [  7:0]  inport_len_i
     ,input  [ 31:0]  inport_addr_i
     ,input  [ 31:0]  inport_write_data_i
-    ,input  [ `SDRAM_DATA_BITS-1:0]  sdram_data_input_i
+    ,input  [`SDRAM_DATA_BITS-1:0]  sdram_data_input_i
 
     // Outputs
     ,output          inport_accept_o
@@ -55,10 +55,11 @@ module sdram_axi_core
     ,output          sdram_ras_o
     ,output          sdram_cas_o
     ,output          sdram_we_o
-    ,output [  `SDRAM_DATA_MASK_BITS-1:0]  sdram_dqm_o
+    ,output [`SDRAM_DATA_MASK_BITS-1:0]  sdram_dqm_o
+    ,output [`SDRAM_BLK_NUM-1:0]  sdram_bsel_o
     ,output [ 12:0]  sdram_addr_o
     ,output [  1:0]  sdram_ba_o
-    ,output [ `SDRAM_DATA_BITS-1:0]  sdram_data_output_o
+    ,output [`SDRAM_DATA_BITS-1:0]  sdram_data_output_o
     ,output          sdram_data_out_en_o
 );
 
@@ -159,6 +160,7 @@ reg [SDRAM_ROW_W-1:0]  addr_q;
 reg [SDRAM_DATA_W-1:0] data_q [0:SDRAM_DATA_COUNT-1];
 reg                    data_rd_en_q;
 reg [SDRAM_DQM_W-1:0]  dqm_q [0:SDRAM_DATA_COUNT-1];
+reg [`SDRAM_BLK_NUM-1:0]  bsel_q;
 reg                    cke_q;
 reg [SDRAM_BANK_W-1:0] bank_q;
 
@@ -751,6 +753,16 @@ assign sdram_cas_o  = command_q[1];
 assign sdram_we_o   = command_q[0];
 assign sdram_ba_o   = bank_q;
 assign sdram_addr_o = addr_q;
+assign sdram_bsel_o = bsel_q;
+
+always @(*) begin
+    bsel_q    = 0;
+    if (state_q==STATE_INIT || state_q==STATE_ACTIVATE) begin
+        bsel_q    = {$bits(bsel_q){1'b1}};
+    end else begin
+        bsel_q[ram_addr_w[SDRAM_ADDR_W+1 +: `SDRAM_BLK_BITS]] = 1'b1;
+    end
+end
 
 //-----------------------------------------------------------------
 // Simulation only
