@@ -55,7 +55,7 @@ module sdram_axi_core
     ,output          sdram_ras_o
     ,output          sdram_cas_o
     ,output          sdram_we_o
-    ,output [  1:0]  sdram_dqm_o
+    ,output [  `SDRAM_DATA_MASK_BITS-1:0]  sdram_dqm_o
     ,output [ 12:0]  sdram_addr_o
     ,output [  1:0]  sdram_ba_o
     ,output [ `SDRAM_DATA_BITS-1:0]  sdram_data_output_o
@@ -82,6 +82,7 @@ localparam SDRAM_ROW_W           = SDRAM_ADDR_W - SDRAM_COL_W - SDRAM_BANK_W;
 localparam SDRAM_REFRESH_CNT     = 2 ** SDRAM_ROW_W;
 localparam SDRAM_START_DELAY     = 100000 / (1000 / SDRAM_MHZ); // 100uS
 localparam SDRAM_REFRESH_CYCLES  = (64000*SDRAM_MHZ) / SDRAM_REFRESH_CNT-1;
+localparam SDRAM_DATA_COUNT      = `SDRAM_DATA_BITS / 16;
 
 localparam CMD_W             = 4;
 localparam CMD_NOP           = 4'b0111;
@@ -94,7 +95,8 @@ localparam CMD_REFRESH       = 4'b0001;
 localparam CMD_LOAD_MODE     = 4'b0000;
 
 // Mode: Burst Length = 4 bytes, CAS=2
-localparam MODE_REG          = {3'b000,1'b0,2'b00,3'b010,1'b0,3'b001};
+//   Burst Length支持31位就需要改为 2 bytes
+localparam MODE_REG          = {3'b000,1'b0,2'b00,3'b010,1'b0, SDRAM_DATA_COUNT==2?3'b000:3'b001};
 
 // SM states
 localparam STATE_W           = 4;
@@ -153,17 +155,17 @@ assign inport_accept_o    = ram_accept_w;
 
 reg [CMD_W-1:0]        command_q;
 reg [SDRAM_ROW_W-1:0]  addr_q;
-reg [SDRAM_DATA_W-1:0] data_q;
+reg [SDRAM_DATA_W-1:0] data_q [0:SDRAM_DATA_COUNT-1];
 reg                    data_rd_en_q;
-reg [SDRAM_DQM_W-1:0]  dqm_q;
+reg [SDRAM_DQM_W-1:0]  dqm_q [0:SDRAM_DATA_COUNT-1];
 reg                    cke_q;
 reg [SDRAM_BANK_W-1:0] bank_q;
 
 // Buffer half word during read and write commands
-reg [SDRAM_DATA_W-1:0] data_buffer_q;
+reg [SDRAM_DATA_W-1:0] data_buffer_q [0:SDRAM_DATA_COUNT-1];
 reg [SDRAM_DQM_W-1:0]  dqm_buffer_q;
 
-wire [SDRAM_DATA_W-1:0] sdram_data_in_w;
+wire [SDRAM_DATA_W-1:0] sdram_data_in_w [0:SDRAM_DATA_COUNT-1];
 
 reg                    refresh_q;
 
@@ -460,19 +462,25 @@ else if (state_q == STATE_REFRESH)
 // Input sampling
 //-----------------------------------------------------------------
 
-reg [SDRAM_DATA_W-1:0] sample_data0_q;
+reg [SDRAM_DATA_W-1:0] sample_data0_q [0:SDRAM_DATA_COUNT-1];
 always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    sample_data0_q <= {SDRAM_DATA_W{1'b0}};
-else
-    sample_data0_q <= sdram_data_in_w;
+if (rst_i) begin
+    for (int i=0; i<SDRAM_DATA_COUNT; ++i)
+        sample_data0_q[i] <= {SDRAM_DATA_W{1'b0}};
+end else begin
+    for (int i=0; i<SDRAM_DATA_COUNT; ++i)
+        sample_data0_q[i] <= sdram_data_in_w[i];
+end
 
-reg [SDRAM_DATA_W-1:0] sample_data_q;
+reg [SDRAM_DATA_W-1:0] sample_data_q [0:SDRAM_DATA_COUNT-1];
 always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    sample_data_q <= {SDRAM_DATA_W{1'b0}};
-else
-    sample_data_q <= sample_data0_q;
+if (rst_i) begin
+    for (int i=0; i<SDRAM_DATA_COUNT; ++i)
+        sample_data_q[i] <= {SDRAM_DATA_W{1'b0}};
+end else begin
+    for (int i=0; i<SDRAM_DATA_COUNT; ++i)
+        sample_data_q[i] <= sample_data0_q[i];
+end
 
 //-----------------------------------------------------------------
 // Command Output
@@ -483,11 +491,13 @@ always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
 begin
     command_q       <= CMD_NOP;
-    data_q          <= 16'b0;
+    for(integer i=0; i<SDRAM_DATA_COUNT; ++i) begin
+        data_q[i]          <= 16'h0;
+        dqm_q[i]           <= {SDRAM_DQM_W{1'b0}};
+    end
     addr_q          <= {SDRAM_ROW_W{1'b0}};
     bank_q          <= {SDRAM_BANK_W{1'b0}};
     cke_q           <= 1'b0;
-    dqm_q           <= {SDRAM_DQM_W{1'b0}};
     data_rd_en_q    <= 1'b1;
     dqm_buffer_q    <= {SDRAM_DQM_W{1'b0}};
 
@@ -606,7 +616,9 @@ begin
         addr_q[AUTO_PRECHARGE]  <= 1'b0;
 
         // Read mask (all bytes in burst)
-        dqm_q       <= {SDRAM_DQM_W{1'b0}};
+        for(integer i=0; i<SDRAM_DATA_COUNT; ++i) begin
+            dqm_q[i]       <= {SDRAM_DQM_W{1'b0}};
+        end
     end
     //-----------------------------------------
     // STATE_WRITE0
@@ -614,16 +626,23 @@ begin
     STATE_WRITE0 :
     begin
         command_q       <= CMD_WRITE;
+        for(integer i=0; i<SDRAM_DATA_COUNT; ++i) begin
+            data_q[i]          <= ram_write_data_w[16*i +: 16];
+            dqm_q[i]           <= ~ram_wr_w[2*i +: 2];
+        end
+
+        if (SDRAM_DATA_COUNT == 2) begin
+            dqm_buffer_q    <= {SDRAM_DQM_W{1'b0}};
+        end else begin
+            // Write mask
+            dqm_buffer_q    <= ~ram_wr_w[3:2];
+        end
+
         addr_q          <= addr_col_w;
         bank_q          <= addr_bank_w;
-        data_q          <= ram_write_data_w[15:0];
 
         // Disable auto precharge (auto close of row)
         addr_q[AUTO_PRECHARGE]  <= 1'b0;
-
-        // Write mask
-        dqm_q           <= ~ram_wr_w[1:0];
-        dqm_buffer_q    <= ~ram_wr_w[3:2];
 
         data_rd_en_q    <= 1'b0;
     end
@@ -635,13 +654,18 @@ begin
         // Burst continuation
         command_q   <= CMD_NOP;
 
-        data_q      <= data_buffer_q;
+        data_q[0]   <= data_buffer_q [0];
 
         // Disable auto precharge (auto close of row)
         addr_q[AUTO_PRECHARGE]  <= 1'b0;
 
         // Write mask
-        dqm_q       <= dqm_buffer_q;
+        dqm_q[0]    <= dqm_buffer_q;
+
+        if (SDRAM_DATA_COUNT == 2) begin
+            for(integer i=0; i<SDRAM_DATA_COUNT; ++i)
+                dqm_q[i]    <= {SDRAM_DQM_W{1'b0}};
+        end
     end
     endcase
 end
@@ -664,15 +688,18 @@ else
 // Buffer upper 16-bits of write data so write command can be accepted
 // in WRITE0. Also buffer lower 16-bits of read data.
 always @ (posedge clk_i or posedge rst_i)
-if (rst_i)
-    data_buffer_q <= 16'b0;
-else if (state_q == STATE_WRITE0)
-    data_buffer_q <= ram_write_data_w[31:16];
-else if (rd_q[SDRAM_READ_LATENCY+1])
-    data_buffer_q <= sample_data_q;
+if (rst_i) begin
+    for (int i=0; i<SDRAM_DATA_COUNT; ++i)
+        data_buffer_q[i] <= 16'b0;
+end else if (state_q == STATE_WRITE0) begin
+    data_buffer_q[0] <= ram_write_data_w[31:16];
+end else if (rd_q[SDRAM_READ_LATENCY+1]) begin
+    for (int i=0; i<SDRAM_DATA_COUNT; ++i)
+        data_buffer_q[i] <= sample_data_q[i];
+end
 
 // Read data output
-assign ram_read_data_w = {sample_data_q, data_buffer_q};
+assign ram_read_data_w = SDRAM_DATA_COUNT==2 ? {data_buffer_q[SDRAM_DATA_COUNT-1], data_buffer_q[0]} : {sample_data_q[0], data_buffer_q[0]};
 
 //-----------------------------------------------------------------
 // ACK
@@ -684,7 +711,9 @@ if (rst_i)
     ack_q   <= 1'b0;
 else
 begin
-    if (state_q == STATE_WRITE1)
+    if (SDRAM_DATA_COUNT == 2 && state_q == STATE_WRITE0)
+        ack_q <= 1'b1;
+    else if (state_q == STATE_WRITE1)
         ack_q <= 1'b1;
     else if (rd_q[SDRAM_READ_LATENCY+1])
         ack_q <= 1'b1;
@@ -706,19 +735,19 @@ assign sdram_data_out_en_o   = ~data_rd_en_q;
 // 输出位扩展
 generate
     genvar i;
-    for(i=0; i<(`SDRAM_DATA_BITS/16); ++i) begin : sdram_data_output_o_gen
-        assign sdram_data_output_o[16*(i+1)-1:16*i] = data_q;
+    for(i=0; i<SDRAM_DATA_COUNT; ++i) begin : sdram_data_output_o_list
+        assign sdram_data_output_o[16*i +: 16]  = data_q[i];
+        assign sdram_dqm_o[2*i +: 2]            = dqm_q[i];
+        assign sdram_data_in_w[i]               = sdram_data_input_i[16*i +: 16];
     end
 endgenerate
 // 输入位扩展，数据完全相同，选择最低位即可
-assign sdram_data_in_w       = sdram_data_input_i[15:0];
 
 assign sdram_cke_o  = cke_q;
 assign sdram_cs_o   = command_q[3];
 assign sdram_ras_o  = command_q[2];
 assign sdram_cas_o  = command_q[1];
 assign sdram_we_o   = command_q[0];
-assign sdram_dqm_o  = dqm_q;
 assign sdram_ba_o   = bank_q;
 assign sdram_addr_o = addr_q;
 
