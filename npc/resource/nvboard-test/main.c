@@ -4,9 +4,11 @@
 #define TEST_CASE(cmd) {#cmd, test_##cmd}
 
 int test_led(void *arg);
+int test_sw(void *arg);
 
 test_case_t test_cases[] = {
     TEST_CASE(led),
+    TEST_CASE(sw),
 };
 
 int main(const char *args)
