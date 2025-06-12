@@ -81,6 +81,8 @@ int exec_vsimu(Decode *s)
 
     do
     {
+        IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
+
         // 电路仿真
         // top->inst = s->isa.inst.val;
         top->clock = 1;
@@ -133,6 +135,7 @@ void init_vsimu(int argc, char *argv[])
 
     // 初始化NVBoard
     IFDEF(CONFIG_HAS_NVBOARD, nvboard_init());
+    IFDEF(CONFIG_HAS_NVBOARD, nvboard_bind_all_pins(top.get()));
 
     // 初始化dpi
     init_dpi();
@@ -155,6 +158,8 @@ void init_vsimu(int argc, char *argv[])
 
 void exit_vsimu()
 {
+    IFDEF(CONFIG_HAS_NVBOARD, nvboard_quit());
+
     // Final model cleanup
     top->final();
 
