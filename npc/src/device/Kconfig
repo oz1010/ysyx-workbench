@@ -153,8 +153,11 @@ if DEVICE
 # endif # TARGET_AM
 
 menuconfig HAS_NVBOARD
-  bool "Enable NVBoard"
+  bool "NVBoard"
   default y
+
+  if HAS_NVBOARD
+  endif # HAS_NVBOARD
 
 menuconfig HAS_CLINT
   bool "Enable CLINT"
@@ -189,4 +192,15 @@ menuconfig HAS_SPI
       hex "Base address of the SPI master"
       default 0x10001000
   endif # HAS_SPI
+
+menuconfig HAS_GPIO
+  bool "GPIO"
+  default y
+
+  if HAS_GPIO
+    config GPIO_BASE_ADDR
+      hex "Base address of the GPIO"
+      default 0x10002000
+  endif # HAS_GPIO
+
 endif # DEVICE

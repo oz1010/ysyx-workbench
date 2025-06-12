@@ -16,6 +16,7 @@ vdev_item_t vdev_items[NR_VDEV_ITEMS] = {};
 void init_clint();
 void init_uart16550();
 void init_spi_master();
+void init_gpio();
 void send_key(uint8_t, bool);
 void vga_update_screen();
 
@@ -90,6 +91,7 @@ void init_vdev()
     IFDEF(CONFIG_HAS_CLINT, init_clint());
     IFDEF(CONFIG_HAS_UART, init_uart16550());
     IFDEF(CONFIG_HAS_SPI_MASTER, init_spi_master());
+    IFDEF(CONFIG_HAS_GPIO, init_gpio());
 }
 
 word_t vdev_read_with_trace(vdev_item_t* vdev, paddr_t addr, int len, bool trace_en)

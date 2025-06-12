@@ -26,7 +26,12 @@
 # SRCS-BLACKLIST-$(CONFIG_TARGET_AM) += src/device/alarm.cpp
 
 # SRCS-$(CONFIG_DEVICE) += src/device/vdev.cpp
-DIRS-y += src/device/vdev
+# DIRS-y += src/device/vdev
+SRCS-y							+= src/device/vdev/vdev.cpp
+SRCS-$(CONFIG_HAS_CLINT)		+= src/device/vdev/clint.cpp
+SRCS-$(CONFIG_HAS_UART)			+= src/device/vdev/uart16550.cpp
+SRCS-$(CONFIG_HAS_SPI_MASTER)	+= src/device/vdev/spi_master.cpp
+SRCS-$(CONFIG_HAS_GPIO)			+= src/device/vdev/gpio.cpp
 
 ifdef CONFIG_DEVICE
 ifndef CONFIG_TARGET_AM

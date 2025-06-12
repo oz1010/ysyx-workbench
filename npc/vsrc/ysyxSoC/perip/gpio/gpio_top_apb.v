@@ -24,4 +24,20 @@ module gpio_top_apb(
   output [7:0]  gpio_seg_7
 );
 
+  wire led_ack;
+  wire led_sel = in_psel && (in_paddr == 32'h10002000);
+
+  gpio_led m_led(
+    .clk(clock),
+    .rst(reset),
+    .ce_n(!led_sel),
+    .we_n(!led_sel),
+    .wdata(in_pwdata[15:0]),
+    .ack_o(led_ack),
+    .led_value_o(gpio_out)
+  );
+
+  assign in_pslverr = 1'b0;
+  assign in_pready = in_psel && (led_sel && led_ack);
+
 endmodule
