@@ -30,6 +30,6 @@ DIRS-y += src/device/vdev
 
 ifdef CONFIG_DEVICE
 ifndef CONFIG_TARGET_AM
-LIBS += -lSDL2
+LIBS += $(shell sdl2-config --libs)
 endif
 endif

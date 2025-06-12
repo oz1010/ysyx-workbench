@@ -23,10 +23,16 @@
 
 #include "generated/autoconf.h"
 #include "dm/dtm.h"
+#include "macro.h"
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 #include "top_define.h"
+
+#if CONFIG_HAS_NVBOARD
+#include "nvboard.h"
+void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
+#endif
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -124,6 +130,9 @@ void init_vsimu(int argc, char *argv[])
     tfp->open("build/logs/simu_top.vcd");
     LOG_INFO("Start trace ...\n");
 #endif
+
+    // 初始化NVBoard
+    IFDEF(CONFIG_HAS_NVBOARD, nvboard_init());
 
     // 初始化dpi
     init_dpi();
