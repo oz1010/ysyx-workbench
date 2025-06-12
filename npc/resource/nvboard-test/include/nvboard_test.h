@@ -9,6 +9,7 @@
 
 #define GPIO_LED    (CONFIG_GPIO_BASE_ADDR + 0x0)
 #define GPIO_SW     (CONFIG_GPIO_BASE_ADDR + 0x4)
+#define GPIO_SEG    (CONFIG_GPIO_BASE_ADDR + 0x8)
 
 typedef struct 
 {
