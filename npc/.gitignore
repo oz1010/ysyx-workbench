@@ -10,6 +10,7 @@
 !*.cc
 !*.cpp
 !*.sdc
+!*.nxdc
 !.gitignore
 !README.md
 !Kconfig

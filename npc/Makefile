@@ -68,7 +68,3 @@ else
 # Include rules to build NPC
 include $(NPC_HOME)/scripts/native.mk
 endif
-
-# NVBoard
-ifdef CONFIG_HAS_NVBOARD
-endif
