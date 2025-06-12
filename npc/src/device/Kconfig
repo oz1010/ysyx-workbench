@@ -152,7 +152,9 @@ if DEVICE
 
 # endif # TARGET_AM
 
-
+menuconfig HAS_NVBOARD
+  bool "Enable NVBoard"
+  default y
 
 menuconfig HAS_CLINT
   bool "Enable CLINT"
