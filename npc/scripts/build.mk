@@ -25,8 +25,6 @@ INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
 
-VERILATOR_CFLAGS += $(INCLUDES)
-
 OBJS =
 OBJS += $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(filter %.cpp,$(SRCS)))
 OBJS += $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter %.cc,$(SRCS)))
@@ -59,24 +57,16 @@ $(IMG): image
 image:
 	@$(MAKE) -C $(NPC_HOME)/resource/riscv32-bin
 
-$(VOBJS): $(VSRCS)
-	@echo + CV $<
-	@mkdir -p $(dir $@)
-	@$(VERILATOR) $(VERILATOR_CFLAGS) \
-		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
-		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
-		$^
-
 # Depencies
 -include $(OBJS:.o=.d)
 
 # Some convenient rules
 
-.PHONY: app clean image $(VOBJS)
+.PHONY: app clean image
 
 app: $(BINARY) $(IMG)
 
-$(BINARY):: $(VOBJS) $(OBJS) $(ARCHIVES)
+$(BINARY):: $(OBJS) $(ARCHIVES)
 	@echo + LD $@
 	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(ARCHIVES) $(LIBS)
 

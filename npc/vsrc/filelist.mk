@@ -54,8 +54,9 @@ VERILATOR_CFLAGS += --trace
 endif
 
 # 多个目标会触发多次构建规则，这里选择其中一个即可
-VOBJS += $(VGEN_DIR)/libV$(VMOD_NAME).a
+# VOBJS += $(VGEN_DIR)/libV$(VMOD_NAME).a
 # VOBJS += $(VGEN_DIR)/V$(VMOD_NAME)_ALL.a $(VGEN_DIR)/libV$(VMOD_NAME).a $(VGEN_DIR)/libverilated.a
+ARCHIVES    += $(VGEN_DIR)/libV$(VMOD_NAME).a
 ifeq ($(VSRCS),)
     $(error "verilator need *.v files to build")
 endif
@@ -74,3 +75,13 @@ VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
 VERILATOR_CFLAGS += --autoflush
 VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
+
+VERILATOR_CFLAGS += $(INCLUDES)
+
+$(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS)
+	@echo + CV $<
+	@mkdir -p $(dir $@)
+	@$(VERILATOR) $(VERILATOR_CFLAGS) \
+		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
+		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
+		$^
