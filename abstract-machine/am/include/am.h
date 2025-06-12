@@ -101,6 +101,8 @@ UNUSED_FUNC uint64_t swap_uint64(uint64_t val)
            ((val << 56) & 0xFF00000000000000ULL);
 }
 
+#define GET_MACHINE_CSR(name) ({uint32_t name;asm volatile("csrr %0, " #name : "=r"(name));name;})
+
 #ifdef __cplusplus
 }
 #endif
