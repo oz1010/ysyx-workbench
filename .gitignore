@@ -8,6 +8,7 @@
 !/nanos-lite/*
 !/navy-apps/*
 !/npc/*
+!/nvboard/*
 !/build_container/*
 !Makefile
 !README.md
