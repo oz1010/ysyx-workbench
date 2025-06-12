@@ -18,7 +18,7 @@ VMOD_NAME	= ysyxSoCFull
 # VMOD_NAME	= top
 VERILATOR   = verilator
 
-VSRCS-y += ./vsrc/ysyxSoC/generate/ysyxSoCFull.v
+VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull.v
 VSRCS-y += ./vsrc/core/ysyx_23060295.v
 VDIRS-y									+= ./vsrc/core/common
 # VDIRS-y									+= ./vsrc/core

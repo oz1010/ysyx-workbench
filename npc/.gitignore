@@ -17,6 +17,7 @@
 !*/
 # 禁用文件夹
 build/
+!vsrc/ysyxSoC/build/
 
 # 特定目录或文件规则
 include/config/
