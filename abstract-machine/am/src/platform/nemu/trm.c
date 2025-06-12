@@ -14,16 +14,19 @@ Area heap = RANGE(&_heap_start, PMEM_END);
 #endif
 static const char mainargs[] = MAINARGS;
 
-void putch(char ch) {
-  SERILAL_STATUE_CHECK();
-  outb(SERIAL_PORT, ch);
+void putch(char ch)
+{
+    SERILAL_STATUE_CHECK();
+    outb(SERIAL_PORT, ch);
 }
 
-void halt(int code) {
-  nemu_trap(code);
+void halt(int code)
+{
+    nemu_trap(code);
 
-  // should not reach here
-  while (1);
+    // should not reach here
+    while (1)
+        ;
 }
 
 void init_uart16550()
@@ -43,18 +46,16 @@ void print_machine_info()
         uint32_t id;
         uint8_t str[8];
     } vendor_info;
-    uint32_t mvendorid, marchid;
-    asm volatile("csrr %0, mvendorid" : "=r"(mvendorid));
-    asm volatile("csrr %0, marchid" : "=r"(marchid));
     memset(&vendor_info, 0, sizeof(vendor_info));
-    vendor_info.id=mvendorid;
-    printf("Machine info: %s_%d\n", vendor_info.str, marchid);
+    vendor_info.id = GET_MACHINE_CSR(mvendorid);
+    printf("Machine info: %s_%d\n", vendor_info.str, GET_MACHINE_CSR(marchid));
 }
 
-void _trm_init() {
-  init_uart16550();
-  print_machine_info();
+void _trm_init()
+{
+    init_uart16550();
+    print_machine_info();
 
-  int ret = main(mainargs);
-  halt(ret);
+    int ret = main(mainargs);
+    halt(ret);
 }
