@@ -17,9 +17,9 @@
 !*/
 # 禁用文件夹
 build/
-!vsrc/ysyxSoC/build/
 
 # 特定目录或文件规则
+!vsrc/ysyxSoC/build/
 include/config/
 include/generated/
 tools/nemu-diff/include/
