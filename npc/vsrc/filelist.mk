@@ -39,9 +39,8 @@ VDIRS-y									+= ./vsrc/ysyxSoC/perip/uart16550
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/vga
 # VSRCS-y		+= $(shell find -L ./vsrc/ysyxSoC/perip -name *.v)
 
-VCSR_CPPS   = $(shell find -L ./vsrc -name *.cpp)
 VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
-VSRCS-y     += $(VCSR_CPPS)
+VSRCS-y     += $(shell find -L ./vsrc -name *.cpp)
 VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
 INC_PATH    += $(VDIRS-y)
