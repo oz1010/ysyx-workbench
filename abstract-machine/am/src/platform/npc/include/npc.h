@@ -57,6 +57,4 @@ typedef uintptr_t PTE;
 #define bits(n) (0x1<<(n))
 #define SERILAL_STATUE_CHECK() while((inb(UART16550_REG_LSR)&bits(6)) != bits(6))
 
-#define GET_MACHINE_CSR(name) ({uint32_t name;asm volatile("csrr %0, " #name : "=r"(name));name;})
-
 #endif
