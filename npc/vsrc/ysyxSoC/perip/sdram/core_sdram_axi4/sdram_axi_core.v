@@ -757,10 +757,15 @@ assign sdram_bsel_o = bsel_q;
 
 always @(*) begin
     bsel_q    = 0;
-    if (state_q==STATE_INIT || state_q==STATE_ACTIVATE) begin
-        bsel_q    = {$bits(bsel_q){1'b1}};
-    end else begin
+    if (
+        state_q==STATE_READ  
+        || state_q==STATE_READ_WAIT
+        || state_q==STATE_WRITE0
+        || state_q==STATE_WRITE1
+    ) begin
         bsel_q[ram_addr_w[SDRAM_ADDR_W+1 +: `SDRAM_BLK_BITS]] = 1'b1;
+    end else begin
+        bsel_q    = {$bits(bsel_q){1'b1}};
     end
 end
 
