@@ -17,7 +17,7 @@ LIBS		+= $(shell sdl2-config --libs) -lSDL2_image -lSDL2_ttf
 
 # 引脚绑定关系C++文件生成规则
 $(NPC_HOME)/$(NXDC_GEN_CPP): $(NXDC_FILES)
-	@echo + CNXDC $<
+	@echo + CNXDC $(shell realpath $< --relative-to $(NPC_HOME))
 	@mkdir -p $(dir $@)
 	@python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
