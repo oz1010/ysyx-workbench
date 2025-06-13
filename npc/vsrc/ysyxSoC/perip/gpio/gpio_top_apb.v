@@ -62,7 +62,16 @@ module gpio_top_apb(
     .we_n(!seg_sel),
     .wdata(in_pwdata),
     .ack_o(seg_ack),
-    .seg_values_o(seg_values)
+    .seg_o({
+      gpio_seg_0,
+      gpio_seg_1,
+      gpio_seg_2,
+      gpio_seg_3,
+      gpio_seg_4,
+      gpio_seg_5,
+      gpio_seg_6,
+      gpio_seg_7
+    })
   );
 
   assign in_pslverr = 1'b0;
