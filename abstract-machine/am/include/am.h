@@ -47,6 +47,7 @@ extern "C" {
 // ----------------------- TRM: Turing Machine -----------------------
 extern   Area        heap;
 void     putch       (char ch);
+int      getch       ();
 void     halt        (int code) __attribute__((__noreturn__));
 
 // -------------------- IOE: Input/Output Devices --------------------

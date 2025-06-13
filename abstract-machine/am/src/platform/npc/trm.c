@@ -20,6 +20,13 @@ void putch(char ch)
     outb(SERIAL_PORT, ch);
 }
 
+int getch()
+{
+    if ((inb(UART16550_REG_LSR) & bits(0)) == bits(0))
+        return inb(SERIAL_PORT);
+    return -1;
+}
+
 void halt(int code)
 {
     npc_trap(code);
