@@ -33,7 +33,9 @@ void init_uart16550()
 {
     uint8_t val = inb(UART16550_REG_LCR);
     outb(UART16550_REG_LCR, val |= bits(7));
-    // 115200 : 1c200，暂时随便填写的值
+    // 文档中计算值为：DL = sys_clk / (16*BAUD_RATE)
+    // 这个值决定UART单比特持续时间（DL*16）ticks
+    // 仿真中DL值范围[1,2^16)，0为默认值会禁用整个IO，1为BAUD_RATE最大值
     outb(UART16550_REG_DL1, 0x00);
     outb(UART16550_REG_DL0, 0x01);
     outb(UART16550_REG_LCR, val &= ~bits(7));
