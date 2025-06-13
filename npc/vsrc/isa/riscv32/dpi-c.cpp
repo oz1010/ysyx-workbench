@@ -357,6 +357,14 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
                     break;
             }
         }
+        else if (vdev->type == VDEV_INNER)
+        {
+            // 内部设备不会走vdev机制，需要单独触发此流程
+            if (vdev->handler)
+            {
+                vdev->handler(vdev, write, addr, write ? aw_size : ar_size, (uint32_t *)&data);
+            }
+        }
 
         return;
     }
