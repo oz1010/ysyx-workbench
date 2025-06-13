@@ -134,8 +134,8 @@ void init_vsimu(int argc, char *argv[])
 #endif
 
     // 初始化NVBoard
-    IFDEF(CONFIG_HAS_NVBOARD, nvboard_init());
     IFDEF(CONFIG_HAS_NVBOARD, nvboard_bind_all_pins(top.get()));
+    IFDEF(CONFIG_HAS_NVBOARD, nvboard_init());
 
     // 初始化dpi
     init_dpi();
