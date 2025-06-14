@@ -160,7 +160,7 @@ menuconfig HAS_NVBOARD
   endif # HAS_NVBOARD
 
 menuconfig HAS_CLINT
-  bool "Enable CLINT"
+  bool "CLINT"
   default y
 
   if HAS_CLINT
@@ -170,7 +170,7 @@ menuconfig HAS_CLINT
   endif # HAS_CLINT
 
 menuconfig HAS_UART
-  bool "Enable UART"
+  bool "UART"
   default y
 
   if HAS_UART
@@ -180,12 +180,12 @@ menuconfig HAS_UART
   endif # HAS_UART
 
 menuconfig HAS_SPI
-  bool "Enable SPI"
+  bool "SPI"
   default y
 
   if HAS_SPI
     config HAS_SPI_MASTER
-      bool "Enable SPI master"
+      bool "SPI master"
       default y
 
     config SPI_MASTER_BASE_ADDR
@@ -202,5 +202,15 @@ menuconfig HAS_GPIO
       hex "Base address of the GPIO"
       default 0x10002000
   endif # HAS_GPIO
+
+menuconfig HAS_PS2
+  bool "PS2"
+  default y
+
+  if HAS_PS2
+    config PS2_BASE_ADDR
+      hex "Base address of the PS2"
+      default 0x10011000
+  endif # HAS_PS2
 
 endif # DEVICE
