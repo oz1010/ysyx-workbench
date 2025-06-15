@@ -7,6 +7,7 @@ DECLARE_BIN_HEADER(bin_header);
 
 extern char _heap_start;
 int main(const char *args);
+void __am_input_init();
 
 Area heap = RANGE(&_heap_start, PMEM_END);
 #ifndef MAINARGS
@@ -64,6 +65,7 @@ void _trm_init()
 {
     init_uart16550();
     print_machine_info();
+    __am_input_init();
 
     int ret = main(mainargs);
     halt(ret);
