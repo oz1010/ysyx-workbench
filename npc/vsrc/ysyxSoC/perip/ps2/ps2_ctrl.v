@@ -115,7 +115,7 @@ always @(posedge clk or posedge rst) begin
                 stop_t: begin
                     // 避免频繁捕获相同普通按键
                     if (key_queue_cnt >= 3) begin
-                        $display("key queue is too small %d", key_queue_cnt);
+                        // $display("key queue is too small %d", key_queue_cnt);
                         if (key_queue_cnt<(KEY_QUEUE_SIZE-2) && data_bit != key_queue[(key_widx-1)%KEY_QUEUE_SIZE]) begin
                             key_queue[key_widx[KEY_QUEUE_SIZE_BITS-1:0]] <= data_bit;
                             key_widx <= key_widx + 1;

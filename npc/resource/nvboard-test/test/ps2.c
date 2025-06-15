@@ -11,7 +11,7 @@ int test_ps2(void *arg)
         if (ev.keycode)
         {
             printf("%#x - %s\n", ev.keycode, ev.keydown?"down":"release");
-            if (!ev.keydown && ev.keycode == 0x15)
+            if (!ev.keydown && ev.keycode == 0x1d)
             {
                 break;
             }
