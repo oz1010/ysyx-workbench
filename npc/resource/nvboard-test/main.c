@@ -7,12 +7,14 @@ int test_led(void *arg);
 int test_sw(void *arg);
 int test_seg(void *arg);
 int test_uart(void *arg);
+int test_ps2(void *arg);
 
 test_case_t test_cases[] = {
     TEST_CASE(led),
     TEST_CASE(sw),
     TEST_CASE(seg),
     TEST_CASE(uart),
+    TEST_CASE(ps2),
 };
 
 int main(const char *args)
