@@ -1,15 +1,21 @@
 #include "nvboard_test.h"
 #include "generated/autoconf.h"
 
-#define PS2_READ (CONFIG_PS2_BASE_ADDR + 0x0)
-
 int test_ps2(void *arg)
 {
+    printf("Start test nvboard keyboard, input <Q> to exit.\n");
+
     while (1)
     {
-        uint8_t ps_code = inb(PS2_READ);
-        printf("Read ps code: %x\n", ps_code);
-        sleep_ms(1000);
+        AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
+        if (ev.keycode)
+        {
+            printf("%#x - %s\n", ev.keycode, ev.keydown?"down":"release");
+            if (!ev.keydown && ev.keycode == 0x15)
+            {
+                break;
+            }
+        }
     }
 
     return 0;
