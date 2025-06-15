@@ -36,6 +36,17 @@ ISA        = $(word 1,$(ARCH_SPLIT))
 PLATFORM   = $(word 2,$(ARCH_SPLIT))
 GUEST_ISA  ?= $(ISA)
 
+### Include platform config
+ifeq ($(PLATFORM), npc)
+	include 		$(NPC_HOME)/include/config/auto.conf
+	INC_PATH		+= ${NPC_HOME}/include
+endif
+
+ifeq ($(PLATFORM), nemu)
+	include 		$(NEMU_HOME)/include/config/auto.conf
+	INC_PATH		+= ${NEMU_HOME}/include
+endif
+
 ### Check if there is something to build
 ifeq ($(flavor SRCS), undefined)
   $(error Nothing to build)

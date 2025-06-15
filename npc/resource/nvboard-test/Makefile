@@ -8,5 +8,4 @@ INC_PATH		+= include
 
 CFLAGS 			+= -DMAINARGS=\"$(mainargs)\"
 
-include 		$(NPC_HOME)/include/config/auto.conf
 include			${AM_HOME}/Makefile

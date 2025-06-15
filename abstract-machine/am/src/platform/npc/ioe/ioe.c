@@ -1,5 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
+#include "generated/autoconf.h"
 
 void __am_timer_init();
 void __am_gpu_init();
@@ -48,14 +49,24 @@ static void *lut[128] = {
 static void fail(void *buf) { panic("access nonexist register"); }
 
 bool ioe_init() {
+  static bool ioe_init_done = false;
+  if (ioe_init_done) return ioe_init_done;
+  ioe_init_done = true;
+
   for (int i = 0; i < LENGTH(lut); i++)
     if (!lut[i]) lut[i] = fail;
-#if HAS_VGA
+
+#if CONFIG_HAS_NVBOARD_VGA
   __am_gpu_init();
 #endif
-  __am_timer_init();
+  // __am_timer_init();
+#if CONFIG_HAS_AUDIO
   __am_audio_init();
+#endif
+#if CONFIG_HAS_PS2
   __am_input_init();
+#endif
+  putstr("Init ioe done.\n");
   return true;
 }
 
