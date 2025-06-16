@@ -2,12 +2,12 @@
 #include <npc.h>
 #include "file/bin_header.h"
 #include "klib.h"
+#include "generated/autoconf.h"
 
 DECLARE_BIN_HEADER(bin_header);
 
 extern char _heap_start;
 int main(const char *args);
-void __am_input_init();
 
 Area heap = RANGE(&_heap_start, PMEM_END);
 #ifndef MAINARGS
@@ -59,13 +59,15 @@ void print_machine_info()
     memset(&vendor_info, 0, sizeof(vendor_info));
     vendor_info.id=GET_MACHINE_CSR(mvendorid);
     printf("Machine info: %s_%d\n", vendor_info.str, GET_MACHINE_CSR(marchid));
+#if CONFIG_HAS_GPIO
+    outl(CONFIG_GPIO_BASE_ADDR + 0x8, 0x23060295);
+#endif
 }
 
 void _trm_init()
 {
     init_uart16550();
     print_machine_info();
-    __am_input_init();
 
     int ret = main(mainargs);
     halt(ret);

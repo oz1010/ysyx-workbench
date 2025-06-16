@@ -33,6 +33,7 @@ SRCS-$(CONFIG_HAS_UART)			+= src/device/vdev/uart16550.cpp
 SRCS-$(CONFIG_HAS_SPI_MASTER)	+= src/device/vdev/spi_master.cpp
 SRCS-$(CONFIG_HAS_GPIO)			+= src/device/vdev/gpio.cpp
 SRCS-$(CONFIG_HAS_PS2)			+= src/device/vdev/ps2.cpp
+SRCS-$(CONFIG_HAS_NVBOARD_VGA)	+= src/device/vdev/vga.cpp
 
 ifdef CONFIG_DEVICE
 ifndef CONFIG_TARGET_AM

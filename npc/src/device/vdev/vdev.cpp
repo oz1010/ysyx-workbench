@@ -18,6 +18,7 @@ void init_uart16550();
 void init_spi_master();
 void init_gpio();
 void init_ps2();
+void init_vga();
 void send_key(uint8_t, bool);
 void vga_update_screen();
 
@@ -94,6 +95,7 @@ void init_vdev()
     IFDEF(CONFIG_HAS_SPI_MASTER, init_spi_master());
     IFDEF(CONFIG_HAS_GPIO, init_gpio());
     IFDEF(CONFIG_HAS_PS2, init_ps2());
+    IFDEF(CONFIG_HAS_NVBOARD_VGA, init_vga());
 }
 
 word_t vdev_read_with_trace(vdev_item_t* vdev, paddr_t addr, int len, bool trace_en)

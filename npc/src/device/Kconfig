@@ -157,6 +157,19 @@ menuconfig HAS_NVBOARD
   default y
 
   if HAS_NVBOARD
+    menuconfig HAS_NVBOARD_VGA
+      bool "VGA"
+      default y
+
+      if HAS_NVBOARD_VGA
+        config NVBOARD_VGA_FB_BASE_ADDR
+          hex "Base address of the VGA frame buffer"
+          default 0x21000000
+
+        config NVBOARD_VGA_CTRL_BASE_ADDR
+          hex "Base address of the VGA controller"
+          default 0x22000000
+      endif # HAS_NVBOARD_VGA
   endif # HAS_NVBOARD
 
 menuconfig HAS_CLINT
