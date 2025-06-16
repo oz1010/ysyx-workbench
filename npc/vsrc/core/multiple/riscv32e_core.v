@@ -135,36 +135,72 @@ wire [1:0]                  m_rresp;
 wire [31:0]                 m_rdata;
 wire                        m_rlast;
 wire [3:0]                  m_rid;
-/* clint axi4信号 */
-wire                        s_awready[0:0];
-wire                        s_awvalid[0:0];
-wire [31:0]                 s_awaddr[0:0];
-wire [3:0]                  s_awid[0:0];
-wire [7:0]                  s_awlen[0:0];
-wire [2:0]                  s_awsize[0:0];
-wire [1:0]                  s_awburst[0:0];
-wire                        s_wready[0:0];
-wire                        s_wvalid[0:0];
-wire [31:0]                 s_wdata[0:0];
-wire [3:0]                  s_wstrb[0:0];
-wire                        s_wlast[0:0];
-wire                        s_bready[0:0];
-wire                        s_bvalid[0:0];
-wire [1:0]                  s_bresp[0:0];
-wire [3:0]                  s_bid[0:0];
-wire                        s_arready[0:0];
-wire                        s_arvalid[0:0];
-wire [31:0]                 s_araddr[0:0];
-wire [3:0]                  s_arid[0:0];
-wire [7:0]                  s_arlen[0:0];
-wire [2:0]                  s_arsize[0:0];
-wire [1:0]                  s_arburst[0:0];
-wire                        s_rready[0:0];
-wire                        s_rvalid[0:0];
-wire [1:0]                  s_rresp[0:0];
-wire [31:0]                 s_rdata[0:0];
-wire                        s_rlast[0:0];
-wire [3:0]                  s_rid[0:0];
+/**
+    0 -- clint
+    1 -- exter dev
+    last -- io master
+*/
+localparam AXI4_SLAVE_COUNT = 3;
+/* salve axi4信号 */
+wire                        s_awready[AXI4_SLAVE_COUNT-1:0];
+wire                        s_awvalid[AXI4_SLAVE_COUNT-1:0];
+wire [31:0]                 s_awaddr[AXI4_SLAVE_COUNT-1:0];
+wire [3:0]                  s_awid[AXI4_SLAVE_COUNT-1:0];
+wire [7:0]                  s_awlen[AXI4_SLAVE_COUNT-1:0];
+wire [2:0]                  s_awsize[AXI4_SLAVE_COUNT-1:0];
+wire [1:0]                  s_awburst[AXI4_SLAVE_COUNT-1:0];
+wire                        s_wready[AXI4_SLAVE_COUNT-1:0];
+wire                        s_wvalid[AXI4_SLAVE_COUNT-1:0];
+wire [31:0]                 s_wdata[AXI4_SLAVE_COUNT-1:0];
+wire [3:0]                  s_wstrb[AXI4_SLAVE_COUNT-1:0];
+wire                        s_wlast[AXI4_SLAVE_COUNT-1:0];
+wire                        s_bready[AXI4_SLAVE_COUNT-1:0];
+wire                        s_bvalid[AXI4_SLAVE_COUNT-1:0];
+wire [1:0]                  s_bresp[AXI4_SLAVE_COUNT-1:0];
+wire [3:0]                  s_bid[AXI4_SLAVE_COUNT-1:0];
+wire                        s_arready[AXI4_SLAVE_COUNT-1:0];
+wire                        s_arvalid[AXI4_SLAVE_COUNT-1:0];
+wire [31:0]                 s_araddr[AXI4_SLAVE_COUNT-1:0];
+wire [3:0]                  s_arid[AXI4_SLAVE_COUNT-1:0];
+wire [7:0]                  s_arlen[AXI4_SLAVE_COUNT-1:0];
+wire [2:0]                  s_arsize[AXI4_SLAVE_COUNT-1:0];
+wire [1:0]                  s_arburst[AXI4_SLAVE_COUNT-1:0];
+wire                        s_rready[AXI4_SLAVE_COUNT-1:0];
+wire                        s_rvalid[AXI4_SLAVE_COUNT-1:0];
+wire [1:0]                  s_rresp[AXI4_SLAVE_COUNT-1:0];
+wire [31:0]                 s_rdata[AXI4_SLAVE_COUNT-1:0];
+wire                        s_rlast[AXI4_SLAVE_COUNT-1:0];
+wire [3:0]                  s_rid[AXI4_SLAVE_COUNT-1:0];
+/* io master */
+assign s_awready[AXI4_SLAVE_COUNT-1] = io_master_awready;
+assign io_master_awvalid = s_awvalid[AXI4_SLAVE_COUNT-1];
+assign io_master_awaddr = s_awaddr[AXI4_SLAVE_COUNT-1];
+assign io_master_awid = s_awid[AXI4_SLAVE_COUNT-1];
+assign io_master_awlen = s_awlen[AXI4_SLAVE_COUNT-1];
+assign io_master_awsize = s_awsize[AXI4_SLAVE_COUNT-1];
+assign io_master_awburst = s_awburst[AXI4_SLAVE_COUNT-1];
+assign s_wready[AXI4_SLAVE_COUNT-1] = io_master_wready;
+assign io_master_wvalid = s_wvalid[AXI4_SLAVE_COUNT-1];
+assign io_master_wdata = s_wdata[AXI4_SLAVE_COUNT-1];
+assign io_master_wstrb = s_wstrb[AXI4_SLAVE_COUNT-1];
+assign io_master_wlast = s_wlast[AXI4_SLAVE_COUNT-1];
+assign io_master_bready = s_bready[AXI4_SLAVE_COUNT-1];
+assign s_bvalid[AXI4_SLAVE_COUNT-1] = io_master_bvalid;
+assign s_bresp[AXI4_SLAVE_COUNT-1] = io_master_bresp;
+assign s_bid[AXI4_SLAVE_COUNT-1] = io_master_bid;
+assign s_arready[AXI4_SLAVE_COUNT-1] = io_master_arready;
+assign io_master_arvalid = s_arvalid[AXI4_SLAVE_COUNT-1];
+assign io_master_araddr = s_araddr[AXI4_SLAVE_COUNT-1];
+assign io_master_arid = s_arid[AXI4_SLAVE_COUNT-1];
+assign io_master_arlen = s_arlen[AXI4_SLAVE_COUNT-1];
+assign io_master_arsize = s_arsize[AXI4_SLAVE_COUNT-1];
+assign io_master_arburst = s_arburst[AXI4_SLAVE_COUNT-1];
+assign io_master_rready = s_rready[AXI4_SLAVE_COUNT-1];
+assign s_rvalid[AXI4_SLAVE_COUNT-1] = io_master_rvalid;
+assign s_rresp[AXI4_SLAVE_COUNT-1] = io_master_rresp;
+assign s_rdata[AXI4_SLAVE_COUNT-1] = io_master_rdata;
+assign s_rlast[AXI4_SLAVE_COUNT-1] = io_master_rlast;
+assign s_rid[AXI4_SLAVE_COUNT-1] = io_master_rid;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
@@ -268,7 +304,7 @@ arbiter_axi4 #(
 
 /* xbar模块 */
 xbar_axi4 #(
-    .USER_S_COUNT(2),
+    .USER_S_COUNT(AXI4_SLAVE_COUNT),
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
@@ -306,39 +342,40 @@ xbar_axi4 #(
     .r_last(m_rlast),
     .r_id(m_rid),
 
-    .u_aw_readys(   {   s_awready[0],       io_master_awready   } ),
-    .u_aw_valids(   {   s_awvalid[0],       io_master_awvalid   } ),
-    .u_aw_addrs(    {   s_awaddr[0],        io_master_awaddr    } ),
-    .u_aw_ids(      {   s_awid[0],          io_master_awid      } ),
-    .u_aw_lens(     {   s_awlen[0],         io_master_awlen     } ),
-    .u_aw_sizes(    {   s_awsize[0],        io_master_awsize    } ),
-    .u_aw_bursts(   {   s_awburst[0],       io_master_awburst   } ),
-    .u_w_readys(    {   s_wready[0],        io_master_wready    } ),
-    .u_w_valids(    {   s_wvalid[0],        io_master_wvalid    } ),
-    .u_w_datas(     {   s_wdata[0],         io_master_wdata     } ),
-    .u_w_strbs(     {   s_wstrb[0],         io_master_wstrb     } ),
-    .u_w_lasts(     {   s_wlast[0],         io_master_wlast     } ),
-    .u_b_readys(    {   s_bready[0],        io_master_bready    } ),
-    .u_b_valids(    {   s_bvalid[0],        io_master_bvalid    } ),
-    .u_b_resps(     {   s_bresp[0],         io_master_bresp     } ),
-    .u_b_ids(       {   s_bid[0],           io_master_bid       } ),
-    .u_ar_readys(   {   s_arready[0],       io_master_arready   } ),
-    .u_ar_valids(   {   s_arvalid[0],       io_master_arvalid   } ),
-    .u_ar_addrs(    {   s_araddr[0],        io_master_araddr    } ),
-    .u_ar_ids(      {   s_arid[0],          io_master_arid      } ),
-    .u_ar_lens(     {   s_arlen[0],         io_master_arlen     } ),
-    .u_ar_sizes(    {   s_arsize[0],        io_master_arsize    } ),
-    .u_ar_bursts(   {   s_arburst[0],       io_master_arburst   } ),
-    .u_r_readys(    {   s_rready[0],        io_master_rready    } ),
-    .u_r_valids(    {   s_rvalid[0],        io_master_rvalid    } ),
-    .u_r_resps(     {   s_rresp[0],         io_master_rresp     } ),
-    .u_r_datas(     {   s_rdata[0],         io_master_rdata     } ),
-    .u_r_lasts(     {   s_rlast[0],         io_master_rlast     } ),
-    .u_r_ids(       {   s_rid[0],           io_master_rid       } ),
+    .u_aw_readys(   {   s_awready[0],       s_awready[1],       s_awready[AXI4_SLAVE_COUNT-1]       } ),
+    .u_aw_valids(   {   s_awvalid[0],       s_awvalid[1],       s_awvalid[AXI4_SLAVE_COUNT-1]       } ),
+    .u_aw_addrs(    {   s_awaddr[0],        s_awaddr[1],        s_awaddr[AXI4_SLAVE_COUNT-1]        } ),
+    .u_aw_ids(      {   s_awid[0],          s_awid[1],          s_awid[AXI4_SLAVE_COUNT-1]          } ),
+    .u_aw_lens(     {   s_awlen[0],         s_awlen[1],         s_awlen[AXI4_SLAVE_COUNT-1]         } ),
+    .u_aw_sizes(    {   s_awsize[0],        s_awsize[1],        s_awsize[AXI4_SLAVE_COUNT-1]        } ),
+    .u_aw_bursts(   {   s_awburst[0],       s_awburst[1],       s_awburst[AXI4_SLAVE_COUNT-1]       } ),
+    .u_w_readys(    {   s_wready[0],        s_wready[1],        s_wready[AXI4_SLAVE_COUNT-1]        } ),
+    .u_w_valids(    {   s_wvalid[0],        s_wvalid[1],        s_wvalid[AXI4_SLAVE_COUNT-1]        } ),
+    .u_w_datas(     {   s_wdata[0],         s_wdata[1],         s_wdata[AXI4_SLAVE_COUNT-1]         } ),
+    .u_w_strbs(     {   s_wstrb[0],         s_wstrb[1],         s_wstrb[AXI4_SLAVE_COUNT-1]         } ),
+    .u_w_lasts(     {   s_wlast[0],         s_wlast[1],         s_wlast[AXI4_SLAVE_COUNT-1]         } ),
+    .u_b_readys(    {   s_bready[0],        s_bready[1],        s_bready[AXI4_SLAVE_COUNT-1]        } ),
+    .u_b_valids(    {   s_bvalid[0],        s_bvalid[1],        s_bvalid[AXI4_SLAVE_COUNT-1]        } ),
+    .u_b_resps(     {   s_bresp[0],         s_bresp[1],         s_bresp[AXI4_SLAVE_COUNT-1]         } ),
+    .u_b_ids(       {   s_bid[0],           s_bid[1],           s_bid[AXI4_SLAVE_COUNT-1]           } ),
+    .u_ar_readys(   {   s_arready[0],       s_arready[1],       s_arready[AXI4_SLAVE_COUNT-1]       } ),
+    .u_ar_valids(   {   s_arvalid[0],       s_arvalid[1],       s_arvalid[AXI4_SLAVE_COUNT-1]       } ),
+    .u_ar_addrs(    {   s_araddr[0],        s_araddr[1],        s_araddr[AXI4_SLAVE_COUNT-1]        } ),
+    .u_ar_ids(      {   s_arid[0],          s_arid[1],          s_arid[AXI4_SLAVE_COUNT-1]          } ),
+    .u_ar_lens(     {   s_arlen[0],         s_arlen[1],         s_arlen[AXI4_SLAVE_COUNT-1]         } ),
+    .u_ar_sizes(    {   s_arsize[0],        s_arsize[1],        s_arsize[AXI4_SLAVE_COUNT-1]        } ),
+    .u_ar_bursts(   {   s_arburst[0],       s_arburst[1],       s_arburst[AXI4_SLAVE_COUNT-1]       } ),
+    .u_r_readys(    {   s_rready[0],        s_rready[1],        s_rready[AXI4_SLAVE_COUNT-1]        } ),
+    .u_r_valids(    {   s_rvalid[0],        s_rvalid[1],        s_rvalid[AXI4_SLAVE_COUNT-1]        } ),
+    .u_r_resps(     {   s_rresp[0],         s_rresp[1],         s_rresp[AXI4_SLAVE_COUNT-1]         } ),
+    .u_r_datas(     {   s_rdata[0],         s_rdata[1],         s_rdata[AXI4_SLAVE_COUNT-1]         } ),
+    .u_r_lasts(     {   s_rlast[0],         s_rlast[1],         s_rlast[AXI4_SLAVE_COUNT-1]         } ),
+    .u_r_ids(       {   s_rid[0],           s_rid[1],           s_rid[AXI4_SLAVE_COUNT-1]           } ),
     .u_slave_infos('{
-        '{name:"CLIN",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff},
+        '{name:"clint",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff},
+        '{name:"exter dev",      startaddr:32'h2200_0000,    endaddr:32'h2200_0fff},
         /* 优先匹配其他项，若其他项匹配不上，则发送给master */
-        '{name:"MASTER",        startaddr:32'h0000_0000,    endaddr:32'hffff_ffff}
+        '{name:"io master",        startaddr:32'h0000_0000,    endaddr:32'hffff_ffff}
     }),
 
     .grant_idx()
@@ -382,6 +419,45 @@ clint #(
     .r_data(s_rdata[0]),
     .r_last(s_rlast[0]),
     .r_id(s_rid[0])
+);
+/* exter dev 模块 */
+exter_dev #(
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH)
+) m_exter_dev(
+    .clk(clk),
+    .rst(rst),
+    .aw_ready(s_awready[1]),
+    .aw_valid(s_awvalid[1]),
+    .aw_addr(s_awaddr[1]),
+    .aw_id(s_awid[1]),
+    .aw_len(s_awlen[1]),
+    .aw_size(s_awsize[1]),
+    .aw_burst(s_awburst[1]),
+    .w_ready(s_wready[1]),
+    .w_valid(s_wvalid[1]),
+    .w_data(s_wdata[1]),
+    .w_strb(s_wstrb[1]),
+    .w_last(s_wlast[1]),
+    .b_ready(s_bready[1]),
+    .b_valid(s_bvalid[1]),
+    .b_resp(s_bresp[1]),
+    .b_id(s_bid[1]),
+    .ar_ready(s_arready[1]),
+    .ar_valid(s_arvalid[1]),
+    .ar_addr(s_araddr[1]),
+    .ar_id(s_arid[1]),
+    .ar_len(s_arlen[1]),
+    .ar_size(s_arsize[1]),
+    .ar_burst(s_arburst[1]),
+    .r_ready(s_rready[1]),
+    .r_valid(s_rvalid[1]),
+    .r_resp(s_rresp[1]),
+    .r_data(s_rdata[1]),
+    .r_last(s_rlast[1]),
+    .r_id(s_rid[1])
 );
 
 /* 取指if */
