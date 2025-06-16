@@ -22,7 +22,7 @@ module vga_fb (
 
 localparam      VGA_CTRL_WIDTH = 640;
 localparam      VGA_CTRL_HIGH = 480;
-localparam      VGA_RGB_BIT_WIDTH = 24;
+localparam      VGA_RGB_BIT_WIDTH = 32;
 localparam      VGA_COUNTER_BIT_WIDTH = 10;
 
 localparam      h_frontporch = 96;
@@ -52,13 +52,15 @@ assign vga_valid = vga_output;
 assign in_pready = 1;
 assign in_prdata = 32'hff0000;
 assign in_pslverr = 0;
+wire [7:0] vga_unused;
 
-assign {vga_r,vga_g,vga_b} = (vga_output && h_rgb_valid && v_rgb_valid) ? fram_buffer[(v_counter-v_frontporch)%VGA_CTRL_HIGH][(h_counter-h_frontporch)%VGA_CTRL_WIDTH] : 0;
+assign {vga_unused, vga_r,vga_g,vga_b} = (vga_output && h_rgb_valid && v_rgb_valid) ? fram_buffer[(v_counter-v_frontporch)%VGA_CTRL_HIGH][(h_counter-h_frontporch)%VGA_CTRL_WIDTH] : 0;
 
 initial begin
     for (integer h=0; h<VGA_CTRL_HIGH; ++h) begin
         for (integer w=0; w<VGA_CTRL_WIDTH; ++w) begin
-            fram_buffer[h][w] = 24'hff0000;
+            // fram_buffer[h][w] = 32'hff0000;
+            fram_buffer[h][w] = {h[15:0], w[15:0]};
         end
     end
 end
