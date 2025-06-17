@@ -20,6 +20,10 @@ module vga_top_apb(
   output        vga_valid
 );
 
+wire [23:0]   vga_rgb;
+wire [9:0]    h_addr;
+wire [9:0]    v_addr;
+
 vga_fb m_vga_fb(
   .clk(clock),
   .rst(reset),
@@ -33,12 +37,23 @@ vga_fb m_vga_fb(
   .in_pready(in_pready),
   .in_prdata(in_prdata),
   .in_pslverr(in_pslverr),
-  .vga_r(vga_r),
-  .vga_g(vga_g),
-  .vga_b(vga_b),
-  .vga_hsync(vga_hsync),
-  .vga_vsync(vga_vsync),
-  .vga_valid(vga_valid)
+  .vga_rgb(vga_rgb),
+  .h_addr(h_addr),
+  .v_addr(v_addr)
 );
+
+vga_ctrl m_vga_ctrl(
+    .clk(clock),      //25MHz时钟
+    .rst(reset),    //置位
+    .vga_rgb(vga_rgb), //上层模块提供的VGA颜色数据
+    .h_addr(h_addr),   //提供给上层模块的当前扫描像素点坐标
+    .v_addr(v_addr),
+    .hsync(vga_hsync),    //行同步和列同步信号
+    .vsync(vga_vsync),
+    .valid(vga_valid),    //消隐信号
+    .vga_r(vga_r),    //红绿蓝颜色信号
+    .vga_g(vga_g),
+    .vga_b(vga_b)
+    );
 
 endmodule

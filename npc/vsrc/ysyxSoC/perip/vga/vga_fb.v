@@ -12,55 +12,35 @@ module vga_fb (
     output [31:0]           in_prdata,
     output                  in_pslverr,
 
-    output [7:0]            vga_r,
-    output [7:0]            vga_g,
-    output [7:0]            vga_b,
-    output                  vga_hsync,
-    output                  vga_vsync,
-    output                  vga_valid
+    input  [9:0]            h_addr,
+    input  [9:0]            v_addr,
+    output [23:0]           vga_rgb
 );
 
 localparam      VGA_CTRL_WIDTH = 640;
 localparam      VGA_CTRL_HIGH = 480;
-localparam      VGA_RGB_BIT_WIDTH = 32;
-localparam      VGA_COUNTER_BIT_WIDTH = 10;
-
-localparam      h_frontporch = 96;
-localparam      h_active = (h_frontporch+48);
-localparam      h_backporch = (h_active+VGA_CTRL_WIDTH);
-localparam      h_total = (h_backporch+16);
-
-localparam      v_frontporch = 2;
-localparam      v_active = (v_frontporch+33);
-localparam      v_backporch = (v_active+VGA_CTRL_HIGH);
-localparam      v_total = (v_backporch+10);
+localparam      VGA_RGB_BIT_WIDTH = 32; // 模拟效率更高
 
 reg [VGA_RGB_BIT_WIDTH-1:0] fram_buffer[0:VGA_CTRL_HIGH-1][0:VGA_CTRL_WIDTH-1];
-reg [VGA_COUNTER_BIT_WIDTH-1:0] h_counter;
-reg [VGA_COUNTER_BIT_WIDTH-1:0] v_counter;
-reg vga_output;
+wire [9:0] x_cnt = h_addr;
+wire [9:0] y_cnt = v_addr;
 
-wire hs_valid = (!vga_output) || (h_counter>=h_frontporch && h_counter<=h_total);
-wire vs_valid = (!vga_output) || (v_counter>=v_frontporch && v_counter<=v_total);
-wire h_rgb_valid = (h_counter>=h_active && h_counter<=h_backporch);
-wire v_rgb_valid = (v_counter>=v_active && v_counter<=v_backporch);
-
-assign vga_hsync = hs_valid;
-assign vga_vsync = vs_valid;
-assign vga_valid = vga_output;
-// TODO 临时填写的值
-assign in_pready = 1;
-assign in_prdata = 32'hff0000;
-assign in_pslverr = 0;
-wire [7:0] vga_unused;
-
-assign {vga_unused, vga_r,vga_g,vga_b} = (vga_output && h_rgb_valid && v_rgb_valid) ? fram_buffer[(v_counter-v_frontporch)%VGA_CTRL_HIGH][(h_counter-h_frontporch)%VGA_CTRL_WIDTH] : 0;
+assign vga_rgb = (x_cnt<VGA_CTRL_WIDTH && y_cnt<VGA_CTRL_HIGH) ? fram_buffer[y_cnt%VGA_CTRL_HIGH][x_cnt%VGA_CTRL_WIDTH][23:0] : 0;
 
 initial begin
-    for (integer h=0; h<VGA_CTRL_HIGH; ++h) begin
-        for (integer w=0; w<VGA_CTRL_WIDTH; ++w) begin
-            // fram_buffer[h][w] = 32'hff0000;
-            fram_buffer[h][w] = {h[15:0], w[15:0]};
+    for (integer y=0; y<VGA_CTRL_HIGH; ++y) begin
+        for (integer x=0; x<VGA_CTRL_WIDTH; ++x) begin
+            if (x>=VGA_CTRL_WIDTH/2) begin
+                if (y>=VGA_CTRL_HIGH/2)
+                    fram_buffer[y][x] = 32'h00ff55;
+                else
+                    fram_buffer[y][x] = 32'h550055;
+            end else begin
+                if (y>=VGA_CTRL_HIGH/2)
+                    fram_buffer[y][x] = 32'hffff00;
+                else
+                    fram_buffer[y][x] = 32'hff0102;
+            end
         end
     end
 end
@@ -72,26 +52,6 @@ always @(posedge clk or posedge rst) begin
         //     vga_ctrl_value <= dpi_vdev_read(32'h22000000, 4);
         // end else begin
         // end
-    end
-end
-
-always @(posedge clk or posedge rst)
-    if (rst) h_counter <= 0;
-    else if (vga_output && h_counter < h_total) h_counter <= h_counter + 1;
-    else h_counter <= 0;
-
-always @(posedge clk or posedge rst)
-    if (rst) v_counter <= 0;
-    else if (vga_output && v_counter == v_total) v_counter <= 0;
-    else if (vga_output && h_counter < h_total) v_counter <= v_counter;
-    else if (vga_output && h_counter == h_total) v_counter <= v_counter + 1;
-    else v_counter <= 0;
-
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        vga_output <= 0;
-    end else begin
-        vga_output <= 1;
     end
 end
 
