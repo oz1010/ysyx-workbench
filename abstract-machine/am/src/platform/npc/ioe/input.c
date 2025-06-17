@@ -144,7 +144,7 @@ void __am_input_init()
     if (!init_ps2_code) {
         init_ps2_code = true;
         MAP(PS2_KEYS, PS2_KEYITEM)
-        printf("Init ps2 code done.\n");
+        printf("Init ps2 decoder done.\n");
     }
     
 }
