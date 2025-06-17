@@ -173,9 +173,9 @@ uint8_t *get_vsimu_sram_addr()
     return (uint8_t *)&top->rootp->TOP_ASIC_AXI4RAM_MEMORY[0];
 }
 
-uint8_t *get_vsimu_vga_fb_addr()
+uint32_t *get_vsimu_vga_fb_addr()
 {
-    return (uint8_t *)&top->rootp->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_fb__DOT__fram_buffer[0];
+    return (uint32_t *)&top->rootp->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_fb__DOT__fram_buffer[0];
 }
 
 void set_vsimu_pc(paddr_t addr)
