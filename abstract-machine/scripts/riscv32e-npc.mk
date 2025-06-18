@@ -11,3 +11,10 @@ endif
 AM_SRCS += riscv/npc/cte.c \
            riscv/npc/trap.S \
            riscv/npc/vme.c
+# 公共乘除法库头文件
+AM_SRCS += riscv/npc/libgcc/div.S \
+           riscv/npc/libgcc/muldi3.S \
+           riscv/npc/libgcc/multi3.c \
+           riscv/npc/libgcc/ashldi3.c \
+           riscv/npc/libgcc/unused.c
+
