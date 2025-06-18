@@ -87,13 +87,16 @@ bin_header_t bin_header;
 
 static size_t load_img()
 {
-    vdev_item_t* vdev = find_vdev_item(CONFIG_IMG_LOAD);
-    assert(vdev);
-    uint8_t *pmem = vdev->raw_mem;
+    uint8_t *pmem = NULL;
+    vdev_item_t* vdev = NULL;
 
     if (cfg_img_file == NULL)
     {
-        Log("No image is given. Use the default build-in image.");
+        vdev = find_vdev_item(CONFIG_IMG_LOAD);
+        assert(vdev);
+        pmem = vdev->raw_mem;
+
+        Log("No image is given. Use the default build-in image to %#x.", CONFIG_IMG_LOAD);
         /* Load built-in image. */
         memcpy(pmem, img, sizeof(img));
         return 4096;  // built-in image size
@@ -124,33 +127,44 @@ static size_t load_img()
 
     Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
 
-    /* 加载bin文件到flash */
+    /* 加载bin文件头部信息 */
     fseek(fd, 0, SEEK_SET);
-    ret = fread(&pmem[0], readsize, 1, fd);
-    assert(ret == 1 && "read bin to flash failed");
+    ret = fread(&bin_header, sizeof(bin_header_t), 1, fd);
+    assert(ret == 1 && "read bin header failed");
     /* 解析bin_header信息 */
-    memcpy(&bin_header, &pmem[0], sizeof(bin_header_t));
     if (bin_header.magic != BIN_HEADER_MAGIC)
     {
         Log("The file is missing bin_header information, magic %u", bin_header.magic);
         exit(-1);
     }
+    /* 根据entry找到程序需要加载的位置 */
+    vdev = find_vdev_item(bin_header.entry);
+    assert(vdev);
+    pmem = vdev->raw_mem;
+    fseek(fd, 0, SEEK_SET);
+    ret = fread(&pmem[0], readsize, 1, fd);
+    assert(ret == 1 && "read bin to memory failed");
+    
     /* 快速加载到ram */
     if (bin_header.flag & BIN_HEADER_FLAG_FAST_BOOT)
     {
         // 加载text段
-        for (uint32_t addr = bin_header.text_start, load_addr = bin_header.text_load;
-             addr < bin_header.text_end; addr += 4, load_addr += 4)
-        {
-            uint32_t data = paddr_read(load_addr, 4);
-            paddr_write(addr, 4, data);
+        if (bin_header.text_start != bin_header.text_load) {
+            for (uint32_t addr = bin_header.text_start, load_addr = bin_header.text_load;
+                addr < bin_header.text_end; addr += 4, load_addr += 4)
+            {
+                uint32_t data = paddr_read(load_addr, 4);
+                paddr_write(addr, 4, data);
+            }
         }
         // 加载data段
-        for (uint32_t addr = bin_header.data_start, load_addr = bin_header.data_load;
-             addr < bin_header.data_end; addr += 4, load_addr += 4)
-        {
-            uint32_t data = paddr_read(load_addr, 4);
-            paddr_write(addr, 4, data);
+        if (bin_header.data_start != bin_header.data_load) {
+            for (uint32_t addr = bin_header.data_start, load_addr = bin_header.data_load;
+                addr < bin_header.data_end; addr += 4, load_addr += 4)
+            {
+                uint32_t data = paddr_read(load_addr, 4);
+                paddr_write(addr, 4, data);
+            }
         }
         // 清理bss段
         for (uint32_t addr = bin_header.bss_start; addr < bin_header.bss_end; addr += 4)
