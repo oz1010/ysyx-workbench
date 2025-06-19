@@ -17,15 +17,21 @@ static const char mainargs[] = MAINARGS;
 
 void putch(char ch)
 {
+#if CONFIG_HAS_UART
     SERILAL_STATUE_CHECK();
     outb(SERIAL_PORT, ch);
+#endif
 }
 
 int getch()
 {
+#if CONFIG_HAS_UART
     if ((inb(UART16550_REG_LSR) & bits(0)) == bits(0))
         return inb(SERIAL_PORT);
     return -1;
+#else
+    return -1;
+#endif
 }
 
 void halt(int code)
@@ -39,6 +45,7 @@ void halt(int code)
 
 void init_uart16550()
 {
+#if CONFIG_HAS_UART
     uint8_t val = inb(UART16550_REG_LCR);
     outb(UART16550_REG_LCR, val |= bits(7));
     // 文档中计算值为：DL = sys_clk / (16*BAUD_RATE)
@@ -47,6 +54,7 @@ void init_uart16550()
     outb(UART16550_REG_DL1, 0x00);
     outb(UART16550_REG_DL0, 0x01);
     outb(UART16550_REG_LCR, val &= ~bits(7));
+#endif
 }
 
 void print_machine_info()
@@ -58,7 +66,9 @@ void print_machine_info()
     } vendor_info;
     memset(&vendor_info, 0, sizeof(vendor_info));
     vendor_info.id=GET_MACHINE_CSR(mvendorid);
+#if CONFIG_HAS_UART
     printf("Machine info: %s_%d\n", vendor_info.str, GET_MACHINE_CSR(marchid));
+#endif
 #if CONFIG_HAS_GPIO
     outl(CONFIG_GPIO_BASE_ADDR + 0x8, 0x23060295);
 #endif

@@ -303,17 +303,22 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
         if (vdev->type == VDEV_EXTER)
         {
             DIFFTEST_SKIP_REF();
+#if CONFIG_HAS_UART
             if (vdev->startaddr == CONFIG_UART_BASE_ADDR)
             {
                 char c = (char)data;
                 DPI_DTRACE(vdev->name, "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c,
                            c);
             }
-            else if (vdev->startaddr == CONFIG_SPI_MASTER_BASE_ADDR)
+            else
+#endif
+#if CONFIG_HAS_SPI_MASTER
+            if (vdev->startaddr == CONFIG_SPI_MASTER_BASE_ADDR)
             {
                 DPI_DTRACE(vdev->name, "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
             }
             else
+#endif
             {
                 if (write)
                 {
