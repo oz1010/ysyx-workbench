@@ -72,7 +72,7 @@ menuconfig SDRAM
 
     config SDRAM_SIZE
       hex "SDRAM memory size"
-      default 0x02000000
+      default 0x04000000
   endif # SDRAM
 endif # MEM_TYPE_MULTI
 

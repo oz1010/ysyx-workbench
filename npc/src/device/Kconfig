@@ -180,6 +180,10 @@ menuconfig HAS_CLINT
     config CLINT_BASE_ADDR
       hex "Base address of the CLINT"
       default 0x02000000
+    
+    config CORE_FREQUENCY
+      int "Frequency (Hz) of the core"
+      default 1000000
   endif # HAS_CLINT
 
 menuconfig HAS_UART

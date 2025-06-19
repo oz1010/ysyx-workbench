@@ -415,7 +415,11 @@ int dpi_rtc_read(int addr, int len)
     if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_tick - last_tick) >= update_ticks))
     {
         last_tick += update_ticks;
+#if CONFIG_CORE_FREQUENCY
+        local_execute_time = hw_tick / (CONFIG_CORE_FREQUENCY / 1000000); // us
+#else
         local_execute_time = get_time();
+#endif
         get_hw_time_info(&local_time_info);
     }
 
