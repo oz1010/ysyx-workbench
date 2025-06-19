@@ -229,6 +229,12 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
+/* 性能监控 */
+perf_monitor m_perf_monitor (
+    .clk(clk),
+    .rst(rst)
+);
+
 /* arbiter模块 */
 arbiter_axi4 #(
     .USER_M_COUNT(2),
