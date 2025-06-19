@@ -13,7 +13,7 @@ static const char mainargs[] = MAINARGS;
 
 void _test_init() {
   init_uart16550();
-  print_machine_info();
+  // print_machine_info();
 
   int ret = main(mainargs);
   halt(ret);
