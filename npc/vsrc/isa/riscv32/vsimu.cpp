@@ -85,12 +85,12 @@ int exec_vsimu(Decode *s)
 
         // 电路仿真
         // top->inst = s->isa.inst.val;
-        top->clock = 1;
+        top->clock = !top->clock;
         top->contextp()->timeInc(1);
         top->eval();
         RECORD_TRACE_VCD();
 
-        top->clock = 0;
+        top->clock = !top->clock;
         top->contextp()->timeInc(1);
         top->eval();
         RECORD_TRACE_VCD();
@@ -141,12 +141,11 @@ void init_vsimu(int argc, char *argv[])
     init_dpi();
 
     // 上电复位
-    uint32_t clock = 0;
+    top->clock = 1;
     top->reset = 1;
-    for (int i = 0; i < 18; ++i)
+    for (int i = 0; i < 28; ++i)
     {
-        top->clock = clock;
-        clock = !clock;
+        top->clock = !top->clock;
         top->contextp()->timeInc(1);
         top->eval();
         RECORD_TRACE_VCD();

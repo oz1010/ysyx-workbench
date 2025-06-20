@@ -287,6 +287,10 @@ config DIFFTEST
     Enable differential testing with a reference design.
     Note that this will significantly reduce the performance of NPC.
 
+config PERF_MONITOR
+  bool "Enable perf monitor"
+  default y
+
 endif # DEBUG_SYSTEM
 
 choice

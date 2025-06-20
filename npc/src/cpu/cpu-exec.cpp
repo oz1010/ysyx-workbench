@@ -118,9 +118,25 @@ static void execute(uint64_t n)
     }
 }
 
+#if CONFIG_PERF_MONITOR
+static const char *hw_monitor_id_str(int id)
+{
+    static const char *strs[HW_MONITOR_ID_COUNT] = {
+        "", "IFU", "IDU", "LSU", "EXU", "WBU",
+    };
+    if (id <= 0 || id >= HW_MONITOR_ID_COUNT)
+    {
+        return "";
+    }
+
+    return strs[id];
+}
+#endif
+
 static void statistic()
 {
     extern uint64_t hw_tick;
+
     IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") "lu"
 #define FLOAT_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") ".03f"
@@ -133,8 +149,24 @@ static void statistic()
         Log("Finish running in less than 1 us and can not calculate the simulation frequency");
     Log("Hardware total ticks = " NUMBERIC_FMT, hw_tick);
     if (hw_tick > 0)
-        Log("Hardware IPC = " FLOAT_FMT " inst/cycle",
-            npc_ctx.nr_guest_inst / (hw_tick * 1.0));
+        Log("Hardware IPC = " FLOAT_FMT " inst/cycle", npc_ctx.nr_guest_inst / (hw_tick * 1.0));
+
+#if CONFIG_PERF_MONITOR
+    extern void add_monitor_event(int id, int delta);
+    extern uint64_t hw_monitor_events[HW_MONITOR_ID_COUNT];
+    // 将结束前的事件推送到统计中
+    add_monitor_event(5, 1);
+    raw_stdout("Hardware monitor perf event statistic\n");
+    raw_stdout("====================================\n");
+    raw_stdout("    %-12s %-12s\n", "Unit", "Event Count");
+    raw_stdout("------------------------------------\n");
+    for (int id = 1; id < HW_MONITOR_ID_COUNT; ++id)
+    {
+        raw_stdout("    %-12s %lu\n", hw_monitor_id_str(id), hw_monitor_events[id]);
+    }
+    raw_stdout("------------------------------------\n");
+#endif
+
 }
 
 void assert_fail_msg()

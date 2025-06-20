@@ -11,6 +11,7 @@
 !*.cpp
 !*.sdc
 !*.nxdc
+!*.py
 !.gitignore
 !README.md
 !Kconfig
