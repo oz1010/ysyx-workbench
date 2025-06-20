@@ -241,6 +241,7 @@ perf_monitor m_perf_monitor (
     .ls_ready(ls_ready),
     .ls_valid(ls_valid),
     .wb_ready(wb_ready),
+    .inst_code(inst_code),
     .done()
 );
 
