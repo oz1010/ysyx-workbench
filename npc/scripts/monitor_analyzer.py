@@ -17,6 +17,7 @@ from collections import defaultdict
 def parse_log(log_lines):
     instructions = []
     current_inst = None
+    start_tick = 0
     
     for line in log_lines:
         entries = line.strip().split()
@@ -33,7 +34,7 @@ def parse_log(log_lines):
                             if current_inst is not None:
                                 instructions.append(current_inst)
                             current_inst = {
-                                'start_tick': tick,
+                                'start_tick': start_tick,
                                 'end_tick': tick,
                                 'stages': {'IFU': tick},
                                 'inst': None,
@@ -53,6 +54,7 @@ def parse_log(log_lines):
                                 
                                 current_inst['stages'][value] = tick
                                 current_inst['end_tick'] = tick
+                                start_tick = tick
                     else:
                         print(f"警告: 未知的阶段类型: {value}", file=sys.stderr)
                 elif entry_type == 2:  # 指令记录
@@ -75,7 +77,7 @@ def analyze_instructions(instructions):
     stage_delays = defaultdict(list)
     
     # 特殊统计：LSU指令的IDU到WBU延迟
-    lsu_idu_to_wbu = []
+    lsu_avg_delays = []
     
     # 执行单元使用情况
     exec_unit_usage = {'EXU': 0, 'LSU': 0}
@@ -91,7 +93,7 @@ def analyze_instructions(instructions):
         inst_counts[inst_type] += 1
         
         # 计算指令总周期
-        cycles = inst['end_tick'] - inst['start_tick'] + 1
+        cycles = inst['end_tick'] - inst['start_tick']
         inst_cycles[inst_type].append(cycles)
         
         # 记录执行单元使用情况
@@ -100,11 +102,13 @@ def analyze_instructions(instructions):
         if inst['has_lsu']:
             exec_unit_usage['LSU'] += 1
             # 计算LSU指令的IDU到WBU延迟
-            if 'IDU' in inst['stages'] and 'WBU' in inst['stages']:
-                lsu_idu_to_wbu.append(inst['stages']['WBU'] - inst['stages']['IDU'])
+            if 'IDU' in inst['stages'] and 'LSU' in inst['stages']:
+                lsu_avg_delays.append(inst['stages']['LSU'] - inst['stages']['IDU'])
         
         # 计算各阶段延迟
         stages = inst['stages']
+        if 'IFU' in stages:
+            stage_delays['STR_IFU'].append(stages['IFU'] - inst['start_tick'])
         if 'IFU' in stages and 'IDU' in stages:
             stage_delays['IFU_IDU'].append(stages['IDU'] - stages['IFU'])
         if 'IDU' in stages:
@@ -122,7 +126,7 @@ def analyze_instructions(instructions):
                       for inst, cycles in inst_cycles.items()}
     
     # 计算LSU指令IDU到WBU平均延迟
-    lsu_avg_idu_to_wbu = sum(lsu_idu_to_wbu)/len(lsu_idu_to_wbu) if lsu_idu_to_wbu else 0
+    lsu_avg_idu_to_wbu = sum(lsu_avg_delays)/len(lsu_avg_delays) if lsu_avg_delays else 0
     
     return {
         'inst_counts': inst_counts,
@@ -135,29 +139,37 @@ def analyze_instructions(instructions):
     }
 
 def print_stats(stats):
+    total_cycles = 0
+
     print("\n指令统计 (总数: {}):".format(stats['total_instructions']))
     if not stats['inst_counts']:
         print("  无有效指令数据")
     else:
-        for inst in sorted(stats['inst_counts'].keys()):
+        # 三级排序：平均周期↓ → 指令数量↓ → 指令名称↑
+        sorted_insts = sorted(stats['inst_counts'].keys(),
+            key=lambda x: (-stats['inst_avg_cycles'][x],
+                            -stats['inst_counts'][x],
+                            x.lower()))
+        for inst in sorted_insts:
             count = stats['inst_counts'][inst]
             percentage = stats['inst_percentage'][inst]
             avg_cycles = stats['inst_avg_cycles'][inst]
+            total_cycles += avg_cycles * count
             print(f"  {inst}: {count}条 ({percentage:.1f}%), 平均周期: {avg_cycles:.1f}")
-    
-    print("\n执行单元使用统计:")
-    print(f"  EXU使用次数: {stats['exec_unit_usage']['EXU']}")
-    print(f"  LSU使用次数: {stats['exec_unit_usage']['LSU']}")
-    
-    print("\nLSU指令统计:")
-    print(f"  IDU到WBU的平均延迟: {stats['lsu_avg_idu_to_wbu']:.1f} ticks (样本数: {stats['exec_unit_usage']['LSU']})")
-    
+    print(f"指令总周期：{total_cycles}")
+
+    # print("\n执行单元使用统计:")
+    # print(f"  EXU使用次数: {stats['exec_unit_usage']['EXU']}")
+    # print(f"  LSU使用次数: {stats['exec_unit_usage']['LSU']}")
+
     print("\n阶段延迟统计:")
     if not stats['stage_delays']:
         print("  无有效阶段延迟数据")
     else:
-        for stage in sorted(stats['stage_delays'].keys()):
-            delays = stats['stage_delays'][stage]
+        # 按平均延迟从大到小排序，若相同则按阶段名称排序
+        sorted_stages = sorted(stats['stage_delays'].items(),
+            key=lambda item: (-sum(item[1])/len(item[1]) if item[1] else 0, item[0]))
+        for stage, delays in sorted_stages:
             avg_delay = sum(delays)/len(delays) if delays else 0
             print(f"  {stage} 平均延迟: {avg_delay:.1f} ticks (样本数: {len(delays)})")
 
