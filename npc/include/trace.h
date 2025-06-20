@@ -9,6 +9,7 @@ extern FILE *trace_fd;
 #define ITRACE_ITEM_MAX 5
 #define ITRACE_NEXT_INST_SHOW 3
 #define HW_MONITOR_ID_COUNT 6
+#define HW_MONITOR_CODE_COUNT 56
 
 #ifdef CONFIG_ITRACE
 #define ITRACE_UPDATE(addr, str, err) itrace_update(addr, str, err)
@@ -68,6 +69,18 @@ typedef struct _dtrace_limit_s
     paddr_t start_addr;
     paddr_t end_addr;
 } dtrace_limit_t;
+
+typedef struct
+{
+    const char* name;
+    uint64_t cnt;
+} hw_monitor_item_t;
+
+typedef struct
+{
+    hw_monitor_item_t events[HW_MONITOR_ID_COUNT];
+    hw_monitor_item_t codes[HW_MONITOR_CODE_COUNT];
+} hw_monitor_ctx_t;
 
 extern FILE *trace_fd;
 
