@@ -152,10 +152,8 @@ static void statistic()
         Log("Hardware IPC = " FLOAT_FMT " inst/cycle", npc_ctx.nr_guest_inst / (hw_tick * 1.0));
 
 #if CONFIG_PERF_MONITOR
-    extern void add_monitor_event(int id, int delta);
     extern uint64_t hw_monitor_events[HW_MONITOR_ID_COUNT];
     // 将结束前的事件推送到统计中
-    add_monitor_event(5, 1);
     raw_stdout("Hardware monitor perf event statistic\n");
     raw_stdout("====================================\n");
     raw_stdout("    %-12s %-12s\n", "Unit", "Event Count");

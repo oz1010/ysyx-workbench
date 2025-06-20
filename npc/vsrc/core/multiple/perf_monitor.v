@@ -22,7 +22,6 @@ reg last_if_valid;
 reg last_id_valid;
 reg last_ls_valid;
 reg last_ex_valid;
-reg last_wb_ready;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -53,10 +52,7 @@ always @(posedge clk or posedge rst) begin
         if (!last_ex_valid && ex_valid) begin
             dpi_monitor_event({28'h0,`AXI4_ID_EXU}, 1);
         end
-        // WBU完成回写
-        if (!last_wb_ready && wb_ready) begin
-            dpi_monitor_event({28'h0,`AXI4_ID_WBU}, 1);
-        end
+        // WBU完成回写，移到仿真中去统计
     end
 end
 
