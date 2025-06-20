@@ -36,6 +36,7 @@ extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 uint64_t hw_tick = 0;
 uint32_t hw_flash_idx = 0;
 hw_monitor_ctx_t hw_monitor_ctx;
+FILE *monitor_fp = NULL;
 static const char *event_strs[HW_MONITOR_ID_COUNT] = {
     "INVALID",
     "IFU",
@@ -664,25 +665,47 @@ void add_monitor_code(int id, int delta)
     hw_monitor_ctx.codes[id].cnt += delta;
 }
 
-void dpi_monitor_item(int item_idx, int id, int delta)
+void add_monitor_log(int item_idx, int id)
 {
+    fprintf(monitor_fp, "%lu|%d|%s%c", hw_tick, item_idx, item_idx==1?hw_monitor_ctx.events[id].name:hw_monitor_ctx.codes[id].name, (item_idx==1&&id==(HW_MONITOR_ID_COUNT-1))?'\n':' ');
+    fflush(monitor_fp);
+}
+
+void add_monitor_item(int item_idx, int id, int delta)
+{
+#if CONFIG_PERF_MONITOR
+    static bool init_monitor_en = true;
+
     switch (item_idx)
     {
     case 0:
-        memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
-        for (int i=0; i<ARRLEN(event_strs); ++i) {
-            hw_monitor_ctx.events[i].name = event_strs[i];
-        }
-        for (int i=0; i<ARRLEN(code_strs); ++i) {
-            hw_monitor_ctx.codes[i].name = code_strs[i];
+        if (init_monitor_en) {
+            init_monitor_en = false;
+            memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
+            for (int i=0; i<ARRLEN(event_strs); ++i) {
+                hw_monitor_ctx.events[i].name = event_strs[i];
+            }
+            for (int i=0; i<ARRLEN(code_strs); ++i) {
+                hw_monitor_ctx.codes[i].name = code_strs[i];
+            }
+
+            if (!monitor_fp) {
+                const char* monitor_file = "build/npc-monitor.log";
+                monitor_fp = fopen(monitor_file, "w");
+                Assert(monitor_fp, "Can not open '%s'", monitor_file);
+            }
         }
         break;
     
     case 1:
+        init_monitor_en = true;
+        add_monitor_log(item_idx, id);
         add_monitor_event(id, delta);
         break;
-
+        
     case 2:
+        init_monitor_en = true;
+        add_monitor_log(item_idx, id);
         add_monitor_code(id, delta);
         break;
 
@@ -691,6 +714,12 @@ void dpi_monitor_item(int item_idx, int id, int delta)
         exit_simu(3);
         break;
     }
+#endif
+}
+
+void dpi_monitor_item(int item_idx, int id, int delta)
+{
+    add_monitor_item(item_idx, id, delta);
 }
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)

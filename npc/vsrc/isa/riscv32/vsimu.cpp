@@ -113,8 +113,8 @@ int exec_vsimu(Decode *s)
 
 #if CONFIG_PERF_MONITOR
     if (top->rootp->TOP_S_CORE_INST_DONE[0]) {
-        extern void add_monitor_event(int id, int delta);
-        add_monitor_event(5, 1);
+        extern void add_monitor_item(int item_idx, int id, int delta);
+        add_monitor_item(1, 5, 1);
     }
 #endif
 
