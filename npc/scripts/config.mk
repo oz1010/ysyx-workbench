@@ -25,6 +25,7 @@ Q            := @
 KCONFIG_PATH := $(NPC_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NPC_HOME)/tools/fixdep
 Kconfig      := $(NPC_HOME)/Kconfig
+VH_CONVERT	 := $(NPC_HOME)/scripts/convert_header.py
 rm-distclean += include/generated include/config .config .config.old
 silent := -s
 
@@ -44,6 +45,7 @@ $(FIXDEP):
 menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 	$(Q)$(MCONF) $(Kconfig)
 	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
+	$(Q)$(VH_CONVERT) $(NPC_HOME)/include/generated/autoconf.h
 
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)

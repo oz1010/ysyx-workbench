@@ -232,7 +232,16 @@ end
 /* 性能监控 */
 perf_monitor m_perf_monitor (
     .clk(clk),
-    .rst(rst)
+    .rst(rst),
+    .if_valid(if_valid),
+    .id_ready(id_ready),
+    .id_valid(id_valid),
+    .ex_ready(ex_ready),
+    .ex_valid(ex_valid),
+    .ls_ready(ls_ready),
+    .ls_valid(ls_valid),
+    .wb_ready(wb_ready),
+    .done()
 );
 
 /* arbiter模块 */

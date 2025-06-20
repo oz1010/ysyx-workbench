@@ -8,6 +8,7 @@ extern FILE *trace_fd;
 
 #define ITRACE_ITEM_MAX 5
 #define ITRACE_NEXT_INST_SHOW 3
+#define HW_MONITOR_ID_COUNT 6
 
 #ifdef CONFIG_ITRACE
 #define ITRACE_UPDATE(addr, str, err) itrace_update(addr, str, err)

@@ -1,23 +1,62 @@
 module perf_monitor (
     input  wire         clk,
-    input  wire         rst
+    input  wire         rst,
+    input  wire         if_valid,
+    input  wire         id_ready,
+    input  wire         id_valid,
+    input  wire         ex_ready,
+    input  wire         ex_valid,
+    input  wire         ls_ready,
+    input  wire         ls_valid,
+    input  wire         wb_ready,
+    output wire         done
 );
 
-`ifdef RISCV_PERF_MONITOR_EN
+`ifdef CONFIG_PERF_MONITOR
 
 initial begin
     // $display("Enable perf monitor");
 end
 
-/*
-IFU取到指令
-LSU取到数据
-EXU完成计算
-译码出各种类别的指令, 如计算类指令, 访存指令, CSR指令等
-*/
+reg last_if_valid;
+reg last_id_valid;
+reg last_ls_valid;
+reg last_ex_valid;
+reg last_wb_ready;
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
+        dpi_monitor_event(0, 0);
+        last_if_valid <= 0;
+        last_id_valid <= 0;
+        last_ls_valid <= 0;
+        last_ex_valid <= 0;
     end else begin
+        last_if_valid <= if_valid;
+        last_id_valid <= id_valid;
+        last_ls_valid <= ls_valid;
+        last_ex_valid <= ex_valid;
+
+        // IFU取到指令
+        if (!last_if_valid && if_valid) begin
+            dpi_monitor_event({28'h0,`AXI4_ID_IFU}, 1);
+        end
+        // 译码出各种类别的指令, 如计算类指令, 访存指令, CSR指令等
+        if (!last_id_valid && id_valid) begin
+            dpi_monitor_event({28'h0,`AXI4_ID_IDU}, 1);
+        end
+        // LSU取到数据
+        if (!last_ls_valid && ls_valid) begin
+            dpi_monitor_event({28'h0,`AXI4_ID_LSU}, 1);
+        end
+        // EXU完成计算
+        if (!last_ex_valid && ex_valid) begin
+            dpi_monitor_event({28'h0,`AXI4_ID_EXU}, 1);
+        end
+        // WBU完成回写
+        if (!last_wb_ready && wb_ready) begin
+            dpi_monitor_event({28'h0,`AXI4_ID_WBU}, 1);
+        end
     end
 end
 

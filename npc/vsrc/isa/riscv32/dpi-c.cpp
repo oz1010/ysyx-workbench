@@ -35,6 +35,7 @@
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 uint64_t hw_tick = 0;
 uint32_t hw_flash_idx = 0;
+uint64_t hw_monitor_events[HW_MONITOR_ID_COUNT] = {0};
 
 #define PSRAM_SIZE (4 * 1024 * 1024)
 #define TEST_INIF_PSRAM_OFFSET 0x00300000
@@ -573,6 +574,27 @@ void dpi_vdev_write(int addr, int data, int len)
     }
 
     vdev_write(vdev, addr, len, data);
+}
+
+void add_monitor_event(int id, int delta)
+{
+    if (id==0 && delta==0) {
+        memset(hw_monitor_events, 0, sizeof(hw_monitor_events));
+        return;
+    }
+
+    if (id >= ARRLEN(hw_monitor_events)) {
+        raw_stdout("DPI monitor event id is out of range, id:%d\n", id);
+        exit_simu(2);
+        return;
+    }
+
+    hw_monitor_events[id] += delta;
+}
+
+void dpi_monitor_event(int id, int delta)
+{
+    add_monitor_event(id, delta);
 }
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)

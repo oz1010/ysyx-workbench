@@ -1,10 +1,11 @@
 `ifndef __RISCV32E_DEFINES_V__
 `define __RISCV32E_DEFINES_V__
 
+`include "generated/autoconf.vh"
+
 `define RISCV_CORE_NUM      1
 `define RISCV_INST_WIDTH    32
 `define RISCV_CSR_COUNT     32
-`define RISCV_PERF_MONITOR_EN
 
 `define TYPE_R              3'd0
 `define TYPE_I              3'd1
