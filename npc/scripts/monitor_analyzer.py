@@ -155,6 +155,8 @@ def print_stats(stats):
             percentage = stats['inst_percentage'][inst]
             avg_cycles = stats['inst_avg_cycles'][inst]
             total_cycles += avg_cycles * count
+            # 模拟优化2倍，Amdahl's law公式计算的收益
+            # amdahl_s_law = 1 / (1-percentage/100.0 + percentage/100.0/2)
             print(f"  {inst}: {count}条 ({percentage:.1f}%), 平均周期: {avg_cycles:.1f}")
     print(f"指令总周期：{total_cycles}")
 
