@@ -28,6 +28,10 @@ override ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
 override ARGS += $(ARGS_DIFF)
 override ARGS += -b
 
+ifeq ($(CONFIG_PERF_MONITOR), y)
+	PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(NPC_HOME)/build/npc-monitor.log
+endif
+
 # Command to execute NPC
 NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
 
@@ -36,6 +40,7 @@ run-env: $(BINARY) $(IMG) $(DIFF_REF_SO)
 run: run-env
 	$(call git_commit, "run NPC")
 	$(NPC_EXEC)
+	$(PERF_MONITOR_SH)
 
 gdb: run-env
 	$(call git_commit, "gdb NNPC")
