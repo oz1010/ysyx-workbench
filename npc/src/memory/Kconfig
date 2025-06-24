@@ -73,6 +73,10 @@ menuconfig SDRAM
     config SDRAM_SIZE
       hex "SDRAM memory size"
       default 0x04000000
+
+    config SDRAM_FREQUENCY
+      int "Frequency (Hz) of the sdram"
+      default 120000
   endif # SDRAM
 endif # MEM_TYPE_MULTI
 
