@@ -44,9 +44,9 @@ module apb_delayer(
     assign out_pwrite  = in_pwrite;
     assign out_pwdata  = in_pwdata;
     assign out_pstrb   = in_pstrb;
-    assign in_pready   = (delay_cycle_delta != 0) ? 
-        (state==idle_t) ? delay_ready : 0
-        : out_pready;
+    assign in_pready   = (delay_cycle_delta == 0) ? out_pready :
+        (delay_cycle_delta!=0 && delay_cycle==0) ? delay_ready : 
+        0;
     assign in_prdata   = out_prdata;
     assign in_pslverr  = out_pslverr;
 
@@ -62,7 +62,6 @@ module apb_delayer(
                         state <= delay_t;
                         delay_cycle <= delay_cycle_delta; // 需要记录第一个周期
                     end
-                    if (delay_ready) delay_ready <= 0;
                 end
 
                 delay_t: begin
@@ -77,7 +76,6 @@ module apb_delayer(
                     delay_cycle <= delay_cycle - 1;
                     if (delay_cycle == 0) begin
                         delay_ready <= 1;
-                        state <= idle_t;
                         delay_cycle <= 0;
                     end
                 end
@@ -86,6 +84,11 @@ module apb_delayer(
                     $error("unknown state %x in apb_delayer", state);
                 end
             endcase
+
+            if (delay_ready) begin
+                delay_ready <= 0;
+                state <= idle_t;
+            end
         end
     end
 
