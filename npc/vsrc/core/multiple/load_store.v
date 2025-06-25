@@ -127,16 +127,23 @@ wire [DATA_WIDTH-1:0] shifted_w_data = src2<<(8*signed_data_shift_val);
 reg [7:0] s_write_idx;
 reg [7:0] s_write_len;
 reg [2:0] s_write_size;
-reg [3:0] s_write_strb[0:1];
+reg [7:0] s_write_strb;
+wire [3:0] s_write_strbs[0:1];
 reg [1:0] s_write_shift_val;
 reg [1:0] r_write_state;
 reg [7:0] s_read_idx;
 reg [7:0] s_read_len;
 reg [2:0] s_read_size;
-reg [3:0] s_read_strb[0:1];
+reg [7:0] s_read_strb;
+wire [3:0] s_read_strbs[0:1];
 reg [1:0] s_read_shift_val;
 reg [1:0] r_read_state;
 reg [DATA_WIDTH-1:0] s_read_data;
+
+assign s_write_strbs[0] = s_write_strb[0 +: 4];
+assign s_write_strbs[1] = s_write_strb[4 +: 4];
+assign s_read_strbs[0] = s_read_strb[0 +: 4];
+assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -223,7 +230,7 @@ always @(posedge clk or posedge rst) begin
                             /* 写下第一个字 */
                             r_w_valid <= 1;
                             s_write_idx <= s_write_idx + 1;
-                            r_w_strb <= s_write_strb[s_write_idx[0:0]];
+                            r_w_strb <= s_write_strbs[s_write_idx[0:0]];
                             case (s_write_idx)
                                 0: r_w_data<=src2<<(8*s_write_shift_val);
                                 1: r_w_data<=src2>>(32-8*s_write_shift_val);
@@ -238,7 +245,7 @@ always @(posedge clk or posedge rst) begin
                             /* 写下第二个字 */
                             r_w_valid <= 1;
                             s_write_idx <= s_write_idx + 1;
-                            r_w_strb <= s_write_strb[s_write_idx[0:0]];
+                            r_w_strb <= s_write_strbs[s_write_idx[0:0]];
                             case (s_write_idx)
                                 0: r_w_data<=src2<<(8*s_write_shift_val);
                                 1: r_w_data<=src2>>(32-8*s_write_shift_val);
@@ -249,9 +256,9 @@ always @(posedge clk or posedge rst) begin
 
                         if (w_last) begin
                             if (s_write_idx < 2)
-                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strb[0]}, src2);
+                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strbs[0]}, src2);
                             else
-                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strb[0]|s_write_strb[1]}, src2);
+                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strbs[0]|s_write_strbs[1]}, src2);
 
                             r_w_valid <= 0;
                             r_w_strb <= 0;

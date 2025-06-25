@@ -1,3 +1,4 @@
+`ifndef IN_YOSYS_STA
 import "DPI-C" function void exit_simu(input int code);
 import "DPI-C" function void invalid_inst(input int pc, input int inst);
 import "DPI-C" function void dpi_execute_time_ctrl(input int delta);
@@ -20,6 +21,7 @@ import "DPI-C" function int dpi_check_dev_addr(input int addr, input int attr);
 import "DPI-C" function int dpi_vdev_read(input int addr, input int len);
 import "DPI-C" function void dpi_vdev_write(input int addr, input int data, input int len);
 import "DPI-C" function void dpi_monitor_item(input int item_idx, input int id, input int delta);
+`endif
 
 `include "riscv32e_defines.v"
 
