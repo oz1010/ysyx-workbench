@@ -2,6 +2,7 @@
 `define __RISCV32E_DEFINES_V__
 
 `include "generated/autoconf.vh"
+`include "yosys.vh"
 
 `define RISCV_CORE_NUM      1
 `define RISCV_INST_WIDTH    32
@@ -118,7 +119,8 @@
 `define SDRAM_BLK_BITS      1
 `define SDRAM_BLK_NUM      (1<<`SDRAM_BLK_BITS)
 
-`ifndef IN_YOSYS_STA
+`ifdef IN_YOSYS_STA
+`else
 typedef struct {
     string name;
     logic [31:0] startaddr;
@@ -131,13 +133,13 @@ typedef struct {
     logic [31:0] startaddr;
     logic [31:0] endaddr;
 } device_info_t;
+`endif
 
 typedef enum logic [1:0] {
     AXI4_COM_ADDR,
     AXI4_COM_DATA,
     AXI4_COM_RESPONSE
 } axi4_com_state_t;
-`endif
 
 task check_dev_addr(
     input logic [31:0] addr,
@@ -209,9 +211,9 @@ task read_unalign_data(
 
     // 处理符号位
     case (inst_code)
-        `INST_LB:           result = sext((s_data) & 32'h000000FF, 8);
-        `INST_LH:           result = sext((s_data) & 32'h0000FFFF, 16);
-        `INST_LW:           result = sext((s_data) & 32'hFFFFFFFF, 32);
+        `INST_LB:           result = func_sext((s_data) & 32'h000000FF, 8);
+        `INST_LH:           result = func_sext((s_data) & 32'h0000FFFF, 16);
+        `INST_LW:           result = func_sext((s_data) & 32'hFFFFFFFF, 32);
         `INST_LBU:          result = (s_data) & 32'hFF;
         `INST_LHU:          result = (s_data) & 32'hFFFF;
         default: ;
@@ -239,5 +241,112 @@ task get_unalign_from_mask(
         default: begin offset=0; size=0; end
     endcase
 endtask
+
+function automatic [31:0] func_raise_intr;
+    input [31:0] cause;
+    input [31:0] current_pc;
+    begin
+`ifdef IN_YOSYS_STA
+        global_ret_pc = current_pc;
+        func_raise_intr = global_pc;
+`else
+        func_raise_intr = dpi_raise_intr(cause, current_pc);
+`endif
+    end
+endfunction
+
+function automatic [31:0] func_read_raw_csr;
+    input [31:0] imm;
+    begin
+`ifdef IN_YOSYS_STA
+        func_read_raw_csr = global_csrs[imm[11:0]];
+`else
+        func_read_raw_csr = read_raw_csr(imm);
+`endif
+    end
+endfunction
+
+function void func_write_raw_csr;
+    input [31:0] imm;
+    input [31:0] src1;
+    begin
+`ifdef IN_YOSYS_STA
+        global_csrs[imm[11:0]] = src1;
+`else
+        write_raw_csr(imm, src1);
+`endif
+    end
+endfunction
+
+function automatic [31:0] func_query_intr;
+    begin
+`ifdef IN_YOSYS_STA
+        func_query_intr = global_ret_pc;
+`else
+        func_query_intr = dpi_query_intr();
+`endif
+    end
+endfunction
+
+function void func_execute_time_ctrl;
+    input [31:0] delta;
+    begin
+`ifdef IN_YOSYS_STA
+        global_pc = global_pc + delta;
+`else
+        dpi_execute_time_ctrl(delta);
+`endif
+    end
+endfunction
+
+function automatic [31:0] func_get_reset_pc;
+    begin
+`ifdef IN_YOSYS_STA
+        func_get_reset_pc = global_pc + 4;
+`else
+        func_get_reset_pc = get_reset_pc();
+`endif
+    end
+endfunction
+
+function automatic [31:0] func_test_intf;
+    input [31:0] write;
+    input [31:0] addr;
+    input [31:0] len;
+    input [31:0] data;
+    begin
+`ifdef IN_YOSYS_STA
+`else
+    func_test_intf = dpi_test_intf(write, addr, len, data);
+`endif
+    end
+endfunction
+
+function void func_dev_skip;
+    input [31:0] write;
+    input [31:0] addr;
+    input [31:0] req_info;
+    input [31:0] data;
+    begin
+`ifdef IN_YOSYS_STA
+`else
+    dpi_dev_skip(write, addr, req_info, data);
+`endif        
+    end
+   
+endfunction
+
+function automatic [31:0] func_sext;
+    input [31:0] x;
+    input [31:0] len;
+    begin
+`ifdef IN_YOSYS_STA
+    func_sext = x;
+`else
+    func_sext = sext(x, len);
+`endif 
+    end
+        
+endfunction
 
 `endif

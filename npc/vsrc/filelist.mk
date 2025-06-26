@@ -39,7 +39,7 @@ VDIRS-y									+= ./vsrc/ysyxSoC/perip/uart16550
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/vga
 # VSRCS-y		+= $(shell find -L ./vsrc/ysyxSoC/perip -name *.v)
 
-REF_STA_FILES							+= ./vsrc/yosys/top.v
+REF_STA_FILES							+= ./vsrc/yosys/$(VMOD_NAME).v
 REF_STA_FILES							+= ./vsrc/core/ysyx_23060295.v
 REF_STA_DIRS							+= ./vsrc/core/common
 REF_STA_DIRS							+= ./vsrc/device
@@ -48,6 +48,8 @@ REF_STA_FILES							+= $(shell find -L $(REF_STA_DIRS) -maxdepth 1 -name *.v)
 STA_FILES								?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
 STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
+STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys
+GEN_STA_FILE							?= $(STA_OUTPUT_DIR)/$(VMOD_NAME).v
 
 VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS-y     += $(shell find -L ./vsrc -name *.cpp)
@@ -96,12 +98,24 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS)
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
 		$^
 
-sta: 
+convert2v: $(GEN_STA_FILE)
+$(GEN_STA_FILE): $(STA_FILES)
+	@echo start convert2v
+	@mkdir -p $(dir $@)
+	$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
+		--no-public-params --no-timing --no-assert \
+		+1800-2005ext+ \
+		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
+		+define+IN_YOSYS_STA \
+		$^ > $@
+
+# sta: $(GEN_STA_FILE)
+sta: $(STA_FILES)
 	@echo start yosys-sta
 	make -C $(YOSYS_STA_HOME) sta \
-		DESIGN=top SDC_FILE=$(NPC_HOME)/vsrc/yosys/top.sdc \
-		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(NPC_HOME)/build \
+		DESIGN=$(VMOD_NAME) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
+		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(STA_OUTPUT_DIR) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
-		RTL_FILES="$(STA_FILES)"
+		RTL_FILES="$^"
 
-.PHONY: sta
+.PHONY: sta convert2v

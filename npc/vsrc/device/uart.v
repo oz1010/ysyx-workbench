@@ -1,3 +1,4 @@
+`ifndef IN_YOSYS_STA
 module uart #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
@@ -128,3 +129,5 @@ always @(posedge clk or posedge rst) begin
 end
 
 endmodule
+
+`endif
