@@ -118,6 +118,7 @@
 `define SDRAM_BLK_BITS      1
 `define SDRAM_BLK_NUM      (1<<`SDRAM_BLK_BITS)
 
+`ifndef IN_YOSYS_STA
 typedef struct {
     string name;
     logic [31:0] startaddr;
@@ -136,16 +137,19 @@ typedef enum logic [1:0] {
     AXI4_COM_DATA,
     AXI4_COM_RESPONSE
 } axi4_com_state_t;
+`endif
 
 task check_dev_addr(
     input logic [31:0] addr,
     input logic [3:0] attr,
     // output int match_dev_id,
 );
+`ifndef IN_YOSYS_STA
     static int ret;
     ret = dpi_check_dev_addr(addr, {28'h0, attr});
     if (ret == 1) $error("Access Fault");
     else if (ret == 2) $error("Access Fault.");
+`endif
 endtask
 
 task get_unalign_parameter(
@@ -153,7 +157,7 @@ task get_unalign_parameter(
     input logic [31:0] addr,
     output logic [7:0] len,
     output logic [2:0] size,
-    output logic [3:0] strb[0:1],
+    output logic [7:0] strb,
     output logic [1:0] shift_val
 );
     static logic [31:0] s_addr;
@@ -163,25 +167,25 @@ task get_unalign_parameter(
     // strb = 0;
     shift_val = addr[1:0]; // 4字节对齐
     case (inst_code)
-        `INST_SB:           begin size=0; strb[0]=4'h1; end
-        `INST_SH:           begin size=1; strb[0]=4'h3; end
-        `INST_SW:           begin size=2; strb[0]=4'hf; end
-        `INST_LB:           begin size=0; strb[0]=4'h1; end
-        `INST_LH:           begin size=1; strb[0]=4'h3; end
-        `INST_LW:           begin size=2; strb[0]=4'hf; end
-        `INST_LBU:          begin size=0; strb[0]=4'h1; end
-        `INST_LHU:          begin size=1; strb[0]=4'h3; end
+        `INST_SB:           begin size=0; strb[0 +: 4]=4'h1; end
+        `INST_SH:           begin size=1; strb[0 +: 4]=4'h3; end
+        `INST_SW:           begin size=2; strb[0 +: 4]=4'hf; end
+        `INST_LB:           begin size=0; strb[0 +: 4]=4'h1; end
+        `INST_LH:           begin size=1; strb[0 +: 4]=4'h3; end
+        `INST_LW:           begin size=2; strb[0 +: 4]=4'hf; end
+        `INST_LBU:          begin size=0; strb[0 +: 4]=4'h1; end
+        `INST_LHU:          begin size=1; strb[0 +: 4]=4'h3; end
         default: ;
     endcase
 
     if ((4-shift_val)<(1<<size)) begin
         len = 1;
-        strb[1] = strb[0] >> (4-shift_val);
-        strb[0] = strb[0] << shift_val;
+        strb[4 +: 4] = strb[0 +: 4] >> (4-shift_val);
+        strb[0 +: 4] = strb[0 +: 4] << shift_val;
     end else begin
         len = 0;
-        strb[1] = 0;
-        strb[0] = strb[0] << shift_val;
+        strb[4 +: 4] = 0;
+        strb[0 +: 4] = strb[0 +: 4] << shift_val;
     end
 endtask
 

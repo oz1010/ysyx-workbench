@@ -39,6 +39,15 @@ VDIRS-y									+= ./vsrc/ysyxSoC/perip/uart16550
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/vga
 # VSRCS-y		+= $(shell find -L ./vsrc/ysyxSoC/perip -name *.v)
 
+REF_STA_FILES							+= ./vsrc/core/ysyx_23060295.v
+REF_STA_DIRS							+= ./vsrc/core/common
+REF_STA_DIRS							+= ./vsrc/device
+REF_STA_DIRS							+= ./vsrc/core/multiple
+REF_STA_FILES							+= $(shell find -L $(STA_DIRS) -maxdepth 1 -name *.v)
+STA_FILES								?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
+STA_INCLUDE_DIR							+= $(NPC_HOME)/include
+STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
+
 VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS-y     += $(shell find -L ./vsrc -name *.cpp)
 VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
@@ -85,3 +94,13 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS)
 		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
 		$^
+
+sta: 
+	@echo start yosys-sta
+	make -C $(YOSYS_STA_HOME) sta \
+		DESIGN=top SDC_FILE=$(NPC_HOME)/vsrc/yosys/top.sdc \
+		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(NPC_HOME)/build \
+		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
+		RTL_FILES="$(STA_FILES)"
+
+.PHONY: sta
