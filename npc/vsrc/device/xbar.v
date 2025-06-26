@@ -1,3 +1,4 @@
+`ifndef IN_YOSYS_STA
 module xbar #(
     parameter USER_M_COUNT = 1,
     parameter SLAVE_COUNT = 3,
@@ -336,3 +337,4 @@ assign r_valid = s_r_valids[s_grant_idx%SLAVE_COUNT];
 assign r_resp = s_r_resps[s_grant_idx%SLAVE_COUNT];
 
 endmodule
+`endif

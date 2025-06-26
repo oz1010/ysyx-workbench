@@ -1,3 +1,4 @@
+`ifndef IN_YOSYS_STA
 // 单master多slave选择器
 module xbar_axi4 #(
     parameter USER_S_COUNT = 1,
@@ -255,3 +256,5 @@ assign r_last = s_r_lasts[r_grant_idx%SLAVE_COUNT];
 assign r_id = s_r_ids[r_grant_idx%SLAVE_COUNT];
 
 endmodule
+
+`endif

@@ -144,12 +144,14 @@ task check_dev_addr(
     input logic [3:0] attr,
     // output int match_dev_id,
 );
+
 `ifndef IN_YOSYS_STA
     static int ret;
     ret = dpi_check_dev_addr(addr, {28'h0, attr});
     if (ret == 1) $error("Access Fault");
     else if (ret == 2) $error("Access Fault.");
 `endif
+
 endtask
 
 task get_unalign_parameter(
@@ -160,7 +162,7 @@ task get_unalign_parameter(
     output logic [7:0] strb,
     output logic [1:0] shift_val
 );
-    static logic [31:0] s_addr;
+    logic [31:0] s_addr;
     s_addr = addr & (~32'h03); // 4字节对齐
     len = 0; // 数据总burst数量，2^n
     size = 0; // 单个burst数据大小，2^n字节
@@ -196,11 +198,13 @@ task read_unalign_data(
     input logic [1:0] shift_val,
     output logic [31:0] result
 );
-    static logic [31:0] s_data;
+    logic [31:0] s_data;
     case (idx)
         0: s_data = data >> (8*shift_val);
         1: s_data = s_data | (data<<(32-8*shift_val));
+`ifndef IN_YOSYS_STA
         default: $error("read unalign data is error");
+`endif
     endcase
 
     // 处理符号位
