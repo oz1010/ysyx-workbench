@@ -1,3 +1,4 @@
+`ifndef IN_YOSYS_STA
 module arbiter_axi4 #(
     parameter USER_M_COUNT = 1,
     parameter ADDR_WIDTH = 32,
@@ -243,3 +244,5 @@ assign ar_burst = m_ar_bursts[r_grant_idx];
 assign r_ready = m_r_readys[r_grant_idx];
 
 endmodule
+
+`endif

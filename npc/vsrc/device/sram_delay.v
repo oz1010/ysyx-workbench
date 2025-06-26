@@ -1,3 +1,4 @@
+`ifndef IN_YOSYS_STA
 module sram_delay #(
     parameter INST_WIDTH = 32,
     parameter SRAM_READ_DELAY = 1
@@ -52,3 +53,4 @@ always @(posedge clk or posedge rst) begin
 end
     
 endmodule
+`endif

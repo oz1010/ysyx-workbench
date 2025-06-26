@@ -39,11 +39,12 @@ VDIRS-y									+= ./vsrc/ysyxSoC/perip/uart16550
 VDIRS-y									+= ./vsrc/ysyxSoC/perip/vga
 # VSRCS-y		+= $(shell find -L ./vsrc/ysyxSoC/perip -name *.v)
 
+REF_STA_FILES							+= ./vsrc/yosys/top.v
 REF_STA_FILES							+= ./vsrc/core/ysyx_23060295.v
 REF_STA_DIRS							+= ./vsrc/core/common
 REF_STA_DIRS							+= ./vsrc/device
 REF_STA_DIRS							+= ./vsrc/core/multiple
-REF_STA_FILES							+= $(shell find -L $(STA_DIRS) -maxdepth 1 -name *.v)
+REF_STA_FILES							+= $(shell find -L $(REF_STA_DIRS) -maxdepth 1 -name *.v)
 STA_FILES								?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
 STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
