@@ -17,7 +17,7 @@ module load_store #(
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] dnpc,
 
-    input wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0],
+    input wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x,
     output wire [INST_WIDTH-1:0] result,
     output wire [7:0] mem_result_width,
     output wire result_update_csr,
@@ -117,8 +117,15 @@ assign result = r_result;
 assign mem_result_width = r_result_mem_width;
 assign result_update_csr = r_result_update_csr;
 
-wire [31:0] src1 = x[rs1];
-wire [31:0] src2 = x[rs2];
+wire [INST_WIDTH-1:0] xs[0:`RISCV_CSR_COUNT-1];
+generate
+    for (genvar i = 0; i<`RISCV_CSR_COUNT; ++i) begin
+        assign xs[i] = x[i*INST_WIDTH +: INST_WIDTH];
+    end
+endgenerate
+
+wire [31:0] src1 = xs[rs1];
+wire [31:0] src2 = xs[rs2];
 
 wire [ADDR_WIDTH-1:0] signed_addr = (src1 + imm) & (~32'h03); // 4字节对齐
 wire [DATA_WIDTH-1:0] signed_data_shift_val = ((src1 + imm) & (32'h03));
@@ -147,7 +154,7 @@ assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_dnpc <= get_reset_pc();
+        r_dnpc <= func_get_reset_pc();
         r_result <= 0;
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
@@ -201,7 +208,7 @@ always @(posedge clk or posedge rst) begin
                 // 用于调试的地址段，向这里写数据会触发内置的调试函数
                 // notify next
                 r_dnpc <= pc + 4;
-                r_result <= dpi_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2);
+                r_result <= func_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2);
                 r_result_mem_width <= 0;
                 r_result_update_csr <= 0;
                 r_prev_ready <= 1;
@@ -234,7 +241,9 @@ always @(posedge clk or posedge rst) begin
                             case (s_write_idx)
                                 0: r_w_data<=src2<<(8*s_write_shift_val);
                                 1: r_w_data<=src2>>(32-8*s_write_shift_val);
+`ifndef IN_YOSYS_STA
                                 default: $error("aw data unalign is error");
+`endif
                             endcase
                             if (s_write_idx == ((8'h1<<s_write_len)-1)) r_w_last <= 1;
                         end
@@ -249,16 +258,18 @@ always @(posedge clk or posedge rst) begin
                             case (s_write_idx)
                                 0: r_w_data<=src2<<(8*s_write_shift_val);
                                 1: r_w_data<=src2>>(32-8*s_write_shift_val);
+`ifndef IN_YOSYS_STA
                                 default: $error("aw data unalign is error");
+`endif
                             endcase
                             if (s_write_idx == ((8'h1<<s_write_len)-1)) r_w_last <= 1;
                         end
 
                         if (w_last) begin
                             if (s_write_idx < 2)
-                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strbs[0]}, src2);
+                                func_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strbs[0]}, src2);
                             else
-                                dpi_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strbs[0]|s_write_strbs[1]}, src2);
+                                func_dev_skip(1, src1 + imm, {25'h0, r_record_aw_size, s_write_strbs[0]|s_write_strbs[1]}, src2);
 
                             r_w_valid <= 0;
                             r_w_strb <= 0;
@@ -276,9 +287,11 @@ always @(posedge clk or posedge rst) begin
                         if (b_valid && b_ready) begin
                             r_b_ready <= 0;
                             // check error response
+`ifndef IN_YOSYS_STA
                             if (b_resp!=0 || b_id!=`AXI4_ID_LSU) begin
                                 $error("LSU Write data error, addr:%x data:%x resp:%x id:%x\n", src1 + imm, src2, b_resp, b_id);
                             end
+`endif
 
                             // switch to write addr
                             r_write_state <= AXI4_COM_ADDR;
@@ -292,8 +305,9 @@ always @(posedge clk or posedge rst) begin
                             r_prev_ready <= 1;
                         end
                     end
-
+`ifndef IN_YOSYS_STA
                     default: $error("Found unknown write state(%d) in LSU", r_write_state);
+`endif
                 endcase
 
             end else if (
@@ -345,11 +359,13 @@ always @(posedge clk or posedge rst) begin
                         if (r_last) begin
                             r_r_ready <= 0;
                             s_read_idx <= 0;
-                            dpi_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
+                            func_dev_skip(0, src1 + imm, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
                             // check error response
+`ifndef IN_YOSYS_STA
                             if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_LSU) begin
                                 $error("LSU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
                             end
+`endif
 
                             // switch to read addr
                             r_read_state <= AXI4_COM_ADDR;
@@ -361,11 +377,14 @@ always @(posedge clk or posedge rst) begin
                             r_prev_ready <= 1;
                         end
                     end
-
+`ifndef IN_YOSYS_STA
                     default: $error("Found unknown read state(%d) in LSU", r_read_state);
+`endif
                 endcase
             end else begin
+`ifndef IN_YOSYS_STA
                 $error("Found unsopport inst_code(%x) in LSU", inst_code);
+`endif
             end
 
         end

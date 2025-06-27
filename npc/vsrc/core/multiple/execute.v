@@ -13,7 +13,7 @@ module execute #(
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] dnpc,
 
-    input wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0],
+    input wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x,
     output wire [INST_WIDTH-1:0] result,
     output wire [7:0] mem_result_width,
     output wire result_update_csr,
@@ -43,21 +43,31 @@ reg [7:0] r_result_mem_width;
 reg r_result_update_csr;
 
 // 寄存器别名，register alias, ch2.3
-wire [31:0] zero = x[0];
-wire [31:0] ra = x[1];
-wire [31:0] sp = x[2];
-wire [31:0] gp = x[3];
-wire [31:0] tp = x[4];
-wire [31:0] a[7:0];
-assign a[7:0] = x[17:10];
+wire [INST_WIDTH-1:0] xs[0:`RISCV_CSR_COUNT-1];
+wire [31:0] zero = xs[0];
+wire [31:0] ra = xs[1];
+wire [31:0] sp = xs[2];
+wire [31:0] gp = xs[3];
+wire [31:0] tp = xs[4];
+wire [31:0] a[0:7];
+
+generate
+    for (genvar i = 0; i<`RISCV_CSR_COUNT; ++i) begin
+        assign xs[i] = x[i*INST_WIDTH +: INST_WIDTH];
+    end
+    // a0-7 = xs10-17
+    for (genvar i = 0; i<8; ++i) begin
+        assign a[i] = xs[i+10];
+    end
+endgenerate
 
 assign dnpc = r_dnpc;
 assign result = r_result;
 assign mem_result_width = r_result_mem_width;
 assign result_update_csr = r_result_update_csr;
 
-wire [31:0] src1 = x[rs1];
-wire [31:0] src2 = x[rs2];
+wire [31:0] src1 = xs[rs1];
+wire [31:0] src2 = xs[rs2];
 wire signed [31:0] s_src1 = src1;
 wire signed [31:0] s_src2 = src2;
 wire [63:0] src1_64 = {32'h0, src1};
@@ -70,7 +80,7 @@ wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_dnpc <= get_reset_pc();
+        r_dnpc <= 0;
         r_result <= 0;
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
@@ -132,10 +142,10 @@ always @(posedge clk or posedge rst) begin
                 `INST_AND:          r_result <= src1 & src2;
                 `INST_FENCE:        invalid_inst(pc, inst);
                 `INST_FENCE_I:      invalid_inst(pc, inst);
-                `INST_ECALL:        begin r_dnpc <= dpi_raise_intr((0<<31|11<<0), pc); r_result_update_csr <= 0; end // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
+                `INST_ECALL:        begin r_dnpc <= func_raise_intr((0<<31|11<<0), pc); r_result_update_csr <= 0; end // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
                 `INST_EBREAK:       exit_simu(a[0]);
-                `INST_CSRRW:        begin r_result <= read_raw_csr(imm); write_raw_csr(imm, src1); end
-                `INST_CSRRS:        begin r_result <= read_raw_csr(imm); write_raw_csr(imm, (read_raw_csr(imm) | src1)); end
+                `INST_CSRRW:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
+                `INST_CSRRS:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
                 `INST_CSRRC:        invalid_inst(pc, inst);
                 `INST_CSRRWI:       invalid_inst(pc, inst);
                 `INST_CSRRSI:       invalid_inst(pc, inst);
@@ -148,7 +158,7 @@ always @(posedge clk or posedge rst) begin
                 `INST_DIVU:         r_result <= src1 / src2;
                 `INST_REM:          r_result <= s_src1 % s_src2;
                 `INST_REMU:         r_result <= src1 % src2;
-                `INST_MRET:         begin r_dnpc <= dpi_query_intr(); r_result_update_csr <= 0; end
+                `INST_MRET:         begin r_dnpc <= func_query_intr(); r_result_update_csr <= 0; end
                 `INST_INVALID:      invalid_inst(pc, inst);
                 default: ;
             endcase

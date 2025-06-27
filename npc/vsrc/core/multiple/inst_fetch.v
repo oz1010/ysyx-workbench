@@ -226,10 +226,12 @@ generate
                 end
                 if (r_valid && r_ready) begin
                     r_r_ready <= 0;
+`ifndef IN_YOSYS_STA
                     // check error response
                     if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_IFU) begin
                         $error("IFU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
                     end
+`endif
                 end
             end
         end

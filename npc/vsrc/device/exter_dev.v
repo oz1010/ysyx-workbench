@@ -75,6 +75,10 @@ wire slave_in_write = (aw_ready || w_ready || b_valid);
 wire [31:0] read_len = 1<<ar_len;       // burst读取数量，2^n字节
 wire [31:0] read_size = 1<<ar_size;     // 单个burst读取数据大小，2^n字节
 
+`ifdef IN_YOSYS_STA
+reg [31:0] exter_dev_regs[0:31];
+`endif
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_aw_ready <= 0;
@@ -115,7 +119,9 @@ always @(posedge clk or posedge rst) begin
             r_write_size <= write_size;
             r_write_len <= write_len;
             r_write_id <= aw_id;
+`ifndef IN_YOSYS_STA
             if (write_size != 4) $error("extra dev only support write 4bytes, addr:%x size:%x", aw_addr, write_size);
+`endif
         end
         if (aw_valid && aw_ready) begin
             r_aw_ready <= 0;
@@ -129,8 +135,12 @@ always @(posedge clk or posedge rst) begin
             r_w_ready <= 0;
         end
         if (w_valid && w_ready) begin
+`ifndef IN_YOSYS_STA
             dpi_vdev_write(r_write_addr, w_data, r_write_size);
             if (!w_last) $error("extra dev only support write 1-burst, addr:%x size:%x", aw_addr, write_size);
+`else
+            exter_dev_regs[r_write_addr[4:0]] <= w_data;
+`endif
         end
 
         // write response
@@ -154,9 +164,13 @@ always @(posedge clk or posedge rst) begin
 
         // read data
         if (ar_valid && ar_ready) begin
+`ifndef IN_YOSYS_STA
             if (read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", ar_addr, read_size);
 
             r_r_data <= dpi_vdev_read(ar_addr, read_size);
+`else
+            r_r_data <= exter_dev_regs[ar_addr[4:0]];
+`endif
             r_r_valid <= 1;
             r_r_resp <= 0;
             r_r_last <= 1;

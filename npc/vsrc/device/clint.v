@@ -69,6 +69,18 @@ assign r_id = r_r_id;
 wire [31:0] read_len = 1<<ar_len;      // burst写入数量，2^n字节
 wire [31:0] read_size = 1<<ar_size;    // 单个burst写入数据大小，2^n字节
 
+`ifdef IN_YOSYS_STA
+reg [31:0] rtc_ticks;
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        rtc_ticks <= 0;
+    end else begin
+        rtc_ticks <= rtc_ticks + 1;
+    end
+end
+`endif
+
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_aw_ready <= 0;
@@ -109,9 +121,14 @@ always @(posedge clk or posedge rst) begin
 
         // read data
         if (ar_valid && ar_ready) begin
+`ifdef IN_YOSYS_STA
+            r_r_data <= rtc_ticks;
+`else
             if (read_size != 4) $error("clint only support read 4bytes, addr:%x size:%x", ar_addr, read_size);
 
             r_r_data <= dpi_rtc_read(ar_addr, read_size);
+`endif
+
             r_r_valid <= 1;
             r_r_resp <= 0;
             r_r_last <= 1;

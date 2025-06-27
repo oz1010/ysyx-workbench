@@ -203,29 +203,20 @@ assign s_rlast[AXI4_SLAVE_COUNT-1] = io_master_rlast;
 assign s_rid[AXI4_SLAVE_COUNT-1] = io_master_rid;
 
 /* 常用处理器信号 */
-wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
+wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x;
 wire [INST_WIDTH-1:0] inst;
-// 寄存器别名，register alias, ch2.3
-wire [INST_WIDTH-1:0] zero = x[0];
-wire [INST_WIDTH-1:0] ra = x[1];
-wire [INST_WIDTH-1:0] sp = x[2];
-wire [INST_WIDTH-1:0] gp = x[3];
-wire [INST_WIDTH-1:0] tp = x[4];
-wire [INST_WIDTH-1:0] a[7:0];
-assign a[7:0] = x[17:10];
 reg [63:0] execute_time;
 
 assign valid = wb_ready;
-// assign w_x = x;
 // assign w_pc = pc;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         execute_time <= 0;
-        dpi_execute_time_ctrl(0);
+        func_execute_time_ctrl(0);
     end else begin
         execute_time <= execute_time + 1;
-        dpi_execute_time_ctrl(1);
+        func_execute_time_ctrl(1);
     end
 end
 
@@ -387,12 +378,20 @@ xbar_axi4 #(
     .u_r_datas(     {   s_rdata[0],         s_rdata[1],         s_rdata[AXI4_SLAVE_COUNT-1]         } ),
     .u_r_lasts(     {   s_rlast[0],         s_rlast[1],         s_rlast[AXI4_SLAVE_COUNT-1]         } ),
     .u_r_ids(       {   s_rid[0],           s_rid[1],           s_rid[AXI4_SLAVE_COUNT-1]           } ),
-    .u_slave_infos('{
-        '{name:"clint",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff},
-        '{name:"exter dev",      startaddr:32'h2200_0000,    endaddr:32'h2200_0fff},
-        /* 优先匹配其他项，若其他项匹配不上，则发送给master */
-        '{name:"io master",        startaddr:32'h0000_0000,    endaddr:32'hffff_ffff}
+// `ifdef IN_YOSYS_STA
+    .u_slave_addrs({
+        32'h0200_0000, 32'h0200_ffff, // clint
+        32'h2200_0000, 32'h2200_0fff, // exter dev
+        32'h0000_0000, 32'hffff_ffff // io master
     }),
+// `else
+//     .u_slave_infos('{
+//         '{name:"clint",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff},
+//         '{name:"exter dev",      startaddr:32'h2200_0000,    endaddr:32'h2200_0fff},
+//         /* 优先匹配其他项，若其他项匹配不上，则发送给master */
+//         '{name:"io master",        startaddr:32'h0000_0000,    endaddr:32'hffff_ffff}
+//     }),
+// `endif
 
     .grant_idx()
 );

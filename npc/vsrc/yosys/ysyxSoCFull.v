@@ -1,6 +1,6 @@
 `include "riscv32e_defines.v"
 
-module top (
+module ysyxSoCFull (
     input  wire         clk,
     input  wire         rst,
     input  wire         io_interrupt,
@@ -63,6 +63,12 @@ module top (
     output wire         io_slave_rlast,
     output wire [3:0]   io_slave_rid
 );
+
+`ifdef IN_YOSYS_STA
+reg [31:0] global_csrs[0:1023];
+reg [31:0] global_ret_pc;
+reg [31:0] global_pc;
+`endif
 
 ysyx_23060295 m_core0(
     .clock(clk),
