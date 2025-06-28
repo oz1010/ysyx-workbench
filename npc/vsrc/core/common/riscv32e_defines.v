@@ -242,6 +242,30 @@ task get_unalign_from_mask(
     endcase
 endtask
 
+function void func_exit_simu;
+    input [31:0]exit_code;
+    begin
+`ifdef IN_YOSYS_STA
+        global_pc = global_pc + exit_code;
+`else
+        exit_simu(exit_code);
+`endif
+    end
+endfunction
+
+function void func_invalid_inst;
+    input [31:0] current_pc;
+    input [31:0] current_inst;
+    begin
+`ifdef IN_YOSYS_STA
+        global_pc = global_pc + current_pc + current_inst;
+`else
+        invalid_inst(current_pc, current_inst);
+`endif
+    end
+endfunction
+
+
 function automatic [31:0] func_raise_intr;
     input [31:0] cause;
     input [31:0] current_pc;

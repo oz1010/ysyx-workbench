@@ -86,9 +86,9 @@ always @(posedge clk or posedge rst) begin
             `INST_XORI:         x[rd] <= src1 ^ imm;
             `INST_ORI:          x[rd] <= src1 | imm;
             `INST_ANDI:         x[rd] <= src1 & imm;
-            `INST_SLLI:         if ((imm&32'h20)!=32'h0) exit_simu(`ERR_INV_OPN); else x[rd] <= src1 << (imm&32'h1F);
-            `INST_SRLI:         if ((imm&32'h20)!=32'h0) exit_simu(`ERR_INV_OPN); else x[rd] <= src1 >> (imm&32'h1F);
-            `INST_SRAI:         if ((imm&32'h20)!=32'h0) exit_simu(`ERR_INV_OPN); else x[rd] <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
+            `INST_SLLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`ERR_INV_OPN); else x[rd] <= src1 << (imm&32'h1F);
+            `INST_SRLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`ERR_INV_OPN); else x[rd] <= src1 >> (imm&32'h1F);
+            `INST_SRAI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`ERR_INV_OPN); else x[rd] <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
             `INST_ADD:          x[rd] <= src1 + src2;
             `INST_SUB:          x[rd] <= src1 - src2;
             `INST_SLL:          x[rd] <= src1 << (src2 & 32'h1F);
@@ -99,16 +99,16 @@ always @(posedge clk or posedge rst) begin
             `INST_SRA:          x[rd] <= src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) );
             `INST_OR:           x[rd] <= src1 | src2;
             `INST_AND:          x[rd] <= src1 & src2;
-            `INST_FENCE:        invalid_inst(pc, inst);
-            `INST_FENCE_I:      invalid_inst(pc, inst);
+            `INST_FENCE:        func_invalid_inst(pc, inst);
+            `INST_FENCE_I:      func_invalid_inst(pc, inst);
             `INST_ECALL:        pc <= dpi_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
-            `INST_EBREAK:       exit_simu(a[0]);
+            `INST_EBREAK:       func_exit_simu(a[0]);
             `INST_CSRRW:        begin x[rd] <= read_raw_csr(imm); write_raw_csr(imm, src1); end
             `INST_CSRRS:        begin x[rd] <= read_raw_csr(imm); write_raw_csr(imm, (read_raw_csr(imm) | src1)); end
-            `INST_CSRRC:        invalid_inst(pc, inst);
-            `INST_CSRRWI:       invalid_inst(pc, inst);
-            `INST_CSRRSI:       invalid_inst(pc, inst);
-            `INST_CSRRCI:       invalid_inst(pc, inst);
+            `INST_CSRRC:        func_invalid_inst(pc, inst);
+            `INST_CSRRWI:       func_invalid_inst(pc, inst);
+            `INST_CSRRSI:       func_invalid_inst(pc, inst);
+            `INST_CSRRCI:       func_invalid_inst(pc, inst);
             `INST_MUL:          x[rd] <= src1 * src2;
             `INST_MULH:         x[rd] <= mulh_ret[INST_WIDTH-1:0];
             `INST_MULHSU:       x[rd] <= mulhsu_ret[INST_WIDTH-1:0];
@@ -118,7 +118,7 @@ always @(posedge clk or posedge rst) begin
             `INST_REM:          x[rd] <= s_src1 % s_src2;
             `INST_REMU:         x[rd] <= src1 % src2;
             `INST_MRET:         pc <= dpi_query_intr();
-            `INST_INVALID:      invalid_inst(pc, inst);
+            `INST_INVALID:      func_invalid_inst(pc, inst);
             default: ;
         endcase
 
