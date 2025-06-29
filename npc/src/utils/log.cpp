@@ -35,7 +35,7 @@ void init_log(const char *log_file, const char *perf_file) {
 
 #if CONFIG_PERF_MONITOR
   Assert(perf_file, "Can not find perf log to write");
-  FILE *fp = fopen(perf_file, "w");
+  FILE *fp = fopen(perf_file, "wb");
   Assert(fp, "Can not open '%s'", perf_file);
   perf_fp = fp;
   Log("Perf data is written to %s", perf_file);

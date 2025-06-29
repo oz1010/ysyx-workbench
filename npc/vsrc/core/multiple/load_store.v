@@ -162,6 +162,7 @@ always @(posedge clk or posedge rst) begin
         r_read_state <= AXI4_COM_ADDR;
 
         r_prev_ready <= 0;
+        r_next_valid <= 0;
         r_aw_valid <= 0;
         r_aw_addr <= 0;
         r_aw_id <= 0;

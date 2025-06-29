@@ -188,7 +188,7 @@ endif # DEBUG_MODULE_SYSTEM
 
 menuconfig DEBUG_SYSTEM
   bool "Testing and Debugging"
-  default n
+  default y
   help
     Provide debug mode for application.
 
@@ -294,9 +294,14 @@ config DIFFTEST
     Enable differential testing with a reference design.
     Note that this will significantly reduce the performance of NPC.
 
-config PERF_MONITOR
+menuconfig PERF_MONITOR
   bool "Enable perf monitor"
   default y
+  if PERF_MONITOR
+    config PERF_MONITOR_BIN_DATA
+      bool "Enable write perf data to bin file"
+      default y
+  endif # PERF_MONITOR
 
 endif # DEBUG_SYSTEM
 
