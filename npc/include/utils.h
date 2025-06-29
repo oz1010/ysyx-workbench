@@ -57,6 +57,7 @@ typedef union hw_time_info
 
 uint64_t get_time();
 void get_hw_time_info(hw_time_info_t *info);
+void get_hw_time_info_from_us(uint64_t us, hw_time_info_t *info);
 
 extern FILE *log_fp;
 

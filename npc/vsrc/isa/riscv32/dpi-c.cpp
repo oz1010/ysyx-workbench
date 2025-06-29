@@ -485,10 +485,11 @@ int dpi_rtc_read(int addr, int len)
         last_tick += update_ticks;
 #if CONFIG_CORE_FREQUENCY
         local_execute_time = hw_tick / (CONFIG_CORE_FREQUENCY / 1000000); // us
+        get_hw_time_info_from_us(local_execute_time, &local_time_info);
 #else
         local_execute_time = get_time();
-#endif
         get_hw_time_info(&local_time_info);
+#endif
     }
 
     switch (addr)
