@@ -141,7 +141,7 @@ def analyze_instructions(instructions):
 def print_stats(stats):
     total_cycles = 0
 
-    print("\n指令统计 (总数: {}):".format(stats['total_instructions']))
+    print("\n指令统计:")
     if not stats['inst_counts']:
         print("  无有效指令数据")
     else:
@@ -157,8 +157,12 @@ def print_stats(stats):
             total_cycles += avg_cycles * count
             # 模拟优化2倍，Amdahl's law公式计算的收益
             # amdahl_s_law = 1 / (1-percentage/100.0 + percentage/100.0/2)
-            print(f"  {inst}: {count}条 ({percentage:.1f}%), 平均周期: {avg_cycles:.1f}")
-    print(f"指令总周期：{total_cycles}")
+            print(f"  {inst}: {avg_cycles:.1f} | {count} ({percentage:.1f}%)")
+    print(f"指令总周期：{total_cycles:.0f}")
+    print(f"指令总数：{stats['total_instructions']:.0f}")
+    print(f"IPC：{(stats['total_instructions']/total_cycles):.3f}")
+
+    # .format(stats['total_instructions'])
 
     # print("\n执行单元使用统计:")
     # print(f"  EXU使用次数: {stats['exec_unit_usage']['EXU']}")
@@ -173,7 +177,7 @@ def print_stats(stats):
             key=lambda item: (-sum(item[1])/len(item[1]) if item[1] else 0, item[0]))
         for stage, delays in sorted_stages:
             avg_delay = sum(delays)/len(delays) if delays else 0
-            print(f"  {stage} 平均延迟: {avg_delay:.1f} ticks (样本数: {len(delays)})")
+            print(f"  {stage}: {avg_delay:.1f} | {len(delays)}")
 
 def main():
     if len(sys.argv) != 2:
