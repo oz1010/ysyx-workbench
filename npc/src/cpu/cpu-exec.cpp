@@ -137,37 +137,37 @@ static void statistic()
         Log("Hardware IPC = " FLOAT_FMT " inst/cycle", npc_ctx.nr_guest_inst / (hw_tick * 1.0));
 
 #if CONFIG_PERF_MONITOR
-    extern hw_monitor_ctx_t hw_monitor_ctx;
+    // extern hw_monitor_ctx_t hw_monitor_ctx;
 
-    raw_stdout("Hardware monitor perf - event statistic\n");
-    raw_stdout("====================================\n");
-    raw_stdout("    %-12s %-12s\n", "Event", "Count");
-    raw_stdout("------------------------------------\n");
-    for (int idx = 1; idx < HW_MONITOR_ID_COUNT; ++idx)
-    {
-        hw_monitor_item_t *item = &hw_monitor_ctx.events[idx];
-        raw_stdout("    %-12s %lu\n", item->name, item->cnt);
-    }
-    raw_stdout("------------------------------------\n");
+    // raw_stdout("Hardware monitor perf - event statistic\n");
+    // raw_stdout("====================================\n");
+    // raw_stdout("    %-12s %-12s\n", "Event", "Count");
+    // raw_stdout("------------------------------------\n");
+    // for (int idx = 1; idx < HW_MONITOR_ID_COUNT; ++idx)
+    // {
+    //     hw_monitor_item_t *item = &hw_monitor_ctx.events[idx];
+    //     raw_stdout("    %-12s %lu\n", item->name, item->cnt);
+    // }
+    // raw_stdout("------------------------------------\n");
 
-    raw_stdout("\n");
-    raw_stdout("Hardware monitor perf - code statistic\n");
-    raw_stdout("====================================\n");
-    raw_stdout("    %-12s %-12s\n", "Code", "Count");
-    raw_stdout("------------------------------------\n");
-    uint64_t code_cnt = 0;
-    for (int idx = 0; idx < HW_MONITOR_CODE_COUNT; ++idx)
-    {
-        hw_monitor_item_t *item = &hw_monitor_ctx.codes[idx];
-        if (item->cnt) {
-            raw_stdout("    %-12s %lu\n", item->name, item->cnt);
-            code_cnt += item->cnt;
-        }
-    }
-    raw_stdout("------------------------------------\n");
-    uint64_t unknown_code_cnt = npc_ctx.nr_guest_inst>code_cnt?npc_ctx.nr_guest_inst - code_cnt:0;
-    raw_stdout("Total code: %lu\n", code_cnt);
-    raw_stdout("Unknown code: %lu\n", unknown_code_cnt);
+    // raw_stdout("\n");
+    // raw_stdout("Hardware monitor perf - code statistic\n");
+    // raw_stdout("====================================\n");
+    // raw_stdout("    %-12s %-12s\n", "Code", "Count");
+    // raw_stdout("------------------------------------\n");
+    // uint64_t code_cnt = 0;
+    // for (int idx = 0; idx < HW_MONITOR_CODE_COUNT; ++idx)
+    // {
+    //     hw_monitor_item_t *item = &hw_monitor_ctx.codes[idx];
+    //     if (item->cnt) {
+    //         raw_stdout("    %-12s %lu\n", item->name, item->cnt);
+    //         code_cnt += item->cnt;
+    //     }
+    // }
+    // raw_stdout("------------------------------------\n");
+    // uint64_t unknown_code_cnt = npc_ctx.nr_guest_inst>code_cnt?npc_ctx.nr_guest_inst - code_cnt:0;
+    // raw_stdout("Total code: %lu\n", code_cnt);
+    // raw_stdout("Unknown code: %lu\n", unknown_code_cnt);
 #endif
 
 }
