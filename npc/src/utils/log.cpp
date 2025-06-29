@@ -18,8 +18,9 @@
 #ifndef CONFIG_TARGET_AM
 FILE *log_fp = NULL;
 const char *log_file_path = "";
+FILE *perf_fp = NULL;
 
-void init_log(const char *log_file) {
+void init_log(const char *log_file, const char *perf_file) {
 #if CONFIG_LOG_FILE
   log_file_path = log_file;
   if (log_file != NULL) {
@@ -30,6 +31,16 @@ void init_log(const char *log_file) {
   Log("Log is written to %s", log_file ? log_file : "stdout");
 #else
   Log("Log is written to none");
+#endif
+
+#if CONFIG_PERF_MONITOR
+  Assert(perf_file, "Can not find perf log to write");
+  FILE *fp = fopen(perf_file, "w");
+  Assert(fp, "Can not open '%s'", perf_file);
+  perf_fp = fp;
+  Log("Perf data is written to %s", perf_file);
+#else
+  Log("Perf data is written to none");
 #endif
 }
 
