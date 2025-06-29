@@ -76,7 +76,7 @@ menuconfig SDRAM
 
     config SDRAM_FREQUENCY
       int "Frequency (Hz) of the sdram"
-      default 330000
+      default 167000000
   endif # SDRAM
 endif # MEM_TYPE_MULTI
 
