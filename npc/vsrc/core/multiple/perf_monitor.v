@@ -14,7 +14,6 @@ module perf_monitor (
 );
 
 `ifdef CONFIG_PERF_MONITOR
-`ifndef IN_YOSYS_STA
 
 initial begin
     // $display("Enable perf monitor");
@@ -62,7 +61,6 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-`endif
 `endif
 
 endmodule
