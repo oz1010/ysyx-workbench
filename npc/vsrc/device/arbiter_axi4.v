@@ -136,7 +136,7 @@ generate
             assign m_ar_bursts[i] = 0;
             assign m_r_readys[i] = 0;
         end else begin
-            integer master_idx = (MASTER_COUNT-i);
+            integer master_idx = (USER_M_COUNT-i);
 
             assign m_aw_valids[i] = u_aw_valids[1*master_idx +: 1];
             assign m_aw_addrs[i] = u_aw_addrs[ADDR_WIDTH*master_idx +: ADDR_WIDTH];
