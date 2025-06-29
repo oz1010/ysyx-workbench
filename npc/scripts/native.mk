@@ -24,12 +24,14 @@ $(BINARY):: compile_git
 
 # Some convenient rules
 
+override PERF_FILE ?= $(BUILD_DIR)/npc-monitor.txt
 override ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
+override ARGS += --perf=$(PERF_FILE)
 override ARGS += $(ARGS_DIFF)
 override ARGS += -b
 
 ifeq ($(CONFIG_PERF_MONITOR), y)
-	PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(NPC_HOME)/build/npc-monitor.log
+	PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(PERF_FILE)
 endif
 
 # Command to execute NPC

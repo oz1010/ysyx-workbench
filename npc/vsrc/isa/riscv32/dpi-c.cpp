@@ -36,7 +36,7 @@ extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 uint64_t hw_tick = 0;
 uint32_t hw_flash_idx = 0;
 hw_monitor_ctx_t hw_monitor_ctx;
-FILE *monitor_fp = NULL;
+extern FILE *perf_fp;
 static const char *event_strs[HW_MONITOR_ID_COUNT] = {
     "INVALID",
     "IFU",
@@ -668,8 +668,8 @@ void add_monitor_code(int id, int delta)
 
 void add_monitor_log(int item_idx, int id)
 {
-    fprintf(monitor_fp, "%lu|%d|%s%c", hw_tick, item_idx, item_idx==1?hw_monitor_ctx.events[id].name:hw_monitor_ctx.codes[id].name, (item_idx==1&&id==(HW_MONITOR_ID_COUNT-1))?'\n':' ');
-    fflush(monitor_fp);
+    fprintf(perf_fp, "%lu|%d|%s%c", hw_tick, item_idx, item_idx==1?hw_monitor_ctx.events[id].name:hw_monitor_ctx.codes[id].name, (item_idx==1&&id==(HW_MONITOR_ID_COUNT-1))?'\n':' ');
+    fflush(perf_fp);
 }
 
 void add_monitor_item(int item_idx, int id, int delta)
@@ -688,12 +688,6 @@ void add_monitor_item(int item_idx, int id, int delta)
             }
             for (int i=0; i<ARRLEN(code_strs); ++i) {
                 hw_monitor_ctx.codes[i].name = code_strs[i];
-            }
-
-            if (!monitor_fp) {
-                const char* monitor_file = "build/npc-monitor.log";
-                monitor_fp = fopen(monitor_file, "w");
-                Assert(monitor_fp, "Can not open '%s'", monitor_file);
             }
         }
         break;
