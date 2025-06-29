@@ -26,8 +26,10 @@ module apb_delayer(
 
     enum [2:0] { idle_t, delay_t, delay_wait_t, err_t } state_t;
 
+    localparam core_frequency = `CONFIG_CORE_FREQUENCY;
+    localparam sdram_frequency = `CONFIG_SDRAM_FREQUENCY>`CONFIG_CORE_FREQUENCY ? `CONFIG_CORE_FREQUENCY : `CONFIG_SDRAM_FREQUENCY;
     localparam delay_k_bits = 8; // 延时放大系数，对应移位项
-    localparam sdram_delay_cycle_delta =  ((`CONFIG_CORE_FREQUENCY << delay_k_bits) / `CONFIG_SDRAM_FREQUENCY) - (1<<delay_k_bits) ; // 每个周期需要延时的累加数，需要减1
+    localparam sdram_delay_cycle_delta =  `CONFIG_SDRAM_FREQUENCY>`CONFIG_CORE_FREQUENCY ? 0 : ((core_frequency << delay_k_bits) / sdram_frequency) - (1<<delay_k_bits) ; // 每个周期需要延时的累加数，需要减1
     localparam sdram_size = 64*1024*1024;
 
     reg [31:0] delay_cycle;
