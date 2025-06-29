@@ -42,7 +42,7 @@ config ISA64
 
 config CORE_FREQUENCY
     int "Frequency (Hz) of the core"
-    default 1000000
+    default 97000000
 
 endmenu
 
