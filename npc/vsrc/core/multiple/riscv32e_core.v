@@ -62,6 +62,22 @@ wire ex_ls_valid;
 wire ex_ls_ready;
 
 /* ifu axi4 信号 */
+wire                        aw_ready1;
+wire                        aw_valid1;
+wire [ADDR_WIDTH-1:0]       aw_addr1;
+wire [3:0]                  aw_id1;
+wire [7:0]                  aw_len1;
+wire [2:0]                  aw_size1;
+wire [1:0]                  aw_burst1;
+wire                        w_ready1;
+wire                        w_valid1;
+wire [DATA_WIDTH-1:0]       w_data1;
+wire [DATA_WIDTH/8-1:0]     w_strb1;
+wire                        w_last1;
+wire                        b_ready1;
+wire                        b_valid1;
+wire [BRESP_WIDTH-1:0]      b_resp1;
+wire [3:0]                  b_id1;
 wire                        ar_ready1;
 wire                        ar_valid1;
 wire [ADDR_WIDTH-1:0]       ar_addr1;
@@ -246,22 +262,22 @@ arbiter_axi4 #(
 ) m_arbiter_axi4(
     .clk(clk),
     .rst(rst),
-    .u_aw_readys(   {0,             aw_ready2   }),
-    .u_aw_valids(   {0,             aw_valid2   }),
-    .u_aw_addrs(    {0,             aw_addr2    }),
-    .u_aw_ids(      {0,             aw_id2      }),
-    .u_aw_lens(     {0,             aw_len2     }),
-    .u_aw_sizes(    {0,             aw_size2    }),
-    .u_aw_bursts(   {0,             aw_burst2   }),
-    .u_w_readys(    {0,             w_ready2    }),
-    .u_w_valids(    {0,             w_valid2    }),
-    .u_w_datas(     {0,             w_data2     }),
-    .u_w_strbs(     {0,             w_strb2     }),
-    .u_w_lasts(     {0,             w_last2     }),
-    .u_b_readys(    {0,             b_ready2    }),
-    .u_b_valids(    {0,             b_valid2    }),
-    .u_b_resps(     {0,             b_resp2     }),
-    .u_b_ids(       {0,             b_id2       }),
+    .u_aw_readys(   {aw_ready1,     aw_ready2   }),
+    .u_aw_valids(   {aw_valid1,     aw_valid2   }),
+    .u_aw_addrs(    {aw_addr1,      aw_addr2    }),
+    .u_aw_ids(      {aw_id1,        aw_id2      }),
+    .u_aw_lens(     {aw_len1,       aw_len2     }),
+    .u_aw_sizes(    {aw_size1,      aw_size2    }),
+    .u_aw_bursts(   {aw_burst1,     aw_burst2   }),
+    .u_w_readys(    {w_ready1,      w_ready2    }),
+    .u_w_valids(    {w_valid1,      w_valid2    }),
+    .u_w_datas(     {w_data1,       w_data2     }),
+    .u_w_strbs(     {w_strb1,       w_strb2     }),
+    .u_w_lasts(     {w_last1,       w_last2     }),
+    .u_b_readys(    {b_ready1,      b_ready2    }),
+    .u_b_valids(    {b_valid1,      b_valid2    }),
+    .u_b_resps(     {b_resp1,       b_resp2     }),
+    .u_b_ids(       {b_id1,         b_id2       }),
     .u_ar_readys(   {ar_ready1,     ar_ready2   }),
     .u_ar_valids(   {ar_valid1,     ar_valid2   }),
     .u_ar_addrs(    {ar_addr1,      ar_addr2    }),
@@ -486,16 +502,22 @@ inst_fetch #(
     .pc(pc),
     .inst(inst),
 
-    .aw_valid(),
-    .aw_ready(),
-    .aw_addr(),
-    .w_valid(),
-    .w_ready(),
-    .w_data(),
-    .w_strb(),
-    .b_valid(),
-    .b_ready(),
-    .b_resp(),
+    .aw_ready(aw_ready1),
+    .aw_valid(aw_valid1),
+    .aw_addr(aw_addr1),
+    .aw_id(aw_id1),
+    .aw_len(aw_len1),
+    .aw_size(aw_size1),
+    .aw_burst(aw_burst1),
+    .w_ready(w_ready1),
+    .w_valid(w_valid1),
+    .w_data(w_data1),
+    .w_strb(w_strb1),
+    .w_last(w_last1),
+    .b_ready(b_ready1),
+    .b_valid(b_valid1),
+    .b_resp(b_resp1),
+    .b_id(b_id1),
     .ar_ready(ar_ready1),
     .ar_valid(ar_valid1),
     .ar_addr(ar_addr1),
