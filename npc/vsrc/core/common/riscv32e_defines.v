@@ -358,9 +358,8 @@ function void func_dev_skip;
 `ifdef IN_YOSYS_STA
 `else
     dpi_dev_skip(write, addr, req_info, data);
-`endif        
+`endif
     end
-   
 endfunction
 
 function automatic [31:0] func_sext;
@@ -373,7 +372,18 @@ function automatic [31:0] func_sext;
     func_sext = sext(x, len);
 `endif 
     end
-        
+endfunction
+
+function func_monitor_item;
+    input [31:0] item_idx;
+    input [31:0] id;
+    input [31:0] delta;
+    begin
+`ifdef IN_YOSYS_STA
+`else
+        dpi_monitor_item(item_idx, id, delta);
+`endif
+    end
 endfunction
 
 `endif

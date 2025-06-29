@@ -14,6 +14,7 @@ module perf_monitor (
 );
 
 `ifdef CONFIG_PERF_MONITOR
+`ifndef IN_YOSYS_STA
 
 initial begin
     // $display("Enable perf monitor");
@@ -26,7 +27,7 @@ reg last_ex_valid;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        dpi_monitor_item(0, 0, 0);
+        func_monitor_item(0, 0, 0);
         last_if_valid <= 0;
         last_id_valid <= 0;
         last_ls_valid <= 0;
@@ -39,28 +40,29 @@ always @(posedge clk or posedge rst) begin
 
         // IFU取到指令
         if (!last_if_valid && if_valid) begin
-            dpi_monitor_item(1, {28'h0,`AXI4_ID_IFU}, 1);
+            func_monitor_item(1, {28'h0,`AXI4_ID_IFU}, 1);
         end
         // 译码出各种类别的指令, 如计算类指令, 访存指令, CSR指令等
         if (!last_id_valid && id_valid) begin
-            dpi_monitor_item(1, {28'h0,`AXI4_ID_IDU}, 1);
+            func_monitor_item(1, {28'h0,`AXI4_ID_IDU}, 1);
         end
         // LSU取到数据
         if (!last_ls_valid && ls_valid) begin
-            dpi_monitor_item(1, {28'h0,`AXI4_ID_LSU}, 1);
+            func_monitor_item(1, {28'h0,`AXI4_ID_LSU}, 1);
         end
         // EXU完成计算
         if (!last_ex_valid && ex_valid) begin
-            dpi_monitor_item(1, {28'h0,`AXI4_ID_EXU}, 1);
+            func_monitor_item(1, {28'h0,`AXI4_ID_EXU}, 1);
         end
         // WBU完成回写，移到仿真中去统计
 
         if (!last_id_valid && id_valid) begin
-            dpi_monitor_item(2, {16'h0, inst_code}, 1);
+            func_monitor_item(2, {16'h0, inst_code}, 1);
         end
     end
 end
 
+`endif
 `endif
 
 endmodule
