@@ -65,9 +65,19 @@ module ysyxSoCFull (
 );
 
 `ifdef IN_YOSYS_STA
-reg [31:0] global_csrs[0:1023];
+reg [31:0] global_csrs[0:4095];
+reg [11:0] gloabl_csr_write_addr;
+reg [31:0] gloabl_csr_write_value;
 reg [31:0] global_ret_pc;
 reg [31:0] global_pc;
+
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+    end else begin
+        global_csrs[gloabl_csr_write_addr] <= gloabl_csr_write_value;
+    end
+end
+
 `endif
 
 ysyx_23060295 m_core0(

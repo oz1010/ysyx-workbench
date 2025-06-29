@@ -295,7 +295,10 @@ function void func_write_raw_csr;
     input [31:0] src1;
     begin
 `ifdef IN_YOSYS_STA
-        global_csrs[imm[11:0]] = src1;
+        // 使用异步方式写入csr
+        // global_csrs[imm[11:0]] = src1;
+        gloabl_csr_write_addr = imm[11:0];
+        gloabl_csr_write_value = src1;
 `else
         write_raw_csr(imm, src1);
 `endif
