@@ -100,7 +100,7 @@ config IMG_LOAD
 config FAST_LOAD
   bool "Image load to ram fastly"
   default false if ISA_x86
-  default true
+  default y
 
 choice
   prompt "Physical memory definition"

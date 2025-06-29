@@ -1,7 +1,7 @@
 menuconfig DEVICE
   depends on !TARGET_SHARE
   bool "Devices"
-  default n
+  default y
   help
     Provide device support for NPC.
 
@@ -154,7 +154,7 @@ if DEVICE
 
 menuconfig HAS_NVBOARD
   bool "NVBoard"
-  default y
+  default n
 
   if HAS_NVBOARD
     menuconfig HAS_NVBOARD_VGA
@@ -208,7 +208,7 @@ menuconfig HAS_SPI
 
 menuconfig HAS_GPIO
   bool "GPIO"
-  default y
+  default n
 
   if HAS_GPIO
     config GPIO_BASE_ADDR
@@ -218,7 +218,7 @@ menuconfig HAS_GPIO
 
 menuconfig HAS_PS2
   bool "PS2"
-  default y
+  default n
 
   if HAS_PS2
     config PS2_BASE_ADDR
