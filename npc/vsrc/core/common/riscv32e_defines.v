@@ -374,7 +374,7 @@ function automatic [31:0] func_sext;
     end
 endfunction
 
-function func_monitor_item;
+function void func_monitor_item;
     input [31:0] item_idx;
     input [31:0] id;
     input [31:0] delta;
