@@ -77,6 +77,22 @@ void get_hw_time_info(hw_time_info_t *info) {
 #endif
 }
 
+void get_hw_time_info_from_us(uint64_t us, hw_time_info_t *info) {
+    if (boot_time == 0) boot_time = get_time_internal();
+
+    struct timeval now;
+    now.tv_sec = (us+boot_time)/1000000;
+    now.tv_usec = (us+boot_time)%1000000;
+
+    struct tm* local_time = localtime(&now.tv_sec);
+    info->year = local_time->tm_year + 1900;
+    info->month = local_time->tm_mon + 1;
+    info->day = local_time->tm_mday;
+    info->hour = local_time->tm_hour;
+    info->minute = local_time->tm_min;
+    info->second = local_time->tm_sec;
+}
+
 void init_rand() {
   srand(get_time_internal());
 }
