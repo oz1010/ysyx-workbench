@@ -72,7 +72,14 @@ module arbiter_axi4 #(
     output  wire [log2(MASTER_COUNT):0] grant_idx
 );
 
+`ifdef IN_YOSYS_STA
+localparam [2:0] select_t       = 0;
+localparam [2:0] read_t         = 1;
+localparam [2:0] write_t        = 2;
+localparam [2:0] err_t          = 3;
+`else
 typedef enum [2:0] { select_t, read_t, write_t, err_t } state_t;
+`endif
 reg [2:0]  state;
 
 // 默认master，避免切主时造成从设备响应错误
@@ -185,8 +192,31 @@ function integer log2;
     end
 endfunction
 
+function void match_master_valid;
+    output [31:0] aw_id0;
+    output [31:0] ar_id1;
+    integer mid;
+    reg found;
+    begin
+        aw_id0 = -1;
+        ar_id1 = -1;
+        found = 0;
+        for (mid=0; mid<MASTER_COUNT; ++mid) begin
+            if (!found && m_aw_valids[mid]) begin
+                aw_id0 = mid;
+                found = 1;
+            end else if (!found && m_ar_valids[mid]) begin
+                ar_id1 = mid;
+                found = 1;
+            end
+        end
+    end
+endfunction
+
 // arbiter
 // 每次按照顺序循环遍历，master中最后一个为默认节点
+integer aw_match_id;
+integer ar_match_id;
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         state <= select_t;
@@ -194,17 +224,13 @@ always @(posedge clk or posedge rst) begin
     end else begin
         case (state)
             select_t: begin
-                for (integer midx=0; midx<MASTER_COUNT; ++midx) begin
-                    if (m_aw_valids[(midx[$bits(r_grant_idx)-1:0]) % MASTER_COUNT]) begin
-                        state <= write_t;
-                        r_grant_idx <= (midx[$bits(r_grant_idx)-1:0]) % MASTER_COUNT;
-                        break;
-                    end
-                    if (m_ar_valids[(midx[$bits(r_grant_idx)-1:0]) % MASTER_COUNT]) begin
-                        state <= read_t;
-                        r_grant_idx <= (midx[$bits(r_grant_idx)-1:0]) % MASTER_COUNT;
-                        break;
-                    end
+                match_master_valid(aw_match_id, ar_match_id);
+                if (aw_match_id>=0) begin
+                    state <= write_t;
+                    r_grant_idx <= (aw_match_id[$bits(r_grant_idx)-1:0]) % MASTER_COUNT;
+                end else if (ar_match_id>=0) begin
+                    state <= read_t;
+                    r_grant_idx <= (ar_match_id[$bits(r_grant_idx)-1:0]) % MASTER_COUNT;
                 end
             end
 
@@ -223,7 +249,9 @@ always @(posedge clk or posedge rst) begin
             end
 
             default: begin
+`ifndef IN_YOSYS_STA
                 $error("arbiter-axi4 is error, state:%x\n", state);
+`endif
                 state <= select_t;
             end
         endcase
