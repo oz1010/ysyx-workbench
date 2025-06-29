@@ -4,7 +4,7 @@ module inst_fetch #(
     parameter SRAM_READ_DELAY = 0,
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter BRESP_WIDTH = 3,
+    parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
     input wire clk,
@@ -13,18 +13,22 @@ module inst_fetch #(
     input wire [INST_WIDTH-1:0] pc,
     output wire [INST_WIDTH-1:0] inst,
 
-    output wire aw_valid,
-    input wire aw_ready,
-    output wire [ADDR_WIDTH-1:0] aw_addr,
-
-    output wire w_valid,
-    input wire w_ready,
-    output wire [DATA_WIDTH-1:0] w_data,
-    output wire [DATA_WIDTH/8-1:0] w_strb,
-
-    input wire b_valid,
-    output wire b_ready,
-    input wire [BRESP_WIDTH-1:0] b_resp,
+    input   wire                        aw_ready,
+    output  wire                        aw_valid,
+    output  wire [ADDR_WIDTH-1:0]       aw_addr,
+    output  wire [3:0]                  aw_id,
+    output  wire [7:0]                  aw_len,
+    output  wire [2:0]                  aw_size,
+    output  wire [1:0]                  aw_burst,
+    input   wire                        w_ready,
+    output  wire                        w_valid,
+    output  wire [DATA_WIDTH-1:0]       w_data,
+    output  wire [DATA_WIDTH/8-1:0]     w_strb,
+    output  wire                        w_last,
+    output  wire                        b_ready,
+    input   wire                        b_valid,
+    input   wire [BRESP_WIDTH-1:0]      b_resp,
+    input   wire [3:0]                  b_id,
 
     input   wire                        ar_ready,
     output  wire                        ar_valid,
@@ -44,6 +48,18 @@ module inst_fetch #(
     input wire next_ready,
     output wire next_valid
 );
+
+assign aw_valid = 0;
+assign aw_addr = 0;
+assign aw_id = 0;
+assign aw_len = 0;
+assign aw_size = 0;
+assign aw_burst = 0;
+assign w_valid = 0;
+assign w_data = 0;
+assign w_strb = 0;
+assign w_last = 0;
+assign b_ready = 0;
 
 generate
     if (SRAM_TYPE == `SRAM_TYPE_SCOM) begin : sram_scom

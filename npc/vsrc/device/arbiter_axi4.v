@@ -1,4 +1,3 @@
-`ifndef IN_YOSYS_STA
 module arbiter_axi4 #(
     parameter USER_M_COUNT = 1,
     parameter ADDR_WIDTH = 32,
@@ -10,35 +9,35 @@ module arbiter_axi4 #(
     input wire clk,
     input wire rst,
 
-    output  wire                        u_aw_readys[0:USER_M_COUNT-1],
-    input   wire                        u_aw_valids[0:USER_M_COUNT-1],
-    input   wire [ADDR_WIDTH-1:0]       u_aw_addrs[0:USER_M_COUNT-1],
-    input   wire [3:0]                  u_aw_ids[0:USER_M_COUNT-1],
-    input   wire [7:0]                  u_aw_lens[0:USER_M_COUNT-1],
-    input   wire [2:0]                  u_aw_sizes[0:USER_M_COUNT-1],
-    input   wire [1:0]                  u_aw_bursts[0:USER_M_COUNT-1],
-    output  wire                        u_w_readys[0:USER_M_COUNT-1],
-    input   wire                        u_w_valids[0:USER_M_COUNT-1],
-    input   wire [DATA_WIDTH-1:0]       u_w_datas[0:USER_M_COUNT-1],
-    input   wire [DATA_WIDTH/8-1:0]     u_w_strbs[0:USER_M_COUNT-1],
-    input   wire                        u_w_lasts[0:USER_M_COUNT-1],
-    input   wire                        u_b_readys[0:USER_M_COUNT-1],
-    output  wire                        u_b_valids[0:USER_M_COUNT-1],
-    output  wire [BRESP_WIDTH-1:0]      u_b_resps[0:USER_M_COUNT-1],
-    output  wire [3:0]                  u_b_ids[0:USER_M_COUNT-1],
-    output  wire                        u_ar_readys[0:USER_M_COUNT-1],
-    input   wire                        u_ar_valids[0:USER_M_COUNT-1],
-    input   wire [ADDR_WIDTH-1:0]       u_ar_addrs[0:USER_M_COUNT-1],
-    input   wire [3:0]                  u_ar_ids[0:USER_M_COUNT-1],
-    input   wire [7:0]                  u_ar_lens[0:USER_M_COUNT-1],
-    input   wire [2:0]                  u_ar_sizes[0:USER_M_COUNT-1],
-    input   wire [1:0]                  u_ar_bursts[0:USER_M_COUNT-1],
-    input   wire                        u_r_readys[0:USER_M_COUNT-1],
-    output  wire                        u_r_valids[0:USER_M_COUNT-1],
-    output  wire [RRESP_WIDTH-1:0]      u_r_resps[0:USER_M_COUNT-1],
-    output  wire [DATA_WIDTH-1:0]       u_r_datas[0:USER_M_COUNT-1],
-    output  wire                        u_r_lasts[0:USER_M_COUNT-1],
-    output  wire [3:0]                  u_r_ids[0:USER_M_COUNT-1],
+    output  wire [USER_M_COUNT-1:0]                     u_aw_readys,
+    input   wire [USER_M_COUNT-1:0]                     u_aw_valids,
+    input   wire [USER_M_COUNT*ADDR_WIDTH-1:0]          u_aw_addrs,
+    input   wire [USER_M_COUNT*4-1:0]                   u_aw_ids,
+    input   wire [USER_M_COUNT*8-1:0]                   u_aw_lens,
+    input   wire [USER_M_COUNT*3-1:0]                   u_aw_sizes,
+    input   wire [USER_M_COUNT*2-1:0]                   u_aw_bursts,
+    output  wire [USER_M_COUNT-1:0]                     u_w_readys,
+    input   wire [USER_M_COUNT-1:0]                     u_w_valids,
+    input   wire [USER_M_COUNT*DATA_WIDTH-1:0]          u_w_datas,
+    input   wire [USER_M_COUNT*DATA_WIDTH/8-1:0]        u_w_strbs,
+    input   wire [USER_M_COUNT-1:0]                     u_w_lasts,
+    input   wire [USER_M_COUNT-1:0]                     u_b_readys,
+    output  wire [USER_M_COUNT-1:0]                     u_b_valids,
+    output  wire [USER_M_COUNT*BRESP_WIDTH-1:0]         u_b_resps,
+    output  wire [USER_M_COUNT*4-1:0]                   u_b_ids,
+    output  wire [USER_M_COUNT-1:0]                     u_ar_readys,
+    input   wire [USER_M_COUNT-1:0]                     u_ar_valids,
+    input   wire [USER_M_COUNT*ADDR_WIDTH-1:0]          u_ar_addrs,
+    input   wire [USER_M_COUNT*4-1:0]                   u_ar_ids,
+    input   wire [USER_M_COUNT*8-1:0]                   u_ar_lens,
+    input   wire [USER_M_COUNT*3-1:0]                   u_ar_sizes,
+    input   wire [USER_M_COUNT*2-1:0]                   u_ar_bursts,
+    input   wire [USER_M_COUNT-1:0]                     u_r_readys,
+    output  wire [USER_M_COUNT-1:0]                     u_r_valids,
+    output  wire [USER_M_COUNT*RRESP_WIDTH-1:0]         u_r_resps,
+    output  wire [USER_M_COUNT*DATA_WIDTH-1:0]          u_r_datas,
+    output  wire [USER_M_COUNT-1:0]                     u_r_lasts,
+    output  wire [USER_M_COUNT*4-1:0]                   u_r_ids,
 
     input   wire                        aw_ready,
     output  wire                        aw_valid,
@@ -106,35 +105,65 @@ wire [RRESP_WIDTH-1:0]      m_r_resps[0:MASTER_COUNT-1];
 wire [DATA_WIDTH-1:0]       m_r_datas[0:MASTER_COUNT-1];
 wire                        m_r_lasts[0:MASTER_COUNT-1];
 wire [3:0]                  m_r_ids[0:MASTER_COUNT-1];
-assign m_aw_valids = {0, u_aw_valids};
-assign m_aw_addrs = {0, u_aw_addrs};
-assign m_aw_ids = {0, u_aw_ids};
-assign m_aw_lens = {0, u_aw_lens};
-assign m_aw_sizes = {0, u_aw_sizes};
-assign m_aw_bursts = {0, u_aw_bursts};
-assign m_w_valids = {0, u_w_valids};
-assign m_w_datas = {0, u_w_datas};
-assign m_w_strbs = {0, u_w_strbs};
-assign m_w_lasts = {0, u_w_lasts};
-assign m_b_readys = {0, u_b_readys};
-assign m_ar_valids = {0, u_ar_valids};
-assign m_ar_addrs = {0, u_ar_addrs};
-assign m_ar_ids = {0, u_ar_ids};
-assign m_ar_lens = {0, u_ar_lens};
-assign m_ar_sizes = {0, u_ar_sizes};
-assign m_ar_bursts = {0, u_ar_bursts};
-assign m_r_readys = {0, u_r_readys};
-assign u_aw_readys = m_aw_readys[1:MASTER_COUNT-1];
-assign u_w_readys = m_w_readys[1:MASTER_COUNT-1];
-assign u_b_valids = m_b_valids[1:MASTER_COUNT-1];
-assign u_b_resps = m_b_resps[1:MASTER_COUNT-1];
-assign u_b_ids = m_b_ids[1:MASTER_COUNT-1];
-assign u_ar_readys = m_ar_readys[1:MASTER_COUNT-1];
-assign u_r_valids = m_r_valids[1:MASTER_COUNT-1];
-assign u_r_resps = m_r_resps[1:MASTER_COUNT-1];
-assign u_r_datas = m_r_datas[1:MASTER_COUNT-1];
-assign u_r_lasts = m_r_lasts[1:MASTER_COUNT-1];
-assign u_r_ids = m_r_ids[1:MASTER_COUNT-1];
+
+generate
+    for (genvar i=0; i<MASTER_COUNT; ++i) begin
+        // DEFAULT
+        if (i==0) begin
+            assign m_aw_valids[i] = 0;
+            assign m_aw_addrs[i] = 0;
+            assign m_aw_ids[i] = 0;
+            assign m_aw_lens[i] = 0;
+            assign m_aw_sizes[i] = 0;
+            assign m_aw_bursts[i] = 0;
+            assign m_w_valids[i] = 0;
+            assign m_w_datas[i] = 0;
+            assign m_w_strbs[i] = 0;
+            assign m_w_lasts[i] = 0;
+            assign m_b_readys[i] = 0;
+            assign m_ar_valids[i] = 0;
+            assign m_ar_addrs[i] = 0;
+            assign m_ar_ids[i] = 0;
+            assign m_ar_lens[i] = 0;
+            assign m_ar_sizes[i] = 0;
+            assign m_ar_bursts[i] = 0;
+            assign m_r_readys[i] = 0;
+        end else begin
+            integer master_idx = (MASTER_COUNT-i);
+
+            assign m_aw_valids[i] = u_aw_valids[1*master_idx +: 1];
+            assign m_aw_addrs[i] = u_aw_addrs[ADDR_WIDTH*master_idx +: ADDR_WIDTH];
+            assign m_aw_ids[i] = u_aw_ids[4*master_idx +: 4];
+            assign m_aw_lens[i] = u_aw_lens[8*master_idx +: 8];
+            assign m_aw_sizes[i] = u_aw_sizes[3*master_idx +: 3];
+            assign m_aw_bursts[i] = u_aw_bursts[2*master_idx +: 2];
+            assign m_w_valids[i] = u_w_valids[1*master_idx +: 1];
+            assign m_w_datas[i] = u_w_datas[DATA_WIDTH*master_idx +: DATA_WIDTH];
+            assign m_w_strbs[i] = u_w_strbs[DATA_WIDTH/8*master_idx +: DATA_WIDTH/8];
+            assign m_w_lasts[i] = u_w_lasts[1*master_idx +: 1];
+            assign m_b_readys[i] = u_b_readys[1*master_idx +: 1];
+            assign m_ar_valids[i] = u_ar_valids[1*master_idx +: 1];
+            assign m_ar_addrs[i] = u_ar_addrs[ADDR_WIDTH*master_idx +: ADDR_WIDTH];
+            assign m_ar_ids[i] = u_ar_ids[4*master_idx +: 4];
+            assign m_ar_lens[i] = u_ar_lens[8*master_idx +: 8];
+            assign m_ar_sizes[i] = u_ar_sizes[3*master_idx +: 3];
+            assign m_ar_bursts[i] = u_ar_bursts[2*master_idx +: 2];
+            assign m_r_readys[i] = u_r_readys[1*master_idx +: 1];
+
+            assign u_aw_readys[1*master_idx +: 1] = m_aw_readys[i];
+            assign u_w_readys[1*master_idx +: 1] = m_w_readys[i];
+            assign u_b_valids[1*master_idx +: 1] = m_b_valids[i];
+            assign u_b_resps[BRESP_WIDTH*master_idx +: BRESP_WIDTH] = m_b_resps[i];
+            assign u_b_ids[4*master_idx +: 4] = m_b_ids[i];
+            assign u_ar_readys[1*master_idx +: 1] = m_ar_readys[i];
+            assign u_r_valids[1*master_idx +: 1] = m_r_valids[i];
+            assign u_r_resps[BRESP_WIDTH*master_idx +: BRESP_WIDTH] = m_r_resps[i];
+            assign u_r_datas[DATA_WIDTH*master_idx +: DATA_WIDTH] = m_r_datas[i];
+            assign u_r_lasts[1*master_idx +: 1] = m_r_lasts[i];
+            assign u_r_ids[4*master_idx +: 4] = m_r_ids[i];
+        end
+    end
+endgenerate
 
 reg [MASTER_COUNT-1:0] m_signal_en;
 reg [MASTER_COUNT-1:0] m_write_en;
@@ -244,5 +273,3 @@ assign ar_burst = m_ar_bursts[r_grant_idx];
 assign r_ready = m_r_readys[r_grant_idx];
 
 endmodule
-
-`endif
