@@ -52,6 +52,7 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #endif
 
 void init_dpi();
+void exit_dpi();
 uint8_t *get_vsimu_sram_addr();
 std::shared_ptr<VerilatedContext> contextp;
 std::shared_ptr<TOP_ROOT_CLASS> top;
@@ -172,6 +173,8 @@ void exit_vsimu()
     tfp.reset();
     top.reset();
 	contextp.reset();
+
+    exit_dpi();
 }
 
 uint8_t *get_vsimu_sram_addr()

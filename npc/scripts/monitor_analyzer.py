@@ -18,6 +18,7 @@ def parse_log(log_lines):
     instructions = []
     current_inst = None
     start_tick = 0
+    current_tick = 0
     
     for line in log_lines:
         entries = line.strip().split()
@@ -25,6 +26,7 @@ def parse_log(log_lines):
             try:
                 tick, entry_type, value = entry.split('|')
                 tick = int(tick)
+                current_tick += tick
                 entry_type = int(entry_type)
                 
                 if entry_type == 1:  # 阶段记录
@@ -35,8 +37,8 @@ def parse_log(log_lines):
                                 instructions.append(current_inst)
                             current_inst = {
                                 'start_tick': start_tick,
-                                'end_tick': tick,
-                                'stages': {'IFU': tick},
+                                'end_tick': current_tick,
+                                'stages': {'IFU': current_tick},
                                 'inst': None,
                                 'has_exu': False,
                                 'has_lsu': False
@@ -45,16 +47,16 @@ def parse_log(log_lines):
                             if current_inst is not None:
                                 if value == 'EXU':
                                     if current_inst['has_lsu']:
-                                        print(f"警告: 指令同时包含EXU和LSU阶段 (tick={tick})", file=sys.stderr)
+                                        print(f"警告: 指令同时包含EXU和LSU阶段 (tick={current_tick})", file=sys.stderr)
                                     current_inst['has_exu'] = True
                                 elif value == 'LSU':
                                     if current_inst['has_exu']:
-                                        print(f"警告: 指令同时包含EXU和LSU阶段 (tick={tick})", file=sys.stderr)
+                                        print(f"警告: 指令同时包含EXU和LSU阶段 (tick={current_tick})", file=sys.stderr)
                                     current_inst['has_lsu'] = True
                                 
-                                current_inst['stages'][value] = tick
-                                current_inst['end_tick'] = tick
-                                start_tick = tick
+                                current_inst['stages'][value] = current_tick
+                                current_inst['end_tick'] = current_tick
+                                start_tick = current_tick
                     else:
                         print(f"警告: 未知的阶段类型: {value}", file=sys.stderr)
                 elif entry_type == 2:  # 指令记录

@@ -13,6 +13,7 @@
 #include "cpu/difftest.h"
 #include "utils.h"
 #include "device/vdev.h"
+#include "perf_monitor.h"
 
 #define DPI_MTRACE(fmt, ...) MTRACE_ADD("DPI-" fmt, ##__VA_ARGS__)
 #if CONFIG_DTRACE
@@ -38,70 +39,15 @@ uint32_t hw_flash_idx = 0;
 hw_monitor_ctx_t hw_monitor_ctx;
 extern FILE *perf_fp;
 static const char *event_strs[HW_MONITOR_ID_COUNT] = {
-    "INVALID",
-    "IFU",
-    "IDU",
-    "LSU",
-    "EXU",
-    "WBU",
+    "INVALID", "IFU", "IDU", "LSU", "EXU", "WBU",
 };
 static const char *code_strs[HW_MONITOR_CODE_COUNT] = {
-    "LUI",
-    "AUIPC",
-    "JAL",
-    "JALR",
-    "BEQ",
-    "BNE",
-    "BLT",
-    "BGE",
-    "BLTU",
-    "BGEU",
-    "LB",
-    "LH",
-    "LW",
-    "LBU",
-    "LHU",
-    "SB",
-    "SH",
-    "SW",
-    "ADDI",
-    "SLTI",
-    "SLTIU",
-    "XORI",
-    "ORI",
-    "ANDI",
-    "SLLI",
-    "SRLI",
-    "SRAI",
-    "ADD",
-    "SUB",
-    "SLL",
-    "SLT",
-    "SLTU",
-    "XOR",
-    "SRL",
-    "SRA",
-    "OR",
-    "AND",
-    "FENCE",
-    "FENCE_I",
-    "ECALL",
-    "EBREAK",
-    "CSRRW",
-    "CSRRS",
-    "CSRRC",
-    "CSRRWI",
-    "CSRRSI",
-    "CSRRCI",
-    "MUL",
-    "MULH",
-    "MULHSU",
-    "MULHU",
-    "DIV",
-    "DIVU",
-    "REM",
-    "REMU",
-    "MRET",
+    "LUI",    "AUIPC", "JAL",   "JALR",  "BEQ",    "BNE",    "BLT",    "BGE",   "BLTU",    "BGEU",
+    "LB",     "LH",    "LW",    "LBU",   "LHU",    "SB",     "SH",     "SW",    "ADDI",    "SLTI",
+    "SLTIU",  "XORI",  "ORI",   "ANDI",  "SLLI",   "SRLI",   "SRAI",   "ADD",   "SUB",     "SLL",
+    "SLT",    "SLTU",  "XOR",   "SRL",   "SRA",    "OR",     "AND",    "FENCE", "FENCE_I", "ECALL",
+    "EBREAK", "CSRRW", "CSRRS", "CSRRC", "CSRRWI", "CSRRSI", "CSRRCI", "MUL",   "MULH",    "MULHSU",
+    "MULHU",  "DIV",   "DIVU",  "REM",   "REMU",   "MRET",
 };
 
 #define PSRAM_SIZE (4 * 1024 * 1024)
@@ -124,6 +70,16 @@ void init_dpi()
     //     raw_psram = (uint8_t *)malloc(PSRAM_SIZE);
     // #endif
     //     assert(raw_psram);
+}
+
+void exit_dpi()
+{
+    if (perf_fp)
+    {
+        fflush(perf_fp);
+        fclose(perf_fp);
+        perf_fp = NULL;
+    }
 }
 
 void hw_storage_access(int write, int addr, uint32_t *data, int32_t len)
@@ -381,7 +337,7 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
             else
 #endif
 #if CONFIG_HAS_SPI_MASTER
-            if (vdev->startaddr == CONFIG_SPI_MASTER_BASE_ADDR)
+                if (vdev->startaddr == CONFIG_SPI_MASTER_BASE_ADDR)
             {
                 DPI_DTRACE(vdev->name, "%s %#x %#x %#x", rw_str, (uint32_t)addr, data, req_info);
             }
@@ -484,7 +440,7 @@ int dpi_rtc_read(int addr, int len)
     {
         last_tick += update_ticks;
 #if CONFIG_CORE_FREQUENCY
-        local_execute_time = hw_tick / (CONFIG_CORE_FREQUENCY / 1000000); // us
+        local_execute_time = hw_tick / (CONFIG_CORE_FREQUENCY / 1000000);  // us
         get_hw_time_info_from_us(local_execute_time, &local_time_info);
 #else
         local_execute_time = get_time();
@@ -646,7 +602,8 @@ void dpi_vdev_write(int addr, int data, int len)
 
 void add_monitor_event(int id, int delta)
 {
-    if (id >= ARRLEN(hw_monitor_ctx.events)) {
+    if (id >= ARRLEN(hw_monitor_ctx.events))
+    {
         raw_stdout("DPI monitor event id is out of range, id:%d\n", id);
         exit_simu(2);
         return;
@@ -657,7 +614,8 @@ void add_monitor_event(int id, int delta)
 
 void add_monitor_code(int id, int delta)
 {
-    if (id >= ARRLEN(hw_monitor_ctx.codes)) {
+    if (id >= ARRLEN(hw_monitor_ctx.codes))
+    {
         raw_stdout("DPI monitor code id is out of range, id:%d\n", id);
         exit_simu(3);
         return;
@@ -666,10 +624,80 @@ void add_monitor_code(int id, int delta)
     hw_monitor_ctx.codes[id].cnt += delta;
 }
 
+void clear_monitor_log()
+{
+    if (perf_fp)
+    {
+        int fd = fileno(perf_fp);
+        int ret = ftruncate(fd, 0);
+        if (ret == -1)
+        {
+            raw_stdout("DPI monitor clear log failed, ret:%d\n", ret);
+            exit_simu(3);
+            return;
+        }
+        rewind(perf_fp);
+    }
+}
+
 void add_monitor_log(int item_idx, int id)
 {
-    fprintf(perf_fp, "%lu|%d|%s%c", hw_tick, item_idx, item_idx==1?hw_monitor_ctx.events[id].name:hw_monitor_ctx.codes[id].name, (item_idx==1&&id==(HW_MONITOR_ID_COUNT-1))?'\n':' ');
-    fflush(perf_fp);
+    static uint64_t last_hw_tick = 0;
+    static uint64_t last_update_tick = 0;
+
+    uint64_t delta = hw_tick - last_hw_tick;
+    last_hw_tick = hw_tick;
+    (void)delta;
+
+#if CONFIG_PERF_MONITOR_BIN_DATA
+    perf_monitor_data_t data;
+    perf_monitor_header_t *header =
+        item_idx == PERF_MONITOR_TYPE_EVENT ? &data.event.header : &data.code.header;
+    size_t w_size = 0;
+
+    header->type = item_idx;
+    w_size += sizeof(perf_monitor_header_t);
+    if (item_idx == PERF_MONITOR_TYPE_EVENT)
+    {
+        data.event.type = id;
+        if (delta <= UINT8_MAX)
+        {
+            header->size = 0;
+            data.event.delta0 = delta & 0xff;
+        }
+        else if (delta <= UINT16_MAX)
+        {
+            header->size = 1;
+            data.event.delta1 = delta & 0xffff;
+        }
+        else
+        {
+            raw_stdout("DPI monitor delta is out of range, delta:%lu\n", delta);
+            exit_simu(3);
+            return;
+        }
+
+        w_size += sizeof(data.event.type);
+        w_size += 1 << header->size;
+    }
+    else
+    {
+        data.code.inst = id & 0xff;
+        w_size += sizeof(data.code.inst);
+    }
+
+    fwrite(header, 1, w_size, perf_fp);
+
+    if (hw_tick - last_update_tick > 10000)
+    {
+        last_update_tick = hw_tick;
+        fflush(perf_fp);
+    }
+#else
+    fprintf(perf_fp, "%lu|%d|%s%c", delta, item_idx,
+    item_idx==1?hw_monitor_ctx.events[id].name:hw_monitor_ctx.codes[id].name,
+    (item_idx==1&&id==(HW_MONITOR_ID_COUNT-1))?'\n':' '); fflush(perf_fp);
+#endif
 }
 
 void add_monitor_item(int item_idx, int id, int delta)
@@ -679,35 +707,40 @@ void add_monitor_item(int item_idx, int id, int delta)
 
     switch (item_idx)
     {
-    case 0:
-        if (init_monitor_en) {
-            init_monitor_en = false;
-            memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
-            for (int i=0; i<ARRLEN(event_strs); ++i) {
-                hw_monitor_ctx.events[i].name = event_strs[i];
-            }
-            for (int i=0; i<ARRLEN(code_strs); ++i) {
-                hw_monitor_ctx.codes[i].name = code_strs[i];
-            }
-        }
-        break;
-    
-    case 1:
-        init_monitor_en = true;
-        add_monitor_log(item_idx, id);
-        add_monitor_event(id, delta);
-        break;
-        
-    case 2:
-        init_monitor_en = true;
-        add_monitor_log(item_idx, id);
-        add_monitor_code(id, delta);
-        break;
+        case 0:
+            if (init_monitor_en)
+            {
+                init_monitor_en = false;
+                memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
+                for (int i = 0; i < ARRLEN(event_strs); ++i)
+                {
+                    hw_monitor_ctx.events[i].name = event_strs[i];
+                }
+                for (int i = 0; i < ARRLEN(code_strs); ++i)
+                {
+                    hw_monitor_ctx.codes[i].name = code_strs[i];
+                }
 
-    default:
-        raw_stdout("Unknown item idx:%d\n", item_idx);
-        exit_simu(3);
-        break;
+                clear_monitor_log();
+            }
+            break;
+
+        case PERF_MONITOR_TYPE_EVENT:
+            init_monitor_en = true;
+            add_monitor_log(item_idx, id);
+            add_monitor_event(id, delta);
+            break;
+
+        case PERF_MONITOR_TYPE_CODE:
+            init_monitor_en = true;
+            add_monitor_log(item_idx, id);
+            add_monitor_code(id, delta);
+            break;
+
+        default:
+            raw_stdout("Unknown item idx:%d\n", item_idx);
+            exit_simu(3);
+            break;
     }
 #endif
 }
