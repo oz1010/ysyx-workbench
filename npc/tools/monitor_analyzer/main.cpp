@@ -1,4 +1,4 @@
-// 编译命令 clang++ -std=c++17 -O3 chatgpt000.cpp
+// 编译命令 g++ -std=c++17 -O3 <FILE>
 // 优化EVENT_STRS和CODE_STRS的使用
 
 #include <iostream>
@@ -15,6 +15,15 @@
 
 using namespace std;
 
+
+#define show_progress(POS, SIZE) do { \
+    cout << ((POS)==0?"\n":"\r") << "解析文件进度: " << fixed << setprecision(2) \
+             << (100.0 * (POS) / (SIZE)) << "% (" << (POS) << "/" << (SIZE) << ")"; \
+    cout.flush(); \
+} while(0)
+#define PERF_MONITOR_TYPE_EVENT 1
+#define PERF_MONITOR_TYPE_CODE 2
+enum { EVENT_INVALID, EVENT_IFU, EVENT_IDU, EVENT_LSU, EVENT_EXU, EVENT_WBU, EVENT_COUNT };
 const vector<string> EVENT_STRS = { "INVALID", "IFU", "IDU", "LSU", "EXU", "WBU" };
 const vector<string> CODE_STRS = {
     "LUI", "AUIPC", "JAL", "JALR", "BEQ", "BNE", "BLT", "BGE", "BLTU", "BGEU",
@@ -36,10 +45,10 @@ struct Instruction {
 
 struct Stat {
     unordered_map<uint8_t, int> inst_counts;
-    unordered_map<uint8_t, vector<int>> inst_cycles;
-    unordered_map<string, vector<int>> stage_delays;
-    vector<int> lsu_avg_delays;
-    unordered_map<string, int> exec_unit_usage = {{"EXU", 0}, {"LSU", 0}};
+    unordered_map<uint8_t, uint64_t> inst_cycles_avg_total;
+    unordered_map<uint8_t, uint64_t> inst_cycles_avg_count;
+    unordered_map<uint8_t, uint64_t> stage_delays_avg_total;
+    unordered_map<uint8_t, uint64_t> stage_delays_avg_count;
     int total_instructions = 0;
     int total_cycles = 0;
 };
@@ -53,31 +62,17 @@ void analyze_instructions(vector<Instruction> &instructions) {
         stats.total_instructions++;
         stats.inst_counts[inst.inst_code]++;
         int cycles = inst.end_tick - inst.start_tick;
-        stats.inst_cycles[inst.inst_code].push_back(cycles);
+        stats.inst_cycles_avg_total[inst.inst_code] += cycles;
+        stats.inst_cycles_avg_count[inst.inst_code] += 1;
         stats.total_cycles += cycles;
 
-        if (inst.has_exu) stats.exec_unit_usage["EXU"]++;
-        if (inst.has_lsu) {
-            stats.exec_unit_usage["LSU"]++;
-            if (inst.stages.count(2) && inst.stages.count(3)) // IDU -> LSU
-                stats.lsu_avg_delays.push_back(inst.stages.at(3) - inst.stages.at(2));
-        }
-
         const auto &s = inst.stages;
-        if (s.count(1))
-            stats.stage_delays["STR_IFU"].push_back(s.at(1) - inst.start_tick);
-        if (s.count(1) && s.count(2))
-            stats.stage_delays["IFU_IDU"].push_back(s.at(2) - s.at(1));
-        if (s.count(2)) {
-            if (s.count(4))
-                stats.stage_delays["IDU_EXU"].push_back(s.at(4) - s.at(2));
-            else if (s.count(3))
-                stats.stage_delays["IDU_LSU"].push_back(s.at(3) - s.at(2));
+        for (uint8_t event_type = EVENT_IFU; event_type < EVENT_COUNT; ++event_type) {
+            if (s.count(event_type)) {
+                stats.stage_delays_avg_total[event_type] += s.at(event_type);
+                stats.stage_delays_avg_count[event_type] += 1;
+            }
         }
-        if (s.count(4) && s.count(5))
-            stats.stage_delays["EXU_WBU"].push_back(s.at(5) - s.at(4));
-        if (s.count(3) && s.count(5))
-            stats.stage_delays["LSU_WBU"].push_back(s.at(5) - s.at(3));
     }
 
     instructions.clear();
@@ -98,74 +93,68 @@ void parse_binary_log(const char* filepath) {
     vector<Instruction> instructions;
     Instruction current_inst;
     uint64_t current_tick = 0, start_tick = 0;
-    size_t i = 0, last_idx = 0, show_mix_size = 1024 * 1024;
+    size_t pos = 0, last_idx = 0, show_mix_size = 1024 * 1024;
 
-    cout << "\n解析文件进度: 0.00% (0/" << size << ")";
-    cout.flush();
+    show_progress(pos, size);
 
     try {
-        while (i < buffer.size()) {
-            if (i - last_idx >= show_mix_size) {
-                cout << "\r解析文件进度: " << fixed << setprecision(2)
-                     << (100.0 * i / size) << "% (" << i << "/" << size << ")";
-                cout.flush();
-                last_idx = i;
+        while (pos < buffer.size()) {
+            if (pos - last_idx >= show_mix_size) {
+                show_progress(pos, size);
+                last_idx = pos;
                 analyze_instructions(instructions);
             }
 
-            unsigned char first_byte = buffer[i++];
+            unsigned char first_byte = buffer[pos++];
             int entry_type = first_byte & 0x3F;
             int time_len_shift = (first_byte >> 6) & 0x03;
             int time_len = 1 << time_len_shift;
 
-            if (entry_type == 1) {
-                if (i >= buffer.size()) throw runtime_error("缺少阶段类型");
-                uint8_t stage_type = buffer[i++];
-                if (i + time_len > buffer.size()) throw runtime_error("缺少时间差值");
+            if (entry_type == PERF_MONITOR_TYPE_EVENT) {
+                if (pos >= buffer.size()) throw runtime_error("缺少阶段类型");
+                uint8_t event_type = buffer[pos++];
+                if (pos + time_len > buffer.size()) throw runtime_error("缺少时间差值");
                 uint64_t time_diff = 0;
-                memcpy(&time_diff, &buffer[i], time_len);
-                i += time_len;
+                memcpy(&time_diff, &buffer[pos], time_len);
+                pos += time_len;
                 current_tick += time_diff;
 
-                if (stage_type == 1) {
+                if (event_type == EVENT_IFU) {
                     if (current_inst.inst_code != 255)
                         instructions.push_back(current_inst);
                     current_inst = {};
                     current_inst.start_tick = start_tick;
                     current_inst.end_tick = current_tick;
-                    current_inst.stages[1] = current_tick;
+                    current_inst.stages[event_type] = time_diff;
                 } else {
-                    if (current_inst.inst_code != 255) {
-                        if (stage_type == 4) {
-                            if (current_inst.has_lsu)
-                                throw runtime_error("指令同时包含EXU和LSU");
-                            current_inst.has_exu = true;
-                        } else if (stage_type == 3) {
-                            if (current_inst.has_exu)
-                                throw runtime_error("指令同时包含EXU和LSU");
-                            current_inst.has_lsu = true;
-                        }
-                        current_inst.stages[stage_type] = current_tick;
-                        current_inst.end_tick = current_tick;
-                        start_tick = current_tick;
+                    if (event_type == EVENT_EXU) {
+                        if (current_inst.has_lsu)
+                            throw runtime_error("指令同时包含EXU和LSU");
+                        current_inst.has_exu = true;
+                    } else if (event_type == EVENT_LSU) {
+                        if (current_inst.has_exu)
+                            throw runtime_error("指令同时包含EXU和LSU");
+                        current_inst.has_lsu = true;
                     }
+                    current_inst.stages[event_type] = time_diff;
+                    current_inst.end_tick = current_tick;
+                    start_tick = current_tick;
                 }
-            } else if (entry_type == 2) {
-                if (i >= buffer.size()) throw runtime_error("缺少指令编码");
-                uint8_t inst_code = buffer[i++];
+            } else if (entry_type == PERF_MONITOR_TYPE_CODE) {
+                if (pos >= buffer.size()) throw runtime_error("缺少指令编码");
+                uint8_t inst_code = buffer[pos++];
                 current_inst.inst_code = inst_code;
             } else {
                 throw runtime_error("未知条目类型: " + to_string(entry_type));
             }
         }
     } catch (const exception& e) {
-        cout << "\r解析文件进度: " << fixed << setprecision(2)
-             << (100.0 * i / size) << "% (" << i << "/" << size << ")";
-        cerr << "\n解析错误位置 i=" << i << ": " << e.what() << endl;
+        show_progress(pos, size);
+        cerr << "\n解析错误位置 pos=" << pos << ": " << e.what() << endl;
         exit(1);
     }
 
-    cout << "\r解析文件进度: 100.00% (" << size << "/" << size << ")\n";
+    show_progress(pos, size);
     if (current_inst.inst_code != 255)
         instructions.push_back(current_inst);
     analyze_instructions(instructions);
@@ -176,17 +165,9 @@ void print_stats(const char* filepath) {
     for (const auto &p : stats.inst_counts) {
         uint8_t code = p.first;
         int count = p.second;
-        double avg = 0.0;
-        const auto &cycles = stats.inst_cycles[code];
-        if (!cycles.empty())
-            avg = accumulate(cycles.begin(), cycles.end(), 0.0) / cycles.size();
-        inst_avg_cycles[code] = avg;
+        inst_avg_cycles[code] = stats.inst_cycles_avg_total[code] * 1.0 / stats.inst_cycles_avg_count[code];
         inst_percentage[code] = (count * 100.0 / stats.total_instructions);
     }
-
-    double lsu_avg = 0.0;
-    if (!stats.lsu_avg_delays.empty())
-        lsu_avg = accumulate(stats.lsu_avg_delays.begin(), stats.lsu_avg_delays.end(), 0.0) / stats.lsu_avg_delays.size();
 
     cout << "\n分析结果 (文件: " << filepath << ")\n";
     cout << "\n指令统计:\n";
@@ -219,24 +200,24 @@ void print_stats(const char* filepath) {
          << (double)stats.total_instructions / max(1, stats.total_cycles) << endl;
 
     cout << "\n阶段延迟统计:\n";
-    if (stats.stage_delays.empty()) {
+    if (stats.stage_delays_avg_total.empty()) {
         cout << "  无有效阶段延迟数据\n";
     } else {
-        vector<pair<string, double>> delay_avg;
-        for (const auto &p : stats.stage_delays) {
-            const auto &d = p.second;
-            double avg = !d.empty() ? accumulate(d.begin(), d.end(), 0.0) / d.size() : 0;
-            delay_avg.emplace_back(p.first, avg);
+        vector<pair<uint8_t, double>> delay_avg;
+        for (const auto &p : stats.stage_delays_avg_total) {
+            const auto &total = p.second;
+            const auto &count = stats.stage_delays_avg_count[p.first];
+            delay_avg.emplace_back(p.first, total * 1.0 / count);
         }
         sort(delay_avg.begin(), delay_avg.end(), [](auto &a, auto &b) {
-            if (a.second != b.second)
-                return a.second > b.second;
+            // if (a.second != b.second)
+            //     return a.second > b.second;
             return a.first < b.first;
         });
-        for (const auto &[stage, avg] : delay_avg) {
-            cout << "  " << setw(10) << stage << ": "
+        for (const auto &[event_type, avg] : delay_avg) {
+            cout << setw(5) << EVENT_STRS[event_type] << ": "
                  << fixed << setprecision(1) << avg
-                 << " | " << stats.stage_delays[stage].size() << endl;
+                 << " | " << stats.stage_delays_avg_count[event_type] << endl;
         }
     }
 }
