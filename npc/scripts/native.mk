@@ -29,9 +29,11 @@ override ARGS += $(ARGS_DIFF)
 override ARGS += -b
 
 ifeq ($(CONFIG_PERF_MONITOR), y)
+ANALYZER += analyzer
 ifeq ($(CONFIG_PERF_MONITOR_BIN_DATA), y)
 override PERF_FILE ?= $(BUILD_DIR)/npc-monitor.bin
-PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer_bin.py $(PERF_FILE)
+# PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer_bin.py $(PERF_FILE)
+PERF_MONITOR_SH=$(NPC_HOME)/tools/monitor_analyzer/build/mon_analyzer $(PERF_FILE)
 else
 override PERF_FILE ?= $(BUILD_DIR)/npc-monitor.txt
 PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(PERF_FILE)
@@ -42,7 +44,7 @@ override ARGS += --perf=$(PERF_FILE)
 # Command to execute NPC
 NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
 
-run-env: $(BINARY) $(IMG) $(DIFF_REF_SO)
+run-env: $(BINARY) $(IMG) $(DIFF_REF_SO) $(ANALYZER)
 
 run: run-env
 	$(call git_commit, "run NPC")
@@ -57,10 +59,13 @@ test:
 	@make clean -C test/vsrc
 	@make test -C test/vsrc
 
+analyzer:
+	@make -C tools/monitor_analyzer
+
 clean-tools = $(dir $(shell find ./tools -maxdepth 2 -mindepth 2 -name "Makefile"))
 $(clean-tools):
-	-@$(MAKE) -s -C $@ clean
+	$(MAKE) -s -C $@ clean
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test
+.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer
