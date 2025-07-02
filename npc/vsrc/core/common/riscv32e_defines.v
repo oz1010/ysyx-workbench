@@ -2,7 +2,6 @@
 `define __RISCV32E_DEFINES_V__
 
 `include "generated/autoconf.vh"
-`include "yosys.vh"
 
 `define RISCV_CORE_NUM      1
 `define RISCV_INST_WIDTH    32
