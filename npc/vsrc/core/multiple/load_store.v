@@ -158,8 +158,8 @@ always @(posedge clk or posedge rst) begin
         r_result <= 0;
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
-        r_write_state <= AXI4_COM_ADDR;
-        r_read_state <= AXI4_COM_ADDR;
+        r_write_state <= `AXI4_STATE_ADDR;
+        r_read_state <= `AXI4_STATE_ADDR;
 
         r_prev_ready <= 0;
         r_next_valid <= 0;
@@ -215,7 +215,7 @@ always @(posedge clk or posedge rst) begin
                 r_prev_ready <= 1;
             end else if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
                 case (r_write_state)
-                    AXI4_COM_ADDR: begin
+                    `AXI4_STATE_ADDR: begin
                         r_aw_valid <= 1;
                         r_aw_addr <= src1+imm; // sram会4字节对齐
                         r_aw_id <= `AXI4_ID_LSU;
@@ -234,7 +234,7 @@ always @(posedge clk or posedge rst) begin
                             r_aw_size <= 0;
 
                             // switch to write data
-                            r_write_state <= AXI4_COM_DATA;
+                            r_write_state <= `AXI4_STATE_DATA;
                             /* 写下第一个字 */
                             r_w_valid <= 1;
                             s_write_idx <= s_write_idx + 1;
@@ -250,7 +250,7 @@ always @(posedge clk or posedge rst) begin
                         end
                     end
 
-                    AXI4_COM_DATA: begin
+                    `AXI4_STATE_DATA: begin
                         if (s_write_idx <= ((8'h1<<s_write_len)-1)) begin
                             /* 写下第二个字 */
                             r_w_valid <= 1;
@@ -279,12 +279,12 @@ always @(posedge clk or posedge rst) begin
                             s_write_idx <= 0;
 
                             // switch to write response
-                            r_write_state <= AXI4_COM_RESPONSE;
+                            r_write_state <= `AXI4_STATE_RESPONSE;
                             r_b_ready <= 1;
                         end
                     end
 
-                    AXI4_COM_RESPONSE: begin
+                    `AXI4_STATE_RESPONSE: begin
                         if (b_valid && b_ready) begin
                             r_b_ready <= 0;
                             // check error response
@@ -295,7 +295,7 @@ always @(posedge clk or posedge rst) begin
 `endif
 
                             // switch to write addr
-                            r_write_state <= AXI4_COM_ADDR;
+                            r_write_state <= `AXI4_STATE_ADDR;
                             
                             // notify prev module
                             // pc <= dnpc;
@@ -319,7 +319,7 @@ always @(posedge clk or posedge rst) begin
                 inst_code==`INST_LHU
             ) begin
                 case (r_read_state)
-                    AXI4_COM_ADDR: begin
+                    `AXI4_STATE_ADDR: begin
                         // read request
                         r_ar_valid <= 1;
                         r_ar_addr <= src1+imm; // sram会4字节对齐
@@ -342,14 +342,14 @@ always @(posedge clk or posedge rst) begin
                             r_record_ar_size <= r_ar_size;
 
                             // switch to read data
-                            r_read_state <= AXI4_COM_DATA;
+                            r_read_state <= `AXI4_STATE_DATA;
                             r_r_ready <= 1;
                             s_read_idx <= 0;
                             r_result <= 0;
                         end
                     end 
 
-                    AXI4_COM_DATA: begin
+                    `AXI4_STATE_DATA: begin
                         // read data
                         if (r_valid) begin
                             s_read_idx <= s_read_idx + 1;
@@ -369,7 +369,7 @@ always @(posedge clk or posedge rst) begin
 `endif
 
                             // switch to read addr
-                            r_read_state <= AXI4_COM_ADDR;
+                            r_read_state <= `AXI4_STATE_ADDR;
 
                             // notify prev module
                             r_dnpc <= pc + 4;

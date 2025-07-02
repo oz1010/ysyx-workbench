@@ -80,10 +80,10 @@
 `define SCOM_OTHER          2'b10
 `define SCOM_RESET          2'b11
 
-`define AXI4_WAIT           2'b00
-`define AXI4_VALID          2'b01
-`define AXI4_READY          2'b10
-`define AXI4_COMPLETE       2'b11
+`define AXI4_STATE_ADDR     0
+`define AXI4_STATE_DATA     1
+`define AXI4_STATE_RESPONSE 2
+`define AXI4_STATE_ERROR    3
 
 `define AXI4_ID_IFU         4'h1
 `define AXI4_ID_IDU         4'h2
@@ -133,12 +133,6 @@ typedef struct {
     logic [31:0] endaddr;
 } device_info_t;
 `endif
-
-typedef enum logic [1:0] {
-    AXI4_COM_ADDR,
-    AXI4_COM_DATA,
-    AXI4_COM_RESPONSE
-} axi4_com_state_t;
 
 task check_dev_addr(
     input logic [31:0] addr,
