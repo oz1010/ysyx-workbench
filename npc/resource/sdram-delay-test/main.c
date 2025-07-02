@@ -45,30 +45,45 @@ static inline void outl(uintptr_t addr, uint32_t data)
         }                                                                       \
     } while (0)
 
+extern char _heap_start;
+
 #define SDRAM_ADDR 0xa0000000
 #define SDRAM_BLK_SIZE 0x02000000
 #define SDRAM_BLK_NUM 2
 #define SDRAM_SIZE (SDRAM_BLK_NUM * SDRAM_BLK_SIZE)
 #define SDRAM_END (SDRAM_ADDR + SDRAM_SIZE)
 
-#define SDRAM_MIX_ADDR SDRAM_ADDR
+#define SDRAM_MIX_ADDR ((uint32_t)&_heap_start)
 #define SDRAM_MIX_SIZE (SDRAM_SIZE - 4)  // 全域混合测试总大小，避免最后写4字节时超出范围
-#define SDRAM_MIX_END (SDRAM_MIX_ADDR + SDRAM_MIX_SIZE)
-#define SDRAM_MIX_STEP 0x00010000  // 全域混合测试，单步跳转
+#define SDRAM_MIX_END (SDRAM_ADDR + SDRAM_MIX_SIZE)
+#define SDRAM_MIX_STEP 0x00001000  // 全域混合测试，单步跳转
 
-#define SDRAM_BLK_TEST_ADDR SDRAM_ADDR
+#define SDRAM_BLK_TEST_ADDR ((uint32_t)&_heap_start)
 #define SDRAM_BLK_TEST_SIZE (SDRAM_BLK_NUM * 0x00001000)
 #define SDRAM_BLK_TEST_END (SDRAM_BLK_TEST_ADDR + SDRAM_BLK_TEST_SIZE)
 
-#define SDRAM_UNALIGN_TEST_ADDR SDRAM_ADDR
+#define SDRAM_UNALIGN_TEST_ADDR ((uint32_t)&_heap_start)
 #define SDRAM_UNALIGN_TEST_SIZE 0x00000800
 #define SDRAM_UNALIGN_TEST_END (SDRAM_UNALIGN_TEST_ADDR + SDRAM_UNALIGN_TEST_SIZE)
 
+
 int main()
 {
-    uint32_t addr = SDRAM_ADDR;
+    uint32_t addr;
 
-    printf("sdram delay test start addr:%#x.\n", addr);
+    printf("sdram unalign access - 4Bytes [%#x, %#x) ... ", SDRAM_UNALIGN_TEST_ADDR,
+           SDRAM_UNALIGN_TEST_END);
+    for (uint32_t offset = 0; offset < 4; ++offset)
+    {
+        for (addr = SDRAM_UNALIGN_TEST_ADDR + offset; addr < SDRAM_UNALIGN_TEST_END + offset;
+             addr += 4)
+            outl(addr, addr);
+        for (addr = SDRAM_UNALIGN_TEST_ADDR + offset; addr < SDRAM_UNALIGN_TEST_END + offset;
+             addr += 4)
+            CHECK_DATA(uint32_t, inl(addr), addr);
+    }
+    printf("done.\n");
+    printf("current addr: %#x\n", addr);
 
     return 0;
 }
