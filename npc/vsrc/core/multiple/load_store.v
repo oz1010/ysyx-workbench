@@ -152,6 +152,10 @@ assign s_write_strbs[1] = s_write_strb[4 +: 4];
 assign s_read_strbs[0] = s_read_strb[0 +: 4];
 assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
+wire in_wait_prev_ready = (prev_valid && !prev_ready);
+wire in_test_mode = in_wait_prev_ready && ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff);
+wire in_sender_mode = in_wait_prev_ready && (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW);
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
         r_dnpc <= func_get_reset_pc();
@@ -204,8 +208,8 @@ always @(posedge clk or posedge rst) begin
         r_ar_burst <= r_ar_burst;
         r_r_ready <= r_r_ready;
 
-        if (prev_valid && !prev_ready) begin
-            if ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff) begin
+        if (in_wait_prev_ready) begin
+            if (in_test_mode) begin
                 // 用于调试的地址段，向这里写数据会触发内置的调试函数
                 // notify next
                 r_dnpc <= pc + 4;
@@ -213,7 +217,7 @@ always @(posedge clk or posedge rst) begin
                 r_result_mem_width <= 0;
                 r_result_update_csr <= 0;
                 r_prev_ready <= 1;
-            end else if (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW) begin
+            end else if (in_sender_mode) begin
                 case (r_write_state)
                     `AXI4_STATE_ADDR: begin
                         r_aw_valid <= 1;
