@@ -151,6 +151,36 @@ wire [1:0]                  m_rresp;
 wire [31:0]                 m_rdata;
 wire                        m_rlast;
 wire [3:0]                  m_rid;
+/* 指令缓存后的 axi4信号 */
+wire                        icache_awready;
+wire                        icache_awvalid;
+wire [31:0]                 icache_awaddr;
+wire [3:0]                  icache_awid;
+wire [7:0]                  icache_awlen;
+wire [2:0]                  icache_awsize;
+wire [1:0]                  icache_awburst;
+wire                        icache_wready;
+wire                        icache_wvalid;
+wire [31:0]                 icache_wdata;
+wire [3:0]                  icache_wstrb;
+wire                        icache_wlast;
+wire                        icache_bready;
+wire                        icache_bvalid;
+wire [1:0]                  icache_bresp;
+wire [3:0]                  icache_bid;
+wire                        icache_arready;
+wire                        icache_arvalid;
+wire [31:0]                 icache_araddr;
+wire [3:0]                  icache_arid;
+wire [7:0]                  icache_arlen;
+wire [2:0]                  icache_arsize;
+wire [1:0]                  icache_arburst;
+wire                        icache_rready;
+wire                        icache_rvalid;
+wire [1:0]                  icache_rresp;
+wire [31:0]                 icache_rdata;
+wire                        icache_rlast;
+wire [3:0]                  icache_rid;
 /**
     0 -- clint
     1 -- exter dev
@@ -325,6 +355,82 @@ arbiter_axi4 #(
     .grant_idx()
 );
 
+/* 指令缓存 */
+icache #(
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH),
+    .INST_WIDTH(INST_WIDTH),
+    .BLOCK_SIZE(16)
+) m_icache (
+    .clk(clk),
+    .rst(rst),
+
+    .m_awready(m_awready),
+    .m_awvalid(m_awvalid),
+    .m_awaddr(m_awaddr),
+    .m_awid(m_awid),
+    .m_awlen(m_awlen),
+    .m_awsize(m_awsize),
+    .m_awburst(m_awburst),
+    .m_wready(m_wready),
+    .m_wvalid(m_wvalid),
+    .m_wdata(m_wdata),
+    .m_wstrb(m_wstrb),
+    .m_wlast(m_wlast),
+    .m_bready(m_bready),
+    .m_bvalid(m_bvalid),
+    .m_bresp(m_bresp),
+    .m_bid(m_bid),
+    .m_arready(m_arready),
+    .m_arvalid(m_arvalid),
+    .m_araddr(m_araddr),
+    .m_arid(m_arid),
+    .m_arlen(m_arlen),
+    .m_arsize(m_arsize),
+    .m_arburst(m_arburst),
+    .m_rready(m_rready),
+    .m_rvalid(m_rvalid),
+    .m_rresp(m_rresp),
+    .m_rdata(m_rdata),
+    .m_rlast(m_rlast),
+    .m_rid(m_rid),
+
+    .s_awready(icache_awready),
+    .s_awvalid(icache_awvalid),
+    .s_awaddr(icache_awaddr),
+    .s_awid(icache_awid),
+    .s_awlen(icache_awlen),
+    .s_awsize(icache_awsize),
+    .s_awburst(icache_awburst),
+    .s_wready(icache_wready),
+    .s_wvalid(icache_wvalid),
+    .s_wdata(icache_wdata),
+    .s_wstrb(icache_wstrb),
+    .s_wlast(icache_wlast),
+    .s_bready(icache_bready),
+    .s_bvalid(icache_bvalid),
+    .s_bresp(icache_bresp),
+    .s_bid(icache_bid),
+    .s_arready(icache_arready),
+    .s_arvalid(icache_arvalid),
+    .s_araddr(icache_araddr),
+    .s_arid(icache_arid),
+    .s_arlen(icache_arlen),
+    .s_arsize(icache_arsize),
+    .s_arburst(icache_arburst),
+    .s_rready(icache_rready),
+    .s_rvalid(icache_rvalid),
+    .s_rresp(icache_rresp),
+    .s_rdata(icache_rdata),
+    .s_rlast(icache_rlast),
+    .s_rid(icache_rid),
+
+    .hit_count(),
+    .miss_count()
+);
+
 /* xbar模块 */
 xbar_axi4 #(
     .USER_S_COUNT(AXI4_SLAVE_COUNT),
@@ -335,35 +441,35 @@ xbar_axi4 #(
 ) m_xbar_axi4 (
     .clk(clk),
     .rst(rst),
-    .aw_ready(m_awready),
-    .aw_valid(m_awvalid),
-    .aw_addr(m_awaddr),
-    .aw_id(m_awid),
-    .aw_len(m_awlen),
-    .aw_size(m_awsize),
-    .aw_burst(m_awburst),
-    .w_ready(m_wready),
-    .w_valid(m_wvalid),
-    .w_data(m_wdata),
-    .w_strb(m_wstrb),
-    .w_last(m_wlast),
-    .b_ready(m_bready),
-    .b_valid(m_bvalid),
-    .b_resp(m_bresp),
-    .b_id(m_bid),
-    .ar_ready(m_arready),
-    .ar_valid(m_arvalid),
-    .ar_addr(m_araddr),
-    .ar_id(m_arid),
-    .ar_len(m_arlen),
-    .ar_size(m_arsize),
-    .ar_burst(m_arburst),
-    .r_ready(m_rready),
-    .r_valid(m_rvalid),
-    .r_resp(m_rresp),
-    .r_data(m_rdata),
-    .r_last(m_rlast),
-    .r_id(m_rid),
+    .aw_ready(icache_awready),
+    .aw_valid(icache_awvalid),
+    .aw_addr(icache_awaddr),
+    .aw_id(icache_awid),
+    .aw_len(icache_awlen),
+    .aw_size(icache_awsize),
+    .aw_burst(icache_awburst),
+    .w_ready(icache_wready),
+    .w_valid(icache_wvalid),
+    .w_data(icache_wdata),
+    .w_strb(icache_wstrb),
+    .w_last(icache_wlast),
+    .b_ready(icache_bready),
+    .b_valid(icache_bvalid),
+    .b_resp(icache_bresp),
+    .b_id(icache_bid),
+    .ar_ready(icache_arready),
+    .ar_valid(icache_arvalid),
+    .ar_addr(icache_araddr),
+    .ar_id(icache_arid),
+    .ar_len(icache_arlen),
+    .ar_size(icache_arsize),
+    .ar_burst(icache_arburst),
+    .r_ready(icache_rready),
+    .r_valid(icache_rvalid),
+    .r_resp(icache_rresp),
+    .r_data(icache_rdata),
+    .r_last(icache_rlast),
+    .r_id(icache_rid),
 
     .u_aw_readys(   {   s_awready[0],       s_awready[1],       s_awready[AXI4_SLAVE_COUNT-1]       } ),
     .u_aw_valids(   {   s_awvalid[0],       s_awvalid[1],       s_awvalid[AXI4_SLAVE_COUNT-1]       } ),
