@@ -394,20 +394,11 @@ xbar_axi4 #(
     .u_r_datas(     {   s_rdata[0],         s_rdata[1],         s_rdata[AXI4_SLAVE_COUNT-1]         } ),
     .u_r_lasts(     {   s_rlast[0],         s_rlast[1],         s_rlast[AXI4_SLAVE_COUNT-1]         } ),
     .u_r_ids(       {   s_rid[0],           s_rid[1],           s_rid[AXI4_SLAVE_COUNT-1]           } ),
-// `ifdef IN_YOSYS_STA
     .u_slave_addrs({
         32'h0200_0000, 32'h0200_ffff, // clint
         32'h2200_0000, 32'h2200_0fff, // exter dev
         32'h0000_0000, 32'hffff_ffff // io master
     }),
-// `else
-//     .u_slave_infos('{
-//         '{name:"clint",          startaddr:32'h0200_0000,    endaddr:32'h0200_ffff},
-//         '{name:"exter dev",      startaddr:32'h2200_0000,    endaddr:32'h2200_0fff},
-//         /* 优先匹配其他项，若其他项匹配不上，则发送给master */
-//         '{name:"io master",        startaddr:32'h0000_0000,    endaddr:32'hffff_ffff}
-//     }),
-// `endif
 
     .grant_idx()
 );
