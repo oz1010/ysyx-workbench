@@ -42,8 +42,7 @@ SRCS		+= init.c
 
 INC_FILES   += $(AM_HOME)/../common/include
 # INC_FILES   += $(AM_HOME)/am/src
-# INC_FILES   += $(AM_HOME)/am/include
-# INC_FILES   += $(AM_HOME)/am/include
+INC_FILES   += $(AM_HOME)/am/include
 # INC_FILES   += $(AM_HOME)/klib/include
 
 # DEFINES		+=-D__GUEST_ISA__=riscv32e
