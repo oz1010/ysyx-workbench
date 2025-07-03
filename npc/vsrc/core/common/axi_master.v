@@ -1,7 +1,7 @@
 module axi_master ();
 endmodule
 
-module axi_master_sender #(
+module axi_master_writer #(
     `ifndef IN_YOSYS_STA
     parameter NAME = "anonym",
     `endif
