@@ -38,11 +38,6 @@ module exter_dev #(
     output  wire [3:0]                  r_id
 );
 
-reg                                     r_aw_ready = 0;
-reg                                     r_w_ready = 0;
-reg                                     r_b_valid = 0;
-reg [BRESP_WIDTH-1:0]                   r_b_resp = 0;
-reg [3:0]                               r_b_id = 0;
 reg                                     r_ar_ready;
 reg                                     r_r_valid;
 reg [RRESP_WIDTH-1:0]                   r_r_resp;
@@ -50,18 +45,6 @@ reg [DATA_WIDTH-1:0]                    r_r_data;
 reg                                     r_r_last;
 reg [3:0]                               r_r_id;
 
-reg [ADDR_WIDTH-1:0] r_write_addr;
-reg [31:0] r_write_size;
-reg [31:0] r_write_len;
-reg [3:0] r_write_id;
-
-wire [DATA_WIDTH-1:0] w_write_width = {{DATA_WIDTH-DATA_WIDTH/8{1'b0}}, w_strb};
-
-assign aw_ready = r_aw_ready;
-assign w_ready = r_w_ready;
-assign b_valid = r_b_valid;
-assign b_resp = r_b_resp;
-assign b_id = r_b_id;
 assign ar_ready = r_ar_ready;
 assign r_valid = r_r_valid;
 assign r_resp = r_r_resp;
@@ -69,40 +52,64 @@ assign r_data = r_r_data;
 assign r_last = r_r_last;
 assign r_id = r_r_id;
 
-wire [31:0] write_len = 1<<aw_len;      // burst写入数量，2^n字节
-wire [31:0] write_size = 1<<aw_size;    // 单个burst写入数据大小，2^n字节
-wire slave_in_write = (aw_ready || w_ready || b_valid);
 wire [31:0] read_len = 1<<ar_len;       // burst读取数量，2^n字节
 wire [31:0] read_size = 1<<ar_size;     // 单个burst读取数据大小，2^n字节
+
+wire in_write_mode = (aw_ready || w_ready || b_valid);
+wire write_enable = (aw_valid || w_ready || b_valid);
 
 `ifdef IN_YOSYS_STA
 reg [31:0] exter_dev_regs[0:31];
 `endif
 
+wire [ADDR_WIDTH-1:0]       write_addr;
+wire [DATA_WIDTH-1:0]       write_data;
+wire [2:0]                  write_size;
+wire                        write_valid;
+
+axi4_salve_writer #(
+    `ifndef IN_YOSYS_STA
+    .NAME("exter_dev"),
+    `endif
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH)
+) m_axi4_salve_writer (
+    .clk(clk),
+    .rst(rst),
+    .aw_ready(aw_ready),
+    .aw_valid(aw_valid),
+    .aw_addr(aw_addr),
+    .aw_id(aw_id),
+    .aw_len(aw_len),
+    .aw_size(aw_size),
+    .aw_burst(aw_burst),
+    .w_ready(w_ready),
+    .w_valid(w_valid),
+    .w_data(w_data),
+    .w_strb(w_strb),
+    .w_last(w_last),
+    .b_ready(b_ready),
+    .b_valid(b_valid),
+    .b_resp(b_resp),
+    .b_id(b_id),
+    .enable(write_enable),
+    .write_addr(write_addr),
+    .write_data(write_data),
+    .write_size(write_size),
+    .write_valid(write_valid)
+);
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_aw_ready <= 0;
-        r_w_ready <= 0;
-        r_b_valid <= 0;
-        r_b_resp <= 0;
-        r_b_id <= 0;
         r_ar_ready <= 0;
         r_r_valid <= 0;
         r_r_resp <= 0;
         r_r_data <= 0;
         r_r_last <= 0;
         r_r_id <= 0;
-
-        r_write_addr <= 0;
-        r_write_size <= 0;
-        r_write_len <= 0;
-        r_write_id <= 0;
     end else begin
-        r_aw_ready <= r_aw_ready;
-        r_w_ready <= r_w_ready;
-        r_b_valid <= r_b_valid;
-        r_b_resp <= r_b_resp;
-        r_b_id <= r_b_id;
         r_ar_ready <= r_ar_ready;
         r_r_valid <= r_r_valid;
         r_r_resp <= r_r_resp;
@@ -110,48 +117,12 @@ always @(posedge clk or posedge rst) begin
         r_r_last <= r_r_last;
         r_r_id <= r_r_id;
 
-        r_write_addr <= r_write_addr;
-
-        // write request
-        if (!slave_in_write) r_aw_ready <= 1;
-        if (aw_valid) begin
-            r_write_addr <= aw_addr;
-            r_write_size <= write_size;
-            r_write_len <= write_len;
-            r_write_id <= aw_id;
-`ifndef IN_YOSYS_STA
-            if (write_size != 4) $error("extra dev only support write 4bytes, addr:%x size:%x", aw_addr, write_size);
-`endif
-        end
-        if (aw_valid && aw_ready) begin
-            r_aw_ready <= 0;
-        end
-
-        // write data
-        if (aw_valid && aw_ready) begin
-            r_w_ready <= 1;
-        end
-        if (w_valid && w_ready) begin
-            r_w_ready <= 0;
-        end
-        if (w_valid && w_ready) begin
-`ifndef IN_YOSYS_STA
-            dpi_vdev_write(r_write_addr, w_data, r_write_size);
-            if (!w_last) $error("extra dev only support write 1-burst, addr:%x size:%x", aw_addr, write_size);
-`else
-            exter_dev_regs[r_write_addr[4:0]] <= w_data;
-`endif
-        end
-
-        // write response
-        if (w_valid && w_ready && w_last) begin
-            r_b_valid <= 1;
-            r_b_resp <= 0;
-            r_b_id <= r_write_id;
-        end
-        if (b_valid && b_ready) begin
-            r_b_valid <= 0;
-            r_b_id <= 0;
+        if (in_write_mode && w_valid && w_ready) begin
+            `ifndef IN_YOSYS_STA
+            dpi_vdev_write(write_addr, write_data, 1<<write_size);
+            `else
+            exter_dev_regs[write_addr[4:0]] <= write_data;
+            `endif
         end
 
         // read request
