@@ -186,7 +186,7 @@ task get_unalign_parameter(
     end
 endtask
 
-task get_unalign_write_parameter(
+task get_unalign_addr_parameter(
     input logic [2:0] size,
     input logic [31:0] addr,
     output logic [7:0] len,
@@ -226,9 +226,10 @@ task read_unalign_data(
     case (idx)
         0: s_data = data >> (8*shift_val);
         1: s_data = s_data | (data<<(32-8*shift_val));
-`ifndef IN_YOSYS_STA
+
+        `ifndef IN_YOSYS_STA
         default: $error("read unalign data is error");
-`endif
+        `endif
     endcase
 
     // 处理符号位
@@ -240,6 +241,39 @@ task read_unalign_data(
         `INST_LHU:          result = (s_data) & 32'hFFFF;
         default: ;
     endcase
+endtask
+
+task get_unalign_addr_data(
+    input   logic [7:0]         idx,
+    input   logic               is_sign,
+    input   logic [2:0]         size,
+    input   logic [31:0]        in_data,
+    input   logic [1:0]         shift_val,
+    output  logic [31:0]        result
+);
+    logic [31:0] s_data;
+    logic [31:0] data0;
+    logic [31:0] size0;
+    case (idx)
+        0: s_data = in_data >> (8*shift_val);
+        1: s_data = s_data | (in_data<<(32-8*shift_val));
+
+        `ifndef IN_YOSYS_STA
+        default: $error("read unalign in_data is error");
+        `endif
+    endcase
+
+    // 处理大小
+    size0 = 8*(1<<size);
+    case (size)
+        0:  data0 = (s_data) & 32'h000000FF;
+        1:  data0 = (s_data) & 32'h0000FFFF;
+        2:  data0 = (s_data) & 32'hFFFFFFFF;
+        default: ;
+    endcase
+
+    // 处理符号位
+    result = is_sign ? func_sext(data0, size0) : data0;
 endtask
 
 // 由掩码（1为有效位）计算偏移和数据大小
