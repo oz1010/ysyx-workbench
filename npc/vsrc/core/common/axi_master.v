@@ -3,7 +3,7 @@ endmodule
 
 module axi_master_writer #(
     `ifndef IN_YOSYS_STA
-    parameter NAME = "anonym",
+    parameter NAME,
     `endif
     parameter ID,
     parameter BURST, // burst类型，0--FIXED 1--INCR 2--WRAP
@@ -120,7 +120,7 @@ module axi_master_writer #(
                     r_aw_len <= s_write_len;
                     r_aw_size <= write_size;
                     check_dev_addr(write_addr, `DEV_ATTR_WRITE);
-                    get_unalign_write_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
+                    get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
                     s_write_idx <= 0;
 
                     if (aw_valid && aw_ready) begin
@@ -300,4 +300,147 @@ module axi4_salve_writer #(
         end
     end
 
+endmodule
+
+module axi_master_reader #(
+    `ifndef IN_YOSYS_STA
+    parameter NAME,
+    `endif
+    parameter BURST, // burst类型，0--FIXED 1--INCR 2--WRAP
+    parameter ID,
+    parameter INST_WIDTH = 32,
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter BRESP_WIDTH = 2,
+    parameter RRESP_WIDTH = 2
+) (
+    input   wire                        clk,
+    input   wire                        rst,
+    /* 通信信号 */
+    input   wire                        ar_ready,
+    output  wire                        ar_valid,
+    output  wire [ADDR_WIDTH-1:0]       ar_addr,
+    output  wire [3:0]                  ar_id,
+    output  wire [7:0]                  ar_len,
+    output  wire [2:0]                  ar_size,
+    output  wire [1:0]                  ar_burst,
+    output  wire                        r_ready,
+    input   wire                        r_valid,
+    input   wire [RRESP_WIDTH-1:0]      r_resp,
+    input   wire [DATA_WIDTH-1:0]       r_data,
+    input   wire                        r_last,
+    input   wire [3:0]                  r_id,
+    /* 模块信号 */
+    input   wire                        enable,
+    input   wire                        read_sign,
+    input   wire [ADDR_WIDTH-1:0]       read_addr,
+    output  wire [DATA_WIDTH-1:0]       read_data,
+    input   wire [2:0]                  read_size,
+    output  wire [1:0]                  read_state
+);
+
+reg r_ar_valid;
+reg [ADDR_WIDTH-1:0] r_ar_addr;
+reg [3:0] r_ar_id;
+reg [7:0] r_ar_len;
+reg [7:0] r_record_ar_len;
+reg [2:0] r_ar_size;
+reg [2:0] r_record_ar_size;
+reg [1:0] r_ar_burst;
+reg r_r_ready;
+
+reg [7:0] s_read_idx;
+reg [7:0] s_read_len;
+reg [7:0] s_read_strb;
+wire [3:0] s_read_strbs[0:1];
+reg [1:0] s_read_shift_val;
+reg [1:0] r_read_state;
+reg [DATA_WIDTH-1:0] s_read_data;
+
+assign read_state = r_read_state;
+assign read_data = s_read_data;
+
+assign ar_valid = r_ar_valid;
+assign ar_addr = r_ar_addr;
+assign ar_id = r_ar_id;
+assign ar_len = r_ar_len;
+assign ar_size = r_ar_size;
+assign ar_burst = r_ar_burst;
+assign r_ready = r_r_ready;
+
+assign s_read_strbs[0] = s_read_strb[0 +: 4];
+assign s_read_strbs[1] = s_read_strb[4 +: 4];
+
+always @(posedge clk or posedge rst) begin
+    if (rst || !enable) begin
+        r_read_state <= `AXI4_STATE_ADDR;
+
+        r_ar_valid <= 0;
+        r_ar_addr <= 0;
+        r_ar_id <= 0;
+        r_ar_len <= 0;
+        r_ar_size <= 0;
+        r_ar_burst <= 0;
+        r_r_ready <= 0;
+    end else begin
+                case (r_read_state)
+                    `AXI4_STATE_ADDR: begin
+                        // read request
+                        r_ar_valid <= 1;
+                        r_ar_addr <= read_addr; // sram会4字节对齐
+                        r_ar_id <= ID;
+                        r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
+                        r_ar_size <= read_size;
+                        r_ar_burst <= BURST;
+                        check_dev_addr(read_addr, `DEV_ATTR_READ);
+                        get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
+                        s_read_idx <= 0;
+
+                        if (ar_valid && ar_ready) begin
+                            r_ar_valid <= 0;
+                            r_ar_addr <= 0;
+                            r_ar_id <= 0;
+                            r_ar_len <= 0;
+                            r_ar_size <= 0;
+                            r_ar_burst <= 0;
+                            r_record_ar_len <= r_ar_len;
+                            r_record_ar_size <= r_ar_size;
+
+                            // switch to read data
+                            r_read_state <= `AXI4_STATE_DATA;
+                            r_r_ready <= 1;
+                            s_read_idx <= 0;
+                        end
+                    end 
+
+                    `AXI4_STATE_DATA: begin
+                        // read data
+                        if (r_valid) begin
+                            s_read_idx <= s_read_idx + 1;
+                            /* 依次读取非对齐数据 */
+                            /* TODO 这里不能期待 read_data 一定会快速返回，只能在外面进行解析 */
+                            get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
+                        end
+                        if (r_last) begin
+                            r_r_ready <= 0;
+                            s_read_idx <= 0;
+                            func_dev_skip(0, read_addr, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
+                            // check error response
+                            `ifndef IN_YOSYS_STA
+                            if (r_resp!=0 || r_last!=1 || r_id!=ID) begin
+                                $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, r_resp, r_last, r_id);
+                            end
+                            `endif
+
+                            // switch to read addr
+                            r_read_state <= `AXI4_STATE_ADDR;
+                        end
+                    end
+
+                    `ifndef IN_YOSYS_STA
+                    default: $error("%s found unknown read state(%d)", NAME, r_read_state);
+                    `endif
+                endcase     
+    end
+end
 endmodule
