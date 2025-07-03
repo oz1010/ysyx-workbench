@@ -129,7 +129,7 @@ wire [2:0] write_size =
     : 2;
 wire [1:0] write_state;
 
-axi_master_sender #(
+axi_master_writer #(
 `ifndef IN_YOSYS_STA
     .NAME("LSU"),
 `endif
@@ -140,7 +140,7 @@ axi_master_sender #(
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
-) m_axi_master_sender (
+) m_axi_master_writer (
     .clk(clk),
     .rst(rst),
     .aw_ready(aw_ready),
