@@ -52,7 +52,7 @@ wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 //         pc, r_inst, inst_code, src1, src2, imm, alu_result);
 // end
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         pc <= get_reset_pc();
     end else begin

@@ -134,169 +134,173 @@ typedef struct {
 } device_info_t;
 `endif
 
-task check_dev_addr(
-    input logic [31:0] addr,
-    input logic [3:0] attr,
-    // output int match_dev_id,
-);
+function void check_dev_addr;
+    input logic [31:0] addr;
+    input logic [3:0] attr;
+    begin
 
 `ifndef IN_YOSYS_STA
-    static int ret;
-    ret = dpi_check_dev_addr(addr, {28'h0, attr});
-    if (ret == 1) $error("Access Fault");
-    else if (ret == 2) $error("Access Fault.");
+        static int ret;
+        ret = dpi_check_dev_addr(addr, {28'h0, attr});
+        if (ret == 1) $error("Access Fault");
+        else if (ret == 2) $error("Access Fault.");
 `endif
-
-endtask
-
-task get_unalign_parameter(
-    input logic [15:0] inst_code,
-    input logic [31:0] addr,
-    output logic [7:0] len,
-    output logic [2:0] size,
-    output logic [7:0] strb,
-    output logic [1:0] shift_val
-);
-    logic [31:0] s_addr;
-    s_addr = addr & (~32'h03); // 4字节对齐
-    len = 0; // 数据总burst数量，2^n
-    size = 0; // 单个burst数据大小，2^n字节
-    // strb = 0;
-    shift_val = addr[1:0]; // 4字节对齐
-    case (inst_code)
-        `INST_SB:           begin size=0; strb[0 +: 4]=4'h1; end
-        `INST_SH:           begin size=1; strb[0 +: 4]=4'h3; end
-        `INST_SW:           begin size=2; strb[0 +: 4]=4'hf; end
-        `INST_LB:           begin size=0; strb[0 +: 4]=4'h1; end
-        `INST_LH:           begin size=1; strb[0 +: 4]=4'h3; end
-        `INST_LW:           begin size=2; strb[0 +: 4]=4'hf; end
-        `INST_LBU:          begin size=0; strb[0 +: 4]=4'h1; end
-        `INST_LHU:          begin size=1; strb[0 +: 4]=4'h3; end
-        default: ;
-    endcase
-
-    if ((4-shift_val)<(1<<size)) begin
-        len = 1;
-        strb[4 +: 4] = strb[0 +: 4] >> (4-shift_val);
-        strb[0 +: 4] = strb[0 +: 4] << shift_val;
-    end else begin
-        len = 0;
-        strb[4 +: 4] = 0;
-        strb[0 +: 4] = strb[0 +: 4] << shift_val;
     end
-endtask
 
-task get_unalign_addr_parameter(
-    input logic [2:0] size,
-    input logic [31:0] addr,
-    output logic [7:0] len,
-    output logic [7:0] strb,
-    output logic [1:0] shift_val
-);
-    logic [31:0] s_addr;
-    s_addr = addr & (~32'h03); // 4字节对齐
-    len = 0; // 数据总burst数量，2^n
-    shift_val = addr[1:0]; // 4字节对齐
-    case (size)
-        0:           begin strb[0 +: 4]=4'h1; end
-        1:           begin strb[0 +: 4]=4'h3; end
-        2:           begin strb[0 +: 4]=4'hf; end
-        default: ;
-    endcase
+endfunction
 
-    if ((4-shift_val)<(1<<size)) begin
-        len = 1;
-        strb[4 +: 4] = strb[0 +: 4] >> (4-shift_val);
-        strb[0 +: 4] = strb[0 +: 4] << shift_val;
-    end else begin
-        len = 0;
-        strb[4 +: 4] = 0;
-        strb[0 +: 4] = strb[0 +: 4] << shift_val;
+function void get_unalign_parameter;
+    input logic [15:0] inst_code;
+    input logic [31:0] addr;
+    output logic [7:0] len;
+    output logic [2:0] size;
+    output logic [7:0] strb;
+    output logic [1:0] shift_val;
+    begin
+        logic [31:0] s_addr;
+        s_addr = addr & (~32'h03); // 4字节对齐
+        len = 0; // 数据总burst数量，2^n
+        size = 0; // 单个burst数据大小，2^n字节
+        // strb = 0;
+        shift_val = addr[1:0]; // 4字节对齐
+        case (inst_code)
+            `INST_SB:           begin size=0; strb[0 +: 4]=4'h1; end
+            `INST_SH:           begin size=1; strb[0 +: 4]=4'h3; end
+            `INST_SW:           begin size=2; strb[0 +: 4]=4'hf; end
+            `INST_LB:           begin size=0; strb[0 +: 4]=4'h1; end
+            `INST_LH:           begin size=1; strb[0 +: 4]=4'h3; end
+            `INST_LW:           begin size=2; strb[0 +: 4]=4'hf; end
+            `INST_LBU:          begin size=0; strb[0 +: 4]=4'h1; end
+            `INST_LHU:          begin size=1; strb[0 +: 4]=4'h3; end
+            default: ;
+        endcase
+
+        if ((4-shift_val)<(1<<size)) begin
+            len = 1;
+            strb[4 +: 4] = strb[0 +: 4] >> (4-shift_val);
+            strb[0 +: 4] = strb[0 +: 4] << shift_val;
+        end else begin
+            len = 0;
+            strb[4 +: 4] = 0;
+            strb[0 +: 4] = strb[0 +: 4] << shift_val;
+        end
     end
-endtask
+endfunction
 
-task read_unalign_data(
-    input logic [7:0] idx,
-    input logic [15:0] inst_code,
-    input logic [31:0] data,
-    input logic [1:0] shift_val,
-    output logic [31:0] result
-);
-    logic [31:0] s_data;
-    case (idx)
-        0: s_data = data >> (8*shift_val);
-        1: s_data = s_data | (data<<(32-8*shift_val));
+function void get_unalign_addr_parameter;
+    input logic [2:0] size;
+    input logic [31:0] addr;
+    output logic [7:0] len;
+    output logic [7:0] strb;
+    output logic [1:0] shift_val;
+    begin
+        logic [31:0] s_addr;
+        s_addr = addr & (~32'h03); // 4字节对齐
+        len = 0; // 数据总burst数量，2^n
+        shift_val = addr[1:0]; // 4字节对齐
+        case (size)
+            0:           begin strb[0 +: 4]=4'h1; end
+            1:           begin strb[0 +: 4]=4'h3; end
+            2:           begin strb[0 +: 4]=4'hf; end
+            default: ;
+        endcase
 
-        `ifndef IN_YOSYS_STA
-        default: $error("read unalign data is error");
-        `endif
-    endcase
+        if ((4-shift_val)<(1<<size)) begin
+            len = 1;
+            strb[4 +: 4] = strb[0 +: 4] >> (4-shift_val);
+            strb[0 +: 4] = strb[0 +: 4] << shift_val;
+        end else begin
+            len = 0;
+            strb[4 +: 4] = 0;
+            strb[0 +: 4] = strb[0 +: 4] << shift_val;
+        end
+    end
+endfunction
 
-    // 处理符号位
-    case (inst_code)
-        `INST_LB:           result = func_sext((s_data) & 32'h000000FF, 8);
-        `INST_LH:           result = func_sext((s_data) & 32'h0000FFFF, 16);
-        `INST_LW:           result = func_sext((s_data) & 32'hFFFFFFFF, 32);
-        `INST_LBU:          result = (s_data) & 32'hFF;
-        `INST_LHU:          result = (s_data) & 32'hFFFF;
-        default: ;
-    endcase
-endtask
+function void read_unalign_data;
+    input logic [7:0] idx;
+    input logic [15:0] inst_code;
+    input logic [31:0] data;
+    input logic [1:0] shift_val;
+    output logic [31:0] result;
+    begin
+        logic [31:0] s_data;
+        case (idx)
+            0: s_data = data >> (8*shift_val);
+            1: s_data = s_data | (data<<(32-8*shift_val));
 
-task get_unalign_addr_data(
-    input   logic [7:0]         idx,
-    input   logic               is_sign,
-    input   logic [2:0]         size,
-    input   logic [31:0]        in_data,
-    input   logic [1:0]         shift_val,
-    output  logic [31:0]        result
-);
-    logic [31:0] s_data;
-    logic [31:0] data0;
-    logic [31:0] size0;
-    case (idx)
-        0: s_data = in_data >> (8*shift_val);
-        1: s_data = s_data | (in_data<<(32-8*shift_val));
+            `ifndef IN_YOSYS_STA
+            default: $error("read unalign data is error");
+            `endif
+        endcase
 
-        `ifndef IN_YOSYS_STA
-        default: $error("read unalign in_data is error");
-        `endif
-    endcase
+        // 处理符号位
+        case (inst_code)
+            `INST_LB:           result = func_sext((s_data) & 32'h000000FF, 8);
+            `INST_LH:           result = func_sext((s_data) & 32'h0000FFFF, 16);
+            `INST_LW:           result = func_sext((s_data) & 32'hFFFFFFFF, 32);
+            `INST_LBU:          result = (s_data) & 32'hFF;
+            `INST_LHU:          result = (s_data) & 32'hFFFF;
+            default: ;
+        endcase
+    end
+endfunction
 
-    // 处理大小
-    size0 = 8*(1<<size);
-    case (size)
-        0:  data0 = (s_data) & 32'h000000FF;
-        1:  data0 = (s_data) & 32'h0000FFFF;
-        2:  data0 = (s_data) & 32'hFFFFFFFF;
-        default: ;
-    endcase
+function void get_unalign_addr_data;
+    input   logic [7:0]         idx;
+    input   logic               is_sign;
+    input   logic [2:0]         size;
+    input   logic [31:0]        in_data;
+    input   logic [1:0]         shift_val;
+    output  logic [31:0]        result;
+    begin
+        logic [31:0] s_data;
+        logic [31:0] data0;
+        logic [31:0] size0;
+        case (idx)
+            0: s_data = in_data >> (8*shift_val);
+            1: s_data = s_data | (in_data<<(32-8*shift_val));
 
-    // 处理符号位
-    result = is_sign ? func_sext(data0, size0) : data0;
-endtask
+            `ifndef IN_YOSYS_STA
+            default: $error("read unalign in_data is error");
+            `endif
+        endcase
+
+        // 处理大小
+        size0 = 8*(1<<size);
+        case (size)
+            0:  data0 = (s_data) & 32'h000000FF;
+            1:  data0 = (s_data) & 32'h0000FFFF;
+            2:  data0 = (s_data) & 32'hFFFFFFFF;
+            default: ;
+        endcase
+
+        // 处理符号位
+        result = is_sign ? func_sext(data0, size0) : data0;
+    end
+endfunction
 
 // 由掩码（1为有效位）计算偏移和数据大小
-task get_unalign_from_mask(
-    input logic[3:0] mask,
-    output logic[1:0] offset,
-    output logic[2:0] size
-);
-
-    case(mask)
-        4'b0001: begin offset=0; size=1; end
-        4'b0010: begin offset=1; size=1; end
-        4'b0100: begin offset=2; size=1; end
-        4'b1000: begin offset=3; size=1; end
-        4'b0011: begin offset=0; size=2; end
-        4'b0110: begin offset=1; size=2; end
-        4'b1100: begin offset=2; size=2; end
-        4'b0111: begin offset=0; size=3; end
-        4'b1110: begin offset=1; size=3; end
-        4'b1111: begin offset=0; size=4; end
-        default: begin offset=0; size=0; end
-    endcase
-endtask
+function void get_unalign_from_mask;
+    input logic[3:0] mask;
+    output logic[1:0] offset;
+    output logic[2:0] size;
+    begin
+        case(mask)
+            4'b0001: begin offset=0; size=1; end
+            4'b0010: begin offset=1; size=1; end
+            4'b0100: begin offset=2; size=1; end
+            4'b1000: begin offset=3; size=1; end
+            4'b0011: begin offset=0; size=2; end
+            4'b0110: begin offset=1; size=2; end
+            4'b1100: begin offset=2; size=2; end
+            4'b0111: begin offset=0; size=3; end
+            4'b1110: begin offset=1; size=3; end
+            4'b1111: begin offset=0; size=4; end
+            default: begin offset=0; size=0; end
+        endcase
+    end
+endfunction
 
 function void func_exit_simu;
     input [31:0]exit_code;

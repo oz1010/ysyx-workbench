@@ -96,7 +96,7 @@ module axi_master_writer #(
         s_write_shift_val = 0;
     end
 
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk) begin
         if (rst || !write_enable) begin
             r_write_state <= `AXI4_STATE_ADDR;
 
@@ -244,7 +244,7 @@ module axi4_salve_writer #(
 
     wire in_write_mode = (aw_ready || w_ready || b_valid);
 
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk) begin
         if (rst || !enable) begin
             r_aw_ready <= 0;
             r_w_ready <= 0;
@@ -371,7 +371,15 @@ assign r_ready = r_r_ready;
 assign s_read_strbs[0] = s_read_strb[0 +: 4];
 assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
-always @(posedge clk or posedge rst) begin
+always @(*) begin
+    s_read_data = 0;
+    if (r_read_state == `AXI4_STATE_DATA) begin
+        /* 依次读取非对齐数据，用组合逻辑实现； */
+        get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
+    end
+end
+
+always @(posedge clk) begin
     if (rst || !enable) begin
         r_read_state <= `AXI4_STATE_ADDR;
 
@@ -417,9 +425,6 @@ always @(posedge clk or posedge rst) begin
                         // read data
                         if (r_valid) begin
                             s_read_idx <= s_read_idx + 1;
-                            /* 依次读取非对齐数据 */
-                            /* TODO 这里不能期待 read_data 一定会快速返回，只能在外面进行解析 */
-                            get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
                         end
                         if (r_last) begin
                             r_r_ready <= 0;

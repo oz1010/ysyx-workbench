@@ -24,7 +24,7 @@ reg last_id_valid;
 reg last_ls_valid;
 reg last_ex_valid;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         func_monitor_item(0, 0, 0);
         last_if_valid <= 0;

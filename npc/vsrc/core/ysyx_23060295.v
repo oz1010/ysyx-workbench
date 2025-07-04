@@ -132,7 +132,7 @@ wire core_inst_done[`RISCV_CORE_NUM-1:0];
 wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
 generate
     for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
-        always @(posedge clk or posedge rst) begin
+        always @(posedge clk) begin
             if (rst) begin
                 core_inst_stuck_tick[i] <= 0;
             end else begin

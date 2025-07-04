@@ -83,7 +83,7 @@ scom_base m_scom_send(
     .state(state)
 );
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         r_next_valid <= 0;
     end else begin
@@ -119,7 +119,7 @@ scom_base m_scom_recv(
     .state(state)
 );
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         r_prev_ready <= 0;
     end else begin

@@ -165,7 +165,7 @@ reg [15:0] r_inst_code;
 reg r_valid;
 */
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         r_rd <= 0;
         r_rs1 <= 0;

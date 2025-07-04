@@ -256,7 +256,7 @@ reg [63:0] execute_time;
 assign valid = wb_ready;
 // assign w_pc = pc;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         execute_time <= 0;
         func_execute_time_ctrl(0);
