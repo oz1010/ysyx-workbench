@@ -108,16 +108,6 @@ wire [DATA_WIDTH-1:0] read_data;
 wire [2:0] read_size = inst_opn_size;
 wire [1:0] read_state;
 
-reg [7:0] s_read_idx;
-reg [7:0] s_read_len;
-reg [7:0] s_read_strb;
-wire [3:0] s_read_strbs[0:1];
-reg [1:0] s_read_shift_val;
-reg [1:0] r_read_state;
-reg [DATA_WIDTH-1:0] s_read_data;
-assign s_read_strbs[0] = s_read_strb[0 +: 4];
-assign s_read_strbs[1] = s_read_strb[4 +: 4];
-
 axi_master_writer #(
 `ifndef IN_YOSYS_STA
     .NAME("LSU"),
@@ -183,7 +173,6 @@ axi_master_reader #(
     .r_last(r_last),
     .r_id(r_id),
     .enable(read_enable),
-    /* TODO 这里不能期待 read_data 一定会快速返回，只能在外面进行解析 */
     .read_sign(read_sign),
     .read_addr(read_addr),
     .read_data(read_data),
@@ -191,7 +180,7 @@ axi_master_reader #(
     .read_state(read_state)
 );
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         r_dnpc <= 0;
         r_result <= 0;
@@ -226,17 +215,9 @@ always @(posedge clk or posedge rst) begin
 
             end else if (read_enable) begin
                 case (read_state)
-                    `AXI4_STATE_ADDR: begin 
-                        s_read_idx <= 0;
-                        get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
-                    end
-
                     `AXI4_STATE_DATA: begin
                         if (r_valid) begin
-                            s_read_idx <= s_read_idx + 1;
-                            /* 依次读取非对齐数据 */
-                            get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
-                            r_result <= s_read_data;
+                            r_result <= read_data;
                         end
 
                         if (r_last) begin

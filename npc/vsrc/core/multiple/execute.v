@@ -78,7 +78,7 @@ wire signed [63:0] mulh_ret = (s_src1_64 * s_src2_64) >> 32;
 wire signed [63:0] mulhsu_ret = (s_src1 * src2) >> 32;
 wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         r_dnpc <= 0;
         r_result <= 0;

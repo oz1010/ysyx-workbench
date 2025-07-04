@@ -7,7 +7,7 @@ module lfsr_8bit (
 // 反馈多项式: x^8 + x^6 + x^5 + x^4 + 1
 wire feedback = out[7] ^ out[5] ^ out[4] ^ out[3];
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         // 复位时初始化LFSR为一个非零值
         out <= 8'b11111111;
@@ -27,7 +27,7 @@ module lfsr_8bit_galois (
 
 wire enable = 1;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst)
         lfsr <= 8'h01; // 复位
     else begin
@@ -72,7 +72,7 @@ assign delay_cur_cnt = cnt % delay_max;
 assign delay_cnt = r_delay_cnt;
 assign delay_enable = r_delay_enable;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         r_delay_enable <= 0;
         r_delay_cnt <= 0;

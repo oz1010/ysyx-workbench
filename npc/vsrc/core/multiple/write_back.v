@@ -61,7 +61,7 @@ reg [7:0] cnt;
 
 assign prev_ready = r_prev_ready;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst) begin
         pc <= func_get_reset_pc();
         xs[0] <= 0;

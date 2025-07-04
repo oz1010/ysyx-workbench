@@ -134,7 +134,7 @@ generate
             .delay_cur_cnt(delay_r_ready_cur_cnt)
         );
 
-        always @(posedge clk or posedge rst) begin
+        always @(posedge clk) begin
             if (rst) begin
                 r_ar_valid <= 0;
                 r_ar_addr <= 0;
@@ -193,7 +193,7 @@ generate
         assign next_valid = r_valid && r_ready;
         assign inst = r_inst;
 
-        always @(posedge clk or posedge rst) begin
+        always @(posedge clk) begin
             if (rst) begin
                 r_ar_valid <= 0;
                 r_ar_addr <= 0;
