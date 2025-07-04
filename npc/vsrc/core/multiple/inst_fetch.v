@@ -49,213 +49,109 @@ module inst_fetch #(
     output wire next_valid
 );
 
-assign aw_valid = 0;
-assign aw_addr = 0;
-assign aw_id = 0;
-assign aw_len = 0;
-assign aw_size = 0;
-assign aw_burst = 0;
-assign w_valid = 0;
-assign w_data = 0;
-assign w_strb = 0;
-assign w_last = 0;
-assign b_ready = 0;
+    assign aw_valid = 0;
+    assign aw_addr = 0;
+    assign aw_id = 0;
+    assign aw_len = 0;
+    assign aw_size = 0;
+    assign aw_burst = 0;
+    assign w_valid = 0;
+    assign w_data = 0;
+    assign w_strb = 0;
+    assign w_last = 0;
+    assign b_ready = 0;
 
-generate
-    if (SRAM_TYPE == `SRAM_TYPE_SCOM) begin : sram_scom
-        wire [INST_WIDTH-1:0] w_inst;
-        wire [1:0] w_if_state;
-        reg r_sram_valid;
-        wire w_scom_valid;
+    generate
+        if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
+            reg r_ar_valid;
+            reg [ADDR_WIDTH-1:0] r_ar_addr;
+            reg [3:0] r_ar_id;
+            reg [7:0] r_ar_len;
+            reg [2:0] r_ar_size;
+            reg [1:0] r_ar_burst;
+            reg r_r_ready;
+            reg [INST_WIDTH-1:0] r_inst;
 
-        assign inst = w_inst;
-        assign next_valid = w_scom_valid & r_sram_valid;
+            wire read_en = !ar_valid && !r_valid && enable;
 
-        scom_send m_scom_if(
-            .clk(clk),
-            .rst(rst),
-            .enable(1),
-            .next_ready(next_ready),
-            .next_valid(w_scom_valid),
-            .state(w_if_state)
-        );
+            assign ar_valid = r_ar_valid;
+            assign ar_addr = r_ar_addr;
+            assign ar_id = r_ar_id;
+            assign ar_len = r_ar_len;
+            assign ar_size = r_ar_size;
+            assign ar_burst = r_ar_burst;
+            assign r_ready = r_r_ready;
 
-        sram_delay #(
-            .INST_WIDTH(INST_WIDTH),
-            .SRAM_READ_DELAY(SRAM_READ_DELAY)
-        ) m_sram_delay (
-            .clk(clk),
-            .rst(rst),
-            .enable(w_if_state == `SCOM_FOUND),
-            .addr(pc),
-            .data(w_inst),
-            .valid(r_sram_valid),
-            .ready(next_ready)
-        );
+            assign next_valid = r_valid && r_ready;
+            assign inst = r_inst;
 
-    end if (SRAM_TYPE == `SRAM_TYPE_AXI4_LITE) begin : sram_axi4_lite
-        reg r_ar_valid;
-        reg [ADDR_WIDTH-1:0] r_ar_addr;
-        reg r_r_ready;
-        reg [INST_WIDTH-1:0] r_inst;
-
-        assign ar_valid = r_ar_valid;
-        assign ar_addr = r_ar_addr;
-        assign r_ready = r_r_ready;
-
-        assign next_valid = r_valid && r_ready;
-        assign inst = r_inst;
-
-        wire [7:0] delay_ar_valid_cur_cnt;
-        wire delay_ar_valid_enable;
-        wire [7:0] delay_ar_valid_cnt;
-        wire ar_valid_enable = enable && !ar_valid && !delay_ar_valid_enable;
-        lfsr_delay_signal m_delay_ar_valid(
-            .clk(clk),
-            .rst(rst),
-            .enable(ar_valid_enable),
-            .delay_enable(delay_ar_valid_enable),
-            .delay_max(7),
-            .delay_cnt(delay_ar_valid_cnt),
-            .delay_cur_cnt(delay_ar_valid_cur_cnt)
-        );
-
-        wire [7:0] delay_r_ready_cur_cnt;
-        wire delay_r_ready_enable;
-        wire [7:0] delay_r_ready_cnt;
-        wire r_ready_enable = (ar_valid && ar_ready) && !r_ready && !delay_r_ready_enable;
-        lfsr_delay_signal m_delay_r_ready(
-            .clk(clk),
-            .rst(rst),
-            .enable(r_ready_enable),
-            .delay_enable(delay_r_ready_enable),
-            .delay_max(17),
-            .delay_cnt(delay_r_ready_cnt),
-            .delay_cur_cnt(delay_r_ready_cur_cnt)
-        );
-
-        always @(posedge clk) begin
-            if (rst) begin
-                r_ar_valid <= 0;
-                r_ar_addr <= 0;
-                r_r_ready <= 0;
-                r_inst <= 0;
-            end else begin
-                r_ar_valid <= r_ar_valid;
-                r_ar_addr <= r_ar_addr;
-                r_r_ready <= r_r_ready;
-                r_inst <= r_inst;
-
-                // read request
-                if ((ar_valid_enable && delay_ar_valid_cur_cnt == 0) ||
-                    (delay_ar_valid_enable && delay_ar_valid_cnt == 1)) begin
-                    r_ar_valid <= 1;
-                    r_ar_addr <= pc;
-                    check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
-                end
-                if (r_ar_valid && ar_ready) begin
-                    r_ar_valid <= 0;
-                end
-
-                // read data
-                if ((r_ready_enable && delay_r_ready_cur_cnt == 0) ||
-                    (delay_r_ready_enable && delay_r_ready_cnt == 1)) begin
-                    r_r_ready <= 1;
-                end
-                if (r_valid) begin
-                    r_inst <= r_data;
-                end
-                if (r_valid && r_ready) begin
-                    r_r_ready <= 0;
-                end
-            end
-        end
-    end if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-        reg r_ar_valid;
-        reg [ADDR_WIDTH-1:0] r_ar_addr;
-        reg [3:0] r_ar_id;
-        reg [7:0] r_ar_len;
-        reg [2:0] r_ar_size;
-        reg [1:0] r_ar_burst;
-        reg r_r_ready;
-        reg [INST_WIDTH-1:0] r_inst;
-
-        wire read_en = !ar_valid && !r_valid && enable;
-
-        assign ar_valid = r_ar_valid;
-        assign ar_addr = r_ar_addr;
-        assign ar_id = r_ar_id;
-        assign ar_len = r_ar_len;
-        assign ar_size = r_ar_size;
-        assign ar_burst = r_ar_burst;
-        assign r_ready = r_r_ready;
-
-        assign next_valid = r_valid && r_ready;
-        assign inst = r_inst;
-
-        always @(posedge clk) begin
-            if (rst) begin
-                r_ar_valid <= 0;
-                r_ar_addr <= 0;
-                r_ar_id <= 0;
-                r_ar_len <= 0;
-                r_ar_size <= 0;
-                r_ar_burst <= 0;
-                r_r_ready <= 0;
-                r_inst <= 0;
-            end else begin
-                r_ar_valid <= r_ar_valid;
-                r_ar_addr <= r_ar_addr;
-                r_ar_id <= r_ar_id;
-                r_ar_len <= r_ar_len;
-                r_ar_size <= r_ar_size;
-                r_ar_burst <= r_ar_burst;
-                r_r_ready <= r_r_ready;
-                r_inst <= r_inst;
-
-                // read request
-                if (read_en) begin
-                    r_ar_valid <= 1;
-                    r_ar_addr <= pc;
-                    r_ar_id <= `AXI4_ID_IFU;
-                    r_ar_len <= 0; // 读取数据总burst数量，2^n
-                    r_ar_size <= 2; // 单个burst读取大小，2^n字节
-                    r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
-                    check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
-                end
-                if (ar_valid && ar_ready) begin
+            always @(posedge clk) begin
+                if (rst) begin
                     r_ar_valid <= 0;
                     r_ar_addr <= 0;
                     r_ar_id <= 0;
                     r_ar_len <= 0;
                     r_ar_size <= 0;
                     r_ar_burst <= 0;
-                end
-
-                // read data
-                if (ar_valid && ar_ready) begin
-                    r_r_ready <= 1;
-                end
-                if (r_valid) begin
-                    r_inst <= r_data;
-                    r_r_ready <= 1;
-                end
-                if (r_valid && r_ready) begin
                     r_r_ready <= 0;
-`ifndef IN_YOSYS_STA
-                    // check error response
-                    if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_IFU) begin
-                        $error("IFU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                    r_inst <= 0;
+                end else begin
+                    r_ar_valid <= r_ar_valid;
+                    r_ar_addr <= r_ar_addr;
+                    r_ar_id <= r_ar_id;
+                    r_ar_len <= r_ar_len;
+                    r_ar_size <= r_ar_size;
+                    r_ar_burst <= r_ar_burst;
+                    r_r_ready <= r_r_ready;
+                    r_inst <= r_inst;
+
+                    // read request
+                    if (read_en) begin
+                        r_ar_valid <= 1;
+                        r_ar_addr <= pc;
+                        r_ar_id <= `AXI4_ID_IFU;
+                        r_ar_len <= 0; // 读取数据总burst数量，2^n
+                        r_ar_size <= 2; // 单个burst读取大小，2^n字节
+                        r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
+                        check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                     end
-`endif
+                    if (ar_valid && ar_ready) begin
+                        r_ar_valid <= 0;
+                        r_ar_addr <= 0;
+                        r_ar_id <= 0;
+                        r_ar_len <= 0;
+                        r_ar_size <= 0;
+                        r_ar_burst <= 0;
+                    end
+
+                    // read data
+                    if (ar_valid && ar_ready) begin
+                        r_r_ready <= 1;
+                    end
+                    if (r_valid) begin
+                        r_inst <= r_data;
+                        r_r_ready <= 1;
+                    end
+                    if (r_valid && r_ready) begin
+                        r_r_ready <= 0;
+                        `ifndef IN_YOSYS_STA
+                        // check error response
+                        if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_IFU) begin
+                            $error("IFU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                        end
+                        `endif
+                    end
                 end
             end
-        end
 
-    end else begin : sram_unknown
-        assign next_valid = 1;
-        assign inst = 0;
-    end
-endgenerate
+        end else begin : sram_unknown
+            assign next_valid = 1;
+            assign inst = 0;
+
+            `ifndef IN_YOSYS_STA
+            $error("IFU only support axi4 interface");
+            `endif
+        end
+    endgenerate
 
 endmodule
