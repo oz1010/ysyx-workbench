@@ -12,60 +12,60 @@ module xbar #(
     input wire clk,
     input wire rst,
 
-    input wire u_aw_valids[0:USER_M_COUNT-1],
-    output wire u_aw_readys[0:USER_M_COUNT-1],
-    input wire [ADDR_WIDTH-1:0] u_aw_addrs[0:USER_M_COUNT-1],
-    input wire u_w_valids[0:USER_M_COUNT-1],
-    output wire u_w_readys[0:USER_M_COUNT-1],
-    input wire [DATA_WIDTH-1:0] u_w_datas[0:USER_M_COUNT-1],
-    input wire [DATA_WIDTH/8-1:0] u_w_strbs[0:USER_M_COUNT-1],
-    output wire u_b_valids[0:USER_M_COUNT-1],
-    input wire u_b_readys[0:USER_M_COUNT-1],
-    output wire [BRESP_WIDTH-1:0] u_b_resps[0:USER_M_COUNT-1],
-    input wire u_ar_valids[0:USER_M_COUNT-1],
-    output wire u_ar_readys[0:USER_M_COUNT-1],
-    input wire [ADDR_WIDTH-1:0] u_ar_addrs[0:USER_M_COUNT-1],
-    output wire u_r_valids[0:USER_M_COUNT-1],
-    input wire u_r_readys[0:USER_M_COUNT-1],
-    output wire [DATA_WIDTH-1:0] u_r_datas[0:USER_M_COUNT-1],
-    output wire [RRESP_WIDTH-1:0] u_r_resps[0:USER_M_COUNT-1]
+    input wire u_awvalids[0:USER_M_COUNT-1],
+    output wire u_awreadys[0:USER_M_COUNT-1],
+    input wire [ADDR_WIDTH-1:0] u_awaddrs[0:USER_M_COUNT-1],
+    input wire u_wvalids[0:USER_M_COUNT-1],
+    output wire u_wreadys[0:USER_M_COUNT-1],
+    input wire [DATA_WIDTH-1:0] u_wdatas[0:USER_M_COUNT-1],
+    input wire [DATA_WIDTH/8-1:0] u_wstrbs[0:USER_M_COUNT-1],
+    output wire u_bvalids[0:USER_M_COUNT-1],
+    input wire u_breadys[0:USER_M_COUNT-1],
+    output wire [BRESP_WIDTH-1:0] u_bresps[0:USER_M_COUNT-1],
+    input wire u_arvalids[0:USER_M_COUNT-1],
+    output wire u_arreadys[0:USER_M_COUNT-1],
+    input wire [ADDR_WIDTH-1:0] u_araddrs[0:USER_M_COUNT-1],
+    output wire u_rvalids[0:USER_M_COUNT-1],
+    input wire u_rreadys[0:USER_M_COUNT-1],
+    output wire [DATA_WIDTH-1:0] u_rdatas[0:USER_M_COUNT-1],
+    output wire [RRESP_WIDTH-1:0] u_rresps[0:USER_M_COUNT-1]
 );
 
 // 默认master，避免切主时造成从设备响应错误
-wire m_aw_valids[0:MASTER_COUNT-1];
-wire m_aw_readys[0:MASTER_COUNT-1];
-wire [ADDR_WIDTH-1:0] m_aw_addrs[0:MASTER_COUNT-1];
-wire m_w_valids[0:MASTER_COUNT-1];
-wire m_w_readys[0:MASTER_COUNT-1];
-wire [DATA_WIDTH-1:0] m_w_datas[0:MASTER_COUNT-1];
-wire [DATA_WIDTH/8-1:0] m_w_strbs[0:MASTER_COUNT-1];
-wire m_b_valids[0:MASTER_COUNT-1];
-wire m_b_readys[0:MASTER_COUNT-1];
-wire [BRESP_WIDTH-1:0] m_b_resps[0:MASTER_COUNT-1];
-wire m_ar_valids[0:MASTER_COUNT-1];
-wire m_ar_readys[0:MASTER_COUNT-1];
-wire [ADDR_WIDTH-1:0] m_ar_addrs[0:MASTER_COUNT-1];
-wire m_r_valids[0:MASTER_COUNT-1];
-wire m_r_readys[0:MASTER_COUNT-1];
-wire [DATA_WIDTH-1:0] m_r_datas[0:MASTER_COUNT-1];
-wire [RRESP_WIDTH-1:0] m_r_resps[0:MASTER_COUNT-1];
-assign m_aw_valids = {0, u_aw_valids};
-assign m_aw_addrs = {0, u_aw_addrs};
-assign m_w_valids = {0, u_w_valids};
-assign m_w_datas = {0, u_w_datas};
-assign m_w_strbs = {0, u_w_strbs};
-assign m_b_readys = {0, u_b_readys};
-assign m_ar_valids = {0, u_ar_valids};
-assign m_ar_addrs = {0, u_ar_addrs};
-assign m_r_readys = {0, u_r_readys};
-assign u_aw_readys = m_aw_readys[1:USER_M_COUNT];
-assign u_w_readys = m_w_readys[1:USER_M_COUNT];
-assign u_b_valids = m_b_valids[1:USER_M_COUNT];
-assign u_b_resps = m_b_resps[1:USER_M_COUNT];
-assign u_ar_readys = m_ar_readys[1:USER_M_COUNT];
-assign u_r_valids = m_r_valids[1:USER_M_COUNT];
-assign u_r_datas = m_r_datas[1:USER_M_COUNT];
-assign u_r_resps = m_r_resps[1:USER_M_COUNT];
+wire m_awvalids[0:MASTER_COUNT-1];
+wire m_awreadys[0:MASTER_COUNT-1];
+wire [ADDR_WIDTH-1:0] m_awaddrs[0:MASTER_COUNT-1];
+wire m_wvalids[0:MASTER_COUNT-1];
+wire m_wreadys[0:MASTER_COUNT-1];
+wire [DATA_WIDTH-1:0] m_wdatas[0:MASTER_COUNT-1];
+wire [DATA_WIDTH/8-1:0] m_wstrbs[0:MASTER_COUNT-1];
+wire m_bvalids[0:MASTER_COUNT-1];
+wire m_breadys[0:MASTER_COUNT-1];
+wire [BRESP_WIDTH-1:0] m_bresps[0:MASTER_COUNT-1];
+wire m_arvalids[0:MASTER_COUNT-1];
+wire m_arreadys[0:MASTER_COUNT-1];
+wire [ADDR_WIDTH-1:0] m_araddrs[0:MASTER_COUNT-1];
+wire m_rvalids[0:MASTER_COUNT-1];
+wire m_rreadys[0:MASTER_COUNT-1];
+wire [DATA_WIDTH-1:0] m_rdatas[0:MASTER_COUNT-1];
+wire [RRESP_WIDTH-1:0] m_rresps[0:MASTER_COUNT-1];
+assign m_awvalids = {0, u_awvalids};
+assign m_awaddrs = {0, u_awaddrs};
+assign m_wvalids = {0, u_wvalids};
+assign m_wdatas = {0, u_wdatas};
+assign m_wstrbs = {0, u_wstrbs};
+assign m_breadys = {0, u_breadys};
+assign m_arvalids = {0, u_arvalids};
+assign m_araddrs = {0, u_araddrs};
+assign m_rreadys = {0, u_rreadys};
+assign u_awreadys = m_awreadys[1:USER_M_COUNT];
+assign u_wreadys = m_wreadys[1:USER_M_COUNT];
+assign u_bvalids = m_bvalids[1:USER_M_COUNT];
+assign u_bresps = m_bresps[1:USER_M_COUNT];
+assign u_arreadys = m_arreadys[1:USER_M_COUNT];
+assign u_rvalids = m_rvalids[1:USER_M_COUNT];
+assign u_rdatas = m_rdatas[1:USER_M_COUNT];
+assign u_rresps = m_rresps[1:USER_M_COUNT];
 
 reg [MASTER_COUNT-1:0] m_signal_en;
 reg [MASTER_COUNT-1:0] m_write_en;
@@ -74,41 +74,41 @@ reg [MASTER_COUNT-1:0] m_grant;
 reg [log2(MASTER_COUNT):0] r_m_grant_idx;
 wire [log2(MASTER_COUNT):0] m_grant_idx;
 
-reg aw_valid;
-reg aw_ready;
-reg [ADDR_WIDTH-1:0] aw_addr; // 用于记录当前master写入的申请地址，需要在角色切换前完成
-reg w_valid;
-reg w_ready;
-reg [DATA_WIDTH-1:0] w_data;
-reg [DATA_WIDTH/8-1:0] w_strb;
-reg b_valid;
-reg b_ready;
-reg [BRESP_WIDTH-1:0] b_resp;
-reg ar_valid;
-reg ar_ready;
-reg [ADDR_WIDTH-1:0] ar_addr; // 用于记录当前master读取的申请地址，需要在角色切换前完成
-reg r_valid;
-reg r_ready;
-reg [DATA_WIDTH-1:0] r_data;
-reg [RRESP_WIDTH-1:0] r_resp;
+reg awvalid;
+reg awready;
+reg [ADDR_WIDTH-1:0] awaddr; // 用于记录当前master写入的申请地址，需要在角色切换前完成
+reg wvalid;
+reg wready;
+reg [DATA_WIDTH-1:0] wdata;
+reg [DATA_WIDTH/8-1:0] wstrb;
+reg bvalid;
+reg bready;
+reg [BRESP_WIDTH-1:0] bresp;
+reg arvalid;
+reg arready;
+reg [ADDR_WIDTH-1:0] araddr; // 用于记录当前master读取的申请地址，需要在角色切换前完成
+reg rvalid;
+reg rready;
+reg [DATA_WIDTH-1:0] rdata;
+reg [RRESP_WIDTH-1:0] rresp;
 
-wire s_aw_valids[0:SLAVE_COUNT-1];
-wire s_aw_readys[0:SLAVE_COUNT-1];
-wire [ADDR_WIDTH-1:0] s_aw_addrs[0:SLAVE_COUNT-1];
-wire s_w_valids[0:SLAVE_COUNT-1];
-wire s_w_readys[0:SLAVE_COUNT-1];
-wire [DATA_WIDTH-1:0] s_w_datas[0:SLAVE_COUNT-1];
-wire [DATA_WIDTH/8-1:0] s_w_strbs[0:SLAVE_COUNT-1];
-wire s_b_valids[0:SLAVE_COUNT-1];
-wire s_b_readys[0:SLAVE_COUNT-1];
-wire [BRESP_WIDTH-1:0] s_b_resps[0:SLAVE_COUNT-1];
-wire s_ar_valids[0:SLAVE_COUNT-1];
-wire s_ar_readys[0:SLAVE_COUNT-1];
-wire [ADDR_WIDTH-1:0] s_ar_addrs[0:SLAVE_COUNT-1];
-wire s_r_valids[0:SLAVE_COUNT-1];
-wire s_r_readys[0:SLAVE_COUNT-1];
-wire [DATA_WIDTH-1:0] s_r_datas[0:SLAVE_COUNT-1];
-wire [RRESP_WIDTH-1:0] s_r_resps[0:SLAVE_COUNT-1];
+wire s_awvalids[0:SLAVE_COUNT-1];
+wire s_awreadys[0:SLAVE_COUNT-1];
+wire [ADDR_WIDTH-1:0] s_awaddrs[0:SLAVE_COUNT-1];
+wire s_wvalids[0:SLAVE_COUNT-1];
+wire s_wreadys[0:SLAVE_COUNT-1];
+wire [DATA_WIDTH-1:0] s_wdatas[0:SLAVE_COUNT-1];
+wire [DATA_WIDTH/8-1:0] s_wstrbs[0:SLAVE_COUNT-1];
+wire s_bvalids[0:SLAVE_COUNT-1];
+wire s_breadys[0:SLAVE_COUNT-1];
+wire [BRESP_WIDTH-1:0] s_bresps[0:SLAVE_COUNT-1];
+wire s_arvalids[0:SLAVE_COUNT-1];
+wire s_arreadys[0:SLAVE_COUNT-1];
+wire [ADDR_WIDTH-1:0] s_araddrs[0:SLAVE_COUNT-1];
+wire s_rvalids[0:SLAVE_COUNT-1];
+wire s_rreadys[0:SLAVE_COUNT-1];
+wire [DATA_WIDTH-1:0] s_rdatas[0:SLAVE_COUNT-1];
+wire [RRESP_WIDTH-1:0] s_rresps[0:SLAVE_COUNT-1];
 reg [SLAVE_COUNT-1:0] s_grant;
 reg [log2(SLAVE_COUNT):0] s_grant_idx;
 
@@ -137,23 +137,23 @@ sram_axi4 #(
 ) m_sram_axi4(
     .clk(clk),
     .rst(rst),
-    .aw_valid(s_aw_valids[`DEV_SRAM_IDX]),
-    .aw_ready(s_aw_readys[`DEV_SRAM_IDX]),
-    .aw_addr(s_aw_addrs[`DEV_SRAM_IDX]),
-    .w_valid(s_w_valids[`DEV_SRAM_IDX]),
-    .w_ready(s_w_readys[`DEV_SRAM_IDX]),
-    .w_data(s_w_datas[`DEV_SRAM_IDX]),
-    .w_strb(s_w_strbs[`DEV_SRAM_IDX]),
-    .b_valid(s_b_valids[`DEV_SRAM_IDX]),
-    .b_ready(s_b_readys[`DEV_SRAM_IDX]),
-    .b_resp(s_b_resps[`DEV_SRAM_IDX]),
-    .ar_valid(s_ar_valids[`DEV_SRAM_IDX]),
-    .ar_ready(s_ar_readys[`DEV_SRAM_IDX]),
-    .ar_addr(s_ar_addrs[`DEV_SRAM_IDX]),
-    .r_valid(s_r_valids[`DEV_SRAM_IDX]),
-    .r_ready(s_r_readys[`DEV_SRAM_IDX]),
-    .r_data(s_r_datas[`DEV_SRAM_IDX]),
-    .r_resp(s_r_resps[`DEV_SRAM_IDX])
+    .awvalid(s_awvalids[`DEV_SRAM_IDX]),
+    .awready(s_awreadys[`DEV_SRAM_IDX]),
+    .awaddr(s_awaddrs[`DEV_SRAM_IDX]),
+    .wvalid(s_wvalids[`DEV_SRAM_IDX]),
+    .wready(s_wreadys[`DEV_SRAM_IDX]),
+    .wdata(s_wdatas[`DEV_SRAM_IDX]),
+    .wstrb(s_wstrbs[`DEV_SRAM_IDX]),
+    .bvalid(s_bvalids[`DEV_SRAM_IDX]),
+    .bready(s_breadys[`DEV_SRAM_IDX]),
+    .bresp(s_bresps[`DEV_SRAM_IDX]),
+    .arvalid(s_arvalids[`DEV_SRAM_IDX]),
+    .arready(s_arreadys[`DEV_SRAM_IDX]),
+    .araddr(s_araddrs[`DEV_SRAM_IDX]),
+    .rvalid(s_rvalids[`DEV_SRAM_IDX]),
+    .rready(s_rreadys[`DEV_SRAM_IDX]),
+    .rdata(s_rdatas[`DEV_SRAM_IDX]),
+    .rresp(s_rresps[`DEV_SRAM_IDX])
 );
 
 uart #(
@@ -164,23 +164,23 @@ uart #(
 ) m_uart(
     .clk(clk),
     .rst(rst),
-    .aw_valid(s_aw_valids[`DEV_UART_IDX]),
-    .aw_ready(s_aw_readys[`DEV_UART_IDX]),
-    .aw_addr(s_aw_addrs[`DEV_UART_IDX]),
-    .w_valid(s_w_valids[`DEV_UART_IDX]),
-    .w_ready(s_w_readys[`DEV_UART_IDX]),
-    .w_data(s_w_datas[`DEV_UART_IDX]),
-    .w_strb(s_w_strbs[`DEV_UART_IDX]),
-    .b_valid(s_b_valids[`DEV_UART_IDX]),
-    .b_ready(s_b_readys[`DEV_UART_IDX]),
-    .b_resp(s_b_resps[`DEV_UART_IDX]),
-    .ar_valid(s_ar_valids[`DEV_UART_IDX]),
-    .ar_ready(s_ar_readys[`DEV_UART_IDX]),
-    .ar_addr(s_ar_addrs[`DEV_UART_IDX]),
-    .r_valid(s_r_valids[`DEV_UART_IDX]),
-    .r_ready(s_r_readys[`DEV_UART_IDX]),
-    .r_data(s_r_datas[`DEV_UART_IDX]),
-    .r_resp(s_r_resps[`DEV_UART_IDX])
+    .awvalid(s_awvalids[`DEV_UART_IDX]),
+    .awready(s_awreadys[`DEV_UART_IDX]),
+    .awaddr(s_awaddrs[`DEV_UART_IDX]),
+    .wvalid(s_wvalids[`DEV_UART_IDX]),
+    .wready(s_wreadys[`DEV_UART_IDX]),
+    .wdata(s_wdatas[`DEV_UART_IDX]),
+    .wstrb(s_wstrbs[`DEV_UART_IDX]),
+    .bvalid(s_bvalids[`DEV_UART_IDX]),
+    .bready(s_breadys[`DEV_UART_IDX]),
+    .bresp(s_bresps[`DEV_UART_IDX]),
+    .arvalid(s_arvalids[`DEV_UART_IDX]),
+    .arready(s_arreadys[`DEV_UART_IDX]),
+    .araddr(s_araddrs[`DEV_UART_IDX]),
+    .rvalid(s_rvalids[`DEV_UART_IDX]),
+    .rready(s_rreadys[`DEV_UART_IDX]),
+    .rdata(s_rdatas[`DEV_UART_IDX]),
+    .rresp(s_rresps[`DEV_UART_IDX])
 );
 
 clint #(
@@ -191,53 +191,53 @@ clint #(
 ) m_clint(
     .clk(clk),
     .rst(rst),
-    // .aw_valid(s_aw_valids[`DEV_RTC_IDX]),
-    // .aw_ready(s_aw_readys[`DEV_RTC_IDX]),
-    // .aw_addr(s_aw_addrs[`DEV_RTC_IDX]),
-    // .w_valid(s_w_valids[`DEV_RTC_IDX]),
-    // .w_ready(s_w_readys[`DEV_RTC_IDX]),
-    // .w_data(s_w_datas[`DEV_RTC_IDX]),
-    // .w_strb(s_w_strbs[`DEV_RTC_IDX]),
-    // .b_valid(s_b_valids[`DEV_RTC_IDX]),
-    // .b_ready(s_b_readys[`DEV_RTC_IDX]),
-    // .b_resp(s_b_resps[`DEV_RTC_IDX]),
-    // .ar_valid(s_ar_valids[`DEV_RTC_IDX]),
-    // .ar_ready(s_ar_readys[`DEV_RTC_IDX]),
-    // .ar_addr(s_ar_addrs[`DEV_RTC_IDX]),
-    // .r_valid(s_r_valids[`DEV_RTC_IDX]),
-    // .r_ready(s_r_readys[`DEV_RTC_IDX]),
-    // .r_data(s_r_datas[`DEV_RTC_IDX]),
-    // .r_resp(s_r_resps[`DEV_RTC_IDX])
+    // .awvalid(s_awvalids[`DEV_RTC_IDX]),
+    // .awready(s_awreadys[`DEV_RTC_IDX]),
+    // .awaddr(s_awaddrs[`DEV_RTC_IDX]),
+    // .wvalid(s_wvalids[`DEV_RTC_IDX]),
+    // .wready(s_wreadys[`DEV_RTC_IDX]),
+    // .wdata(s_wdatas[`DEV_RTC_IDX]),
+    // .wstrb(s_wstrbs[`DEV_RTC_IDX]),
+    // .bvalid(s_bvalids[`DEV_RTC_IDX]),
+    // .bready(s_breadys[`DEV_RTC_IDX]),
+    // .bresp(s_bresps[`DEV_RTC_IDX]),
+    // .arvalid(s_arvalids[`DEV_RTC_IDX]),
+    // .arready(s_arreadys[`DEV_RTC_IDX]),
+    // .araddr(s_araddrs[`DEV_RTC_IDX]),
+    // .rvalid(s_rvalids[`DEV_RTC_IDX]),
+    // .rready(s_rreadys[`DEV_RTC_IDX]),
+    // .rdata(s_rdatas[`DEV_RTC_IDX]),
+    // .rresp(s_rresps[`DEV_RTC_IDX])
     // TODO 临时屏蔽，搞定编译问题
-    .aw_ready(0),
-    .aw_valid(0),
-    .aw_addr(0),
-    .aw_id(0),
-    .aw_len(0),
-    .aw_size(0),
-    .aw_burst(0),
-    .w_ready(0),
-    .w_valid(0),
-    .w_data(0),
-    .w_strb(0),
-    .w_last(0),
-    .b_ready(0),
-    .b_valid(0),
-    .b_resp(0),
-    .b_id(0),
-    .ar_ready(0),
-    .ar_valid(0),
-    .ar_addr(0),
-    .ar_id(0),
-    .ar_len(0),
-    .ar_size(0),
-    .ar_burst(0),
-    .r_ready(0),
-    .r_valid(0),
-    .r_resp(0),
-    .r_data(0),
-    .r_last(0),
-    .r_id(0)
+    .awready(0),
+    .awvalid(0),
+    .awaddr(0),
+    .awid(0),
+    .awlen(0),
+    .awsize(0),
+    .awburst(0),
+    .wready(0),
+    .wvalid(0),
+    .wdata(0),
+    .wstrb(0),
+    .wlast(0),
+    .bready(0),
+    .bvalid(0),
+    .bresp(0),
+    .bid(0),
+    .arready(0),
+    .arvalid(0),
+    .araddr(0),
+    .arid(0),
+    .arlen(0),
+    .arsize(0),
+    .arburst(0),
+    .rready(0),
+    .rvalid(0),
+    .rresp(0),
+    .rdata(0),
+    .rlast(0),
+    .rid(0)
 );
 
 // arbiter
@@ -262,8 +262,8 @@ always @(posedge clk or posedge rst) begin
         s_grant <= 0;
         s_grant_idx <= 0;
         for (int sidx=0; sidx<SLAVE_COUNT; ++sidx) begin
-            if ((m_write_en>0 && aw_addr >= dev_addr_bases[sidx] && aw_addr <= dev_addr_ends[sidx]) ||
-                (m_read_en>0 && ar_addr >= dev_addr_bases[sidx] && ar_addr <= dev_addr_ends[sidx])) begin
+            if ((m_write_en>0 && awaddr >= dev_addr_bases[sidx] && awaddr <= dev_addr_ends[sidx]) ||
+                (m_read_en>0 && araddr >= dev_addr_bases[sidx] && araddr <= dev_addr_ends[sidx])) begin
                 s_grant[(sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT] <= 1;
                 s_grant_idx <= (sidx[$bits(s_grant_idx)-1:0])%SLAVE_COUNT;
                 break;
@@ -274,67 +274,67 @@ end
 assign m_grant_idx = {$bits(m_grant_idx){m_signal_en[r_m_grant_idx]}} & r_m_grant_idx;
 
 // manager输入引脚处理
-assign aw_valid = m_aw_valids[m_grant_idx%MASTER_COUNT];
-assign w_valid = m_w_valids[m_grant_idx%MASTER_COUNT];
-assign b_ready = m_b_readys[m_grant_idx%MASTER_COUNT];
-assign ar_valid = m_ar_valids[m_grant_idx%MASTER_COUNT];
-assign r_ready = m_r_readys[m_grant_idx%MASTER_COUNT];
+assign awvalid = m_awvalids[m_grant_idx%MASTER_COUNT];
+assign wvalid = m_wvalids[m_grant_idx%MASTER_COUNT];
+assign bready = m_breadys[m_grant_idx%MASTER_COUNT];
+assign arvalid = m_arvalids[m_grant_idx%MASTER_COUNT];
+assign rready = m_rreadys[m_grant_idx%MASTER_COUNT];
 always @(*) begin
-    aw_addr = 0;
-    ar_addr = 0;
-    w_data = 0;
-    w_strb = 0;
+    awaddr = 0;
+    araddr = 0;
+    wdata = 0;
+    wstrb = 0;
 
     for (integer midx=0; midx<MASTER_COUNT; ++midx) begin
         if (m_signal_en[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT]) begin
-            aw_addr = m_aw_addrs[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
-            ar_addr = m_ar_addrs[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
-            w_data = m_w_datas[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
-            w_strb = m_w_strbs[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
+            awaddr = m_awaddrs[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
+            araddr = m_araddrs[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
+            wdata = m_wdatas[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
+            wstrb = m_wstrbs[(midx[MASTER_COUNT-1:0]) % MASTER_COUNT];
         end
     end
 end
 // manager输出引脚处理
 generate
     for (genvar i = 0; i < MASTER_COUNT; ++i) begin : m_sig_out_gen
-        assign m_signal_en[i] = m_aw_valids[i] | m_w_valids[i] | m_b_valids[i] | m_ar_valids[i] | m_r_valids[i];
-        assign m_write_en[i] = ((m_aw_valids[i] | m_w_valids[i] | m_b_valids[i]));
-        assign m_read_en[i] = ((m_ar_valids[i] | m_r_valids[i]));
+        assign m_signal_en[i] = m_awvalids[i] | m_wvalids[i] | m_bvalids[i] | m_arvalids[i] | m_rvalids[i];
+        assign m_write_en[i] = ((m_awvalids[i] | m_wvalids[i] | m_bvalids[i]));
+        assign m_read_en[i] = ((m_arvalids[i] | m_rvalids[i]));
 
-        assign m_aw_readys[i] = (aw_ready & {$bits(aw_ready){m_grant[i]}});
-        assign m_w_readys[i] = (w_ready & {$bits(w_ready){m_grant[i]}});
-        assign m_b_valids[i] = (b_valid & {$bits(b_valid){m_grant[i]}});
-        assign m_b_resps[i] = b_resp;
-        assign m_ar_readys[i] = (ar_ready & {$bits(ar_ready){m_grant[i]}});
-        assign m_r_valids[i] = (r_valid & {$bits(r_valid){m_grant[i]}});
-        assign m_r_datas[i] = r_data;
-        assign m_r_resps[i] = (r_resp & {$bits(r_resp){m_grant[i]}});
+        assign m_awreadys[i] = (awready & {$bits(awready){m_grant[i]}});
+        assign m_wreadys[i] = (wready & {$bits(wready){m_grant[i]}});
+        assign m_bvalids[i] = (bvalid & {$bits(bvalid){m_grant[i]}});
+        assign m_bresps[i] = bresp;
+        assign m_arreadys[i] = (arready & {$bits(arready){m_grant[i]}});
+        assign m_rvalids[i] = (rvalid & {$bits(rvalid){m_grant[i]}});
+        assign m_rdatas[i] = rdata;
+        assign m_rresps[i] = (rresp & {$bits(rresp){m_grant[i]}});
     end
 endgenerate
 
 // slave输入引脚处理
 generate
     for (genvar i = 0; i < SLAVE_COUNT; ++i ) begin : s_sig_in_gen
-        assign s_aw_valids[i] = (aw_valid & {$bits(aw_valid){s_grant_idx==i}});
-        assign s_aw_addrs[i] = (aw_addr & {$bits(aw_addr){s_grant_idx==i}});
-        assign s_w_valids[i] = (w_valid & {$bits(w_valid){s_grant_idx==i}});
-        assign s_w_datas[i] = (w_data & {$bits(w_data){s_grant_idx==i}});
-        assign s_w_strbs[i] = (w_strb & {$bits(w_strb){s_grant_idx==i}});
-        assign s_b_readys[i] = (b_ready & {$bits(b_ready){s_grant_idx==i}});
-        assign s_ar_valids[i] = (ar_valid & {$bits(ar_valid){s_grant_idx==i}});
-        assign s_ar_addrs[i] = (ar_addr & {$bits(ar_addr){s_grant_idx==i}});
-        assign s_r_readys[i] = (r_ready & {$bits(r_ready){s_grant_idx==i}});
+        assign s_awvalids[i] = (awvalid & {$bits(awvalid){s_grant_idx==i}});
+        assign s_awaddrs[i] = (awaddr & {$bits(awaddr){s_grant_idx==i}});
+        assign s_wvalids[i] = (wvalid & {$bits(wvalid){s_grant_idx==i}});
+        assign s_wdatas[i] = (wdata & {$bits(wdata){s_grant_idx==i}});
+        assign s_wstrbs[i] = (wstrb & {$bits(wstrb){s_grant_idx==i}});
+        assign s_breadys[i] = (bready & {$bits(bready){s_grant_idx==i}});
+        assign s_arvalids[i] = (arvalid & {$bits(arvalid){s_grant_idx==i}});
+        assign s_araddrs[i] = (araddr & {$bits(araddr){s_grant_idx==i}});
+        assign s_rreadys[i] = (rready & {$bits(rready){s_grant_idx==i}});
     end
 endgenerate
 // slave输出引脚处理
-assign r_data = s_r_datas[s_grant_idx%SLAVE_COUNT];
-assign b_resp = s_b_resps[s_grant_idx%SLAVE_COUNT];
-assign aw_ready = s_aw_readys[s_grant_idx%SLAVE_COUNT];
-assign w_ready = s_w_readys[s_grant_idx%SLAVE_COUNT];
-assign b_valid = s_b_valids[s_grant_idx%SLAVE_COUNT];
-assign ar_ready = s_ar_readys[s_grant_idx%SLAVE_COUNT];
-assign r_valid = s_r_valids[s_grant_idx%SLAVE_COUNT];
-assign r_resp = s_r_resps[s_grant_idx%SLAVE_COUNT];
+assign rdata = s_rdatas[s_grant_idx%SLAVE_COUNT];
+assign bresp = s_bresps[s_grant_idx%SLAVE_COUNT];
+assign awready = s_awreadys[s_grant_idx%SLAVE_COUNT];
+assign wready = s_wreadys[s_grant_idx%SLAVE_COUNT];
+assign bvalid = s_bvalids[s_grant_idx%SLAVE_COUNT];
+assign arready = s_arreadys[s_grant_idx%SLAVE_COUNT];
+assign rvalid = s_rvalids[s_grant_idx%SLAVE_COUNT];
+assign rresp = s_rresps[s_grant_idx%SLAVE_COUNT];
 
 endmodule
 `endif

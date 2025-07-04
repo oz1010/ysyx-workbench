@@ -16,22 +16,22 @@ module axi_master_writer #(
     input   wire                        clk,
     input   wire                        rst,
     /* 通信信号 */
-    input   wire                        aw_ready,
-    output  wire                        aw_valid,
-    output  wire [ADDR_WIDTH-1:0]       aw_addr,
-    output  wire [3:0]                  aw_id,
-    output  wire [7:0]                  aw_len,
-    output  wire [2:0]                  aw_size,
-    output  wire [1:0]                  aw_burst,
-    input   wire                        w_ready,
-    output  wire                        w_valid,
-    output  wire [DATA_WIDTH-1:0]       w_data,
-    output  wire [DATA_WIDTH/8-1:0]     w_strb,
-    output  wire                        w_last,
-    output  wire                        b_ready,
-    input   wire                        b_valid,
-    input   wire [BRESP_WIDTH-1:0]      b_resp,
-    input   wire [3:0]                  b_id,
+    input   wire                        awready,
+    output  wire                        awvalid,
+    output  wire [ADDR_WIDTH-1:0]       awaddr,
+    output  wire [3:0]                  awid,
+    output  wire [7:0]                  awlen,
+    output  wire [2:0]                  awsize,
+    output  wire [1:0]                  awburst,
+    input   wire                        wready,
+    output  wire                        wvalid,
+    output  wire [DATA_WIDTH-1:0]       wdata,
+    output  wire [DATA_WIDTH/8-1:0]     wstrb,
+    output  wire                        wlast,
+    output  wire                        bready,
+    input   wire                        bvalid,
+    input   wire [BRESP_WIDTH-1:0]      bresp,
+    input   wire [3:0]                  bid,
     /* 模块信号 */
     input   wire                        write_enable,
     input   wire [ADDR_WIDTH-1:0]       write_addr,
@@ -42,17 +42,17 @@ module axi_master_writer #(
 
     reg [1:0] r_write_state;
 
-    reg r_aw_valid;
-    reg [ADDR_WIDTH-1:0] r_aw_addr;
-    reg [3:0] r_aw_id; // 写入数据标识，响应中可以比对是否一致
-    reg [7:0] r_aw_len; // burst写入数量，2^n字节
-    reg [2:0] r_aw_size; // 单个burst写入数据大小，2^n字节
-    reg [2:0] r_record_aw_size;
-    reg r_w_valid;
-    reg [DATA_WIDTH-1:0] r_w_data;
-    reg [DATA_WIDTH/8-1:0] r_w_strb;
-    reg r_w_last; // 写入最后一个数据时需要拉高
-    reg r_b_ready;
+    reg r_awvalid;
+    reg [ADDR_WIDTH-1:0] r_awaddr;
+    reg [3:0] r_awid; // 写入数据标识，响应中可以比对是否一致
+    reg [7:0] r_awlen; // burst写入数量，2^n字节
+    reg [2:0] r_awsize; // 单个burst写入数据大小，2^n字节
+    reg [2:0] r_record_awsize;
+    reg r_wvalid;
+    reg [DATA_WIDTH-1:0] r_wdata;
+    reg [DATA_WIDTH/8-1:0] r_wstrb;
+    reg r_wlast; // 写入最后一个数据时需要拉高
+    reg r_bready;
 
     reg [7:0] s_write_idx;
     reg [7:0] s_write_len;
@@ -62,32 +62,32 @@ module axi_master_writer #(
 
     assign write_state = r_write_state;
 
-    assign aw_valid = r_aw_valid;
-    assign aw_addr = r_aw_addr;
-    assign aw_id = r_aw_id;
-    assign aw_len = r_aw_len;
-    assign aw_size = r_aw_size;
-    assign w_valid = r_w_valid;
-    assign w_data = r_w_data;
-    assign w_strb = r_w_strb;
-    assign w_last = r_w_last;
-    assign b_ready = r_b_ready;
+    assign awvalid = r_awvalid;
+    assign awaddr = r_awaddr;
+    assign awid = r_awid;
+    assign awlen = r_awlen;
+    assign awsize = r_awsize;
+    assign wvalid = r_wvalid;
+    assign wdata = r_wdata;
+    assign wstrb = r_wstrb;
+    assign wlast = r_wlast;
+    assign bready = r_bready;
 
     assign s_write_strbs[0] = s_write_strb[0 +: 4];
     assign s_write_strbs[1] = s_write_strb[4 +: 4];
 
     `define WRITE_DATA() \
-        r_w_valid <= 1; \
+        r_wvalid <= 1; \
         s_write_idx <= s_write_idx + 1; \
-        r_w_strb <= s_write_strbs[s_write_idx[0:0]]; \
+        r_wstrb <= s_write_strbs[s_write_idx[0:0]]; \
         case (s_write_idx) \
-            0: r_w_data<=write_data<<(8*s_write_shift_val); \
-            1: r_w_data<=write_data>>(32-8*s_write_shift_val); \
+            0: r_wdata<=write_data<<(8*s_write_shift_val); \
+            1: r_wdata<=write_data>>(32-8*s_write_shift_val); \
             `ifndef IN_YOSYS_STA \
             default: $error("%s aw data unalign is error", NAME); \
             `endif \
         endcase \
-        if (s_write_idx == ((8'h1<<s_write_len)-1)) r_w_last <= 1;
+        if (s_write_idx == ((8'h1<<s_write_len)-1)) r_wlast <= 1;
 
     initial begin
         s_write_idx = 0;
@@ -100,36 +100,36 @@ module axi_master_writer #(
         if (rst || !write_enable) begin
             r_write_state <= `AXI4_STATE_ADDR;
 
-            r_aw_valid <= 0;
-            r_aw_valid <= 0;
-            r_aw_addr <= 0;
-            r_aw_id <= 0;
-            r_aw_len <= 0;
-            r_aw_size <= 0;
-            r_w_valid <= 0;
-            r_w_data <= 0;
-            r_w_strb <= 0;
-            r_w_last <= 0;
-            r_b_ready <= 0;
+            r_awvalid <= 0;
+            r_awvalid <= 0;
+            r_awaddr <= 0;
+            r_awid <= 0;
+            r_awlen <= 0;
+            r_awsize <= 0;
+            r_wvalid <= 0;
+            r_wdata <= 0;
+            r_wstrb <= 0;
+            r_wlast <= 0;
+            r_bready <= 0;
         end else begin
             case (r_write_state)
                 `AXI4_STATE_ADDR: begin
-                    r_aw_valid <= 1;
-                    r_aw_addr <= write_addr; // sram会4字节对齐
-                    r_aw_id <= ID;
-                    r_aw_len <= s_write_len;
-                    r_aw_size <= write_size;
+                    r_awvalid <= 1;
+                    r_awaddr <= write_addr; // sram会4字节对齐
+                    r_awid <= ID;
+                    r_awlen <= s_write_len;
+                    r_awsize <= write_size;
                     check_dev_addr(write_addr, `DEV_ATTR_WRITE);
                     get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
                     s_write_idx <= 0;
 
-                    if (aw_valid && aw_ready) begin
-                        r_record_aw_size <= r_aw_size;
-                        r_aw_valid <= 0;
-                        r_aw_addr <= 0;
-                        r_aw_id <= 0;
-                        r_aw_len <= 0;
-                        r_aw_size <= 0;
+                    if (awvalid && awready) begin
+                        r_record_awsize <= r_awsize;
+                        r_awvalid <= 0;
+                        r_awaddr <= 0;
+                        r_awid <= 0;
+                        r_awlen <= 0;
+                        r_awsize <= 0;
 
                         // switch to write data
                         r_write_state <= `AXI4_STATE_DATA;
@@ -144,31 +144,31 @@ module axi_master_writer #(
                         `WRITE_DATA();
                     end
 
-                    if (w_last) begin
-                        func_dev_skip(1, write_addr, {25'h0, r_record_aw_size, s_write_strbs[0]|s_write_strbs[1]}, write_data);
+                    if (wlast) begin
+                        func_dev_skip(1, write_addr, {25'h0, r_record_awsize, s_write_strbs[0]|s_write_strbs[1]}, write_data);
 
-                        r_w_valid <= 0;
-                        r_w_strb <= 0;
-                        r_w_data <= 0;
-                        r_w_last <= 0;
+                        r_wvalid <= 0;
+                        r_wstrb <= 0;
+                        r_wdata <= 0;
+                        r_wlast <= 0;
                         s_write_idx <= 0;
 
                         // switch to write response
                         r_write_state <= `AXI4_STATE_RESPONSE;
-                        r_b_ready <= 1;
+                        r_bready <= 1;
                     end
                 end
 
                 `AXI4_STATE_RESPONSE: begin
-                    if (b_valid && b_ready) begin
+                    if (bvalid && bready) begin
                         // switch to init
                         r_write_state <= `AXI4_STATE_ADDR;
-                        r_b_ready <= 0;
+                        r_bready <= 0;
 
                         `ifndef IN_YOSYS_STA
                         // check error response
-                        if (b_resp!=0 || b_id!=ID) begin
-                            $error("%s Write data error, addr:%x data:%x resp:%x id:%x\n", NAME, write_addr, write_data, b_resp, b_id);
+                        if (bresp!=0 || bid!=ID) begin
+                            $error("%s Write data error, addr:%x data:%x resp:%x id:%x\n", NAME, write_addr, write_data, bresp, bid);
                         end
                         `endif
                     end
@@ -196,22 +196,22 @@ module axi4_salve_writer #(
     input   wire                        clk,
     input   wire                        rst,
     /* 通信信号 */
-    output  wire                        aw_ready,
-    input   wire                        aw_valid,
-    input   wire [ADDR_WIDTH-1:0]       aw_addr,
-    input   wire [3:0]                  aw_id,
-    input   wire [7:0]                  aw_len,
-    input   wire [2:0]                  aw_size,
-    input   wire [1:0]                  aw_burst,
-    output  wire                        w_ready,
-    input   wire                        w_valid,
-    input   wire [DATA_WIDTH-1:0]       w_data,
-    input   wire [DATA_WIDTH/8-1:0]     w_strb,
-    input   wire                        w_last,
-    input   wire                        b_ready,
-    output  wire                        b_valid,
-    output  wire [BRESP_WIDTH-1:0]      b_resp,
-    output  wire [3:0]                  b_id,
+    output  wire                        awready,
+    input   wire                        awvalid,
+    input   wire [ADDR_WIDTH-1:0]       awaddr,
+    input   wire [3:0]                  awid,
+    input   wire [7:0]                  awlen,
+    input   wire [2:0]                  awsize,
+    input   wire [1:0]                  awburst,
+    output  wire                        wready,
+    input   wire                        wvalid,
+    input   wire [DATA_WIDTH-1:0]       wdata,
+    input   wire [DATA_WIDTH/8-1:0]     wstrb,
+    input   wire                        wlast,
+    input   wire                        bready,
+    output  wire                        bvalid,
+    output  wire [BRESP_WIDTH-1:0]      bresp,
+    output  wire [3:0]                  bid,
     /* 模块信号 */
     input   wire                        enable,
     output  wire [ADDR_WIDTH-1:0]       write_addr,
@@ -220,37 +220,37 @@ module axi4_salve_writer #(
     output  wire                        write_valid
 );
 
-    reg                                     r_aw_ready;
-    reg                                     r_w_ready;
-    reg                                     r_b_valid;
-    reg [BRESP_WIDTH-1:0]                   r_b_resp;
-    reg [3:0]                               r_b_id;
+    reg                                     r_awready;
+    reg                                     r_wready;
+    reg                                     r_bvalid;
+    reg [BRESP_WIDTH-1:0]                   r_bresp;
+    reg [3:0]                               r_bid;
 
     reg [ADDR_WIDTH-1:0]                    r_write_addr;
     reg [3:0]                               r_write_id;
     reg [7:0]                               r_write_len; // 单个burst写入数据大小，2^n字节
     reg [2:0]                               r_write_size; // burst写入数量，2^n字节
 
-    assign aw_ready = r_aw_ready;
-    assign w_ready = r_w_ready;
-    assign b_valid = r_b_valid;
-    assign b_resp = r_b_resp;
-    assign b_id = r_b_id;
+    assign awready = r_awready;
+    assign wready = r_wready;
+    assign bvalid = r_bvalid;
+    assign bresp = r_bresp;
+    assign bid = r_bid;
 
     assign write_addr = r_write_addr;
-    assign write_data = w_data;
+    assign write_data = wdata;
     assign write_size = r_write_size;
-    assign write_valid = w_valid;
+    assign write_valid = wvalid;
 
-    wire in_write_mode = (aw_ready || w_ready || b_valid);
+    wire in_write_mode = (awready || wready || bvalid);
 
     always @(posedge clk) begin
         if (rst || !enable) begin
-            r_aw_ready <= 0;
-            r_w_ready <= 0;
-            r_b_valid <= 0;
-            r_b_resp <= 0;
-            r_b_id <= 0;
+            r_awready <= 0;
+            r_wready <= 0;
+            r_bvalid <= 0;
+            r_bresp <= 0;
+            r_bid <= 0;
 
             r_write_addr <= 0;
             r_write_size <= 0;
@@ -258,43 +258,43 @@ module axi4_salve_writer #(
             r_write_id <= 0;
         end else begin
             // write request
-            if (!in_write_mode) r_aw_ready <= 1;
-            if (aw_valid) begin
-                r_write_addr <= aw_addr;
-                r_write_size <= aw_size;
-                r_write_len <= aw_len;
-                r_write_id <= aw_id;
+            if (!in_write_mode) r_awready <= 1;
+            if (awvalid) begin
+                r_write_addr <= awaddr;
+                r_write_size <= awsize;
+                r_write_len <= awlen;
+                r_write_id <= awid;
                 
                 `ifndef IN_YOSYS_STA
-                if (aw_size!=2 || aw_len!=0) $error("%s only support write 1 burst - 4bytes, addr:%x size:%x len:%x", NAME, aw_addr, aw_size, aw_len);
+                if (awsize!=2 || awlen!=0) $error("%s only support write 1 burst - 4bytes, addr:%x size:%x len:%x", NAME, awaddr, awsize, awlen);
                 `endif
             end
-            if (aw_valid && aw_ready) begin
-                r_aw_ready <= 0;
+            if (awvalid && awready) begin
+                r_awready <= 0;
             end
 
             // write data
-            if (aw_valid && aw_ready) begin
-                r_w_ready <= 1;
+            if (awvalid && awready) begin
+                r_wready <= 1;
             end
-            if (w_valid && w_ready) begin
-                r_w_ready <= 0;
+            if (wvalid && wready) begin
+                r_wready <= 0;
             end
-            if (w_valid && w_ready) begin
+            if (wvalid && wready) begin
                 `ifndef IN_YOSYS_STA
-                if (!w_last) $error("%s only support write 1-burst, addr:%x size:%x", NAME, aw_addr, write_size);
+                if (!wlast) $error("%s only support write 1-burst, addr:%x size:%x", NAME, awaddr, write_size);
                 `endif
             end
 
             // write response
-            if (w_valid && w_ready && w_last) begin
-                r_b_valid <= 1;
-                r_b_resp <= 0;
-                r_b_id <= r_write_id;
+            if (wvalid && wready && wlast) begin
+                r_bvalid <= 1;
+                r_bresp <= 0;
+                r_bid <= r_write_id;
             end
-            if (b_valid && b_ready) begin
-                r_b_valid <= 0;
-                r_b_id <= 0;
+            if (bvalid && bready) begin
+                r_bvalid <= 0;
+                r_bid <= 0;
             end
 
         end
@@ -317,19 +317,19 @@ module axi_master_reader #(
     input   wire                        clk,
     input   wire                        rst,
     /* 通信信号 */
-    input   wire                        ar_ready,
-    output  wire                        ar_valid,
-    output  wire [ADDR_WIDTH-1:0]       ar_addr,
-    output  wire [3:0]                  ar_id,
-    output  wire [7:0]                  ar_len,
-    output  wire [2:0]                  ar_size,
-    output  wire [1:0]                  ar_burst,
-    output  wire                        r_ready,
-    input   wire                        r_valid,
-    input   wire [RRESP_WIDTH-1:0]      r_resp,
-    input   wire [DATA_WIDTH-1:0]       r_data,
-    input   wire                        r_last,
-    input   wire [3:0]                  r_id,
+    input   wire                        arready,
+    output  wire                        arvalid,
+    output  wire [ADDR_WIDTH-1:0]       araddr,
+    output  wire [3:0]                  arid,
+    output  wire [7:0]                  arlen,
+    output  wire [2:0]                  arsize,
+    output  wire [1:0]                  arburst,
+    output  wire                        rready,
+    input   wire                        rvalid,
+    input   wire [RRESP_WIDTH-1:0]      rresp,
+    input   wire [DATA_WIDTH-1:0]       rdata,
+    input   wire                        rlast,
+    input   wire [3:0]                  rid,
     /* 模块信号 */
     input   wire                        enable,
     input   wire                        read_sign,
@@ -339,15 +339,16 @@ module axi_master_reader #(
     output  wire [1:0]                  read_state
 );
 
-    reg r_ar_valid;
-    reg [ADDR_WIDTH-1:0] r_ar_addr;
-    reg [3:0] r_ar_id;
-    reg [7:0] r_ar_len;
-    reg [7:0] r_record_ar_len;
-    reg [2:0] r_ar_size;
-    reg [2:0] r_record_ar_size;
-    reg [1:0] r_ar_burst;
-    reg r_r_ready;
+    reg r_arvalid;
+    reg [ADDR_WIDTH-1:0] r_araddr;
+    reg [3:0] r_arid;
+    reg [7:0] r_arlen;
+    reg [7:0] r_record_arlen;
+    reg [2:0] r_arsize;
+    reg [2:0] r_record_arsize;
+    reg [1:0] r_arburst;
+    reg r_rready;
+    reg rr_ready;
 
     reg [7:0] s_read_idx;
     reg [7:0] s_read_len;
@@ -360,13 +361,13 @@ module axi_master_reader #(
     assign read_state = r_read_state;
     assign read_data = s_read_data;
 
-    assign ar_valid = r_ar_valid;
-    assign ar_addr = r_ar_addr;
-    assign ar_id = r_ar_id;
-    assign ar_len = r_ar_len;
-    assign ar_size = r_ar_size;
-    assign ar_burst = r_ar_burst;
-    assign r_ready = r_r_ready;
+    assign arvalid = r_arvalid;
+    assign araddr = r_araddr;
+    assign arid = r_arid;
+    assign arlen = r_arlen;
+    assign arsize = r_arsize;
+    assign arburst = r_arburst;
+    assign rready = r_rready;
 
     assign s_read_strbs[0] = s_read_strb[0 +: 4];
     assign s_read_strbs[1] = s_read_strb[4 +: 4];
@@ -378,14 +379,14 @@ module axi_master_reader #(
 
     `ifdef IN_YOSYS_STA
     always @(posedge clk) begin
-        s_read_data <= r_data;
+        s_read_data <= rdata;
     end
     `else
     always @(*) begin
         s_read_data = 0;
         if (r_read_state == `AXI4_STATE_DATA) begin
             /* 依次读取非对齐数据，用组合逻辑实现； */
-            get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
+            get_unalign_addr_data(s_read_idx, read_sign, read_size, rdata, s_read_shift_val, s_read_data);
         end
     end
     `endif
@@ -394,57 +395,57 @@ module axi_master_reader #(
         if (rst || !enable) begin
             r_read_state <= `AXI4_STATE_ADDR;
 
-            r_ar_valid <= 0;
-            r_ar_addr <= 0;
-            r_ar_id <= 0;
-            r_ar_len <= 0;
-            r_ar_size <= 0;
-            r_ar_burst <= 0;
-            r_r_ready <= 0;
+            r_arvalid <= 0;
+            r_araddr <= 0;
+            r_arid <= 0;
+            r_arlen <= 0;
+            r_arsize <= 0;
+            r_arburst <= 0;
+            r_rready <= 0;
         end else begin
             case (r_read_state)
                 `AXI4_STATE_ADDR: begin
                     // read request
-                    r_ar_valid <= 1;
-                    r_ar_addr <= read_addr; // sram会4字节对齐
-                    r_ar_id <= ID;
-                    r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
-                    r_ar_size <= read_size;
-                    r_ar_burst <= BURST;
+                    r_arvalid <= 1;
+                    r_araddr <= read_addr; // sram会4字节对齐
+                    r_arid <= ID;
+                    r_arlen <= s_read_len; // 读取数据总burst数量，2^n
+                    r_arsize <= read_size;
+                    r_arburst <= BURST;
                     check_dev_addr(read_addr, `DEV_ATTR_READ);
                     get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
                     s_read_idx <= 0;
 
-                    if (ar_valid && ar_ready) begin
-                        r_ar_valid <= 0;
-                        r_ar_addr <= 0;
-                        r_ar_id <= 0;
-                        r_ar_len <= 0;
-                        r_ar_size <= 0;
-                        r_ar_burst <= 0;
-                        r_record_ar_len <= r_ar_len;
-                        r_record_ar_size <= r_ar_size;
+                    if (arvalid && arready) begin
+                        r_arvalid <= 0;
+                        r_araddr <= 0;
+                        r_arid <= 0;
+                        r_arlen <= 0;
+                        r_arsize <= 0;
+                        r_arburst <= 0;
+                        r_record_arlen <= r_arlen;
+                        r_record_arsize <= r_arsize;
 
                         // switch to read data
                         r_read_state <= `AXI4_STATE_DATA;
-                        r_r_ready <= 1;
+                        r_rready <= 1;
                         s_read_idx <= 0;
                     end
                 end 
 
                 `AXI4_STATE_DATA: begin
                     // read data
-                    if (r_valid) begin
+                    if (rvalid) begin
                         s_read_idx <= s_read_idx + 1;
                     end
-                    if (r_last) begin
-                        r_r_ready <= 0;
+                    if (rlast) begin
+                        r_rready <= 0;
                         s_read_idx <= 0;
-                        func_dev_skip(0, read_addr, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
+                        func_dev_skip(0, read_addr, {21'h0, r_record_arsize, r_record_arlen}, s_read_data);
                         // check error response
                         `ifndef IN_YOSYS_STA
-                        if (r_resp!=0 || r_last!=1 || r_id!=ID) begin
-                            $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, r_resp, r_last, r_id);
+                        if (rresp!=0 || rlast!=1 || rid!=ID) begin
+                            $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, rresp, rlast, rid);
                         end
                         `endif
 
@@ -475,19 +476,19 @@ module axi4_salve_reader #(
     input   wire                        clk,
     input   wire                        rst,
     /* 通信信号 */
-    output  wire                        ar_ready,
-    input   wire                        ar_valid,
-    input   wire [ADDR_WIDTH-1:0]       ar_addr,
-    input   wire [3:0]                  ar_id,
-    input   wire [7:0]                  ar_len,
-    input   wire [2:0]                  ar_size,
-    input   wire [1:0]                  ar_burst,
-    input   wire                        r_ready,
-    output  wire                        r_valid,
-    output  wire [RRESP_WIDTH-1:0]      r_resp,
-    output  wire [DATA_WIDTH-1:0]       r_data,
-    output  wire                        r_last,
-    output  wire [3:0]                  r_id,
+    output  wire                        arready,
+    input   wire                        arvalid,
+    input   wire [ADDR_WIDTH-1:0]       araddr,
+    input   wire [3:0]                  arid,
+    input   wire [7:0]                  arlen,
+    input   wire [2:0]                  arsize,
+    input   wire [1:0]                  arburst,
+    input   wire                        rready,
+    output  wire                        rvalid,
+    output  wire [RRESP_WIDTH-1:0]      rresp,
+    output  wire [DATA_WIDTH-1:0]       rdata,
+    output  wire                        rlast,
+    output  wire [3:0]                  rid,
     /* 模块信号 */
     input   wire                        enable,
     output  wire [ADDR_WIDTH-1:0]       read_addr,
@@ -498,65 +499,65 @@ module axi4_salve_reader #(
 );
     reg [1:0]                               r_read_state;
 
-    reg                                     r_ar_ready;
-    reg                                     r_r_valid;
-    reg [RRESP_WIDTH-1:0]                   r_r_resp;
-    reg [DATA_WIDTH-1:0]                    r_r_data;
-    reg                                     r_r_last;
-    reg [3:0]                               r_r_id;
+    reg                                     r_arready;
+    reg                                     r_rvalid;
+    reg [RRESP_WIDTH-1:0]                   r_rresp;
+    reg [DATA_WIDTH-1:0]                    r_rdata;
+    reg                                     r_rlast;
+    reg [3:0]                               r_rid;
 
     reg [7:0]                               r_read_len;
     reg [2:0]                               r_read_size;
 
-    assign ar_ready = r_ar_ready;
-    assign r_valid = r_r_valid;
-    assign r_resp = r_r_resp;
-    assign r_data = r_r_data;
-    assign r_last = r_r_last;
-    assign r_id = r_r_id;
+    assign arready = r_arready;
+    assign rvalid = r_rvalid;
+    assign rresp = r_rresp;
+    assign rdata = r_rdata;
+    assign rlast = r_rlast;
+    assign rid = r_rid;
 
     /* 使用组合逻辑，外面才能在时序中正常处理 */
-    assign read_addr = ar_addr;
-    assign read_len = ar_len;
-    assign read_size = ar_size;
+    assign read_addr = araddr;
+    assign read_len = arlen;
+    assign read_size = arsize;
     assign read_state = r_read_state;
 
     always @(posedge clk) begin
         if (rst || !enable) begin
             r_read_state <= `AXI4_STATE_ADDR;
 
-            r_ar_ready <= 1;
-            r_r_valid <= 0;
-            r_r_resp <= 0;
-            r_r_data <= 0;
-            r_r_last <= 0;
-            r_r_id <= 0;
+            r_arready <= 1;
+            r_rvalid <= 0;
+            r_rresp <= 0;
+            r_rdata <= 0;
+            r_rlast <= 0;
+            r_rid <= 0;
         end else begin
             case (r_read_state)
                 `AXI4_STATE_ADDR: begin
                     // read request
-                    r_ar_ready <= 0;
-                    if (ar_valid) begin
+                    r_arready <= 0;
+                    if (arvalid) begin
                         r_read_state <= `AXI4_STATE_DATA;
                     end
 
                     // read data，配合组合逻辑快速读取数据
-                    r_r_data <= read_data;
-                    r_r_valid <= 1;
-                    r_r_resp <= 0;
-                    r_r_last <= 1;
-                    r_r_id <= ar_id;
+                    r_rdata <= read_data;
+                    r_rvalid <= 1;
+                    r_rresp <= 0;
+                    r_rlast <= 1;
+                    r_rid <= arid;
                 end
             
                 `AXI4_STATE_DATA: begin
-                    if (r_valid && r_ready && r_last) begin
+                    if (rvalid && rready && rlast) begin
                         r_read_state <= `AXI4_STATE_ADDR;
 
-                        r_ar_ready <= 1;
-                        r_r_valid <= 0;
-                        r_r_resp <= 0;
-                        r_r_last <= 0;
-                        r_r_id <= 0;
+                        r_arready <= 1;
+                        r_rvalid <= 0;
+                        r_rresp <= 0;
+                        r_rlast <= 0;
+                        r_rid <= 0;
                     end 
                 end
             endcase

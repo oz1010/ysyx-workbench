@@ -22,7 +22,7 @@ reg [4:0] r_rs1;
 reg [4:0] r_rs2;
 reg [INST_WIDTH-1:0] r_imm;
 reg [15:0] inst_code;
-wire [1:0] w_id_prev_state, w_id_next_state;
+wire [1:0] wid_prev_state, wid_next_state;
 
 scom m_scom_id(
     .clk(clk),
@@ -31,8 +31,8 @@ scom m_scom_id(
     .prev_valid(prev_valid),
     .next_ready(next_ready),
     .next_valid(next_valid),
-    .prev_state(w_id_prev_state),
-    .next_state(w_id_next_state)
+    .prev_state(wid_prev_state),
+    .next_state(wid_next_state)
 );
 
 // assign rd = r_rd;
@@ -40,8 +40,8 @@ scom m_scom_id(
 // assign rs2 = r_rs2;
 // assign imm = r_imm;
 // assign inst_code = r_inst_code;
-// assign ready = r_ready;
-// assign valid = r_valid;
+// assign ready = rready;
+// assign valid = rvalid;
 
 assign icode = inst_code;
 
@@ -162,7 +162,7 @@ reg [4:0] r_rs1;
 reg [4:0] r_rs2;
 reg [INST_WIDTH-1:0] r_imm;
 reg [15:0] r_inst_code;
-reg r_valid;
+reg rvalid;
 */
 
 always @(posedge clk) begin
@@ -172,7 +172,7 @@ always @(posedge clk) begin
         r_rs2 <= 0;
         r_imm <= 0;
     end else begin
-        if (w_id_prev_state == `SCOM_FOUND) begin
+        if (wid_prev_state == `SCOM_FOUND) begin
             r_rd <= rd;
             r_rs1 <= rs1;
             r_rs2 <= rs2;

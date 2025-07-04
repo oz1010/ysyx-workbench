@@ -317,10 +317,10 @@ void dpi_uart_write(int addr, int len, int data)
 void dpi_dev_skip(int write, int addr, int req_info, int data)
 {
     const char *rw_str = write ? "write" : "read";
-    int w_strb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
-    int aw_size = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
-    int ar_len = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
-    int ar_size = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
+    int wstrb = (req_info >> 0) & 0xf;          // 单次burst数据有效掩码
+    int awsize = 1 << ((req_info >> 4) & 0x7);  // 单次burst数据大小，2^n
+    int arlen = (req_info >> 0) & 0xff;         // 读取数据总burst数量，2^n
+    int arsize = 1 << ((req_info >> 4) & 0x7);  // 单个burst读取大小，2^n字节
     vdev_item_t *vdev = find_vdev_item(addr);
     if (vdev)
     {
@@ -331,7 +331,7 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
             if (vdev->startaddr == CONFIG_UART_BASE_ADDR)
             {
                 char c = (char)data;
-                DPI_DTRACE(vdev->name, "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, aw_size, c,
+                DPI_DTRACE(vdev->name, "%s %#x %#x '%c'(%#x)", rw_str, (uint32_t)addr, awsize, c,
                            c);
             }
             else
@@ -347,12 +347,12 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
                 if (write)
                 {
                     DPI_DTRACE(vdev->name, "W [%#.8x] <= %#.8x %#x(%d %#x)", (uint32_t)addr, data,
-                               req_info, aw_size, w_strb);
+                               req_info, awsize, wstrb);
                 }
                 else
                 {
                     DPI_DTRACE(vdev->name, "R [%#.8x] => %#.8x %#x(%d %#x)", (uint32_t)addr, data,
-                               req_info, ar_size, ar_len);
+                               req_info, arsize, arlen);
                 }
             }
         }
@@ -360,18 +360,18 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
         {
             if (write)
             {
-                DPI_MTRACE("%s W [%#.8x] <= %#.8x %d %#x", vdev->name, addr, data, aw_size, w_strb);
+                DPI_MTRACE("%s W [%#.8x] <= %#.8x %d %#x", vdev->name, addr, data, awsize, wstrb);
             }
             else
             {
-                DPI_MTRACE("%s R [%#.8x] => %#.8x %d %#x", vdev->name, addr, data, ar_size, ar_len);
+                DPI_MTRACE("%s R [%#.8x] => %#.8x %d %#x", vdev->name, addr, data, arsize, arlen);
             }
             switch (vdev->startaddr)
             {
                 case CONFIG_SRAM_BASE:
                     // 同步对内存的修改，避免调试反汇编异常
                     if (write)
-                        vdev_write(vdev, addr, aw_size, data);
+                        vdev_write(vdev, addr, awsize, data);
                     break;
 
                 case CONFIG_MROM_BASE:
@@ -391,7 +391,7 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
             // 内部设备不会走vdev机制，需要单独触发此流程
             if (vdev->handler)
             {
-                vdev->handler(vdev, write, addr, write ? aw_size : ar_size, (uint32_t *)&data);
+                vdev->handler(vdev, write, addr, write ? awsize : arsize, (uint32_t *)&data);
             }
         }
 
@@ -653,10 +653,10 @@ void add_monitor_log(int item_idx, int id)
     perf_monitor_data_t data;
     perf_monitor_header_t *header =
         item_idx == PERF_MONITOR_TYPE_EVENT ? &data.event.header : &data.code.header;
-    size_t w_size = 0;
+    size_t wsize = 0;
 
     header->type = item_idx;
-    w_size += sizeof(perf_monitor_header_t);
+    wsize += sizeof(perf_monitor_header_t);
     if (item_idx == PERF_MONITOR_TYPE_EVENT)
     {
         data.event.type = id;
@@ -677,16 +677,16 @@ void add_monitor_log(int item_idx, int id)
             return;
         }
 
-        w_size += sizeof(data.event.type);
-        w_size += 1 << header->size;
+        wsize += sizeof(data.event.type);
+        wsize += 1 << header->size;
     }
     else
     {
         data.code.inst = id & 0xff;
-        w_size += sizeof(data.code.inst);
+        wsize += sizeof(data.code.inst);
     }
 
-    fwrite(header, 1, w_size, perf_fp);
+    fwrite(header, 1, wsize, perf_fp);
 
     if (hw_tick - last_update_tick > 10000)
     {

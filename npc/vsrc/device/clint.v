@@ -7,67 +7,67 @@ module clint #(
     input wire clk,
     input wire rst,
 
-    output  wire                        aw_ready,
-    input   wire                        aw_valid,
-    input   wire [ADDR_WIDTH-1:0]       aw_addr,
-    input   wire [3:0]                  aw_id,
-    input   wire [7:0]                  aw_len,
-    input   wire [2:0]                  aw_size,
-    input   wire [1:0]                  aw_burst,
-    output  wire                        w_ready,
-    input   wire                        w_valid,
-    input   wire [DATA_WIDTH-1:0]       w_data,
-    input   wire [DATA_WIDTH/8-1:0]     w_strb,
-    input   wire                        w_last,
-    input   wire                        b_ready,
-    output  wire                        b_valid,
-    output  wire [BRESP_WIDTH-1:0]      b_resp,
-    output  wire [3:0]                  b_id,
-    output  wire                        ar_ready,
-    input   wire                        ar_valid,
-    input   wire [ADDR_WIDTH-1:0]       ar_addr,
-    input   wire [3:0]                  ar_id,
-    input   wire [7:0]                  ar_len,
-    input   wire [2:0]                  ar_size,
-    input   wire [1:0]                  ar_burst,
-    input   wire                        r_ready,
-    output  wire                        r_valid,
-    output  wire [RRESP_WIDTH-1:0]      r_resp,
-    output  wire [DATA_WIDTH-1:0]       r_data,
-    output  wire                        r_last,
-    output  wire [3:0]                  r_id
+    output  wire                        awready,
+    input   wire                        awvalid,
+    input   wire [ADDR_WIDTH-1:0]       awaddr,
+    input   wire [3:0]                  awid,
+    input   wire [7:0]                  awlen,
+    input   wire [2:0]                  awsize,
+    input   wire [1:0]                  awburst,
+    output  wire                        wready,
+    input   wire                        wvalid,
+    input   wire [DATA_WIDTH-1:0]       wdata,
+    input   wire [DATA_WIDTH/8-1:0]     wstrb,
+    input   wire                        wlast,
+    input   wire                        bready,
+    output  wire                        bvalid,
+    output  wire [BRESP_WIDTH-1:0]      bresp,
+    output  wire [3:0]                  bid,
+    output  wire                        arready,
+    input   wire                        arvalid,
+    input   wire [ADDR_WIDTH-1:0]       araddr,
+    input   wire [3:0]                  arid,
+    input   wire [7:0]                  arlen,
+    input   wire [2:0]                  arsize,
+    input   wire [1:0]                  arburst,
+    input   wire                        rready,
+    output  wire                        rvalid,
+    output  wire [RRESP_WIDTH-1:0]      rresp,
+    output  wire [DATA_WIDTH-1:0]       rdata,
+    output  wire                        rlast,
+    output  wire [3:0]                  rid
 );
 
-reg                                     r_aw_ready = 0;
-reg                                     r_w_ready = 0;
-reg                                     r_b_valid = 0;
-reg [BRESP_WIDTH-1:0]                   r_b_resp = 0;
-reg [3:0]                               r_b_id = 0;
-reg                                     r_ar_ready;
-reg                                     r_r_valid;
-reg [RRESP_WIDTH-1:0]                   r_r_resp;
-reg [DATA_WIDTH-1:0]                    r_r_data;
-reg                                     r_r_last;
-reg [3:0]                               r_r_id;
+reg                                     r_awready = 0;
+reg                                     r_wready = 0;
+reg                                     r_bvalid = 0;
+reg [BRESP_WIDTH-1:0]                   r_bresp = 0;
+reg [3:0]                               r_bid = 0;
+reg                                     r_arready;
+reg                                     r_rvalid;
+reg [RRESP_WIDTH-1:0]                   r_rresp;
+reg [DATA_WIDTH-1:0]                    r_rdata;
+reg                                     r_rlast;
+reg [3:0]                               r_rid;
 
 reg [ADDR_WIDTH-1:0] r_write_addr;
 
-wire [DATA_WIDTH-1:0] w_write_width = {{DATA_WIDTH-DATA_WIDTH/8{1'b0}}, w_strb};
+wire [DATA_WIDTH-1:0] w_write_width = {{DATA_WIDTH-DATA_WIDTH/8{1'b0}}, wstrb};
 
-assign aw_ready = r_aw_ready;
-assign w_ready = r_w_ready;
-assign b_valid = r_b_valid;
-assign b_resp = r_b_resp;
-assign b_id = r_b_id;
-assign ar_ready = r_ar_ready;
-assign r_valid = r_r_valid;
-assign r_resp = r_r_resp;
-assign r_data = r_r_data;
-assign r_last = r_r_last;
-assign r_id = r_r_id;
+assign awready = r_awready;
+assign wready = r_wready;
+assign bvalid = r_bvalid;
+assign bresp = r_bresp;
+assign bid = r_bid;
+assign arready = r_arready;
+assign rvalid = r_rvalid;
+assign rresp = r_rresp;
+assign rdata = r_rdata;
+assign rlast = r_rlast;
+assign rid = r_rid;
 
-wire [31:0] read_len = 1<<ar_len;      // burst写入数量，2^n字节
-wire [31:0] read_size = 1<<ar_size;    // 单个burst写入数据大小，2^n字节
+wire [31:0] read_len = 1<<arlen;      // burst写入数量，2^n字节
+wire [31:0] read_size = 1<<arsize;    // 单个burst写入数据大小，2^n字节
 
 `ifdef IN_YOSYS_STA
 reg [31:0] rtc_ticks;
@@ -83,62 +83,62 @@ end
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_aw_ready <= 0;
-        r_w_ready <= 0;
-        r_b_valid <= 0;
-        r_b_resp <= 0;
-        r_b_id <= 0;
-        r_ar_ready <= 0;
-        r_r_valid <= 0;
-        r_r_resp <= 0;
-        r_r_data <= 0;
-        r_r_last <= 0;
-        r_r_id <= 0;
+        r_awready <= 0;
+        r_wready <= 0;
+        r_bvalid <= 0;
+        r_bresp <= 0;
+        r_bid <= 0;
+        r_arready <= 0;
+        r_rvalid <= 0;
+        r_rresp <= 0;
+        r_rdata <= 0;
+        r_rlast <= 0;
+        r_rid <= 0;
 
         r_write_addr <= 0;
     end else begin
-        r_aw_ready <= r_aw_ready;
-        r_w_ready <= r_w_ready;
-        r_b_valid <= r_b_valid;
-        r_b_resp <= r_b_resp;
-        r_b_id <= r_b_id;
-        r_ar_ready <= r_ar_ready;
-        r_r_valid <= r_r_valid;
-        r_r_resp <= r_r_resp;
-        r_r_data <= r_r_data;
-        r_r_last <= r_r_last;
-        r_r_id <= r_r_id;
+        r_awready <= r_awready;
+        r_wready <= r_wready;
+        r_bvalid <= r_bvalid;
+        r_bresp <= r_bresp;
+        r_bid <= r_bid;
+        r_arready <= r_arready;
+        r_rvalid <= r_rvalid;
+        r_rresp <= r_rresp;
+        r_rdata <= r_rdata;
+        r_rlast <= r_rlast;
+        r_rid <= r_rid;
 
         r_write_addr <= r_write_addr;
 
         // read request
-        if (ar_valid) begin
-            r_ar_ready <= 1;
+        if (arvalid) begin
+            r_arready <= 1;
         end
-        if (ar_valid && ar_ready) begin
-            r_ar_ready <= 0;
+        if (arvalid && arready) begin
+            r_arready <= 0;
         end
 
         // read data
-        if (ar_valid && ar_ready) begin
+        if (arvalid && arready) begin
 `ifdef IN_YOSYS_STA
-            r_r_data <= rtc_ticks;
+            r_rdata <= rtc_ticks;
 `else
-            if (read_size != 4) $error("clint only support read 4bytes, addr:%x size:%x", ar_addr, read_size);
+            if (read_size != 4) $error("clint only support read 4bytes, addr:%x size:%x", araddr, read_size);
 
-            r_r_data <= dpi_rtc_read(ar_addr, read_size);
+            r_rdata <= dpi_rtc_read(araddr, read_size);
 `endif
 
-            r_r_valid <= 1;
-            r_r_resp <= 0;
-            r_r_last <= 1;
-            r_r_id <= ar_id;
+            r_rvalid <= 1;
+            r_rresp <= 0;
+            r_rlast <= 1;
+            r_rid <= arid;
         end
-        if (r_valid && r_ready) begin
-            r_r_valid <= 0;
-            r_r_resp <= 0;
-            r_r_last <= 0;
-            r_r_id <= 0;
+        if (rvalid && rready) begin
+            r_rvalid <= 0;
+            r_rresp <= 0;
+            r_rlast <= 0;
+            r_rid <= 0;
         end
     end
 end

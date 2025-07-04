@@ -16,11 +16,11 @@ module sram_delay #(
 reg [7:0] r_delay_cnt;
 reg r_delay_enable;
 
-reg [INST_WIDTH-1:0] r_data;
-reg r_valid;
+reg [INST_WIDTH-1:0] rdata;
+reg rvalid;
 
-assign data = r_data;
-assign valid = r_valid;
+assign data = rdata;
+assign valid = rvalid;
 
 assign r_delay_enable = enable;
 always @(posedge clk or posedge rst) begin
@@ -39,16 +39,16 @@ end
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_data <= 0;
-        r_valid <= 0;
+        rdata <= 0;
+        rvalid <= 0;
     end else begin
-        r_valid <= r_valid;
-        r_data <= r_data;
+        rvalid <= rvalid;
+        rdata <= rdata;
         if (r_delay_enable && r_delay_cnt===SRAM_READ_DELAY) begin
-            r_data <= fetch_inst(addr);
-            r_valid <= 1;
+            rdata <= fetch_inst(addr);
+            rvalid <= 1;
         end
-        if (r_valid) r_valid <= 0;
+        if (rvalid) rvalid <= 0;
     end
 end
     

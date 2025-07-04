@@ -13,53 +13,53 @@ module inst_fetch #(
     input   wire [INST_WIDTH-1:0]       pc,
     output  wire [INST_WIDTH-1:0]       inst,
 
-    input   wire                        aw_ready,
-    output  wire                        aw_valid,
-    output  wire [ADDR_WIDTH-1:0]       aw_addr,
-    output  wire [3:0]                  aw_id,
-    output  wire [7:0]                  aw_len,
-    output  wire [2:0]                  aw_size,
-    output  wire [1:0]                  aw_burst,
-    input   wire                        w_ready,
-    output  wire                        w_valid,
-    output  wire [DATA_WIDTH-1:0]       w_data,
-    output  wire [DATA_WIDTH/8-1:0]     w_strb,
-    output  wire                        w_last,
-    output  wire                        b_ready,
-    input   wire                        b_valid,
-    input   wire [BRESP_WIDTH-1:0]      b_resp,
-    input   wire [3:0]                  b_id,
+    input   wire                        awready,
+    output  wire                        awvalid,
+    output  wire [ADDR_WIDTH-1:0]       awaddr,
+    output  wire [3:0]                  awid,
+    output  wire [7:0]                  awlen,
+    output  wire [2:0]                  awsize,
+    output  wire [1:0]                  awburst,
+    input   wire                        wready,
+    output  wire                        wvalid,
+    output  wire [DATA_WIDTH-1:0]       wdata,
+    output  wire [DATA_WIDTH/8-1:0]     wstrb,
+    output  wire                        wlast,
+    output  wire                        bready,
+    input   wire                        bvalid,
+    input   wire [BRESP_WIDTH-1:0]      bresp,
+    input   wire [3:0]                  bid,
 
-    input   wire                        ar_ready,
-    output  wire                        ar_valid,
-    output  wire [ADDR_WIDTH-1:0]       ar_addr,
-    output  wire [3:0]                  ar_id,
-    output  wire [7:0]                  ar_len,
-    output  wire [2:0]                  ar_size,
-    output  wire [1:0]                  ar_burst,
-    output  wire                        r_ready,
-    input   wire                        r_valid,
-    input   wire [RRESP_WIDTH-1:0]      r_resp,
-    input   wire [DATA_WIDTH-1:0]       r_data,
-    input   wire                        r_last,
-    input   wire [3:0]                  r_id,
+    input   wire                        arready,
+    output  wire                        arvalid,
+    output  wire [ADDR_WIDTH-1:0]       araddr,
+    output  wire [3:0]                  arid,
+    output  wire [7:0]                  arlen,
+    output  wire [2:0]                  arsize,
+    output  wire [1:0]                  arburst,
+    output  wire                        rready,
+    input   wire                        rvalid,
+    input   wire [RRESP_WIDTH-1:0]      rresp,
+    input   wire [DATA_WIDTH-1:0]       rdata,
+    input   wire                        rlast,
+    input   wire [3:0]                  rid,
 
     input   wire                        enable,
     input   wire                        next_ready,
     output  wire                        next_valid
 );
 
-    assign aw_valid = 0;
-    assign aw_addr = 0;
-    assign aw_id = 0;
-    assign aw_len = 0;
-    assign aw_size = 0;
-    assign aw_burst = 0;
-    assign w_valid = 0;
-    assign w_data = 0;
-    assign w_strb = 0;
-    assign w_last = 0;
-    assign b_ready = 0;
+    assign awvalid = 0;
+    assign awaddr = 0;
+    assign awid = 0;
+    assign awlen = 0;
+    assign awsize = 0;
+    assign awburst = 0;
+    assign wvalid = 0;
+    assign wdata = 0;
+    assign wstrb = 0;
+    assign wlast = 0;
+    assign bready = 0;
 
     /* 触发式记录使能 */
     reg in_read_en;
@@ -87,7 +87,7 @@ module inst_fetch #(
             wire [1:0] read_state;
             wire [INST_WIDTH-1:0] read_data;
             
-            assign next_valid = r_valid && r_ready;
+            assign next_valid = rvalid && rready;
             assign inst = r_inst;
 
             axi_master_reader #(
@@ -104,19 +104,19 @@ module inst_fetch #(
             ) m_axi_master_reader (
                 .clk(clk),
                 .rst(rst),
-                .ar_ready(ar_ready),
-                .ar_valid(ar_valid),
-                .ar_addr(ar_addr),
-                .ar_id(ar_id),
-                .ar_len(ar_len),
-                .ar_size(ar_size),
-                .ar_burst(ar_burst),
-                .r_ready(r_ready),
-                .r_valid(r_valid),
-                .r_resp(r_resp),
-                .r_data(r_data),
-                .r_last(r_last),
-                .r_id(r_id),
+                .arready(arready),
+                .arvalid(arvalid),
+                .araddr(araddr),
+                .arid(arid),
+                .arlen(arlen),
+                .arsize(arsize),
+                .arburst(arburst),
+                .rready(rready),
+                .rvalid(rvalid),
+                .rresp(rresp),
+                .rdata(rdata),
+                .rlast(rlast),
+                .rid(rid),
                 .enable(read_en),
                 .read_sign(0),
                 .read_addr(pc),
@@ -130,11 +130,11 @@ module inst_fetch #(
                 end else begin
                     // read request
                     if (read_en) begin
-                        if (ar_valid) begin
+                        if (arvalid) begin
                             check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                         end
                         
-                        if (r_valid) begin
+                        if (rvalid) begin
                             r_inst <= read_data;
                         end
                     end

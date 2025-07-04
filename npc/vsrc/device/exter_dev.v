@@ -7,41 +7,41 @@ module exter_dev #(
     input wire clk,
     input wire rst,
 
-    output  wire                        aw_ready,
-    input   wire                        aw_valid,
-    input   wire [ADDR_WIDTH-1:0]       aw_addr,
-    input   wire [3:0]                  aw_id,
-    input   wire [7:0]                  aw_len,
-    input   wire [2:0]                  aw_size,
-    input   wire [1:0]                  aw_burst,
-    output  wire                        w_ready,
-    input   wire                        w_valid,
-    input   wire [DATA_WIDTH-1:0]       w_data,
-    input   wire [DATA_WIDTH/8-1:0]     w_strb,
-    input   wire                        w_last,
-    input   wire                        b_ready,
-    output  wire                        b_valid,
-    output  wire [BRESP_WIDTH-1:0]      b_resp,
-    output  wire [3:0]                  b_id,
-    output  wire                        ar_ready,
-    input   wire                        ar_valid,
-    input   wire [ADDR_WIDTH-1:0]       ar_addr,
-    input   wire [3:0]                  ar_id,
-    input   wire [7:0]                  ar_len,
-    input   wire [2:0]                  ar_size,
-    input   wire [1:0]                  ar_burst,
-    input   wire                        r_ready,
-    output  wire                        r_valid,
-    output  wire [RRESP_WIDTH-1:0]      r_resp,
-    output  wire [DATA_WIDTH-1:0]       r_data,
-    output  wire                        r_last,
-    output  wire [3:0]                  r_id
+    output  wire                        awready,
+    input   wire                        awvalid,
+    input   wire [ADDR_WIDTH-1:0]       awaddr,
+    input   wire [3:0]                  awid,
+    input   wire [7:0]                  awlen,
+    input   wire [2:0]                  awsize,
+    input   wire [1:0]                  awburst,
+    output  wire                        wready,
+    input   wire                        wvalid,
+    input   wire [DATA_WIDTH-1:0]       wdata,
+    input   wire [DATA_WIDTH/8-1:0]     wstrb,
+    input   wire                        wlast,
+    input   wire                        bready,
+    output  wire                        bvalid,
+    output  wire [BRESP_WIDTH-1:0]      bresp,
+    output  wire [3:0]                  bid,
+    output  wire                        arready,
+    input   wire                        arvalid,
+    input   wire [ADDR_WIDTH-1:0]       araddr,
+    input   wire [3:0]                  arid,
+    input   wire [7:0]                  arlen,
+    input   wire [2:0]                  arsize,
+    input   wire [1:0]                  arburst,
+    input   wire                        rready,
+    output  wire                        rvalid,
+    output  wire [RRESP_WIDTH-1:0]      rresp,
+    output  wire [DATA_WIDTH-1:0]       rdata,
+    output  wire                        rlast,
+    output  wire [3:0]                  rid
 );
 
-wire in_write_mode = (aw_ready || w_ready || b_valid);
-wire write_enable = (aw_valid || w_ready || b_valid);
+wire in_write_mode = (awready || wready || bvalid);
+wire write_enable = (awvalid || wready || bvalid);
 
-wire read_enable = (ar_valid || r_ready);
+wire read_enable = (arvalid || rready);
 
 `ifdef IN_YOSYS_STA
 reg [31:0] exter_dev_regs[0:31];
@@ -68,22 +68,22 @@ axi4_salve_writer #(
 ) m_axi4_salve_writer (
     .clk(clk),
     .rst(rst),
-    .aw_ready(aw_ready),
-    .aw_valid(aw_valid),
-    .aw_addr(aw_addr),
-    .aw_id(aw_id),
-    .aw_len(aw_len),
-    .aw_size(aw_size),
-    .aw_burst(aw_burst),
-    .w_ready(w_ready),
-    .w_valid(w_valid),
-    .w_data(w_data),
-    .w_strb(w_strb),
-    .w_last(w_last),
-    .b_ready(b_ready),
-    .b_valid(b_valid),
-    .b_resp(b_resp),
-    .b_id(b_id),
+    .awready(awready),
+    .awvalid(awvalid),
+    .awaddr(awaddr),
+    .awid(awid),
+    .awlen(awlen),
+    .awsize(awsize),
+    .awburst(awburst),
+    .wready(wready),
+    .wvalid(wvalid),
+    .wdata(wdata),
+    .wstrb(wstrb),
+    .wlast(wlast),
+    .bready(bready),
+    .bvalid(bvalid),
+    .bresp(bresp),
+    .bid(bid),
     .enable(write_enable),
     .write_addr(write_addr),
     .write_data(write_data),
@@ -103,19 +103,19 @@ axi4_salve_reader #(
 ) m_axi4_salve_reader (
     .clk(clk),
     .rst(rst),
-    .ar_ready(ar_ready),
-    .ar_valid(ar_valid),
-    .ar_addr(ar_addr),
-    .ar_id(ar_id),
-    .ar_len(ar_len),
-    .ar_size(ar_size),
-    .ar_burst(ar_burst),
-    .r_ready(r_ready),
-    .r_valid(r_valid),
-    .r_resp(r_resp),
-    .r_data(r_data),
-    .r_last(r_last),
-    .r_id(r_id),
+    .arready(arready),
+    .arvalid(arvalid),
+    .araddr(araddr),
+    .arid(arid),
+    .arlen(arlen),
+    .arsize(arsize),
+    .arburst(arburst),
+    .rready(rready),
+    .rvalid(rvalid),
+    .rresp(rresp),
+    .rdata(rdata),
+    .rlast(rlast),
+    .rid(rid),
     .enable(read_enable),
     .read_addr(read_addr),
     .read_data(r_read_data),
@@ -129,9 +129,9 @@ wire [31:0] w_real_read_size = 1<<read_size;
 always @(*) begin
     r_read_data = 0;
     if (read_enable) begin
-        if (ar_valid && ar_ready) begin
+        if (arvalid && arready) begin
             `ifndef IN_YOSYS_STA
-            if (w_real_read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", ar_addr, read_size);
+            if (w_real_read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", araddr, read_size);
             r_read_data = dpi_vdev_read(read_addr, w_real_read_size);
             `else
             r_read_data = exter_dev_regs[read_addr[4:0]];
@@ -143,7 +143,7 @@ end
 always @(posedge clk or posedge rst) begin
     if (rst) begin
     end else begin
-        if (in_write_mode && w_valid && w_ready) begin
+        if (in_write_mode && wvalid && wready) begin
             `ifndef IN_YOSYS_STA
             dpi_vdev_write(write_addr, write_data, 1<<write_size);
             `else

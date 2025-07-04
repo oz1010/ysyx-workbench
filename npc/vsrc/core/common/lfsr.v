@@ -61,7 +61,7 @@ module lfsr_delay_signal (
 wire [7:0] cnt;
 reg r_delay_enable;
 reg [7:0] r_delay_cnt;
-lfsr_8bit m_lfsr_ar_valid(
+lfsr_8bit m_lfsr_arvalid(
     .clk(clk),
     .rst(rst),
     .out(cnt)
