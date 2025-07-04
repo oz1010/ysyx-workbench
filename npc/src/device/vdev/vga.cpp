@@ -79,6 +79,11 @@ void vga_ctrl_handler(void *item_arg, bool is_write, vaddr_t addr, int len, word
             case 0x22000000:
                 *data = ((VGA_CTRL_WIDTH & 0xFFFF) << 16) | (VGA_CTRL_HIGH & 0xFFFF);
                 break;
+
+            case 0x22000004:
+                *data = vga_ctrl_regs[1];
+                break;
+
             default:
                 Assert(0, "Read vga ctrl is out of range.");
                 break;
