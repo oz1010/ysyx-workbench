@@ -455,3 +455,107 @@ module axi_master_reader #(
         end
     end
 endmodule
+
+module axi4_salve_reader #(
+    `ifndef IN_YOSYS_STA
+    parameter NAME,
+    `endif
+    parameter BURST, // burst类型，0--FIXED 1--INCR 2--WRAP
+    parameter INST_WIDTH = 32,
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter BRESP_WIDTH = 2,
+    parameter RRESP_WIDTH = 2
+) (
+    input   wire                        clk,
+    input   wire                        rst,
+    /* 通信信号 */
+    output  wire                        ar_ready,
+    input   wire                        ar_valid,
+    input   wire [ADDR_WIDTH-1:0]       ar_addr,
+    input   wire [3:0]                  ar_id,
+    input   wire [7:0]                  ar_len,
+    input   wire [2:0]                  ar_size,
+    input   wire [1:0]                  ar_burst,
+    input   wire                        r_ready,
+    output  wire                        r_valid,
+    output  wire [RRESP_WIDTH-1:0]      r_resp,
+    output  wire [DATA_WIDTH-1:0]       r_data,
+    output  wire                        r_last,
+    output  wire [3:0]                  r_id,
+    /* 模块信号 */
+    input   wire                        enable,
+    output  wire [ADDR_WIDTH-1:0]       read_addr,
+    input   wire [DATA_WIDTH-1:0]       read_data, /* 使用组合逻辑读取数据，否则一个周期的ar信号可能无法满足要求 */
+    output  wire [7:0]                  read_len, // burst读取数量，2^n字节
+    output  wire [2:0]                  read_size, // 单个burst读取数据大小，2^n字节
+    output  wire [1:0]                  read_state
+);
+    reg [1:0]                               r_read_state;
+
+    reg                                     r_ar_ready;
+    reg                                     r_r_valid;
+    reg [RRESP_WIDTH-1:0]                   r_r_resp;
+    reg [DATA_WIDTH-1:0]                    r_r_data;
+    reg                                     r_r_last;
+    reg [3:0]                               r_r_id;
+
+    reg [7:0]                               r_read_len;
+    reg [2:0]                               r_read_size;
+
+    assign ar_ready = r_ar_ready;
+    assign r_valid = r_r_valid;
+    assign r_resp = r_r_resp;
+    assign r_data = r_r_data;
+    assign r_last = r_r_last;
+    assign r_id = r_r_id;
+
+    /* 使用组合逻辑，外面才能在时序中正常处理 */
+    assign read_addr = ar_addr;
+    assign read_len = ar_len;
+    assign read_size = ar_size;
+    assign read_state = r_read_state;
+
+    always @(posedge clk) begin
+        if (rst || !enable) begin
+            r_read_state <= `AXI4_STATE_ADDR;
+
+            r_ar_ready <= 1;
+            r_r_valid <= 0;
+            r_r_resp <= 0;
+            r_r_data <= 0;
+            r_r_last <= 0;
+            r_r_id <= 0;
+        end else begin
+            case (r_read_state)
+                `AXI4_STATE_ADDR: begin
+                    // read request
+                    r_ar_ready <= 0;
+                    if (ar_valid) begin
+                        r_read_state <= `AXI4_STATE_DATA;
+                    end
+
+                    // read data，配合组合逻辑快速读取数据
+                    r_r_data <= read_data;
+                    r_r_valid <= 1;
+                    r_r_resp <= 0;
+                    r_r_last <= 1;
+                    r_r_id <= ar_id;
+                end
+            
+                `AXI4_STATE_DATA: begin
+                    if (r_valid && r_ready && r_last) begin
+                        r_read_state <= `AXI4_STATE_ADDR;
+
+                        r_ar_ready <= 1;
+                        r_r_valid <= 0;
+                        r_r_resp <= 0;
+                        r_r_last <= 0;
+                        r_r_id <= 0;
+                    end 
+                end
+            endcase
+        end
+    end
+
+endmodule

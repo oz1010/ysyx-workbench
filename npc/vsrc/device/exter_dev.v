@@ -38,25 +38,10 @@ module exter_dev #(
     output  wire [3:0]                  r_id
 );
 
-reg                                     r_ar_ready;
-reg                                     r_r_valid;
-reg [RRESP_WIDTH-1:0]                   r_r_resp;
-reg [DATA_WIDTH-1:0]                    r_r_data;
-reg                                     r_r_last;
-reg [3:0]                               r_r_id;
-
-assign ar_ready = r_ar_ready;
-assign r_valid = r_r_valid;
-assign r_resp = r_r_resp;
-assign r_data = r_r_data;
-assign r_last = r_r_last;
-assign r_id = r_r_id;
-
-wire [31:0] read_len = 1<<ar_len;       // burst读取数量，2^n字节
-wire [31:0] read_size = 1<<ar_size;     // 单个burst读取数据大小，2^n字节
-
 wire in_write_mode = (aw_ready || w_ready || b_valid);
 wire write_enable = (aw_valid || w_ready || b_valid);
+
+wire read_enable = (ar_valid || r_ready);
 
 `ifdef IN_YOSYS_STA
 reg [31:0] exter_dev_regs[0:31];
@@ -66,6 +51,11 @@ wire [ADDR_WIDTH-1:0]       write_addr;
 wire [DATA_WIDTH-1:0]       write_data;
 wire [2:0]                  write_size;
 wire                        write_valid;
+
+wire [ADDR_WIDTH-1:0]       read_addr;
+reg  [DATA_WIDTH-1:0]       r_read_data;
+wire [2:0]                  read_size;
+wire [1:0]                  read_state;
 
 axi4_salve_writer #(
     `ifndef IN_YOSYS_STA
@@ -101,57 +91,63 @@ axi4_salve_writer #(
     .write_valid(write_valid)
 );
 
+axi4_salve_reader #(
+    `ifndef IN_YOSYS_STA
+    .NAME("exter_dev"),
+    `endif
+    .BURST(1), // burst类型，0--FIXED 1--INCR 2--WRAP
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH)
+) m_axi4_salve_reader (
+    .clk(clk),
+    .rst(rst),
+    .ar_ready(ar_ready),
+    .ar_valid(ar_valid),
+    .ar_addr(ar_addr),
+    .ar_id(ar_id),
+    .ar_len(ar_len),
+    .ar_size(ar_size),
+    .ar_burst(ar_burst),
+    .r_ready(r_ready),
+    .r_valid(r_valid),
+    .r_resp(r_resp),
+    .r_data(r_data),
+    .r_last(r_last),
+    .r_id(r_id),
+    .enable(read_enable),
+    .read_addr(read_addr),
+    .read_data(r_read_data),
+    .read_len(),
+    .read_size(read_size),
+    .read_state(read_state)
+);
+
+wire [31:0] w_real_read_size = 1<<read_size;
+always @(*) begin
+    r_read_data = 0;
+    if (read_enable) begin
+        if (ar_valid && ar_ready) begin
+            `ifndef IN_YOSYS_STA
+            if (w_real_read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", ar_addr, read_size);
+            r_read_data = dpi_vdev_read(read_addr, w_real_read_size);
+            `else
+            r_read_data = exter_dev_regs[read_addr[4:0]];
+            `endif
+        end
+    end
+end
+
 always @(posedge clk or posedge rst) begin
     if (rst) begin
-        r_ar_ready <= 0;
-        r_r_valid <= 0;
-        r_r_resp <= 0;
-        r_r_data <= 0;
-        r_r_last <= 0;
-        r_r_id <= 0;
     end else begin
-        r_ar_ready <= r_ar_ready;
-        r_r_valid <= r_r_valid;
-        r_r_resp <= r_r_resp;
-        r_r_data <= r_r_data;
-        r_r_last <= r_r_last;
-        r_r_id <= r_r_id;
-
         if (in_write_mode && w_valid && w_ready) begin
             `ifndef IN_YOSYS_STA
             dpi_vdev_write(write_addr, write_data, 1<<write_size);
             `else
             exter_dev_regs[write_addr[4:0]] <= write_data;
             `endif
-        end
-
-        // read request
-        if (ar_valid) begin
-            r_ar_ready <= 1;
-        end
-        if (ar_valid && ar_ready) begin
-            r_ar_ready <= 0;
-        end
-
-        // read data
-        if (ar_valid && ar_ready) begin
-`ifndef IN_YOSYS_STA
-            if (read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", ar_addr, read_size);
-
-            r_r_data <= dpi_vdev_read(ar_addr, read_size);
-`else
-            r_r_data <= exter_dev_regs[ar_addr[4:0]];
-`endif
-            r_r_valid <= 1;
-            r_r_resp <= 0;
-            r_r_last <= 1;
-            r_r_id <= ar_id;
-        end
-        if (r_valid && r_ready) begin
-            r_r_valid <= 0;
-            r_r_resp <= 0;
-            r_r_last <= 0;
-            r_r_id <= 0;
         end
     end
 end
