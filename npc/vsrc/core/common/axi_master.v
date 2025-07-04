@@ -339,119 +339,119 @@ module axi_master_reader #(
     output  wire [1:0]                  read_state
 );
 
-reg r_ar_valid;
-reg [ADDR_WIDTH-1:0] r_ar_addr;
-reg [3:0] r_ar_id;
-reg [7:0] r_ar_len;
-reg [7:0] r_record_ar_len;
-reg [2:0] r_ar_size;
-reg [2:0] r_record_ar_size;
-reg [1:0] r_ar_burst;
-reg r_r_ready;
+    reg r_ar_valid;
+    reg [ADDR_WIDTH-1:0] r_ar_addr;
+    reg [3:0] r_ar_id;
+    reg [7:0] r_ar_len;
+    reg [7:0] r_record_ar_len;
+    reg [2:0] r_ar_size;
+    reg [2:0] r_record_ar_size;
+    reg [1:0] r_ar_burst;
+    reg r_r_ready;
 
-reg [7:0] s_read_idx;
-reg [7:0] s_read_len;
-reg [7:0] s_read_strb;
-wire [3:0] s_read_strbs[0:1];
-reg [1:0] s_read_shift_val;
-reg [1:0] r_read_state;
-reg [DATA_WIDTH-1:0] s_read_data;
+    reg [7:0] s_read_idx;
+    reg [7:0] s_read_len;
+    reg [7:0] s_read_strb;
+    wire [3:0] s_read_strbs[0:1];
+    reg [1:0] s_read_shift_val;
+    reg [1:0] r_read_state;
+    reg [DATA_WIDTH-1:0] s_read_data;
 
-assign read_state = r_read_state;
-assign read_data = s_read_data;
+    assign read_state = r_read_state;
+    assign read_data = s_read_data;
 
-assign ar_valid = r_ar_valid;
-assign ar_addr = r_ar_addr;
-assign ar_id = r_ar_id;
-assign ar_len = r_ar_len;
-assign ar_size = r_ar_size;
-assign ar_burst = r_ar_burst;
-assign r_ready = r_r_ready;
+    assign ar_valid = r_ar_valid;
+    assign ar_addr = r_ar_addr;
+    assign ar_id = r_ar_id;
+    assign ar_len = r_ar_len;
+    assign ar_size = r_ar_size;
+    assign ar_burst = r_ar_burst;
+    assign r_ready = r_r_ready;
 
-assign s_read_strbs[0] = s_read_strb[0 +: 4];
-assign s_read_strbs[1] = s_read_strb[4 +: 4];
+    assign s_read_strbs[0] = s_read_strb[0 +: 4];
+    assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
-`ifdef IN_YOSYS_STA
-always @(posedge clk) begin
-    s_read_data <= r_data;
-end
-`else
-always @(*) begin
-    s_read_data = 0;
-    if (r_read_state == `AXI4_STATE_DATA) begin
-        /* 依次读取非对齐数据，用组合逻辑实现； */
-        get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
+    `ifdef IN_YOSYS_STA
+    always @(posedge clk) begin
+        s_read_data <= r_data;
     end
-end
-`endif
+    `else
+    always @(*) begin
+        s_read_data = 0;
+        if (r_read_state == `AXI4_STATE_DATA) begin
+            /* 依次读取非对齐数据，用组合逻辑实现； */
+            get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
+        end
+    end
+    `endif
 
-always @(posedge clk) begin
-    if (rst || !enable) begin
-        r_read_state <= `AXI4_STATE_ADDR;
+    always @(posedge clk) begin
+        if (rst || !enable) begin
+            r_read_state <= `AXI4_STATE_ADDR;
 
-        r_ar_valid <= 0;
-        r_ar_addr <= 0;
-        r_ar_id <= 0;
-        r_ar_len <= 0;
-        r_ar_size <= 0;
-        r_ar_burst <= 0;
-        r_r_ready <= 0;
-    end else begin
-        case (r_read_state)
-            `AXI4_STATE_ADDR: begin
-                // read request
-                r_ar_valid <= 1;
-                r_ar_addr <= read_addr; // sram会4字节对齐
-                r_ar_id <= ID;
-                r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
-                r_ar_size <= read_size;
-                r_ar_burst <= BURST;
-                check_dev_addr(read_addr, `DEV_ATTR_READ);
-                get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
-                s_read_idx <= 0;
-
-                if (ar_valid && ar_ready) begin
-                    r_ar_valid <= 0;
-                    r_ar_addr <= 0;
-                    r_ar_id <= 0;
-                    r_ar_len <= 0;
-                    r_ar_size <= 0;
-                    r_ar_burst <= 0;
-                    r_record_ar_len <= r_ar_len;
-                    r_record_ar_size <= r_ar_size;
-
-                    // switch to read data
-                    r_read_state <= `AXI4_STATE_DATA;
-                    r_r_ready <= 1;
+            r_ar_valid <= 0;
+            r_ar_addr <= 0;
+            r_ar_id <= 0;
+            r_ar_len <= 0;
+            r_ar_size <= 0;
+            r_ar_burst <= 0;
+            r_r_ready <= 0;
+        end else begin
+            case (r_read_state)
+                `AXI4_STATE_ADDR: begin
+                    // read request
+                    r_ar_valid <= 1;
+                    r_ar_addr <= read_addr; // sram会4字节对齐
+                    r_ar_id <= ID;
+                    r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
+                    r_ar_size <= read_size;
+                    r_ar_burst <= BURST;
+                    check_dev_addr(read_addr, `DEV_ATTR_READ);
+                    get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
                     s_read_idx <= 0;
-                end
-            end 
 
-            `AXI4_STATE_DATA: begin
-                // read data
-                if (r_valid) begin
-                    s_read_idx <= s_read_idx + 1;
-                end
-                if (r_last) begin
-                    r_r_ready <= 0;
-                    s_read_idx <= 0;
-                    func_dev_skip(0, read_addr, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
-                    // check error response
-                    `ifndef IN_YOSYS_STA
-                    if (r_resp!=0 || r_last!=1 || r_id!=ID) begin
-                        $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, r_resp, r_last, r_id);
+                    if (ar_valid && ar_ready) begin
+                        r_ar_valid <= 0;
+                        r_ar_addr <= 0;
+                        r_ar_id <= 0;
+                        r_ar_len <= 0;
+                        r_ar_size <= 0;
+                        r_ar_burst <= 0;
+                        r_record_ar_len <= r_ar_len;
+                        r_record_ar_size <= r_ar_size;
+
+                        // switch to read data
+                        r_read_state <= `AXI4_STATE_DATA;
+                        r_r_ready <= 1;
+                        s_read_idx <= 0;
                     end
-                    `endif
+                end 
 
-                    // switch to read addr
-                    r_read_state <= `AXI4_STATE_ADDR;
+                `AXI4_STATE_DATA: begin
+                    // read data
+                    if (r_valid) begin
+                        s_read_idx <= s_read_idx + 1;
+                    end
+                    if (r_last) begin
+                        r_r_ready <= 0;
+                        s_read_idx <= 0;
+                        func_dev_skip(0, read_addr, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
+                        // check error response
+                        `ifndef IN_YOSYS_STA
+                        if (r_resp!=0 || r_last!=1 || r_id!=ID) begin
+                            $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, r_resp, r_last, r_id);
+                        end
+                        `endif
+
+                        // switch to read addr
+                        r_read_state <= `AXI4_STATE_ADDR;
+                    end
                 end
-            end
 
-            `ifndef IN_YOSYS_STA
-            default: $error("%s found unknown read state(%d)", NAME, r_read_state);
-            `endif
-        endcase
+                `ifndef IN_YOSYS_STA
+                default: $error("%s found unknown read state(%d)", NAME, r_read_state);
+                `endif
+            endcase
+        end
     end
-end
 endmodule
