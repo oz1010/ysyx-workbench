@@ -262,7 +262,7 @@ function void get_unalign_addr_data;
             1: s_data = s_data | (in_data<<(32-8*shift_val));
 
             `ifndef IN_YOSYS_STA
-            default: $error("read unalign in_data is error");
+            default: $error("read unalign in_data is error idx %x", idx);
             `endif
         endcase
 

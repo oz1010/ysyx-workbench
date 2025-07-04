@@ -371,6 +371,11 @@ module axi_master_reader #(
     assign s_read_strbs[0] = s_read_strb[0 +: 4];
     assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
+    initial begin
+        s_read_idx = 0;
+        s_read_len = 0;
+    end
+
     `ifdef IN_YOSYS_STA
     always @(posedge clk) begin
         s_read_data <= r_data;
