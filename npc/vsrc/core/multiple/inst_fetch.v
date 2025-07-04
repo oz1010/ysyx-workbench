@@ -7,11 +7,11 @@ module inst_fetch #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input wire clk,
-    input wire rst,
+    input   wire                        clk,
+    input   wire                        rst,
 
-    input wire [INST_WIDTH-1:0] pc,
-    output wire [INST_WIDTH-1:0] inst,
+    input   wire [INST_WIDTH-1:0]       pc,
+    output  wire [INST_WIDTH-1:0]       inst,
 
     input   wire                        aw_ready,
     output  wire                        aw_valid,
@@ -44,9 +44,9 @@ module inst_fetch #(
     input   wire                        r_last,
     input   wire [3:0]                  r_id,
 
-    input wire enable,
-    input wire next_ready,
-    output wire next_valid
+    input   wire                        enable,
+    input   wire                        next_ready,
+    output  wire                        next_valid
 );
 
     assign aw_valid = 0;
@@ -61,85 +61,82 @@ module inst_fetch #(
     assign w_last = 0;
     assign b_ready = 0;
 
+    /* 触发式记录使能 */
+    reg in_read_en;
+    always @(posedge clk) begin
+        if (rst) begin
+            in_read_en <= 0;
+        end else begin
+            if (in_read_en) begin
+                if (next_valid) begin
+                    in_read_en <= 0;
+                end
+            end
+
+            if (enable) begin
+                in_read_en <= 1;
+            end
+        end
+    end
+
     generate
         if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-            reg r_ar_valid;
-            reg [ADDR_WIDTH-1:0] r_ar_addr;
-            reg [3:0] r_ar_id;
-            reg [7:0] r_ar_len;
-            reg [2:0] r_ar_size;
-            reg [1:0] r_ar_burst;
-            reg r_r_ready;
-            reg [INST_WIDTH-1:0] r_inst;
+            reg [INST_WIDTH-1:0] r_inst = 0;
 
-            wire read_en = !ar_valid && !r_valid && enable;
-
-            assign ar_valid = r_ar_valid;
-            assign ar_addr = r_ar_addr;
-            assign ar_id = r_ar_id;
-            assign ar_len = r_ar_len;
-            assign ar_size = r_ar_size;
-            assign ar_burst = r_ar_burst;
-            assign r_ready = r_r_ready;
-
+            wire read_en = enable || in_read_en;
+            wire [1:0] read_state;
+            wire [INST_WIDTH-1:0] read_data;
+            
             assign next_valid = r_valid && r_ready;
             assign inst = r_inst;
 
+            axi_master_reader #(
+                `ifndef IN_YOSYS_STA
+                .NAME("IFU"),
+                `endif
+                .ID(`AXI4_ID_IFU),
+                .BURST(1), // burst类型，0--FIXED 1--INCR 2--WRAP
+                .INST_WIDTH(INST_WIDTH),
+                .ADDR_WIDTH(ADDR_WIDTH),
+                .DATA_WIDTH(DATA_WIDTH),
+                .BRESP_WIDTH(BRESP_WIDTH),
+                .RRESP_WIDTH(RRESP_WIDTH)
+            ) m_axi_master_reader (
+                .clk(clk),
+                .rst(rst),
+                .ar_ready(ar_ready),
+                .ar_valid(ar_valid),
+                .ar_addr(ar_addr),
+                .ar_id(ar_id),
+                .ar_len(ar_len),
+                .ar_size(ar_size),
+                .ar_burst(ar_burst),
+                .r_ready(r_ready),
+                .r_valid(r_valid),
+                .r_resp(r_resp),
+                .r_data(r_data),
+                .r_last(r_last),
+                .r_id(r_id),
+                .enable(read_en),
+                .read_sign(0),
+                .read_addr(pc),
+                .read_data(read_data),
+                .read_size(2), // 单个burst读取大小，2^n字节
+                .read_state(read_state)
+            );
+
             always @(posedge clk) begin
                 if (rst) begin
-                    r_ar_valid <= 0;
-                    r_ar_addr <= 0;
-                    r_ar_id <= 0;
-                    r_ar_len <= 0;
-                    r_ar_size <= 0;
-                    r_ar_burst <= 0;
-                    r_r_ready <= 0;
-                    r_inst <= 0;
                 end else begin
-                    r_ar_valid <= r_ar_valid;
-                    r_ar_addr <= r_ar_addr;
-                    r_ar_id <= r_ar_id;
-                    r_ar_len <= r_ar_len;
-                    r_ar_size <= r_ar_size;
-                    r_ar_burst <= r_ar_burst;
-                    r_r_ready <= r_r_ready;
-                    r_inst <= r_inst;
-
                     // read request
                     if (read_en) begin
-                        r_ar_valid <= 1;
-                        r_ar_addr <= pc;
-                        r_ar_id <= `AXI4_ID_IFU;
-                        r_ar_len <= 0; // 读取数据总burst数量，2^n
-                        r_ar_size <= 2; // 单个burst读取大小，2^n字节
-                        r_ar_burst <= 1; // burst类型，0--FIXED 1--INCR 2--WRAP
-                        check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
-                    end
-                    if (ar_valid && ar_ready) begin
-                        r_ar_valid <= 0;
-                        r_ar_addr <= 0;
-                        r_ar_id <= 0;
-                        r_ar_len <= 0;
-                        r_ar_size <= 0;
-                        r_ar_burst <= 0;
-                    end
-
-                    // read data
-                    if (ar_valid && ar_ready) begin
-                        r_r_ready <= 1;
-                    end
-                    if (r_valid) begin
-                        r_inst <= r_data;
-                        r_r_ready <= 1;
-                    end
-                    if (r_valid && r_ready) begin
-                        r_r_ready <= 0;
-                        `ifndef IN_YOSYS_STA
-                        // check error response
-                        if (r_resp!=0 || r_last!=1 || r_id!=`AXI4_ID_IFU) begin
-                            $error("IFU Read data error, addr:%x resp:%x last:%x id:%x\n", pc, r_resp, r_last, r_id);
+                        if (ar_valid) begin
+                            check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                         end
-                        `endif
+                        
+                        if (r_valid) begin
+                            r_inst <= read_data;
+                        end
                     end
                 end
             end
