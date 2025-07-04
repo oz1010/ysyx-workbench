@@ -125,6 +125,7 @@ axi4_salve_reader #(
 );
 
 wire [31:0] w_real_read_size = 1<<read_size;
+/* 使用组合逻辑读取数据，否则一个周期的ar信号可能无法满足要求 */
 always @(*) begin
     r_read_data = 0;
     if (read_enable) begin
