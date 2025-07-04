@@ -371,6 +371,11 @@ assign r_ready = r_r_ready;
 assign s_read_strbs[0] = s_read_strb[0 +: 4];
 assign s_read_strbs[1] = s_read_strb[4 +: 4];
 
+`ifdef IN_YOSYS_STA
+always @(posedge clk) begin
+    s_read_data <= r_data;
+end
+`else
 always @(*) begin
     s_read_data = 0;
     if (r_read_state == `AXI4_STATE_DATA) begin
@@ -378,6 +383,7 @@ always @(*) begin
         get_unalign_addr_data(s_read_idx, read_sign, read_size, r_data, s_read_shift_val, s_read_data);
     end
 end
+`endif
 
 always @(posedge clk) begin
     if (rst || !enable) begin
@@ -391,61 +397,61 @@ always @(posedge clk) begin
         r_ar_burst <= 0;
         r_r_ready <= 0;
     end else begin
-                case (r_read_state)
-                    `AXI4_STATE_ADDR: begin
-                        // read request
-                        r_ar_valid <= 1;
-                        r_ar_addr <= read_addr; // sram会4字节对齐
-                        r_ar_id <= ID;
-                        r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
-                        r_ar_size <= read_size;
-                        r_ar_burst <= BURST;
-                        check_dev_addr(read_addr, `DEV_ATTR_READ);
-                        get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
-                        s_read_idx <= 0;
+        case (r_read_state)
+            `AXI4_STATE_ADDR: begin
+                // read request
+                r_ar_valid <= 1;
+                r_ar_addr <= read_addr; // sram会4字节对齐
+                r_ar_id <= ID;
+                r_ar_len <= s_read_len; // 读取数据总burst数量，2^n
+                r_ar_size <= read_size;
+                r_ar_burst <= BURST;
+                check_dev_addr(read_addr, `DEV_ATTR_READ);
+                get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
+                s_read_idx <= 0;
 
-                        if (ar_valid && ar_ready) begin
-                            r_ar_valid <= 0;
-                            r_ar_addr <= 0;
-                            r_ar_id <= 0;
-                            r_ar_len <= 0;
-                            r_ar_size <= 0;
-                            r_ar_burst <= 0;
-                            r_record_ar_len <= r_ar_len;
-                            r_record_ar_size <= r_ar_size;
+                if (ar_valid && ar_ready) begin
+                    r_ar_valid <= 0;
+                    r_ar_addr <= 0;
+                    r_ar_id <= 0;
+                    r_ar_len <= 0;
+                    r_ar_size <= 0;
+                    r_ar_burst <= 0;
+                    r_record_ar_len <= r_ar_len;
+                    r_record_ar_size <= r_ar_size;
 
-                            // switch to read data
-                            r_read_state <= `AXI4_STATE_DATA;
-                            r_r_ready <= 1;
-                            s_read_idx <= 0;
-                        end
-                    end 
+                    // switch to read data
+                    r_read_state <= `AXI4_STATE_DATA;
+                    r_r_ready <= 1;
+                    s_read_idx <= 0;
+                end
+            end 
 
-                    `AXI4_STATE_DATA: begin
-                        // read data
-                        if (r_valid) begin
-                            s_read_idx <= s_read_idx + 1;
-                        end
-                        if (r_last) begin
-                            r_r_ready <= 0;
-                            s_read_idx <= 0;
-                            func_dev_skip(0, read_addr, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
-                            // check error response
-                            `ifndef IN_YOSYS_STA
-                            if (r_resp!=0 || r_last!=1 || r_id!=ID) begin
-                                $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, r_resp, r_last, r_id);
-                            end
-                            `endif
-
-                            // switch to read addr
-                            r_read_state <= `AXI4_STATE_ADDR;
-                        end
-                    end
-
+            `AXI4_STATE_DATA: begin
+                // read data
+                if (r_valid) begin
+                    s_read_idx <= s_read_idx + 1;
+                end
+                if (r_last) begin
+                    r_r_ready <= 0;
+                    s_read_idx <= 0;
+                    func_dev_skip(0, read_addr, {21'h0, r_record_ar_size, r_record_ar_len}, s_read_data);
+                    // check error response
                     `ifndef IN_YOSYS_STA
-                    default: $error("%s found unknown read state(%d)", NAME, r_read_state);
+                    if (r_resp!=0 || r_last!=1 || r_id!=ID) begin
+                        $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, r_resp, r_last, r_id);
+                    end
                     `endif
-                endcase     
+
+                    // switch to read addr
+                    r_read_state <= `AXI4_STATE_ADDR;
+                end
+            end
+
+            `ifndef IN_YOSYS_STA
+            default: $error("%s found unknown read state(%d)", NAME, r_read_state);
+            `endif
+        endcase
     end
 end
 endmodule
