@@ -196,14 +196,14 @@ void dpi_cpu_stat_ctrl(int dtype, int delta)
 
     switch (dtype)
     {
-
         case (HW_CPU_STAT_TICK):
         case (HW_CPU_STAT_ICACHE_HIT):
         case (HW_CPU_STAT_ICACHE_MISS):
             hw_cpu_stat.counts[dtype] += delta;
             break;
 
-        default: raw_stdout("unknown type %d\n", dtype);
+        default:
+            raw_stdout("unknown type %d\n", dtype);
     }
 }
 
@@ -445,11 +445,13 @@ int dpi_rtc_read(int addr, int len)
     static uint64_t update_ticks = 10240;
     int ret = 0;
 
-    if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_tick) >= update_ticks))
+    if ((addr == 0x02000048 || addr == 0x02000050) &&
+        ((hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_tick) >= update_ticks))
     {
         last_tick += update_ticks;
 #if CONFIG_CORE_FREQUENCY
-        local_execute_time = hw_cpu_stat.counts[HW_CPU_STAT_TICK] / (CONFIG_CORE_FREQUENCY / 1000000);  // us
+        local_execute_time =
+            hw_cpu_stat.counts[HW_CPU_STAT_TICK] / (CONFIG_CORE_FREQUENCY / 1000000);  // us
         get_hw_time_info_from_us(local_execute_time, &local_time_info);
 #else
         local_execute_time = get_time();
@@ -660,40 +662,52 @@ void add_monitor_log(int item_idx, int id)
 
 #if CONFIG_PERF_MONITOR_BIN_DATA
     perf_monitor_data_t data;
-    perf_monitor_header_t *header =
-        item_idx == PERF_MONITOR_TYPE_EVENT ? &data.event.header : &data.code.header;
+    perf_monitor_header_t *header = NULL;
     size_t wsize = 0;
+
+    switch (item_idx)
+    {
+        case PERF_MONITOR_TYPE_EVENT:
+            header = &data.event.header;
+            data.event.type = id;
+            if (delta <= UINT8_MAX)
+            {
+                header->size = 0;
+                data.event.delta0 = delta & 0xff;
+            }
+            else if (delta <= UINT16_MAX)
+            {
+                header->size = 1;
+                data.event.delta1 = delta & 0xffff;
+            }
+            else
+            {
+                raw_stdout("DPI monitor delta is out of range, delta:%lu\n", delta);
+                exit_simu(3);
+                return;
+            }
+            wsize += sizeof(data.event.type);
+            wsize += 1 << header->size;
+            break;
+
+        case PERF_MONITOR_TYPE_CODE:
+            header = &data.code.header;
+            data.code.inst = id & 0xff;
+            wsize += sizeof(data.code.inst);
+            break;
+
+        case PERF_MONITOR_TYPE_ICACHE:
+            header = &data.icache.header;
+            data.icache.raw_val = id & 0xff;
+            wsize += sizeof(data.icache.raw_val);
+            break;
+
+        default:
+            break;
+    }
 
     header->type = item_idx;
     wsize += sizeof(perf_monitor_header_t);
-    if (item_idx == PERF_MONITOR_TYPE_EVENT)
-    {
-        data.event.type = id;
-        if (delta <= UINT8_MAX)
-        {
-            header->size = 0;
-            data.event.delta0 = delta & 0xff;
-        }
-        else if (delta <= UINT16_MAX)
-        {
-            header->size = 1;
-            data.event.delta1 = delta & 0xffff;
-        }
-        else
-        {
-            raw_stdout("DPI monitor delta is out of range, delta:%lu\n", delta);
-            exit_simu(3);
-            return;
-        }
-
-        wsize += sizeof(data.event.type);
-        wsize += 1 << header->size;
-    }
-    else
-    {
-        data.code.inst = id & 0xff;
-        wsize += sizeof(data.code.inst);
-    }
 
     fwrite(header, 1, wsize, perf_fp);
 
@@ -704,59 +718,68 @@ void add_monitor_log(int item_idx, int id)
     }
 #else
     fprintf(perf_fp, "%lu|%d|%s%c", delta, item_idx,
-    item_idx==1?hw_monitor_ctx.events[id].name:hw_monitor_ctx.codes[id].name,
-    (item_idx==1&&id==(HW_MONITOR_ID_COUNT-1))?'\n':' '); fflush(perf_fp);
+            item_idx == 1 ? hw_monitor_ctx.events[id].name : hw_monitor_ctx.codes[id].name,
+            (item_idx == 1 && id == (HW_MONITOR_ID_COUNT - 1)) ? '\n' : ' ');
+    fflush(perf_fp);
 #endif
 }
 
-void add_monitor_item(int item_idx, int id, int delta)
+void add_monitor_item(int item_type, int id, int delta)
 {
 #if CONFIG_PERF_MONITOR
     static bool init_monitor_en = true;
+    static uint64_t last_icache_hit_count = 0;
+    static uint64_t last_icache_miss_count = 0;
 
-    switch (item_idx)
+    if (item_type >= PERF_MONITOR_TYPE_COUNT || item_type < 0)
     {
-        case 0:
-            if (init_monitor_en)
+        raw_stdout("Unknown item type:%d\n", item_type);
+        exit_simu(3);
+        return;
+    }
+
+    if (item_type == PERF_MONITOR_TYPE_INIT)
+    {
+        if (init_monitor_en)
+        {
+            init_monitor_en = false;
+            memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
+            for (int i = 0; i < ARRLEN(event_strs); ++i)
             {
-                init_monitor_en = false;
-                memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
-                for (int i = 0; i < ARRLEN(event_strs); ++i)
-                {
-                    hw_monitor_ctx.events[i].name = event_strs[i];
-                }
-                for (int i = 0; i < ARRLEN(code_strs); ++i)
-                {
-                    hw_monitor_ctx.codes[i].name = code_strs[i];
-                }
-
-                clear_monitor_log();
+                hw_monitor_ctx.events[i].name = event_strs[i];
             }
-            break;
+            for (int i = 0; i < ARRLEN(code_strs); ++i)
+            {
+                hw_monitor_ctx.codes[i].name = code_strs[i];
+            }
 
-        case PERF_MONITOR_TYPE_EVENT:
-            init_monitor_en = true;
-            add_monitor_log(item_idx, id);
-            add_monitor_event(id, delta);
-            break;
-
-        case PERF_MONITOR_TYPE_CODE:
-            init_monitor_en = true;
-            add_monitor_log(item_idx, id);
-            add_monitor_code(id, delta);
-            break;
-
-        default:
-            raw_stdout("Unknown item idx:%d\n", item_idx);
-            exit_simu(3);
-            break;
+            clear_monitor_log();
+            last_icache_hit_count = 0;
+            last_icache_miss_count = 0;
+        }
+    }
+    else
+    {
+        init_monitor_en = true;
+        add_monitor_log(item_type, id);
+        if (item_type == PERF_MONITOR_TYPE_EVENT && id == 1)  // IFU
+        {
+            perf_monitor_data_t data;
+            data.icache.mem_index = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX];
+            data.icache.hit_count =
+                hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_HIT] - last_icache_hit_count;
+            data.icache.miss_count =
+                hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS] - last_icache_miss_count;
+            last_icache_hit_count = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_HIT];
+            last_icache_miss_count = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS];
+        }
     }
 #endif
 }
 
-void dpi_monitor_item(int item_idx, int id, int delta)
+void dpi_monitor_item(int item_type, int id, int delta)
 {
-    add_monitor_item(item_idx, id, delta);
+    add_monitor_item(item_type, id, delta);
 }
 
 extern "C" void flash_read(int32_t addr_idx, int32_t *data)
