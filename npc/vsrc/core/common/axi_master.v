@@ -337,6 +337,7 @@ module axi_master_reader #(
     input   wire                        read_sign,
     input   wire [ADDR_WIDTH-1:0]       read_addr,
     output  wire [DATA_WIDTH-1:0]       read_data,
+    input   wire [7:0]                  read_len, // 读取数据总burst数量，2^n
     input   wire [2:0]                  read_size,
     output  wire [1:0]                  read_state
 );
@@ -411,7 +412,10 @@ module axi_master_reader #(
                     r_arvalid <= 1;
                     r_araddr <= read_addr; // sram会4字节对齐
                     r_arid <= ID;
-                    r_arlen <= s_read_len; // 读取数据总burst数量，2^n
+                    if (read_len > 0)
+                        r_arlen <= read_len; // 读取数据总burst数量，2^n
+                    else
+                        r_arlen <= s_read_len; // 读取数据总burst数量，2^n
                     r_arsize <= read_size;
                     r_arburst <= BURST;
                     check_dev_addr(read_addr, `DEV_ATTR_READ);

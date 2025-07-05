@@ -137,7 +137,7 @@ generate
                 core_inst_stuck_tick[i] <= 0;
             end else begin
                 core_inst_stuck_tick[i] <= core_inst_done[i] ? 0 : core_inst_stuck_tick[i] + 1;
-                if (core_inst_stuck_tick[i] >= 500) begin
+                if (core_inst_stuck_tick[i] >= 5000) begin
 `ifndef IN_YOSYS_STA
                     $error("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d\n", i, core_pc[i], core_inst_stuck_tick[i]);
 `endif
