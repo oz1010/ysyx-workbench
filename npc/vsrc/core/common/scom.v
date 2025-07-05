@@ -41,7 +41,7 @@ module scom_base (
 );
 
 /*
-w_data = {ready,valid}
+wdata = {ready,valid}
 ======
 current     next    action
 00          01      send data
@@ -52,12 +52,12 @@ current     next    action
 enable==0 rst
 */
 
-wire [1:0] w_data = {ready,valid};
+wire [1:0] wdata = {ready,valid};
 assign state = 
     (enable==0) ? `SCOM_INVALID :
-    (w_data==2'b00) ? `SCOM_OTHER :
-    (w_data==2'b01) ? `SCOM_FOUND :
-    (w_data==2'b10) ? `SCOM_INVALID :
+    (wdata==2'b00) ? `SCOM_OTHER :
+    (wdata==2'b01) ? `SCOM_FOUND :
+    (wdata==2'b10) ? `SCOM_INVALID :
     `SCOM_RESET;
 
 endmodule
