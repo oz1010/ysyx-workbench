@@ -52,6 +52,7 @@ wire [DATA_WIDTH-1:0]       write_data;
 wire [2:0]                  write_size;
 wire                        write_valid;
 
+reg                         r_data_en;
 wire [ADDR_WIDTH-1:0]       read_addr;
 reg  [DATA_WIDTH-1:0]       r_read_data;
 wire [2:0]                  read_size;
@@ -117,6 +118,7 @@ axi4_salve_reader #(
     .rlast(rlast),
     .rid(rid),
     .enable(read_enable),
+    .data_en(r_data_en),
     .read_addr(read_addr),
     .read_data(r_read_data),
     .read_len(),
@@ -128,10 +130,12 @@ wire [31:0] w_real_read_size = 1<<read_size;
 /* 使用组合逻辑读取数据，否则一个周期的ar信号可能无法满足要求 */
 always @(*) begin
     r_read_data = 0;
+    r_data_en = 0;
     if (read_enable) begin
         if (arvalid && arready) begin
+            r_data_en = 1;
             `ifndef IN_YOSYS_STA
-            if (w_real_read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", araddr, read_size);
+            if (w_real_read_size != 4) $error("extra dev only support read 4bytes, addr:%x size:%x", araddr, w_real_read_size);
             r_read_data = dpi_vdev_read(read_addr, w_real_read_size);
             `else
             r_read_data = exter_dev_regs[read_addr[4:0]];
