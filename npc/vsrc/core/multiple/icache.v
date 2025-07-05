@@ -102,12 +102,12 @@ reg                         c_m_wready = 0;
 reg                         c_m_bvalid = 0;
 reg  [BRESP_WIDTH-1:0]      c_m_bresp = 0;
 reg  [3:0]                  c_m_bid = 0;
-reg                         c_m_arready = 0;
-reg                         c_m_rvalid = 0;
-reg  [RRESP_WIDTH-1:0]      c_m_rresp = 0;
-reg  [DATA_WIDTH-1:0]       c_m_rdata = 0;
-reg                         c_m_rlast = 0;
-reg  [3:0]                  c_m_rid = 0;
+reg                         c_m_arready;
+reg                         c_m_rvalid;
+reg  [RRESP_WIDTH-1:0]      c_m_rresp;
+reg  [DATA_WIDTH-1:0]       c_m_rdata;
+reg                         c_m_rlast;
+reg  [3:0]                  c_m_rid;
 wire                        c_m_awvalid;
 wire [ADDR_WIDTH-1:0]       c_m_awaddr;
 wire [3:0]                  c_m_awid;
@@ -144,32 +144,32 @@ reg  [3:0]                  c_s_awid = 0;
 reg  [7:0]                  c_s_awlen = 0;
 reg  [2:0]                  c_s_awsize = 0;
 reg  [1:0]                  c_s_awburst = 0;
-reg                         c_s_wvalid = 0;
-reg  [DATA_WIDTH-1:0]       c_s_wdata = 0;
-reg  [DATA_WIDTH/8-1:0]     c_s_wstrb = 0;
-reg                         c_s_wlast = 0;
-reg                         c_s_bready = 0;
-reg                         c_s_arvalid = 0;
-reg  [ADDR_WIDTH-1:0]       c_s_araddr = 0;
-reg  [3:0]                  c_s_arid = 0;
-reg  [7:0]                  c_s_arlen = 0;
-reg  [2:0]                  c_s_arsize = 0;
-reg  [1:0]                  c_s_arburst = 0;
-reg                         c_s_rready = 0;
+reg                         c_s_wvalid;
+reg  [DATA_WIDTH-1:0]       c_s_wdata;
+reg  [DATA_WIDTH/8-1:0]     c_s_wstrb;
+reg                         c_s_wlast;
+reg                         c_s_bready;
+reg                         c_s_arvalid;
+reg  [ADDR_WIDTH-1:0]       c_s_araddr;
+reg  [3:0]                  c_s_arid;
+reg  [7:0]                  c_s_arlen;
+reg  [2:0]                  c_s_arsize;
+reg  [1:0]                  c_s_arburst;
+reg                         c_s_rready;
 
 wire icache_wen = 0;
 wire icache_ren = m_araddr>=`CONFIG_FLASH_BASE && m_araddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE);
 
 wire                        read_en;
 wire [INST_WIDTH-1:0]       read_inst;
-reg                         r_write_en = 0;
+reg                         r_write_en;
 reg  [log2(BLOCK_SIZE)-1:0] r_write_index = index_max;
-reg  [ADDR_WIDTH-1:0]       r_write_addr = 0; // 缓存写入地址
-reg  [INST_WIDTH-1:0]       r_write_inst = 0; // 缓存写入指令
+reg  [ADDR_WIDTH-1:0]       r_write_addr; // 缓存写入地址
+reg  [INST_WIDTH-1:0]       r_write_inst; // 缓存写入指令
 wire                        slave_en; // 从设备使能标记
-reg  [ADDR_WIDTH-1:0]       r_slave_addr = 0; // 从设备读取地址
-reg  [INST_WIDTH-1:0]       r_slave_inst = 0; // 从设备读取指令
-reg  [31:0]                 r_slave_index = 0; // 从设备指令计数
+reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
+wire [INST_WIDTH-1:0]       slave_inst; // 从设备读取指令
+reg  [31:0]                 r_slave_index; // 从设备指令计数
 
 assign hit_count = r_hit_count;
 assign miss_count = r_miss_count;
@@ -233,6 +233,14 @@ assign s_arlen = icache_ren ? c_s_arlen : m_arlen;
 assign s_arsize = icache_ren ? c_s_arsize : m_arsize;
 assign s_arburst = icache_ren ? c_s_arburst : m_arburst;
 assign s_rready = icache_ren ? c_s_rready : m_rready;
+
+initial begin
+    r_write_en = 0;
+    r_write_addr = 0;
+    r_write_inst = 0;
+    r_slave_addr = 0;
+    r_slave_index = 0;
+end
 
 wire [ADDR_WIDTH-1:0]       read_addr;
 wire [2:0]                  read_size;
@@ -303,7 +311,7 @@ axi_master_reader #(
     .enable(slave_en),
     .read_sign(0),
     .read_addr(r_slave_addr),
-    .read_data(r_slave_inst),
+    .read_data(slave_inst),
     .read_len(0),
     .read_size(2),
     .read_state(slave_state)
@@ -325,21 +333,6 @@ icache_block #(
     .read_en(read_en),
     .read_inst(read_inst)
 );
-
-reg     [6:0] tmp_cnt = 0;
-reg write_trigger = 0;
-always @(posedge clk) begin
-    if (rst || !r_write_en) begin
-        tmp_cnt <= 0;
-    end else begin
-        write_trigger <= 0;
-        tmp_cnt <= tmp_cnt + 1;
-        if (tmp_cnt == 7'h08) begin
-            tmp_cnt <= 0;
-            write_trigger <= 1;
-        end
-    end
-end
 
 always @(posedge clk) begin
     if (rst) begin
@@ -370,7 +363,7 @@ always @(posedge clk) begin
                     if (slave_state == `AXI4_STATE_DATA && c_s_rvalid) begin
                         r_write_index <= r_write_index + 1;
                         r_write_addr <= r_slave_addr;
-                        r_write_inst <= r_slave_inst;
+                        r_write_inst <= slave_inst;
                         r_slave_addr <= r_slave_addr + (INST_WIDTH/8);
                         r_slave_index <= r_slave_index + 1;
                     end
