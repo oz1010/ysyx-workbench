@@ -215,19 +215,6 @@ sram_axi4 #(
     .rresp(rresp)
 );
 
-function integer log2;
-    input integer value;
-    integer result;
-    begin
-        result = 0;
-        while (value > 1) begin
-            value = value >> 1;
-            result = result + 1;
-        end
-        log2 = result;
-    end
-endfunction
-
 reg [MASTER_COUNT-1:0] signal_enable;
 reg [MASTER_COUNT:0] grant;  // Master 授权信号
 reg [MASTER_COUNT:0] last_granted;  // 记录上次被仲裁成功的 Master 编号
