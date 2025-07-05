@@ -126,10 +126,6 @@ module axi_master_writer #(
                     if (awvalid && awready) begin
                         r_record_awsize <= r_awsize;
                         r_awvalid <= 0;
-                        r_awaddr <= 0;
-                        r_awid <= 0;
-                        r_awlen <= 0;
-                        r_awsize <= 0;
 
                         // switch to write data
                         r_write_state <= `AXI4_STATE_DATA;
@@ -164,6 +160,12 @@ module axi_master_writer #(
                         // switch to init
                         r_write_state <= `AXI4_STATE_ADDR;
                         r_bready <= 0;
+
+                        // clear write request
+                        r_awaddr <= 0;
+                        r_awid <= 0;
+                        r_awlen <= 0;
+                        r_awsize <= 0;
 
                         `ifndef IN_YOSYS_STA
                         // check error response
@@ -418,11 +420,6 @@ module axi_master_reader #(
 
                     if (arvalid && arready) begin
                         r_arvalid <= 0;
-                        r_araddr <= 0;
-                        r_arid <= 0;
-                        r_arlen <= 0;
-                        r_arsize <= 0;
-                        r_arburst <= 0;
                         r_record_arlen <= r_arlen;
                         r_record_arsize <= r_arsize;
 
@@ -448,6 +445,13 @@ module axi_master_reader #(
                             $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, rresp, rlast, rid);
                         end
                         `endif
+
+                        // clear read request
+                        r_araddr <= 0;
+                        r_arid <= 0;
+                        r_arlen <= 0;
+                        r_arsize <= 0;
+                        r_arburst <= 0;
 
                         // switch to read addr
                         r_read_state <= `AXI4_STATE_ADDR;
