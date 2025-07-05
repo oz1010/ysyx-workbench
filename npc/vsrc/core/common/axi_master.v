@@ -490,7 +490,8 @@ module axi4_salve_reader #(
     output  wire                        rlast,
     output  wire [3:0]                  rid,
     /* 模块信号 */
-    input   wire                        enable,
+    input   wire                        enable, // 模块使能信号
+    input   wire                        data_en, // 数据使能信号
     output  wire [ADDR_WIDTH-1:0]       read_addr,
     input   wire [DATA_WIDTH-1:0]       read_data, /* 使用组合逻辑读取数据，否则一个周期的ar信号可能无法满足要求 */
     output  wire [7:0]                  read_len, // burst读取数量，2^n字节
@@ -539,17 +540,29 @@ module axi4_salve_reader #(
                     r_arready <= 0;
                     if (arvalid) begin
                         r_read_state <= `AXI4_STATE_DATA;
+
+                        if (data_en) begin
+                            // read data，配合组合逻辑快速读取数据
+                            r_rdata <= read_data;
+                            r_rvalid <= 1;
+                            r_rresp <= 0;
+                            r_rlast <= 1;
+                            r_rid <= arid;
+                        end
                     end
 
-                    // read data，配合组合逻辑快速读取数据
-                    r_rdata <= read_data;
-                    r_rvalid <= 1;
-                    r_rresp <= 0;
-                    r_rlast <= 1;
-                    r_rid <= arid;
                 end
             
                 `AXI4_STATE_DATA: begin
+                    if (data_en) begin
+                        // read data，配合组合逻辑快速读取数据
+                        r_rdata <= read_data;
+                        r_rvalid <= 1;
+                        r_rresp <= 0;
+                        r_rlast <= 1;
+                        r_rid <= arid;
+                    end
+
                     if (rvalid && rready && rlast) begin
                         r_read_state <= `AXI4_STATE_ADDR;
 
