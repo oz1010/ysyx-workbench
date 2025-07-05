@@ -68,10 +68,7 @@ module icache #(
     input   wire [RRESP_WIDTH-1:0]      s_rresp,
     input   wire [DATA_WIDTH-1:0]       s_rdata,
     input   wire                        s_rlast,
-    input   wire [3:0]                  s_rid,
-
-    output  wire [31:0]                 hit_count,
-    output  wire [31:0]                 miss_count
+    input   wire [3:0]                  s_rid
 );
 
 /*
@@ -92,9 +89,6 @@ localparam return_cache_t = 1;
 localparam update_cache_t = 2;
 
 reg [1:0] icache_read_state = check_cache_t;
-
-reg [31:0] r_hit_count = 0;
-reg [31:0] r_miss_count = 0;
 
 /* 与master端通信 */
 reg                         c_m_awready = 0;
@@ -170,9 +164,6 @@ wire                        slave_en; // 从设备使能标记
 reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
 wire [INST_WIDTH-1:0]       slave_inst; // 从设备读取指令
 reg  [31:0]                 r_slave_index; // 从设备指令计数
-
-assign hit_count = r_hit_count;
-assign miss_count = r_miss_count;
 
 assign m_awready = icache_wen ? c_m_awready : s_awready;
 assign m_wready = icache_wen ? c_m_wready : s_wready;
@@ -336,15 +327,13 @@ icache_block #(
 
 always @(posedge clk) begin
     if (rst) begin
-        r_hit_count <= 0;
-        r_miss_count <= 0;
     end else begin
         if (icache_ren) begin
             case (icache_read_state)
                 check_cache_t: begin
                     if (read_en) begin
                         icache_read_state <= return_cache_t;
-                        r_hit_count <= r_hit_count + 1;
+                        func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1);
                     end else begin
                         icache_read_state <= update_cache_t;
                         r_write_en <= 1;
@@ -352,7 +341,8 @@ always @(posedge clk) begin
                         r_write_addr <= 0;
                         r_slave_addr <= {read_addr[ADDR_WIDTH-1:(offset_width+index_width)], {(offset_width+index_width){1'b0}}};
                         r_slave_index <= 0;
-                        r_miss_count <= r_miss_count + 1;
+                        func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_MISS, 1);
+                        func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1); // 缓存后必然命中
                     end
                 end
 

@@ -119,6 +119,10 @@
 `define SDRAM_BLK_BITS      1
 `define SDRAM_BLK_NUM      (1<<`SDRAM_BLK_BITS)
 
+`define HW_CPU_STAT_TICK            0
+`define HW_CPU_STAT_ICACHE_HIT      1
+`define HW_CPU_STAT_ICACHE_MISS     2
+
 `ifdef IN_YOSYS_STA
 `else
 typedef struct {
@@ -389,13 +393,14 @@ function automatic [31:0] func_query_intr;
     end
 endfunction
 
-function void func_execute_time_ctrl;
+function void func_cpu_stat_ctrl;
+    input [31:0] dtype;
     input [31:0] delta;
     begin
 `ifdef IN_YOSYS_STA
         global_pc = global_pc + delta;
 `else
-        dpi_execute_time_ctrl(delta);
+        dpi_cpu_stat_ctrl(dtype, delta);
 `endif
     end
 endfunction

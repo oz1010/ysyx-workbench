@@ -19,6 +19,20 @@
 // Located at vsrc/isa/$(GUEST_ISA)/include/isa-def.h
 #include <isa-def.h>
 
+// hard ware statistic
+enum
+{
+    HW_CPU_STAT_TICK = 0,
+    HW_CPU_STAT_ICACHE_HIT,
+    HW_CPU_STAT_ICACHE_MISS,
+
+    HW_CPU_STAT_COUNT
+};
+typedef struct
+{
+    uint64_t counts[HW_CPU_STAT_COUNT];
+} hw_cpu_stat_t;
+
 // The macro `__GUEST_ISA__` is defined in $(CFLAGS).
 // It will be expanded as "x86" or "mips32" ...
 typedef concat(__GUEST_ISA__, _CPU_state) CPU_state;
