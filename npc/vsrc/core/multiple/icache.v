@@ -468,7 +468,7 @@ always @(posedge clk) begin
                 if (current_write_index == write_index) begin
                     current_write_index <= write_index + 1;
                     for (integer offset=0; offset<(INST_WIDTH/8); ++offset) begin
-                        block[((offset[0 +: offset_width+index_width] + {windex, woffset})*8)%block_width +: 8] <= {(write_inst)}[offset*8 +: 8];
+                        block[((offset[0 +: offset_width+index_width] + {windex, woffset})*8)%block_width +: 8] <= write_inst[offset*8 +: 8];
                     end
 
                     if (write_index == index_max && !valid) begin
