@@ -175,6 +175,7 @@ axi_master_reader #(
     .enable(read_enable),
     .read_sign(read_sign),
     .read_addr(read_addr),
+    .read_len(0),
     .read_data(read_data),
     .read_size(read_size),
     .read_state(read_state)

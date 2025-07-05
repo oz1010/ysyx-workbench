@@ -121,6 +121,7 @@ module inst_fetch #(
                 .read_sign(0),
                 .read_addr(pc),
                 .read_data(read_data),
+                .read_len(0), // 读取数据总burst数量，2^n
                 .read_size(2), // 单个burst读取大小，2^n字节
                 .read_state(read_state)
             );
