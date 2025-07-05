@@ -134,6 +134,19 @@ typedef struct {
 } device_info_t;
 `endif
 
+function automatic [31:0] log2;
+    input [31:0] value;
+    begin
+        logic [31:0] result;
+        result = 0;
+        while (value > 1) begin
+            value = value >> 1;
+            result = result + 1;
+        end
+        log2 = result;
+    end
+endfunction
+
 function void check_dev_addr;
     input logic [31:0] addr;
     input logic [3:0] attr;

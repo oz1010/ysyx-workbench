@@ -1,3 +1,4 @@
+/* 指令缓存控制器 */
 module icache #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
@@ -6,8 +7,8 @@ module icache #(
     parameter INST_WIDTH = 32,
     parameter BLOCK_SIZE = 16
 ) (
-    input wire                          clk,
-    input wire                          rst,
+    input   wire                        clk,
+    input   wire                        rst,
 
     output  wire                        m_awready,
     input   wire                        m_awvalid,
@@ -73,11 +74,8 @@ module icache #(
     output  wire [31:0]                 miss_count
 );
 
-localparam cache_block_width = INST_WIDTH + 1;
-
-reg [31:0] r_hit_count;
-reg [31:0] r_miss_count;
-reg [cache_block_width-1:0] cache_block[0:BLOCK_SIZE];
+reg [31:0] r_hit_count = 0;
+reg [31:0] r_miss_count = 0;
 
 /* 与master端通信 */
 reg                         r_m_awready;
@@ -146,5 +144,66 @@ assign s_arlen = icache_en ? r_s_arlen : m_arlen;
 assign s_arsize = icache_en ? r_s_arsize : m_arsize;
 assign s_arburst = icache_en ? r_s_arburst : m_arburst;
 assign s_rready = icache_en ? r_s_rready : m_rready;
+
+icache_block #(
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .INST_WIDTH(INST_WIDTH),
+    .BLOCK_SIZE(BLOCK_SIZE)
+) m_icache_block(
+    .clk(clk),
+    .rst(rst),
+    .addr(m_araddr),
+    .write_en(0),
+    .write_inst(),
+    .read_en(),
+    .read_inst()
+);
+
+endmodule
+
+
+/* 单个缓存块 */
+module icache_block #(
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter INST_WIDTH = 32,
+    parameter BLOCK_SIZE = 16
+) (
+    input   wire                        clk,
+    input   wire                        rst,
+    input   wire [ADDR_WIDTH-1:0]       addr,
+    input   wire                        write_en,
+    input   wire [INST_WIDTH-1:0]       write_inst,
+    output  wire                        read_en,
+    output  wire [INST_WIDTH-1:0]       read_inst
+);
+
+/*
+ 31    m+n m+n-1   m m-1    0
++---------+---------+--------+
+|   tag   |  index  | offset |
++---------+---------+--------+
+*/
+
+localparam tag_width = ADDR_WIDTH - (offset_width+index_width);
+localparam block_width = INST_WIDTH*BLOCK_SIZE;
+localparam offset_width = log2(INST_WIDTH/8);
+localparam index_width = log2(BLOCK_SIZE);
+
+reg [block_width-1:0] block = 0;
+reg valid = 0;
+reg [tag_width-1:0] tag = 0;
+
+wire [tag_width-1:0] select_tag = addr[index_width+offset_width +: tag_width];
+wire [index_width-1:0] select_index = addr[offset_width +: index_width];
+wire [offset_width-1:0] select_offset = addr[0 +: offset_width];
+
+assign read_en = valid && select_tag==tag;
+generate
+    for (genvar i=0; i<(INST_WIDTH/8); ++i) begin
+        assign read_inst[i*8 +: 8] = read_en ? block[((i + {select_index, select_offset})*8)%block_width +: 8] : 0;
+    end
+endgenerate
 
 endmodule
