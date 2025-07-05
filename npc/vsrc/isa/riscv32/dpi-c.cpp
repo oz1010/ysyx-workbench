@@ -34,7 +34,7 @@
 #define ADDR_IN_RANGE(_addr, _baseaddr, _maxsize) \
     (((_addr) >= (_baseaddr)) && ((_addr) < ((_baseaddr) + (_maxsize))))
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
-uint64_t hw_tick = 0;
+hw_cpu_stat_t hw_cpu_stat;
 uint32_t hw_flash_idx = 0;
 hw_monitor_ctx_t hw_monitor_ctx;
 extern FILE *perf_fp;
@@ -186,15 +186,24 @@ void invalid_inst(int thispc, int inst)
     set_npc_state(NPC_ABORT, thispc, -1);
 }
 
-void dpi_execute_time_ctrl(int delta)
+void dpi_cpu_stat_ctrl(int dtype, int delta)
 {
     if (delta == 0)
     {
-        hw_tick = 0;
+        memset(&hw_cpu_stat, 0, sizeof(hw_cpu_stat_t));
+        return;
     }
-    else
+
+    switch (dtype)
     {
-        hw_tick += delta;
+
+        case (HW_CPU_STAT_TICK):
+        case (HW_CPU_STAT_ICACHE_HIT):
+        case (HW_CPU_STAT_ICACHE_MISS):
+            hw_cpu_stat.counts[dtype] += delta;
+            break;
+
+        default: raw_stdout("unknown type %d\n", dtype);
     }
 }
 
@@ -436,11 +445,11 @@ int dpi_rtc_read(int addr, int len)
     static uint64_t update_ticks = 10240;
     int ret = 0;
 
-    if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_tick - last_tick) >= update_ticks))
+    if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_tick) >= update_ticks))
     {
         last_tick += update_ticks;
 #if CONFIG_CORE_FREQUENCY
-        local_execute_time = hw_tick / (CONFIG_CORE_FREQUENCY / 1000000);  // us
+        local_execute_time = hw_cpu_stat.counts[HW_CPU_STAT_TICK] / (CONFIG_CORE_FREQUENCY / 1000000);  // us
         get_hw_time_info_from_us(local_execute_time, &local_time_info);
 #else
         local_execute_time = get_time();
@@ -645,8 +654,8 @@ void add_monitor_log(int item_idx, int id)
     static uint64_t last_hw_tick = 0;
     static uint64_t last_update_tick = 0;
 
-    uint64_t delta = hw_tick - last_hw_tick;
-    last_hw_tick = hw_tick;
+    uint64_t delta = hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_hw_tick;
+    last_hw_tick = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
     (void)delta;
 
 #if CONFIG_PERF_MONITOR_BIN_DATA
@@ -688,9 +697,9 @@ void add_monitor_log(int item_idx, int id)
 
     fwrite(header, 1, wsize, perf_fp);
 
-    if (hw_tick - last_update_tick > 10000)
+    if (hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_update_tick > 10000)
     {
-        last_update_tick = hw_tick;
+        last_update_tick = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
         fflush(perf_fp);
     }
 #else
@@ -759,7 +768,6 @@ extern "C" void flash_read(int32_t addr_idx, int32_t *data)
         raw_stdout("Read flash is out of range, addr:%#.8x len:%d\n", addr, 4);
         exit_simu(2);
     }
-
     *data = vdev_read(vdev, addr, 4);
 }
 

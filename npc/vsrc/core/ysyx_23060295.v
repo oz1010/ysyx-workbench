@@ -1,7 +1,7 @@
 `ifndef IN_YOSYS_STA
 import "DPI-C" function void exit_simu(input int code);
 import "DPI-C" function void invalid_inst(input int pc, input int inst);
-import "DPI-C" function void dpi_execute_time_ctrl(input int delta);
+import "DPI-C" function void dpi_cpu_stat_ctrl(input int dtype, input int delta);
 import "DPI-C" function int fetch_inst(input int addr);
 import "DPI-C" function void write_raw_mem(input int addr, input int len, input int inst);
 import "DPI-C" function int read_raw_mem(input int addr, input int len);

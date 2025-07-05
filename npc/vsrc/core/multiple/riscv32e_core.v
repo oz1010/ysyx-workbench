@@ -259,10 +259,10 @@ assign valid = wb_ready;
 always @(posedge clk) begin
     if (rst) begin
         execute_time <= 0;
-        func_execute_time_ctrl(0);
+        func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 0);
     end else begin
         execute_time <= execute_time + 1;
-        func_execute_time_ctrl(1);
+        func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 1);
     end
 end
 
@@ -425,10 +425,7 @@ icache #(
     .s_rresp(icache_rresp),
     .s_rdata(icache_rdata),
     .s_rlast(icache_rlast),
-    .s_rid(icache_rid),
-
-    .hit_count(),
-    .miss_count()
+    .s_rid(icache_rid)
 );
 
 /* xbar模块 */

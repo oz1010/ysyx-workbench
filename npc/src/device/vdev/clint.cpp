@@ -1,12 +1,13 @@
 #include "device/vdev.h"
 #include "generated/autoconf.h"
 #include "utils.h"
+#include "isa.h"
 
 /**
  * ref. https://chromitem-soc.readthedocs.io/en/latest/clint.html
  */
 
-extern uint64_t hw_tick;
+extern hw_cpu_stat_t hw_cpu_stat;
 
 static uint8_t *clint_base = NULL;
 static const uint32_t clint_size = 64 * 1024;
@@ -22,7 +23,7 @@ static void clint_handler(void *item_arg, bool is_write, vaddr_t addr, int len, 
     assert(vdev);
 
     // 触发clint进行更新
-    if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_tick - last_tick) >= update_ticks))
+    if ((addr == 0x02000048 || addr == 0x02000050) && ((hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_tick) >= update_ticks))
     {
         last_tick += update_ticks;
         *clint_mtime = get_time();
