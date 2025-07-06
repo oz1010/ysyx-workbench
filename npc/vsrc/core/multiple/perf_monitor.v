@@ -1,6 +1,8 @@
 module perf_monitor (
     input  wire         clk,
     input  wire         rst,
+    input  wire [31:0]  pc,
+    input  wire [31:0]  inst,
     input  wire         if_valid,
     input  wire         id_ready,
     input  wire         id_valid,
@@ -12,8 +14,6 @@ module perf_monitor (
     input  wire [15:0]  inst_code,
     output wire         done
 );
-
-`ifdef CONFIG_PERF_MONITOR
 
 initial begin
     // $display("Enable perf monitor");
@@ -40,6 +40,7 @@ always @(posedge clk) begin
         // IFU取到指令
         if (!last_if_valid && if_valid) begin
             func_monitor_item(1, {28'h0,`AXI4_ID_IFU}, 1);
+            func_cpu_stat_ctrl(`HW_CPU_STAT_PC, pc);
         end
         // 译码出各种类别的指令, 如计算类指令, 访存指令, CSR指令等
         if (!last_id_valid && id_valid) begin
@@ -60,7 +61,5 @@ always @(posedge clk) begin
         end
     end
 end
-
-`endif
 
 endmodule

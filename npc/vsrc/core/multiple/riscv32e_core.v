@@ -270,6 +270,8 @@ end
 perf_monitor m_perf_monitor (
     .clk(clk),
     .rst(rst),
+    .pc(pc),
+    .inst(inst),
     .if_valid(if_valid),
     .id_ready(id_ready),
     .id_valid(id_valid),

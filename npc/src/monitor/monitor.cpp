@@ -13,6 +13,7 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
+#include <string>
 #include <isa.h>
 #include <memory/paddr.h>
 #include "device/vdev.h"
@@ -31,7 +32,7 @@ static const uint32_t img[] = {
 };
 
 void init_rand();
-void init_log(const char *log_file, const char *perf_file);
+void init_log();
 void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
 // void init_device();
@@ -78,9 +79,11 @@ extern uint8_t *raw_memory;
 #else
 extern uint8_t raw_memory[CONFIG_MSIZE];
 #endif
+std::string cfg_log_name;
+std::string cfg_output = "";
+std::string cfg_perf_name = "";
+std::string cfg_icbin_name = "";
 static char *cfg_img_file = NULL;
-static char *cfg_log_file = NULL;
-static char *cfg_perf_file = NULL;
 int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
 static char *cfg_difftest_so_file = NULL;
 static int cfg_difftest_port = 1234;
@@ -196,10 +199,11 @@ static int parse_args(int argc, char *argv[])
         {"batch", no_argument, NULL, 'b'},     {"port", required_argument, NULL, 'p'},
         {"log", required_argument, NULL, 'l'}, {"diff", required_argument, NULL, 'd'},
         {"help", no_argument, NULL, 'h'},      {"perf", required_argument, NULL, 'f'},
+        {"output", required_argument, NULL, 'o'},
         {0, 0, NULL, 0},
     };
     int o;
-    while ((o = getopt_long(argc, argv, "-hl:d:p:b", table, NULL)) != -1)
+    while ((o = getopt_long(argc, argv, "-hbl:d:p:o:f:", table, NULL)) != -1)
     {
         switch (o)
         {
@@ -210,13 +214,16 @@ static int parse_args(int argc, char *argv[])
                 sscanf(optarg, "%d", &cfg_difftest_port);
                 break;
             case 'l':
-                cfg_log_file = optarg;
+                cfg_log_name = optarg;
                 break;
             case 'f':
-                cfg_perf_file = optarg;
+                cfg_perf_name = optarg;
                 break;
             case 'd':
                 cfg_difftest_so_file = optarg;
+                break;
+            case 'o':
+                cfg_output = optarg;
                 break;
             case 1:
                 cfg_img_file = optarg;
@@ -224,8 +231,9 @@ static int parse_args(int argc, char *argv[])
             default:
                 raw_stdout("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
                 raw_stdout("\t-b,--batch              run with batch mode\n");
-                raw_stdout("\t-l,--log=FILE           output log to FILE\n");
-                raw_stdout("\t-f,--perf=FILE          output perf data to FILE\n");
+                raw_stdout("\t-l,--log=NAME           specify the name of log file\n");
+                raw_stdout("\t-f,--perf=NAME          specify the name of perf-data file\n");
+                raw_stdout("\t-o,--output=PATH        specify the output directory\n");
                 raw_stdout("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
                 raw_stdout("\t-p,--port=PORT          run DiffTest with port PORT\n");
                 raw_stdout("\n");
@@ -246,7 +254,7 @@ void init_monitor(int argc, char *argv[])
     init_rand();
 
     /* Open the log file. */
-    init_log(cfg_log_file, cfg_perf_file);
+    init_log();
 
     /* Perform ISA dependent initialization. */
     init_isa(argc, argv);

@@ -13,35 +13,54 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <string>
 #include <common.h>
 
 #ifndef CONFIG_TARGET_AM
 FILE *log_fp = NULL;
 const char *log_file_path = "";
 FILE *perf_fp = NULL;
+FILE *icbin_fp = NULL;
+extern std::string cfg_output;
+extern std::string cfg_log_name;
+extern std::string cfg_perf_name;
+extern std::string cfg_icbin_name;
 
-void init_log(const char *log_file, const char *perf_file) {
+void init_log() {
+  Assert(!cfg_output.empty(), "Output directory is empty");
+
 #if CONFIG_LOG_FILE
-  log_file_path = log_file;
-  if (log_file != NULL) {
-    FILE *fp = fopen(log_file, "w");
-    Assert(fp, "Can not open '%s'", log_file);
+  std::string log_file = cfg_output + "/" + (cfg_log_name.empty() ? "npc-log.txt" : cfg_log_name);
+  log_file_path = log_file.c_str();
+  if (!log_file.empty()) {
+    FILE *fp = fopen(log_file.c_str(), "w");
+    Assert(fp, "Can not open '%s'", log_file.c_str());
     log_fp = fp;
   }
-  Log("Log is written to %s", log_file ? log_file : "stdout");
+  Log("Log is written to %s", log_file.c_str());
 #else
   Log("Log is written to none");
 #endif
 
 #if CONFIG_PERF_MONITOR
-  Assert(perf_file, "Can not find perf log to write");
-  FILE *fp = fopen(perf_file, "wb");
-  Assert(fp, "Can not open '%s'", perf_file);
+  std::string perf_file = cfg_output + "/" + (cfg_perf_name.empty() ? "npc-monitor.bin" : cfg_perf_name);
+  FILE *fp = fopen(perf_file.c_str(), "wb");
+  Assert(fp, "Can not open '%s'", perf_file.c_str());
   perf_fp = fp;
-  Log("Perf data is written to %s", perf_file);
+  Log("Perf data is written to %s", perf_file.c_str());
 #else
   Log("Perf data is written to none");
 #endif
+
+#if CONFIG_ICACHE_BIN
+  std::string icbin_file = cfg_output + "/" + (cfg_icbin_name.empty() ? "npc-inst.bin" : cfg_icbin_name);
+  icbin_fp = fopen(icbin_file.c_str(), "wb");
+  Assert(icbin_fp, "Can not open '%s'", icbin_file.c_str());
+  Log("icache bin is written to %s", icbin_file.c_str());
+#else
+  Log("icache bin is written to none");
+#endif
+
 }
 
 #endif
