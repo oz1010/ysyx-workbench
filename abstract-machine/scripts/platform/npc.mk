@@ -13,9 +13,7 @@ CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)
             #  --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections
-NPCFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
 # 默认NPC切换为批处理模式，查看函数sdb_mainloop实现
-NPCFLAGS += -b
 
 # Generate bin with flag
 # BINARY_FLG	:= -S --set-section-flags .bss=alloc,contents -O binary
@@ -36,7 +34,7 @@ image: $(IMAGE).elf
 	@$(OBJCOPY) $(BINARY_FLG) $(IMAGE).elf $(IMAGE).bin
 
 run: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run IMG=$(IMAGE).bin
 
 gdb: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) gdb ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) gdb IMG=$(IMAGE).bin
