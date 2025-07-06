@@ -23,8 +23,8 @@ compile_git:
 $(BINARY):: compile_git
 
 # Some convenient rules
-
-override ARGS ?= --output=$(BUILD_DIR) --log=npc-log.txt
+RESULT_DIR ?= $(shell dirname $(IMG))
+override ARGS ?= --output=$(RESULT_DIR) --log=npc-log.txt
 override ARGS += $(ARGS_DIFF)
 override ARGS += -b
 
@@ -32,10 +32,10 @@ ifeq ($(CONFIG_PERF_MONITOR), y)
 ANALYZER += analyzer
 ifeq ($(CONFIG_PERF_MONITOR_BIN_DATA), y)
 override PERF_NAME ?= npc-monitor.bin
-PERF_MONITOR_SH=$(NPC_HOME)/tools/monitor_analyzer/build/mon_analyzer $(BUILD_DIR)/$(PERF_NAME)
+PERF_MONITOR_SH=$(NPC_HOME)/tools/monitor_analyzer/build/mon_analyzer $(RESULT_DIR)/$(PERF_NAME)
 else
 override PERF_NAME ?= npc-monitor.txt
-PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(BUILD_DIR)/$(PERF_NAME)
+PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(RESULT_DIR)/$(PERF_NAME)
 endif
 endif
 override ARGS += --perf=$(PERF_NAME)
