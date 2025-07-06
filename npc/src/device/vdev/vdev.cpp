@@ -10,6 +10,7 @@
 #include "trace.h"
 #include "device/alarm.h"
 
+extern hw_cpu_stat_t hw_cpu_stat;
 static int vdev_items_cnt = 0;
 vdev_item_t vdev_items[NR_VDEV_ITEMS] = {};
 
@@ -200,7 +201,10 @@ vdev_item_t* add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, uin
 
 vdev_item_t* find_vdev_item(paddr_t addr)
 {
-    for (int idx = 0; idx < ARRLEN(vdev_items); ++idx)
+    vdev_item_t* matched_vdev = NULL;
+    int idx;
+
+    for (idx = 0; idx < ARRLEN(vdev_items); ++idx)
     {
         vdev_item_t* vdev = &vdev_items[idx];
         if (!vdev->name)
@@ -208,11 +212,20 @@ vdev_item_t* find_vdev_item(paddr_t addr)
 
         if (addr < vdev->endaddr && addr >= vdev->startaddr)
         {
-            return vdev;
+            matched_vdev = vdev;
+            break;
         }
     }
 
-    return NULL;
+    if (matched_vdev)
+    {
+        if (matched_vdev->type == VDEV_MEM)
+        {
+            hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX] = idx;
+        }
+    }
+
+    return matched_vdev;
 }
 
 void show_vdev(void)
