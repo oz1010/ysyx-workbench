@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
+#include "perf_monitor.h"
 
 using namespace std;
 
@@ -21,8 +22,6 @@ using namespace std;
              << (100.0 * (POS) / (SIZE)) << "% (" << (POS) << "/" << (SIZE) << ")"; \
     cout.flush(); \
 } while(0)
-#define PERF_MONITOR_TYPE_EVENT 1
-#define PERF_MONITOR_TYPE_CODE 2
 enum { EVENT_INVALID, EVENT_IFU, EVENT_IDU, EVENT_LSU, EVENT_EXU, EVENT_WBU, EVENT_COUNT };
 const vector<string> EVENT_STRS = { "INVALID", "IFU", "IDU", "LSU", "EXU", "WBU" };
 const vector<string> CODE_STRS = {
@@ -33,9 +32,15 @@ const vector<string> CODE_STRS = {
     "EBREAK", "CSRRW", "CSRRS", "CSRRC", "CSRRWI", "CSRRSI", "CSRRCI", "MUL", "MULH", "MULHSU",
     "MULHU", "DIV", "DIVU", "REM", "REMU", "MRET"
 };
+const vector<string> MEM_STRS = {
+    "sram", "mrom", "flash", "psram", "sdram"
+};
 
 struct Instruction {
     uint8_t inst_code = 255;
+    uint8_t mem_index;
+    uint8_t icache_hit;
+    uint8_t icache_miss;
     uint64_t start_tick;
     uint64_t end_tick;
     unordered_map<uint8_t, uint64_t> stages;
@@ -49,8 +54,10 @@ struct Stat {
     unordered_map<uint8_t, uint64_t> inst_cycles_avg_count;
     unordered_map<uint8_t, uint64_t> stage_delays_avg_total;
     unordered_map<uint8_t, uint64_t> stage_delays_avg_count;
-    int total_instructions = 0;
-    int total_cycles = 0;
+    unordered_map<uint8_t, uint64_t> mem_icache_hit;
+    unordered_map<uint8_t, uint64_t> mem_icache_miss;
+    uint64_t total_instructions = 0;
+    uint64_t total_cycles = 0;
 };
 
 Stat stats;
@@ -72,6 +79,11 @@ void analyze_instructions(vector<Instruction> &instructions) {
                 stats.stage_delays_avg_total[event_type] += s.at(event_type);
                 stats.stage_delays_avg_count[event_type] += 1;
             }
+        }
+
+        if (inst.icache_hit>0||inst.icache_miss>0) {
+            stats.mem_icache_hit[inst.mem_index] += inst.icache_hit;
+            stats.mem_icache_miss[inst.mem_index] += inst.icache_miss;
         }
     }
 
@@ -140,6 +152,13 @@ void parse_binary_log(const char* filepath) {
                     current_inst.end_tick = current_tick;
                     start_tick = current_tick;
                 }
+            } else if (entry_type == PERF_MONITOR_TYPE_ICACHE) {
+                if (pos >= buffer.size()) throw runtime_error("缺少icache数据");
+                perf_monitor_icache_data_t data;
+                data.raw_val = buffer[pos++];
+                current_inst.mem_index = data.mem_index;
+                current_inst.icache_hit = data.hit_count;
+                current_inst.icache_miss = data.miss_count;
             } else if (entry_type == PERF_MONITOR_TYPE_CODE) {
                 if (pos >= buffer.size()) throw runtime_error("缺少指令编码");
                 uint8_t inst_code = buffer[pos++];
@@ -197,7 +216,7 @@ void print_stats(const char* filepath) {
     cout << "指令总周期：" << stats.total_cycles << endl;
     cout << "指令总数：" << stats.total_instructions << endl;
     cout << "IPC：" << fixed << setprecision(3)
-         << (double)stats.total_instructions / max(1, stats.total_cycles) << endl;
+         << (double)stats.total_instructions / max((uint64_t)1, stats.total_cycles) << endl;
 
     cout << "\n阶段延迟统计:\n";
     if (stats.stage_delays_avg_total.empty()) {
@@ -216,9 +235,26 @@ void print_stats(const char* filepath) {
         });
         for (const auto &[event_type, avg] : delay_avg) {
             cout << setw(5) << EVENT_STRS[event_type] << ": "
-                 << fixed << setprecision(1) << avg
-                 << " | " << stats.stage_delays_avg_count[event_type] << endl;
+            << fixed << setprecision(1) << avg
+            << " | " << stats.stage_delays_avg_count[event_type] << endl;
         }
+    }
+
+    cout << "\n缓存统计(hit/miss):\n";
+    if (stats.mem_icache_hit.empty()) {
+        cout << "  无有效的指令缓存数据\n";
+    } else {
+        uint64_t total_icache_hit = 0;
+        uint64_t total_icache_miss = 0;
+        for (const auto &[mem_index, icache_hit] : stats.mem_icache_hit) {
+            const auto &icache_miss = stats.mem_icache_miss[mem_index];
+            total_icache_hit += icache_hit;
+            total_icache_miss += icache_miss;
+            cout << setw(8) << MEM_STRS[mem_index] << ": " << icache_hit << "/" << icache_miss << " | "
+                << fixed << setprecision(3)  << (icache_hit*1.0/icache_miss) << endl;
+        }
+        cout << "合计" << ": " << total_icache_hit << "/" << total_icache_miss << " | "
+                << fixed << setprecision(3)  << (total_icache_hit*1.0/total_icache_miss) << endl;
     }
 }
 

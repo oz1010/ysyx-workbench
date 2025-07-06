@@ -20,6 +20,17 @@ typedef struct
     uint8_t size : 2;  // 事件类型时间长度，2^n
 } perf_monitor_header_t;
 
+typedef union _perf_monitor_icache_data
+{
+    uint8_t raw_val;
+    struct
+    {
+        uint8_t mem_index : 4;   // 取指存储器索引，参考vdev中的顺序
+        uint8_t hit_count : 2;   // 取指命中次数增量
+        uint8_t miss_count : 2;  // 取指不命中次数增量
+    };
+} perf_monitor_icache_data_t;
+
 typedef struct
 {
     union
@@ -44,15 +55,7 @@ typedef struct
         struct
         {
             perf_monitor_header_t header;
-            union
-            {
-                uint8_t raw_val;
-                struct {
-                    uint8_t mem_index:4;  // 取指存储器索引，参考vdev中的顺序
-                    uint8_t hit_count:2;  // 取指命中次数增量
-                    uint8_t miss_count:2;  // 取指不命中次数增量
-                };
-            };
+            perf_monitor_icache_data_t d;
         } icache;
     };
 } perf_monitor_data_t;

@@ -698,8 +698,8 @@ void add_monitor_log(int item_idx, int id)
 
         case PERF_MONITOR_TYPE_ICACHE:
             header = &data.icache.header;
-            data.icache.raw_val = id & 0xff;
-            wsize += sizeof(data.icache.raw_val);
+            data.icache.d.raw_val = id & 0xff;
+            wsize += sizeof(data.icache.d);
             break;
 
         default:
@@ -765,13 +765,14 @@ void add_monitor_item(int item_type, int id, int delta)
         if (item_type == PERF_MONITOR_TYPE_EVENT && id == 1)  // IFU
         {
             perf_monitor_data_t data;
-            data.icache.mem_index = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX];
-            data.icache.hit_count =
+            data.icache.d.mem_index = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX];
+            data.icache.d.hit_count =
                 hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_HIT] - last_icache_hit_count;
-            data.icache.miss_count =
+            data.icache.d.miss_count =
                 hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS] - last_icache_miss_count;
             last_icache_hit_count = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_HIT];
             last_icache_miss_count = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS];
+            add_monitor_log(PERF_MONITOR_TYPE_ICACHE, data.icache.d.raw_val);
         }
     }
 #endif

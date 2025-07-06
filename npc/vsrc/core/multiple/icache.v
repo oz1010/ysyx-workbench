@@ -152,7 +152,13 @@ reg  [1:0]                  c_s_arburst;
 reg                         c_s_rready;
 
 wire icache_wen = 0;
-wire icache_ren = m_araddr>=`CONFIG_FLASH_BASE && m_araddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE);
+wire icache_ren = m_arid==`AXI4_ID_IFU &&
+    ( 
+           ( m_araddr>=`CONFIG_MROM_BASE && m_araddr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
+        || ( m_araddr>=`CONFIG_FLASH_BASE && m_araddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE) )
+        || ( m_araddr>=`CONFIG_PSRAM_BASE && m_araddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
+        || ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
+    );
 
 wire                        read_en;
 wire [INST_WIDTH-1:0]       read_inst;
