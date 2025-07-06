@@ -12,6 +12,8 @@
 !*.sdc
 !*.nxdc
 !*.py
+!*.sv
+!*.sby
 !.gitignore
 !README.md
 !Kconfig
@@ -19,6 +21,8 @@
 !*/
 # 禁用文件夹
 build/
+verify/
+verify_basic/
 
 # 特定目录或文件规则
 !vsrc/ysyxSoC/build/

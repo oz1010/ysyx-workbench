@@ -1,0 +1,18 @@
+[tasks]
+basic bmc
+basic: default
+
+[options]
+bmc:
+mode bmc
+depth 1
+
+[engines]
+smtbmc
+
+[script]
+read -formal sub.sv
+prep -top sub
+
+[files]
+sub.sv
