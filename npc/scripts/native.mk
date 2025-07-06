@@ -61,10 +61,16 @@ test:
 analyzer:
 	@make -C tools/monitor_analyzer
 
+cachesim:
+	@make -C tools/cachesim
+
+run_cachesim: cachesim
+	$(NPC_HOME)/tools/cachesim/build/cachesim $(mainargs)
+
 clean-tools = $(dir $(shell find ./tools -maxdepth 2 -mindepth 2 -name "Makefile"))
 $(clean-tools):
 	$(MAKE) -s -C $@ clean
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer
+.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer cachesim
