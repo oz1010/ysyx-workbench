@@ -348,7 +348,6 @@ always @(posedge clk) begin
                         r_slave_addr <= {read_addr[ADDR_WIDTH-1:(offset_width+index_width)], {(offset_width+index_width){1'b0}}};
                         r_slave_index <= 0;
                         func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_MISS, 1);
-                        func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1); // 缓存后必然命中
                     end
                 end
 
