@@ -23,7 +23,7 @@ compile_git:
 $(BINARY):: compile_git
 
 # Some convenient rules
-RESULT_DIR ?= $(shell dirname $(IMG))
+RESULT_DIR ?= $(BUILD_DIR)
 override ARGS ?= --output=$(RESULT_DIR) --log=npc-log.txt
 override ARGS += $(ARGS_DIFF)
 override ARGS += -b

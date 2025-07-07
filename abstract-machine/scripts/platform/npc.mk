@@ -23,6 +23,7 @@ BINARY_FLG	+= -S
 # BINARY_FLG	+= --set-section-flags .bss=alloc,contents
 # # 只复制特定段到bin中
 # BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
+RESULT_DIR := $(shell dirname $(IMAGE).elf)
 
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/platform/npc/include
@@ -34,7 +35,7 @@ image: $(IMAGE).elf
 	@$(OBJCOPY) $(BINARY_FLG) $(IMAGE).elf $(IMAGE).bin
 
 run: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) RESULT_DIR=$(RESULT_DIR) run IMG=$(IMAGE).bin
 
 gdb: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) gdb IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) RESULT_DIR=$(RESULT_DIR) gdb IMG=$(IMAGE).bin
