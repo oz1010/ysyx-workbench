@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     cout << "Read file " << argv[1] << endl;
 
-    cache = new CacheFIFO();
+    cache = new CacheFIFO(6);
 
     int ret = parse_binary_file(argv[1]);
     cache->show_stat();
