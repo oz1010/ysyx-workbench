@@ -4,8 +4,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
+#include <iomanip>
 #include "bits.h"
 #include "mem.h"
+
+using namespace std;
 
 /*
 每个组中有w个cache块
@@ -37,12 +40,23 @@ class ICache
     virtual int find_data(uint32_t pc) = 0;
     virtual void show_stat()
     {
-        std::cout << "缓存统计" << std::endl;
+        uint64_t total_hit_count = 0;
+        uint64_t total_miss_count = 0;
+        std::cout << "缓存统计:\n";
         for (auto &[mem_idx, hit_count] : hit_counts)
         {
             auto miss_count = miss_counts[mem_idx];
-            std::cout << "  " << mem_idx_2_str(mem_idx) << ": " << hit_count << " "
-                      << (hit_count + miss_count) << std::endl;
+            double p = hit_count * 1.0 / (hit_count + miss_count);
+            total_hit_count += hit_count;
+            total_miss_count += miss_count;
+            cout << setw(8) << mem_idx_2_str(mem_idx) << ": " << fixed << setprecision(1) << p * 100
+                 << "% (" << hit_count << " " << (hit_count + miss_count) << ")" << std::endl;
+        }
+        {
+            double p = total_hit_count * 1.0 / (total_hit_count + total_miss_count);
+            cout << "合计"
+                 << ": " << fixed << setprecision(1) << p * 100 << "% (" << total_hit_count << " "
+                 << (total_hit_count + total_miss_count) << ")" << std::endl;
         }
     }
     virtual ~ICache() = default;
