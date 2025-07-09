@@ -1,10 +1,13 @@
+#include <cstdlib>
 #include <string>
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
 #include <iomanip>
+#include <unistd.h>
 #include "cache.h"
+#include <getopt.h>
 
 using namespace std;
 
@@ -62,17 +65,38 @@ int parse_binary_file(std::string filepath)
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
+    std::string pro_name = argv[0];
+    std::string filepath = "";
+
+    const struct option table[] = {
+        {"help", no_argument, NULL, 'h'},
+        {"time", required_argument, NULL, 't'},
+        {0, 0, NULL, 0},
+    };
+    int opt;
+    while ((opt = getopt_long(argc, argv, "-ht:", table, NULL)) != -1)
     {
-        cerr << "用法: " << argv[0] << " <日志文件>" << endl;
-        return 1;
+        switch (opt)
+        {
+            case 't':
+                set_mem_from_arg(optarg);
+                break;
+
+            case 1:
+                filepath = optarg;
+                break;
+
+            default:
+                cerr << "用法: " << pro_name << " [OPTION...] <日志文件>" << endl;
+                exit(0);
+        }
     }
 
-    cout << "Read file " << argv[1] << endl;
+    cout << "Read file " << filepath << endl;
 
-    cache = new CacheFIFO(6);
+    cache = new CacheFIFO(4);
 
-    int ret = parse_binary_file(argv[1]);
+    int ret = parse_binary_file(filepath);
     cache->show_stat();
 
     return ret;
