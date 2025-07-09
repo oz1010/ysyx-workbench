@@ -311,32 +311,33 @@ void print_stats(const char *filepath)
     }
     else
     {
-        uint64_t total_icache_hit = 0;
-        uint64_t total_icache_miss = 0;
-        for (const auto &[mem_index, icache_hit] : stats.mem_icache_hit)
+        uint64_t total_hit_count = 0;
+        uint64_t total_miss_count = 0;
+        for (const auto &[mem_idx, hit_count] : stats.mem_icache_hit)
         {
-            const auto &icache_miss = stats.mem_icache_miss[mem_index];
-            const auto &icache_hit_atime = stats.mem_icache_hit_atime[mem_index];
-            const auto &icache_miss_atime = stats.mem_icache_miss_atime[mem_index];
-            total_icache_hit += icache_hit;
-            total_icache_miss += icache_miss;
+            const auto &miss_count = stats.mem_icache_miss[mem_idx];
+            const auto &hit_atime = stats.mem_icache_hit_atime[mem_idx];
+            const auto &miss_atime = stats.mem_icache_miss_atime[mem_idx];
+            total_hit_count += hit_count;
+            total_miss_count += miss_count;
             /* ref.
              * https://ysyx.oscc.cc/docs/2306/basic/1.9.html#%E7%BC%93%E5%AD%98%E7%9A%84%E4%BC%98%E5%8C%96
              */
-            double access_time = icache_hit_atime * 1.0 / icache_hit;
-            double miss_penalty = icache_miss_atime * 1.0 / icache_miss - access_time;
-            double p = icache_hit * 1.0 / (icache_hit + icache_miss);
+            double access_time = hit_atime * 1.0 / hit_count;
+            double miss_penalty = miss_atime * 1.0 / miss_count - access_time;
+            double p = hit_count * 1.0 / (hit_count + miss_count);
             double amat = access_time + (1 - p) * miss_penalty;
-            cout << setw(8) << MEM_STRS[mem_index] << ": " << fixed << setprecision(1) << p * 100
-                 << "% (" << icache_hit << " " << (icache_hit + icache_miss) << ")" << std::endl;
-            cout << setw(8) << "" << "  " << fixed << setprecision(1) << amat << " (" << access_time
-                 << " " << miss_penalty << ")" << endl;
+            cout << setw(8) << MEM_STRS[mem_idx] << ": " << fixed << setprecision(1) << p * 100
+                 << "% (" << hit_count << " " << (hit_count + miss_count) << ")" << std::endl;
+            cout << setw(8) << ""
+                 << "  " << fixed << setprecision(1) << amat << " (" << access_time << " "
+                 << miss_penalty << ")" << endl;
         }
         {
-            double p = total_icache_hit * 1.0 / (total_icache_hit + total_icache_miss);
-            cout << "合计" << ": " << fixed << setprecision(1) << p * 100 << "% ("
-                 << total_icache_hit << " " << (total_icache_hit + total_icache_miss) << ")"
-                 << std::endl;
+            double p = total_hit_count * 1.0 / (total_hit_count + total_miss_count);
+            cout << "合计"
+                 << ": " << fixed << setprecision(1) << p * 100 << "% (" << total_hit_count << " "
+                 << (total_hit_count + total_miss_count) << ")" << std::endl;
         }
     }
 }
