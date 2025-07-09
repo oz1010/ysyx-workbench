@@ -5,9 +5,12 @@
 #include <vector>
 #include <unordered_map>
 #include <iomanip>
+#include <tuple>
+#include <optional>
 #include <unistd.h>
-#include "cache.h"
 #include <getopt.h>
+#include "cache.h"
+#include "util.h"
 
 using namespace std;
 
@@ -63,6 +66,39 @@ int parse_binary_file(std::string filepath)
     return 0;
 }
 
+std::optional<std::tuple<uint32_t, uint32_t, uint32_t>> parse_cache_parameter(std::string str)
+{
+    auto tokens = split(str, ',');
+    uint32_t n = 0, m = 0, w = 0;
+    switch (tokens.size())
+    {
+        case 3:
+            m = std::stoul(tokens[2]);
+        case 2:
+            n = std::stoul(tokens[1]);
+        case 1:
+            w = std::stoul(tokens[0]);
+            break;
+        default:
+            return {};
+    }
+    return std::tuple(w, n, m);
+}
+
+std::optional<std::tuple<std::string, double, double>> parse_mem_parameter(std::string str)
+{
+    auto tokens = split(str, ',');
+    if (tokens.size() == 3)
+    {
+        auto name = tokens[0];
+        auto access_time = std::stod(tokens[1]);
+        auto miss_penalty = std::stod(tokens[2]);
+        return std::tuple(name, access_time, miss_penalty);
+    }
+
+    return {};
+}
+
 int main(int argc, char *argv[])
 {
     std::string pro_name = argv[0];
@@ -71,16 +107,33 @@ int main(int argc, char *argv[])
     const struct option table[] = {
         {"help", no_argument, NULL, 'h'},
         {"time", required_argument, NULL, 't'},
+        {"cache", required_argument, NULL, 'c'},
         {0, 0, NULL, 0},
     };
     int opt;
-    while ((opt = getopt_long(argc, argv, "-ht:", table, NULL)) != -1)
+    uint32_t w = 0, n = 0, m = 0;
+    while ((opt = getopt_long(argc, argv, "-ht:c:", table, NULL)) != -1)
     {
         switch (opt)
         {
-            case 't':
-                set_mem_from_arg(optarg);
+            case 'c':
+            {
+                auto ret = parse_cache_parameter(optarg);
+                if (ret)
+                    std::tie(w, n, m) = *ret;
                 break;
+            }
+
+            case 't':
+            {
+                auto ret = parse_mem_parameter(optarg);
+                if (ret)
+                {
+                    auto [name, access_time, miss_penalty] = *ret;
+                    set_mem_time(name, access_time, miss_penalty);
+                }
+                break;
+            }
 
             case 1:
                 filepath = optarg;
@@ -92,10 +145,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    cout << "Read file " << filepath << endl;
-
-    cache = new CacheFIFO(4);
-
+    // cout << "Read file " << filepath << endl;
+    cache = new CacheFIFO(w, n, m);
     int ret = parse_binary_file(filepath);
     cache->show_stat();
 
