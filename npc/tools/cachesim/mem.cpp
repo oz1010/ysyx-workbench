@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
-#include <sstream>
 #include <iostream>
+#include "util.h"
 #include "mem.h"
 #include "generated/autoconf.h"
 
@@ -37,19 +37,6 @@ std::vector<mem_info_t> mem_infos = {
     },
 };
 
-std::vector<std::string> split(const std::string& str, char delimiter)
-{
-    std::vector<std::string> result;
-    std::stringstream ss(str);
-    std::string token;
-
-    while (std::getline(ss, token, delimiter))
-    {
-        result.push_back(token);
-    }
-    return result;
-}
-
 int in_mem(uint32_t addr)
 {
     for (size_t i = 0; i < mem_infos.size(); ++i)
@@ -82,30 +69,22 @@ const mem_info_t& get_mem_info(uint32_t idx)
     return mem_infos[idx];
 }
 
-void set_mem_from_arg(std::string str)
+void set_mem_time(std::string& name, double access_time, double miss_penalty)
 {
-    auto tokens = split(str, ',');
-    if (tokens.size() == 3)
+    for (auto& mem_info : mem_infos)
     {
-        auto name = tokens[0];
-        auto access_time = std::stod(tokens[1]);
-        auto miss_penalty = std::stod(tokens[2]);
-
-        for (auto& mem_info : mem_infos)
+        if (mem_info.name == name)
         {
-            if (mem_info.name == name)
-            {
-                mem_info.access_time = access_time;
-                mem_info.miss_penalty = miss_penalty;
-                break;
-            }
+            mem_info.access_time = access_time;
+            mem_info.miss_penalty = miss_penalty;
+            break;
         }
     }
 }
 
 void show_mem_time(void)
 {
-    std::cout << "各存储时间参数：\n";
+    std::cout << "存储访问时间：\n";
     for (auto& mem_info : mem_infos)
     {
         std::cout << mem_info.name << ": " << mem_info.access_time << " " << mem_info.miss_penalty

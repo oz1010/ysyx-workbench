@@ -15,5 +15,5 @@ typedef struct
 int in_mem(uint32_t addr);
 std::string mem_idx_2_str(uint32_t idx);
 const mem_info_t& get_mem_info(uint32_t idx);
-void set_mem_from_arg(std::string str);
+void set_mem_time(std::string& name, double access_time, double miss_penalty);
 void show_mem_time(void);

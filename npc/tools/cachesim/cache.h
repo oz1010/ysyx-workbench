@@ -27,16 +27,36 @@ class ICache
     std::unordered_set<uint32_t> tags;
     std::unordered_map<uint8_t, uint64_t> hit_counts;   // storage - count
     std::unordered_map<uint8_t, uint64_t> miss_counts;  // storage - count
-    uint32_t m;
-    uint32_t n;
-    uint32_t w;
+    const uint32_t w;
+    const uint32_t n;
+    const uint32_t m;
 
    public:
-    ICache(uint32_t n, uint32_t m, uint32_t w)
+    ICache(uint32_t w, uint32_t n, uint32_t m)
+        : w(w == 0 ? 1 : w),
+          n(n == 0 ? 1 : n),
+          m(m == 0 ? 2 : m)
     {
-        this->n = n;
-        this->m = m;
-        this->w = w;
+        // lines.insert(std::pair<uint32_t, uint32_t>(0, 0));
+        // lines.find(0) != lines.end();
+        // lines.erase(0);
+        // tags.insert(0);
+        // tags.find(0) != tags.end();
+        // tags.erase(0);
+        // ios_base::fmtflags def_fmt = cout.flags();
+        // cout << hex << "BIT_MASK(1): " << BIT_MASK(1) << endl;
+        // cout << hex << "BIT_MASK(16): " << BIT_MASK(16) << endl;
+        // cout << hex << "BIT_MASK(30): " << BIT_MASK(30) << endl;
+        // cout.flags(def_fmt);
+        cout << "缓存基本参数：\n";
+        cout << "tag: [" << (31) << ", " << (this->m + this->n) << "]" << endl;
+        cout << "index: [" << (this->m + this->n - 1) << ", " << (this->m) << "]" << endl;
+        cout << "offset: [" << (this->m + -1) << ", " << (0) << "]" << endl;
+        cout << "块组: " << this->w << endl;
+        cout << "缓存块: " << (1 << this->n) << "" << endl;
+        cout << "块大小: " << (1 << this->m) << endl;
+        cout << "总大小: " << (this->w * (1 << this->n) * (1 << this->m)) << endl;
+        show_mem_time();
     }
     virtual int hit_data(uint32_t tag, int mem_idx)
     {
@@ -70,8 +90,8 @@ class ICache
     {
         uint64_t total_hit_count = 0;
         uint64_t total_miss_count = 0;
-        std::cout << "缓存统计:\n";
-        for (auto &[mem_idx, hit_count] : hit_counts)
+        std::cout << "\n缓存统计:\n";
+        for (auto& [mem_idx, hit_count] : hit_counts)
         {
             auto miss_count = miss_counts[mem_idx];
             total_hit_count += hit_count;
@@ -103,25 +123,9 @@ class ICache
 class CacheFIFO : public ICache
 {
    public:
-    CacheFIFO(uint32_t n, uint32_t m = 2, uint32_t w = 1)
-        : ICache(n, m, w)
+    CacheFIFO(uint32_t w, uint32_t n, uint32_t m)
+        : ICache(w, n, m)
     {
-        // lines.insert(std::pair<uint32_t, uint32_t>(0, 0));
-        // lines.find(0) != lines.end();
-        // lines.erase(0);
-        // tags.insert(0);
-        // tags.find(0) != tags.end();
-        // tags.erase(0);
-        ios_base::fmtflags def_fmt = cout.flags();
-        // cout << hex << "BIT_MASK(1): " << BIT_MASK(1) << endl;
-        // cout << hex << "BIT_MASK(16): " << BIT_MASK(16) << endl;
-        // cout << hex << "BIT_MASK(30): " << BIT_MASK(30) << endl;
-        cout.flags(def_fmt);
-        cout << "缓存基本参数：\n";
-        cout << "n:" << n << endl;
-        cout << "m:" << m << endl;
-        cout << "w:" << w << endl;
-        show_mem_time();
     }
 
     ~CacheFIFO()
