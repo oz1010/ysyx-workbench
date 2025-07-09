@@ -39,14 +39,14 @@ module sdram_top_axi(
   output        sdram_we,
   output [12:0] sdram_a,
   output [ 1:0] sdram_ba,
-  output [ 1:0] sdram_dqm,
+  output [`SDRAM_DATA_MASK_BITS-1:0] sdram_dqm,
   output [`SDRAM_BLK_NUM-1:0] sdram_bsel,
-  inout  [15:0] sdram_dq
+  inout  [`SDRAM_DATA_BITS-1:0] sdram_dq
 );
 
   wire sdram_dout_en;
-  wire [15:0] sdram_dout;
-  assign sdram_dq = sdram_dout_en ? sdram_dout : 16'bz;
+  wire [`SDRAM_DATA_BITS-1:0] sdram_dout;
+  assign sdram_dq = sdram_dout_en ? sdram_dout : {`SDRAM_DATA_BITS{1'bz}};
   sdram_axi #(
     .SDRAM_MHZ(100),
     .SDRAM_ADDR_W(24),

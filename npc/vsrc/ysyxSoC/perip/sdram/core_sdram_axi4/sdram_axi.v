@@ -53,7 +53,7 @@ module sdram_axi
     ,input  [  7:0]  inport_arlen_i
     ,input  [  1:0]  inport_arburst_i
     ,input           inport_rready_i
-    ,input  [ 15:0]  sdram_data_input_i
+    ,input  [`SDRAM_DATA_BITS-1:0]  sdram_data_input_i
 
     // Outputs
     ,output          inport_awready_o
@@ -73,11 +73,11 @@ module sdram_axi
     ,output          sdram_ras_o
     ,output          sdram_cas_o
     ,output          sdram_we_o
-    ,output [  1:0]  sdram_dqm_o
+    ,output [`SDRAM_DATA_MASK_BITS-1:0]  sdram_dqm_o
     ,output [`SDRAM_BLK_NUM-1:0]  sdram_bsel_o
     ,output [ 12:0]  sdram_addr_o
     ,output [  1:0]  sdram_ba_o
-    ,output [ 15:0]  sdram_data_output_o
+    ,output [`SDRAM_DATA_BITS-1:0]  sdram_data_output_o
     ,output          sdram_data_out_en_o
 );
 

@@ -18,7 +18,7 @@ ifeq ($(wildcard $(NPC_HOME)/src/npc-main.cpp),)
     $(error NPC_HOME=$(NPC_HOME) is not a NPC repo)
 endif
 # ysyxSoC check
-ifeq ($(wildcard $(NPC_HOME)/vsrc/ysyxSoC/build/ysyxSoCFull.v),)
+ifeq ($(wildcard $(NPC_HOME)/vsrc/ysyxSoC/build/ysyxSoCFull_axi.v),)
     $(error Need build ysyxSoC and make copy_to_npc)
 endif
 
