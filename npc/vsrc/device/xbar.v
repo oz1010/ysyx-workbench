@@ -115,19 +115,6 @@ reg [log2(SLAVE_COUNT):0] s_grant_idx;
 parameter logic [ADDR_WIDTH-1:0] dev_addr_bases[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_BASE, `DEV_UART_ADDR_BASE, `DEV_RTC_ADDR_BASE};
 parameter logic [ADDR_WIDTH-1:0] dev_addr_ends[SLAVE_COUNT] = '{`DEV_SRAM_ADDR_END, `DEV_UART_ADDR_END, `DEV_RTC_ADDR_END};
 
-function integer log2;
-    input integer value;
-    integer result;
-    begin
-        result = 0;
-        while (value > 1) begin
-            value = value >> 1;
-            result = result + 1;
-        end
-        log2 = result;
-    end
-endfunction
-
 sram_axi4 #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),

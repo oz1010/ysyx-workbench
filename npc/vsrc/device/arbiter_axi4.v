@@ -72,15 +72,17 @@ module arbiter_axi4 #(
     output  wire [log2(MASTER_COUNT):0] grant_idx
 );
 
-`ifdef IN_YOSYS_STA
-localparam [2:0] select_t       = 0;
-localparam [2:0] read_t         = 1;
-localparam [2:0] write_t        = 2;
-localparam [2:0] err_t          = 3;
-`else
-typedef enum [2:0] { select_t, read_t, write_t, err_t } state_t;
-`endif
-reg [2:0]  state;
+// typedef enum [1:0] { idle_t, work_t, err_t } rwstate_t;
+localparam [1:0] idle_t         = 0;
+localparam [1:0] work_t         = 1;
+localparam [1:0] err_t        = 2;
+
+reg [1:0] wstate = idle_t;
+reg [1:0] rstate = idle_t;
+reg [log2(MASTER_COUNT):0] widx_select = 0;
+reg [log2(MASTER_COUNT):0] ridx_select = 0;
+reg [log2(MASTER_COUNT):0] widx_last = 0;
+reg [log2(MASTER_COUNT):0] ridx_last = 0;
 
 // 默认master，避免切主时造成从设备响应错误
 wire                        m_awreadys[0:MASTER_COUNT-1];
@@ -113,6 +115,7 @@ wire [DATA_WIDTH-1:0]       m_rdatas[0:MASTER_COUNT-1];
 wire                        m_rlasts[0:MASTER_COUNT-1];
 wire [3:0]                  m_rids[0:MASTER_COUNT-1];
 
+/* master数组与user数组互联，idx==0为默认值 */
 generate
     for (genvar i=0; i<MASTER_COUNT; ++i) begin
         // DEFAULT
@@ -172,132 +175,83 @@ generate
     end
 endgenerate
 
-reg [MASTER_COUNT-1:0] m_signal_en;
-reg [MASTER_COUNT-1:0] m_write_en;
-reg [MASTER_COUNT-1:0] m_read_en;
-reg [log2(MASTER_COUNT):0] r_grant_idx;
-
-assign grant_idx = r_grant_idx;
-
-function integer log2;
-    input integer value;
-    integer result;
-    begin
-        result = 0;
-        while (value > 1) begin
-            value = value >> 1;
-            result = result + 1;
-        end
-        log2 = result;
-    end
-endfunction
-
-function void match_master_valid;
-    output [31:0] awid0;
-    output [31:0] arid1;
-    integer mid;
-    reg found;
-    begin
-        awid0 = -1;
-        arid1 = -1;
-        found = 0;
-        for (mid=0; mid<MASTER_COUNT; ++mid) begin
-            if (!found && m_awvalids[mid]) begin
-                awid0 = mid;
-                found = 1;
-            end else if (!found && m_arvalids[mid]) begin
-                arid1 = mid;
-                found = 1;
-            end
-        end
-    end
-endfunction
-
-// arbiter
-// 每次按照顺序循环遍历，master中最后一个为默认节点
-integer aw_match_id;
-integer ar_match_id;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        state <= select_t;
-        r_grant_idx <= 0;
-    end else begin
-        case (state)
-            select_t: begin
-                match_master_valid(aw_match_id, ar_match_id);
-                if (aw_match_id>=0) begin
-                    state <= write_t;
-                    r_grant_idx <= (aw_match_id[$bits(r_grant_idx)-1:0]) % MASTER_COUNT;
-                end else if (ar_match_id>=0) begin
-                    state <= read_t;
-                    r_grant_idx <= (ar_match_id[$bits(r_grant_idx)-1:0]) % MASTER_COUNT;
-                end
-            end
-
-            write_t: begin
-                if (m_bvalids[r_grant_idx] && m_breadys[r_grant_idx]) begin
-                    state <= select_t;
-                    r_grant_idx <= 0;
-                end
-            end
-            
-            read_t: begin
-                if (m_rlasts[r_grant_idx]) begin
-                    state <= select_t;
-                    r_grant_idx <= 0;
-                end
-            end
-
-            default: begin
-`ifndef IN_YOSYS_STA
-                $error("arbiter-axi4 is error, state:%x\n", state);
-`endif
-                state <= select_t;
-            end
-        endcase
-    end
-end
-
-// 各信号使能处理
 // manager输入引脚处理，没有选择的需要赋值为0
 generate
     for (genvar i = 0; i < MASTER_COUNT; ++i) begin : m_sig_in_gen
-        assign m_signal_en[i] = m_awvalids[i] | m_wvalids[i] | m_bvalids[i] | m_arvalids[i] | m_rvalids[i];
-        assign m_write_en[i] = ((m_awvalids[i] | m_wvalids[i] | m_bvalids[i]));
-        assign m_read_en[i] = ((m_arvalids[i] | m_rvalids[i]));
-
-        assign m_awreadys[i] = (awready & {$bits(awready){i==grant_idx}});
-        assign m_wreadys[i] = (wready & {$bits(wready){i==grant_idx}});
-        assign m_bvalids[i] = (bvalid & {$bits(bvalid){i==grant_idx}});
-        assign m_bresps[i] = (bresp & {$bits(bresp){i==grant_idx}});
-        assign m_bids[i] = (bid & {$bits(bid){i==grant_idx}});
-        assign m_arreadys[i] = (arready & {$bits(arready){i==grant_idx}});
-        assign m_rvalids[i] = (rvalid & {$bits(rvalid){i==grant_idx}});
-        assign m_rresps[i] = (rresp & {$bits(rresp){i==grant_idx}});
-        assign m_rdatas[i] = (rdata & {$bits(rdata){i==grant_idx}});
-        assign m_rlasts[i] = (rlast & {$bits(rlast){i==grant_idx}});
-        assign m_rids[i] = (rid & {$bits(rid){i==grant_idx}});
+        assign m_awreadys[i] = (awready & {$bits(awready){i==widx_select}});
+        assign m_wreadys[i] = (wready & {$bits(wready){i==widx_select}});
+        assign m_bvalids[i] = (bvalid & {$bits(bvalid){i==widx_select}});
+        assign m_bresps[i] = (bresp & {$bits(bresp){i==widx_select}});
+        assign m_bids[i] = (bid & {$bits(bid){i==widx_select}});
+        assign m_arreadys[i] = (arready & {$bits(arready){i==ridx_select}});
+        assign m_rvalids[i] = (rvalid & {$bits(rvalid){i==ridx_select}});
+        assign m_rresps[i] = (rresp & {$bits(rresp){i==ridx_select}});
+        assign m_rdatas[i] = (rdata & {$bits(rdata){i==ridx_select}});
+        assign m_rlasts[i] = (rlast & {$bits(rlast){i==ridx_select}});
+        assign m_rids[i] = (rid & {$bits(rid){i==ridx_select}});
     end
 endgenerate
 
 // manager输出引脚处理
-assign awvalid = m_awvalids[r_grant_idx];
-assign awaddr = m_awaddrs[r_grant_idx];
-assign awid = m_awids[r_grant_idx];
-assign awlen = m_awlens[r_grant_idx];
-assign awsize = m_awsizes[r_grant_idx];
-assign awburst = m_awbursts[r_grant_idx];
-assign wvalid = m_wvalids[r_grant_idx];
-assign wdata = m_wdatas[r_grant_idx];
-assign wstrb = m_wstrbs[r_grant_idx];
-assign wlast = m_wlasts[r_grant_idx];
-assign bready = m_breadys[r_grant_idx];
-assign arvalid = m_arvalids[r_grant_idx];
-assign araddr = m_araddrs[r_grant_idx];
-assign arid = m_arids[r_grant_idx];
-assign arlen = m_arlens[r_grant_idx];
-assign arsize = m_arsizes[r_grant_idx];
-assign arburst = m_arbursts[r_grant_idx];
-assign rready = m_rreadys[r_grant_idx];
+assign awvalid = m_awvalids[widx_select];
+assign awaddr = m_awaddrs[widx_select];
+assign awid = m_awids[widx_select];
+assign awlen = m_awlens[widx_select];
+assign awsize = m_awsizes[widx_select];
+assign awburst = m_awbursts[widx_select];
+assign wvalid = m_wvalids[widx_select];
+assign wdata = m_wdatas[widx_select];
+assign wstrb = m_wstrbs[widx_select];
+assign wlast = m_wlasts[widx_select];
+assign bready = m_breadys[widx_select];
+assign arvalid = m_arvalids[ridx_select];
+assign araddr = m_araddrs[ridx_select];
+assign arid = m_arids[ridx_select];
+assign arlen = m_arlens[ridx_select];
+assign arsize = m_arsizes[ridx_select];
+assign arburst = m_arbursts[ridx_select];
+assign rready = m_rreadys[ridx_select];
+
+// 组合式master写选择器
+always @(*) begin
+    widx_select = 0;
+    for (integer mid=0; mid<MASTER_COUNT; ++mid) begin
+        integer widx = (mid + {{32-$bits(widx_last){1'b0}}, widx_last}) % MASTER_COUNT;
+        if (widx_select == 0 && m_awaddrs[widx] != 0) begin
+            widx_select = widx[$bits(widx_select)-1:0];
+        end
+    end
+end
+assign wstate = widx_select == 0 ? idle_t : work_t;
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        widx_last <= 0;
+    end else begin
+        if (widx_select != 0) begin
+            widx_last <= widx_select;
+        end
+    end
+end
+
+// 组合式master读选择器
+always @(*) begin
+    ridx_select = 0;
+    for (integer mid=0; mid<MASTER_COUNT; ++mid) begin
+        integer ridx = (mid + {{32-$bits(ridx_last){1'b0}}, ridx_last}) % MASTER_COUNT;
+        if (ridx_select == 0 && m_araddrs[ridx] != 0) begin
+            ridx_select = ridx[$bits(ridx_select)-1:0];
+        end
+    end
+end
+assign rstate = ridx_select == 0 ? idle_t : work_t;
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        ridx_last <= 0;
+    end else begin
+        if (ridx_select != 0) begin
+            ridx_last <= ridx_select;
+        end
+    end
+end
 
 endmodule

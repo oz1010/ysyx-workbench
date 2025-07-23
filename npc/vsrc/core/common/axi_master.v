@@ -103,7 +103,6 @@ module axi_master_writer #(
             r_write_state <= `AXI4_STATE_ADDR;
 
             r_awvalid <= 0;
-            r_awvalid <= 0;
             r_awaddr <= 0;
             r_awid <= 0;
             r_awlen <= 0;
@@ -138,7 +137,7 @@ module axi_master_writer #(
                         r_awvalid <= 0;
                     end
 
-                    if (s_write_idx <= ((8'h1<<s_write_len)-1)) begin
+                    if (s_write_idx <= ((8'h1<<s_write_len)-1) && wvalid && wready) begin
                         /* 写下第二个字 */
                         `WRITE_DATA();
                     end
@@ -345,8 +344,8 @@ module axi_master_reader #(
     output  wire [1:0]                  read_state
 );
 
-    reg r_arvalid;
-    reg [ADDR_WIDTH-1:0] r_araddr;
+    reg r_arvalid = 0;
+    reg [ADDR_WIDTH-1:0] r_araddr = 0;
     reg [3:0] r_arid;
     reg [7:0] r_arlen;
     reg [7:0] r_record_arlen;
