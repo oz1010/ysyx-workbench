@@ -72,10 +72,10 @@ module arbiter_axi4 #(
     output  wire [log2(MASTER_COUNT):0] grant_idx
 );
 
-// typedef enum [1:0] { idle_t, work_t, err_t } rwstate_t;
-localparam [1:0] idle_t         = 0;
-localparam [1:0] work_t         = 1;
-localparam [1:0] err_t        = 2;
+// typedef enum [1:0] { idle_t, work_t, error_t } rwstate_t;
+localparam idle_t       = 0;
+localparam work_t       = 1;
+localparam error_t      = 2;
 
 reg [1:0] wstate = idle_t;
 reg [1:0] rstate = idle_t;

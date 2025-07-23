@@ -79,9 +79,20 @@ localparam select_t     = 0;
 localparam read_t       = 1;
 localparam write_t      = 2;
 localparam err_t        = 3;
+// typedef enum [1:0] { idle_t, work_t, error_t } rwstate_t;
+localparam idle_t       = 0;
+localparam work_t       = 1;
+localparam error_t      = 2;
 
 // typedef enum [2:0] { select_t, read_t, write_t, err_t } state_t;
 reg [2:0]  state;
+
+reg [1:0] wstate = idle_t;
+reg [1:0] rstate = idle_t;
+reg [log2(SLAVE_COUNT):0] widx_select = 0;
+reg [log2(SLAVE_COUNT):0] ridx_select = 0;
+reg [log2(SLAVE_COUNT):0] widx_last = 0;
+reg [log2(SLAVE_COUNT):0] ridx_last = 0;
 
 // 默认slave，避免切设备时造成响应错误
 wire                        s_awreadys[0:SLAVE_COUNT-1];
@@ -114,7 +125,6 @@ wire [DATA_WIDTH-1:0]       s_rdatas[0:SLAVE_COUNT-1];
 wire                        s_rlasts[0:SLAVE_COUNT-1];
 wire [3:0]                  s_rids[0:SLAVE_COUNT-1];
 
-// `ifdef IN_YOSYS_STA
 wire [31:0] s_slave_start_addrs[0:SLAVE_COUNT-1];
 wire [31:0] s_slave_end_addrs[0:SLAVE_COUNT-1];
 generate
@@ -257,37 +267,85 @@ end
 // slave输入引脚处理
 generate
     for (genvar i = 0; i < SLAVE_COUNT; ++i ) begin : s_sig_in_gen
-        assign s_awvalids[i] = (awvalid & {$bits(awvalid){r_grant_idx==i}});
-        assign s_awaddrs[i] = (awaddr & {$bits(awaddr){r_grant_idx==i}});
-        assign s_awids[i] = (awid & {$bits(awid){r_grant_idx==i}});
-        assign s_awlens[i] = (awlen & {$bits(awlen){r_grant_idx==i}});
-        assign s_awsizes[i] = (awsize & {$bits(awsize){r_grant_idx==i}});
-        assign s_awbursts[i] = (awburst & {$bits(awburst){r_grant_idx==i}});
-        assign s_wvalids[i] = (wvalid & {$bits(wvalid){r_grant_idx==i}});
-        assign s_wdatas[i] = (wdata & {$bits(wdata){r_grant_idx==i}});
-        assign s_wstrbs[i] = (wstrb & {$bits(wstrb){r_grant_idx==i}});
-        assign s_wlasts[i] = (wlast & {$bits(wlast){r_grant_idx==i}});
-        assign s_breadys[i] = (bready & {$bits(bready){r_grant_idx==i}});
-        assign s_arvalids[i] = (arvalid & {$bits(arvalid){r_grant_idx==i}});
-        assign s_araddrs[i] = (araddr & {$bits(araddr){r_grant_idx==i}});
-        assign s_arids[i] = (arid & {$bits(arid){r_grant_idx==i}});
-        assign s_arlens[i] = (arlen & {$bits(arlen){r_grant_idx==i}});
-        assign s_arsizes[i] = (arsize & {$bits(arsize){r_grant_idx==i}});
-        assign s_arbursts[i] = (arburst & {$bits(arburst){r_grant_idx==i}});
-        assign s_rreadys[i] = (rready & {$bits(rready){r_grant_idx==i}});
+        assign s_awvalids[i] = (awvalid & {$bits(awvalid){widx_select==i}});
+        assign s_awaddrs[i] = (awaddr & {$bits(awaddr){widx_select==i}});
+        assign s_awids[i] = (awid & {$bits(awid){widx_select==i}});
+        assign s_awlens[i] = (awlen & {$bits(awlen){widx_select==i}});
+        assign s_awsizes[i] = (awsize & {$bits(awsize){widx_select==i}});
+        assign s_awbursts[i] = (awburst & {$bits(awburst){widx_select==i}});
+        assign s_wvalids[i] = (wvalid & {$bits(wvalid){widx_select==i}});
+        assign s_wdatas[i] = (wdata & {$bits(wdata){widx_select==i}});
+        assign s_wstrbs[i] = (wstrb & {$bits(wstrb){widx_select==i}});
+        assign s_wlasts[i] = (wlast & {$bits(wlast){widx_select==i}});
+        assign s_breadys[i] = (bready & {$bits(bready){widx_select==i}});
+        assign s_arvalids[i] = (arvalid & {$bits(arvalid){ridx_select==i}});
+        assign s_araddrs[i] = (araddr & {$bits(araddr){ridx_select==i}});
+        assign s_arids[i] = (arid & {$bits(arid){ridx_select==i}});
+        assign s_arlens[i] = (arlen & {$bits(arlen){ridx_select==i}});
+        assign s_arsizes[i] = (arsize & {$bits(arsize){ridx_select==i}});
+        assign s_arbursts[i] = (arburst & {$bits(arburst){ridx_select==i}});
+        assign s_rreadys[i] = (rready & {$bits(rready){ridx_select==i}});
     end
 endgenerate
 // slave输出引脚处理
-assign awready = s_awreadys[r_grant_idx%SLAVE_COUNT];
-assign wready = s_wreadys[r_grant_idx%SLAVE_COUNT];
-assign bvalid = s_bvalids[r_grant_idx%SLAVE_COUNT];
-assign bresp = s_bresps[r_grant_idx%SLAVE_COUNT];
-assign bid = s_bids[r_grant_idx%SLAVE_COUNT];
-assign arready = s_arreadys[r_grant_idx%SLAVE_COUNT];
-assign rvalid = s_rvalids[r_grant_idx%SLAVE_COUNT];
-assign rresp = s_rresps[r_grant_idx%SLAVE_COUNT];
-assign rdata = s_rdatas[r_grant_idx%SLAVE_COUNT];
-assign rlast = s_rlasts[r_grant_idx%SLAVE_COUNT];
-assign rid = s_rids[r_grant_idx%SLAVE_COUNT];
+assign awready = s_awreadys[widx_select%SLAVE_COUNT];
+assign wready = s_wreadys[widx_select%SLAVE_COUNT];
+assign bvalid = s_bvalids[widx_select%SLAVE_COUNT];
+assign bresp = s_bresps[widx_select%SLAVE_COUNT];
+assign bid = s_bids[widx_select%SLAVE_COUNT];
+assign arready = s_arreadys[ridx_select%SLAVE_COUNT];
+assign rvalid = s_rvalids[ridx_select%SLAVE_COUNT];
+assign rresp = s_rresps[ridx_select%SLAVE_COUNT];
+assign rdata = s_rdatas[ridx_select%SLAVE_COUNT];
+assign rlast = s_rlasts[ridx_select%SLAVE_COUNT];
+assign rid = s_rids[ridx_select%SLAVE_COUNT];
+
+// 组合式slave写选择器
+always @(*) begin
+    widx_select = 0;
+    for (integer sid=0; sid<SLAVE_COUNT; ++sid) begin
+        integer widx = (sid + {{32-$bits(widx_last){1'b0}}, widx_last}) % SLAVE_COUNT;
+        if (widx_select == 0
+            && awaddr>=s_slave_start_addrs[widx]
+            && awaddr<=s_slave_end_addrs[widx]
+        ) begin
+            widx_select = widx[$bits(widx_select)-1:0];
+        end
+    end
+end
+assign wstate = widx_select == 0 ? idle_t : work_t;
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        widx_last <= 0;
+    end else begin
+        if (widx_select != 0) begin
+            widx_last <= widx_select;
+        end
+    end
+end
+
+// 组合式slave读选择器
+always @(*) begin
+    ridx_select = 0;
+    for (integer sid=0; sid<SLAVE_COUNT; ++sid) begin
+        integer ridx = (sid + {{32-$bits(ridx_last){1'b0}}, ridx_last}) % SLAVE_COUNT;
+        if (ridx_select == 0
+            && araddr>=s_slave_start_addrs[ridx]
+            && araddr<=s_slave_end_addrs[ridx]
+        ) begin
+            ridx_select = ridx[$bits(ridx_select)-1:0];
+        end
+    end
+end
+assign rstate = ridx_select == 0 ? idle_t : work_t;
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        ridx_last <= 0;
+    end else begin
+        if (ridx_select != 0) begin
+            ridx_last <= ridx_select;
+        end
+    end
+end
 
 endmodule
