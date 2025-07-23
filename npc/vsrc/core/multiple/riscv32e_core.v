@@ -502,7 +502,7 @@ xbar_axi4 #(
     .u_slave_addrs({
         32'h0200_0000, 32'h0200_ffff, // clint
         32'h2200_0000, 32'h2200_0fff, // exter dev
-        32'h0000_0000, 32'hffff_ffff // io master
+        32'h0000_0004, 32'hffff_ffff // io master
     }),
 
     .grant_idx()

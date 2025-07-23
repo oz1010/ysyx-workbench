@@ -42,14 +42,14 @@ module axi_master_writer #(
 
     reg [1:0] r_write_state;
 
-    reg r_awvalid;
-    reg [ADDR_WIDTH-1:0] r_awaddr;
+    reg r_awvalid = 0;
+    reg [ADDR_WIDTH-1:0] r_awaddr = 0;
     reg [3:0] r_awid; // 写入数据标识，响应中可以比对是否一致
     reg [7:0] r_awlen; // burst写入数量，2^n字节
     reg [2:0] r_awsize; // 单个burst写入数据大小，2^n字节
     reg [1:0] r_awburst; // 写burst方式，0--FIXED 1--INCR 2--WRAP（地址回绕递增） 11--保留
     reg [2:0] r_record_awsize;
-    reg r_wvalid;
+    reg r_wvalid = 0;
     reg [DATA_WIDTH-1:0] r_wdata;
     reg [DATA_WIDTH/8-1:0] r_wstrb;
     reg r_wlast; // 写入最后一个数据时需要拉高
@@ -353,7 +353,6 @@ module axi_master_reader #(
     reg [2:0] r_record_arsize;
     reg [1:0] r_arburst;
     reg r_rready;
-    reg rr_ready;
 
     reg [7:0] s_read_idx;
     reg [7:0] s_read_len;
