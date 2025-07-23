@@ -82,7 +82,8 @@ localparam SDRAM_DQM_W           = 2;
 localparam SDRAM_BANKS           = 2 ** SDRAM_BANK_W;
 localparam SDRAM_ROW_W           = SDRAM_ADDR_W - SDRAM_COL_W - SDRAM_BANK_W;
 localparam SDRAM_REFRESH_CNT     = 2 ** SDRAM_ROW_W;
-localparam SDRAM_START_DELAY     = 100000 / (1000 / SDRAM_MHZ); // 100uS
+// localparam SDRAM_START_DELAY     = 100000 / (1000 / SDRAM_MHZ); // 100uS
+localparam SDRAM_START_DELAY     = 10; // 改为10个周期，10000个周期需要等待比较久
 localparam SDRAM_REFRESH_CYCLES  = (64000*SDRAM_MHZ) / SDRAM_REFRESH_CNT-1;
 localparam SDRAM_DATA_COUNT      = `SDRAM_DATA_BITS / 16;
 
@@ -447,7 +448,7 @@ localparam REFRESH_CNT_W = 17;
 reg [REFRESH_CNT_W-1:0] refresh_timer_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
-    refresh_timer_q <= SDRAM_START_DELAY + 100;
+    refresh_timer_q <= SDRAM_START_DELAY;
 else if (refresh_timer_q == {REFRESH_CNT_W{1'b0}})
     refresh_timer_q <= SDRAM_REFRESH_CYCLES;
 else
