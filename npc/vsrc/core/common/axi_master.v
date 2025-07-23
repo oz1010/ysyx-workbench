@@ -98,6 +98,15 @@ module axi_master_writer #(
         s_write_shift_val = 0;
     end
 
+    always @(*) begin
+        s_write_len = 0;
+        s_write_strb = 0;
+        s_write_shift_val = 0;
+        if (!rst && write_enable) begin
+            get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
+        end
+    end
+
     always @(posedge clk) begin
         if (rst || !write_enable) begin
             r_write_state <= `AXI4_STATE_ADDR;
@@ -124,7 +133,6 @@ module axi_master_writer #(
                     r_awsize <= write_size;
                     r_record_awsize <= write_size;
                     check_dev_addr(write_addr, `DEV_ATTR_WRITE);
-                    get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
 
 
                     r_write_state <= `AXI4_STATE_DATA;
@@ -395,6 +403,15 @@ module axi_master_reader #(
     end
     `endif
 
+    always @(*) begin
+        s_read_len = 0;
+        s_read_strb = 0;
+        s_read_shift_val = 0;
+        if (!rst && enable) begin
+            get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
+        end
+    end
+
     always @(posedge clk) begin
         if (rst || !enable) begin
             r_read_state <= `AXI4_STATE_ADDR;
@@ -420,7 +437,6 @@ module axi_master_reader #(
                     r_arsize <= read_size;
                     r_arburst <= BURST;
                     check_dev_addr(read_addr, `DEV_ATTR_READ);
-                    get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
                     s_read_idx <= 0;
 
                     if (arvalid && arready) begin
