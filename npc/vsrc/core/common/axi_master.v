@@ -47,6 +47,7 @@ module axi_master_writer #(
     reg [3:0] r_awid; // 写入数据标识，响应中可以比对是否一致
     reg [7:0] r_awlen; // burst写入数量，2^n字节
     reg [2:0] r_awsize; // 单个burst写入数据大小，2^n字节
+    reg [1:0] r_awburst; // 写burst方式，0--FIXED 1--INCR 2--WRAP（地址回绕递增） 11--保留
     reg [2:0] r_record_awsize;
     reg r_wvalid;
     reg [DATA_WIDTH-1:0] r_wdata;
@@ -67,6 +68,7 @@ module axi_master_writer #(
     assign awid = r_awid;
     assign awlen = r_awlen;
     assign awsize = r_awsize;
+    assign awburst = r_awburst;
     assign wvalid = r_wvalid;
     assign wdata = r_wdata;
     assign wstrb = r_wstrb;
@@ -111,6 +113,8 @@ module axi_master_writer #(
             r_wstrb <= 0;
             r_wlast <= 0;
             r_bready <= 0;
+            s_write_idx <= 0;
+            r_awburst <= 2; // 固定为地址环绕方式
         end else begin
             case (r_write_state)
                 `AXI4_STATE_ADDR: begin
@@ -119,28 +123,27 @@ module axi_master_writer #(
                     r_awid <= ID;
                     r_awlen <= s_write_len;
                     r_awsize <= write_size;
+                    r_record_awsize <= write_size;
                     check_dev_addr(write_addr, `DEV_ATTR_WRITE);
                     get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
-                    s_write_idx <= 0;
 
-                    if (awvalid && awready) begin
-                        r_record_awsize <= r_awsize;
-                        r_awvalid <= 0;
 
-                        // switch to write data
-                        r_write_state <= `AXI4_STATE_DATA;
-                        /* 写下第一个字 */
-                        `WRITE_DATA();
-                    end
+                    r_write_state <= `AXI4_STATE_DATA;
+                    /* 写下第一个字 */
+                    `WRITE_DATA();
                 end
 
                 `AXI4_STATE_DATA: begin
+                    if (awvalid && awready) begin
+                        r_awvalid <= 0;
+                    end
+
                     if (s_write_idx <= ((8'h1<<s_write_len)-1)) begin
                         /* 写下第二个字 */
                         `WRITE_DATA();
                     end
 
-                    if (wlast) begin
+                    if (wvalid && wready && wlast) begin
                         func_dev_skip(1, write_addr, {25'h0, r_record_awsize, s_write_strbs[0]|s_write_strbs[1]}, write_data);
 
                         r_wvalid <= 0;
