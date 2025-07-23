@@ -180,19 +180,6 @@ reg [log2(SLAVE_COUNT):0] r_grant_idx;
 
 assign grant_idx = r_grant_idx;
 
-function integer log2;
-    input integer value;
-    integer result;
-    begin
-        result = 0;
-        while (value > 1) begin
-            value = value >> 1;
-            result = result + 1;
-        end
-        log2 = result;
-    end
-endfunction
-
 function [31:0] match_slave_addr;
     input [31:0] addr;
     integer sid;

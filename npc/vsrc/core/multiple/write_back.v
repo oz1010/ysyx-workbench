@@ -29,7 +29,7 @@ module write_back #(
 // 通用寄存器
 reg [INST_WIDTH-1:0] xs[0:`RISCV_CSR_COUNT-1];
 // 程序寄存器
-reg [INST_WIDTH-1:0] pc;
+reg [INST_WIDTH-1:0] pc = 0;
 // 当前指令寄存器
 wire [INST_WIDTH-1:0] inst;
 // 寄存器别名，register alias, ch2.3
