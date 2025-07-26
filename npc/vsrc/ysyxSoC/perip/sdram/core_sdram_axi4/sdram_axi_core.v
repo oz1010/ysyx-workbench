@@ -715,9 +715,10 @@ if (rst_i)
     ack_q   <= 1'b0;
 else
 begin
-    if (SDRAM_DATA_COUNT == 2 && state_q == STATE_WRITE0)
+    // FIXME 会造成读写ack响应时序混乱
+    /* if (SDRAM_DATA_COUNT == 2 && state_q == STATE_WRITE0)
         ack_q <= 1'b1;
-    else if (state_q == STATE_WRITE1)
+    else */if (state_q == STATE_WRITE1)
         ack_q <= 1'b1;
     else if (rd_q[SDRAM_READ_LATENCY+1])
         ack_q <= 1'b1;
