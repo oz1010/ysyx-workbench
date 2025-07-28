@@ -86,6 +86,8 @@ localparam SDRAM_REFRESH_CNT     = 2 ** SDRAM_ROW_W;
 localparam SDRAM_START_DELAY     = 10; // 改为10个周期，10000个周期需要等待比较久
 localparam SDRAM_REFRESH_CYCLES  = (64000*SDRAM_MHZ) / SDRAM_REFRESH_CNT-1;
 localparam SDRAM_DATA_COUNT      = `SDRAM_DATA_BITS / 16;
+localparam SDRAM_BLK_W           = `SDRAM_BLK_BITS;
+localparam SDRAM_BLKS            = `SDRAM_BLK_NUM;
 
 localparam CMD_W             = 4;
 localparam CMD_NOP           = 4'b0111;
@@ -173,6 +175,7 @@ wire [SDRAM_DATA_W-1:0] sdram_data_in_w [0:SDRAM_DATA_COUNT-1];
 
 reg                    refresh_q;
 
+/* 读写会同时激活所有block，无需考虑block切换问题 */
 reg [SDRAM_BANKS-1:0]  row_open_q;
 reg [SDRAM_ROW_W-1:0]  active_row_q[0:SDRAM_BANKS-1];
 
@@ -186,6 +189,7 @@ reg  [STATE_W-1:0]     delay_state_q;
 wire [SDRAM_ROW_W-1:0]  addr_col_w  = {{(SDRAM_ROW_W-SDRAM_COL_W){1'b0}}, ram_addr_w[SDRAM_COL_W:2], 1'b0};
 wire [SDRAM_ROW_W-1:0]  addr_row_w  = ram_addr_w[SDRAM_ADDR_W:SDRAM_COL_W+2+1];
 wire [SDRAM_BANK_W-1:0] addr_bank_w = ram_addr_w[SDRAM_COL_W+2:SDRAM_COL_W+2-1];
+wire [SDRAM_BLK_W-1:0]  addr_blk_w  = ram_addr_w[SDRAM_ADDR_W+1 +: SDRAM_BLK_W];
 
 //-----------------------------------------------------------------
 // SDRAM State Machine
@@ -756,18 +760,39 @@ assign sdram_we_o   = command_q[0];
 assign sdram_ba_o   = bank_q;
 assign sdram_addr_o = addr_q;
 assign sdram_bsel_o = bsel_q;
+reg [`SDRAM_BLK_NUM-1:0] bsel_keep_q;
 
 always @(*) begin
     bsel_q    = 0;
     if (
         state_q==STATE_READ  
-        || state_q==STATE_READ_WAIT
         || state_q==STATE_WRITE0
-        || state_q==STATE_WRITE1
     ) begin
         bsel_q[ram_addr_w[SDRAM_ADDR_W+1 +: `SDRAM_BLK_BITS]] = 1'b1;
+    end else if (
+        state_q==STATE_READ_WAIT
+        || state_q==STATE_WRITE1
+    ) begin
+        // 状态进入读等待或写等待时，ram_addr_w会归零，需要使用时序bsel_keep_q信息
+        bsel_q = bsel_keep_q;
+    end else if (state_q==STATE_IDLE) begin
     end else begin
         bsel_q    = {$bits(bsel_q){1'b1}};
+    end
+end
+always @(posedge clk_i or posedge rst_i) begin
+    if (rst_i) begin
+        bsel_keep_q <= 0;
+    end else begin
+        if (
+            state_q==STATE_READ  
+            || state_q==STATE_WRITE0
+        ) begin
+            bsel_keep_q <= 0;
+            bsel_keep_q[addr_blk_w] <= 1'b1;
+        end else begin
+            bsel_keep_q <= 0;
+        end
     end
 end
 
