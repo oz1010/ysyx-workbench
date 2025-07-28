@@ -122,7 +122,7 @@ module axi_master_writer #(
             r_wlast <= 0;
             r_bready <= 0;
             s_write_idx <= 0;
-            r_awburst <= 2; // 固定为地址环绕方式
+            r_awburst <= 1; // 固定为地址环绕方式
         end else begin
             case (r_write_state)
                 `AXI4_STATE_ADDR: begin

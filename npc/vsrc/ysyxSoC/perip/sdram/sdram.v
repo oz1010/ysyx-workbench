@@ -166,7 +166,7 @@ module sdram(
 
                 if (counter == cas_latency) begin
                     // end read rdata
-                    // $display("read data done addr %x counter %x", addr, counter);
+                    // $display("read data done addr %x data %x counter %x", addr, rdata, counter);
                     state <= idle_t;
                 end
             end
@@ -175,7 +175,7 @@ module sdram(
                 if (burst_length == 1) begin
                     if (wsize != 0) begin // 当数据量为0时，无需写入任何数据
                         dpi_vdev_write((addr+{30'h0,woffset}), (wdata>>(8*woffset)), {29'h0,wsize});
-                        // $display("write data done addr %x data %x counter %x", addr, wdata, counter);
+                        // $display("write data done addr %x data %x size %d counter %x", (addr+{30'h0,woffset}), (wdata>>(8*woffset)), wsize, counter);
                     end
                     state <= idle_t;
                     wmask <= 0;
@@ -188,7 +188,7 @@ module sdram(
                     end else begin
                         // end write rdata
                         dpi_vdev_write((addr+{30'h0,woffset}), (wdata>>(8*woffset)), {29'h0,wsize});
-                        // $display("write data done addr %x data %x counter %x", addr, wdata, counter);
+                        // $display("write data done addr %x data %x size %d counter %x", (addr+{30'h0,woffset}), (wdata>>(8*woffset)), wsize, counter);
                         state <= idle_t;
                         wmask <= 0;
                     end
