@@ -21,8 +21,13 @@ void _test_init() {
 //   outl(addr + 4 , 0x78777675);
 //   halt(inl(addr + 0));
 
-  addr = SDRAM_TEST_ADDR + 0x02000000;
-  outl(addr     , 0x73727170);
-  outl(addr + 4 , 0x78777675);
-  halt(inl(addr + 0));
+  uint32_t addr0 = SDRAM_TEST_ADDR;
+  uint32_t addr1 = SDRAM_TEST_ADDR + 0x02000000;
+  outl(addr0 + 0 , 0x78770123);
+  outl(addr0 + 0x100 , 0x78771234);
+  outl(addr0 + 0x01000000 , 0x78772345);
+  outl(addr1 + 0 , 0x88770123);
+  outl(addr1 + 0x100 , 0x88771234);
+  outl(addr1 + 0x01000000 , 0x88772345);
+  halt(inl(addr1 + 0));
 }
