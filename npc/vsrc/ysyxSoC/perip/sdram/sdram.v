@@ -57,6 +57,8 @@ module sdram(
     wire [7:0] burst_length = 8'h1<<mx_burst_length;
     wire [7:0] cas_latency = {5'h0, mx_cas_latency};
 
+    wire read_done = (state==read_t) && (counter == cas_latency);
+
     initial begin
         state = idle_t;
         counter = 0;
@@ -136,6 +138,10 @@ module sdram(
                     $error("sdram don't support other command 0x%x.", input_cmd);
                 end
             endcase
+
+            if (read_done) begin
+                addr <= 0;
+            end
         end else begin
             state <= idle_t;
         end
@@ -164,10 +170,11 @@ module sdram(
                     end
                 end
 
-                if (counter == cas_latency) begin
+                if (read_done) begin
                     // end read rdata
                     // $display("read data done addr %x data %x counter %x", addr, rdata, counter);
                     state <= idle_t;
+                    rdata <= 0;
                 end
             end
 
