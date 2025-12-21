@@ -58,6 +58,7 @@ module sdram(
     wire [7:0] cas_latency = {5'h0, mx_cas_latency};
 
     wire read_done = (state==read_t) && (counter == cas_latency);
+    wire [31:0] roffset = {30'h0, dqm};
 
     initial begin
         state = idle_t;
@@ -91,7 +92,7 @@ module sdram(
                 4'b0101: begin
                     if (state == active_t || state == idle_t) begin
                         state <= read_t;
-                        addr <= ram_addr;
+                        addr <= ram_addr + roffset;
                     end
                 end
 

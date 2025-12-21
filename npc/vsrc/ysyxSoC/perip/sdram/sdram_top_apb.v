@@ -57,6 +57,7 @@ module sdram_top_apb (
     .inport_wr_i(is_write ? in_pstrb : 4'b0),
     .inport_rd_i(is_read),
     .inport_len_i(0),
+    .inport_size_i(0),
     .inport_addr_i(in_paddr),
     .inport_write_data_i(in_pwdata),
     .inport_accept_o(req_accept),
