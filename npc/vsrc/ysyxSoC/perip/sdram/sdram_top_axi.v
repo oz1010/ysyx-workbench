@@ -69,6 +69,7 @@ module sdram_top_axi(
     .inport_araddr_i(in_araddr),
     .inport_arid_i(in_arid),
     .inport_arlen_i(in_arlen),
+    .inport_arsize_i(in_arsize),
     .inport_arburst_i(in_arburst),
     .inport_rready_i(in_rready),
 

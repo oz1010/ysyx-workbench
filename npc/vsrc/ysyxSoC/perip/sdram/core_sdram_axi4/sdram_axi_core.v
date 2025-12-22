@@ -40,6 +40,7 @@ module sdram_axi_core
     ,input  [  3:0]  inport_wr_i
     ,input           inport_rd_i
     ,input  [  7:0]  inport_len_i
+    ,input  [  2:0]  inport_size_i
     ,input  [ 31:0]  inport_addr_i
     ,input  [ 31:0]  inport_write_data_i
     ,input  [`SDRAM_DATA_BITS-1:0]  sdram_data_input_i
@@ -625,6 +626,8 @@ begin
 
         // Read mask (all bytes in burst)
         for(integer i=0; i<SDRAM_DATA_COUNT; ++i) begin
+            // 读取数据且数据大小为4字节（arsize=2）时，dqm存储地址偏移
+            // dqm_q[i]       <= (inport_size_i==3'h2) ? inport_addr_i[1:0] : {SDRAM_DQM_W{1'b0}};
             dqm_q[i]       <= {SDRAM_DQM_W{1'b0}};
         end
     end

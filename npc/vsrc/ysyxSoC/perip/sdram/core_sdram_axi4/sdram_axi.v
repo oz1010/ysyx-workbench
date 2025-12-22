@@ -51,6 +51,7 @@ module sdram_axi
     ,input  [ 31:0]  inport_araddr_i
     ,input  [  3:0]  inport_arid_i
     ,input  [  7:0]  inport_arlen_i
+    ,input  [  2:0]  inport_arsize_i
     ,input  [  1:0]  inport_arburst_i
     ,input           inport_rready_i
     ,input  [`SDRAM_DATA_BITS-1:0]  sdram_data_input_i
@@ -101,6 +102,7 @@ wire          ram_accept_w;
 wire [ 31:0]  ram_write_data_w;
 wire [ 31:0]  ram_read_data_w;
 wire [  7:0]  ram_len_w;
+wire [  2:0]  ram_size_w;
 wire          ram_ack_w;
 wire          ram_error_w;
 
@@ -125,6 +127,7 @@ u_axi
     .axi_araddr_i(inport_araddr_i),
     .axi_arid_i(inport_arid_i),
     .axi_arlen_i(inport_arlen_i),
+    .axi_arsize_i(inport_arsize_i),
     .axi_arburst_i(inport_arburst_i),
     .axi_rready_i(inport_rready_i),
     .axi_awready_o(inport_awready_o),
@@ -145,6 +148,7 @@ u_axi
     .ram_wr_o(ram_wr_w),
     .ram_rd_o(ram_rd_w),
     .ram_len_o(ram_len_w),
+    .ram_size_o(ram_size_w),
     .ram_write_data_o(ram_write_data_w),
     .ram_ack_i(ram_ack_w),
     .ram_error_i(ram_error_w),
@@ -169,6 +173,7 @@ u_core
     ,.inport_wr_i(ram_wr_w)
     ,.inport_rd_i(ram_rd_w)
     ,.inport_len_i(ram_len_w)
+    ,.inport_size_i(ram_size_w)
     ,.inport_addr_i(ram_addr_w)
     ,.inport_write_data_i(ram_write_data_w)
     ,.inport_accept_o(ram_accept_w)

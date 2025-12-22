@@ -51,6 +51,7 @@ module sdram_axi_pmem
     ,input  [ 31:0]  axi_araddr_i
     ,input  [  3:0]  axi_arid_i
     ,input  [  7:0]  axi_arlen_i
+    ,input  [  2:0]  axi_arsize_i
     ,input  [  1:0]  axi_arburst_i
     ,input           axi_rready_i
     ,input           ram_accept_i
@@ -73,6 +74,7 @@ module sdram_axi_pmem
     ,output [  3:0]  ram_wr_o
     ,output          ram_rd_o
     ,output [  7:0]  ram_len_o
+    ,output [  2:0]  ram_size_o
     ,output [ 31:0]  ram_addr_o
     ,output [ 31:0]  ram_write_data_o
 );
@@ -320,6 +322,7 @@ assign ram_rd_o         = rd_w;
 assign ram_wr_o         = wr_w ? axi_wstrb_i : 4'b0;
 assign ram_len_o        = axi_awvalid_i ? axi_awlen_i:
                           axi_arvalid_i ? axi_arlen_i : 8'b0;
+assign ram_size_o       = axi_arvalid_i ? axi_arsize_i : 3'b0;
 
 //-----------------------------------------------------------------
 // Response
