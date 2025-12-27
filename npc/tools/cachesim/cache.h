@@ -1,11 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <ios>
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 #include "bits.h"
 #include "mem.h"
 
@@ -20,23 +22,49 @@ n = log2(cache块总数/w)
 +---------+---------+--------+
 */
 
+typedef struct
+{
+    bool v;
+    uint32_t tag;
+    // uint32_t data;
+    uint64_t flag;
+} cache_line_t;
+
 class ICache
 {
    protected:
     std::unordered_map<uint32_t, uint32_t> lines;  // tag - arg
     std::unordered_set<uint32_t> tags;
+    std::vector<std::vector<cache_line_t>> groups;
+    cache_line_t* matched_line;
     std::unordered_map<uint8_t, uint64_t> hit_counts;   // storage - count
     std::unordered_map<uint8_t, uint64_t> miss_counts;  // storage - count
+    uint64_t count;
     const uint32_t w;
     const uint32_t n;
     const uint32_t m;
 
    public:
     ICache(uint32_t w, uint32_t n, uint32_t m)
-        : w(w == 0 ? 1 : w),
-          n(n == 0 ? 1 : n),
-          m(m == 0 ? 2 : m)
+        : w(w),
+          n(n),
+          m(m)
     {
+        uint32_t group_size = 1 << this->n;
+        uint32_t line_size = 1 << this->m;
+        groups = {};
+        groups.resize(group_size);
+        for (size_t index = 0; index < group_size; ++index)
+        {
+            auto& group = groups[index];
+            group = {};
+            group.resize(this->w);
+            for (auto& line : group)
+            {
+                line = {false, 0};
+            }
+        }
+
         // lines.insert(std::pair<uint32_t, uint32_t>(0, 0));
         // lines.find(0) != lines.end();
         // lines.erase(0);
@@ -50,40 +78,60 @@ class ICache
         // cout.flags(def_fmt);
         cout << "缓存基本参数：\n";
         cout << "tag: [" << (31) << ", " << (this->m + this->n) << "]" << endl;
-        cout << "index: [" << (this->m + this->n - 1) << ", " << (this->m) << "]" << endl;
+        if (this->n)
+            cout << "index: [" << (this->m + this->n - 1) << ", " << (this->m) << "]" << endl;
+        else
+            cout << "index: none" << endl;
         cout << "offset: [" << (this->m + -1) << ", " << (0) << "]" << endl;
-        cout << "块组: " << this->w << endl;
-        cout << "缓存块: " << (1 << this->n) << "" << endl;
-        cout << "块大小: " << (1 << this->m) << endl;
-        cout << "总大小: " << (this->w * (1 << this->n) * (1 << this->m)) << endl;
+        cout << "组中行数量: " << this->w << endl;
+        cout << "缓存组数量: " << group_size << "" << endl;
+        cout << "缓存行大小: " << line_size << endl;
+        cout << "总大小: " << (this->w * group_size * line_size) << endl;
         show_mem_time();
     }
-    virtual int hit_data(uint32_t tag, int mem_idx)
+    virtual int hit_data(uint32_t tag, uint32_t index, int mem_idx)
     {
         return 0;
     };
-    virtual int miss_data(uint32_t tag, int mem_idx)
+    virtual int miss_data(uint32_t tag, uint32_t index, int mem_idx)
     {
         return 0;
     };
     virtual int find_data(uint32_t pc)
     {
+        ++count;
         int mem_idx = in_mem(pc);
         if (mem_idx < 0)
             return 0;
 
         uint32_t tag = GET_BITS(pc, m + n, 32 - (m + n));
-        if (tags.find(tag) != tags.end())
+        uint32_t index = n > 0 ? GET_BITS(pc, m, n) : 0;
+        auto& group = groups[index];
+        matched_line = nullptr;
+
+        for (auto& line : group)
+        {
+            if (line.v && line.tag == tag)
+            {
+                matched_line = &line;
+                break;
+            }
+        }
+
+        if (matched_line)
         {
             // 命中缓存
-            ++hit_counts[mem_idx];
-            return hit_data(tag, mem_idx);
+            hit_counts[mem_idx] += 1;
+            miss_counts[mem_idx] += 0;
+            matched_line->flag = count;
+            return hit_data(tag, index, mem_idx);
         }
         else
         {
             // 未命中缓存
-            ++miss_counts[mem_idx];
-            return miss_data(tag, mem_idx);
+            hit_counts[mem_idx] += 0;
+            miss_counts[mem_idx] += 1;
+            return miss_data(tag, index, mem_idx);
         }
     }
     virtual void show_stat()
@@ -132,14 +180,27 @@ class CacheFIFO : public ICache
     {
     }
 
-    int hit_data(uint32_t tag, int mem_idx) override
+    int hit_data(uint32_t tag, uint32_t index, int mem_idx) override
     {
         return 0;
     };
-    int miss_data(uint32_t tag, int mem_idx) override
+    int miss_data(uint32_t tag, uint32_t index, int mem_idx) override
     {
-        tags.clear();
-        tags.insert(tag);
+        auto& group = groups[index];
+        matched_line = &group[0];
+        uint64_t min = matched_line->flag;
+
+        for (auto& line : group)
+        {
+            if (line.flag < min)
+            {
+                matched_line = &line;
+                break;
+            }
+        }
+        matched_line->v = true;
+        matched_line->tag = tag;
+        matched_line->flag = count;
         return 0;
     };
 };
