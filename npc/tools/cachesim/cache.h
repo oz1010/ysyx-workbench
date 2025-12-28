@@ -30,6 +30,11 @@ typedef struct
     uint64_t flag;
 } cache_line_t;
 
+typedef struct
+{
+    bool silence;
+} cache_cfg_t;
+
 class ICache
 {
    protected:
@@ -43,12 +48,14 @@ class ICache
     const uint32_t w;
     const uint32_t n;
     const uint32_t m;
+    const cache_cfg_t cfg;
 
    public:
-    ICache(uint32_t w, uint32_t n, uint32_t m)
+    ICache(uint32_t w, uint32_t n, uint32_t m, cache_cfg_t cfg)
         : w(w),
           n(n),
-          m(m)
+          m(m),
+          cfg(cfg)
     {
         uint32_t group_size = 1 << this->n;
         uint32_t line_size = 1 << this->m;
@@ -76,18 +83,21 @@ class ICache
         // cout << hex << "BIT_MASK(16): " << BIT_MASK(16) << endl;
         // cout << hex << "BIT_MASK(30): " << BIT_MASK(30) << endl;
         // cout.flags(def_fmt);
-        cout << "缓存基本参数：\n";
-        cout << "tag: [" << (31) << ", " << (this->m + this->n) << "]" << endl;
-        if (this->n)
-            cout << "index: [" << (this->m + this->n - 1) << ", " << (this->m) << "]" << endl;
-        else
-            cout << "index: none" << endl;
-        cout << "offset: [" << (this->m + -1) << ", " << (0) << "]" << endl;
-        cout << "组中行数量: " << this->w << endl;
-        cout << "缓存组数量: " << group_size << "" << endl;
-        cout << "缓存行大小: " << line_size << endl;
-        cout << "总大小: " << (this->w * group_size * line_size) << endl;
-        show_mem_time();
+        if (!cfg.silence)
+        {
+            cout << "缓存基本参数：\n";
+            cout << "tag: [" << (31) << ", " << (this->m + this->n) << "]" << endl;
+            if (this->n)
+                cout << "index: [" << (this->m + this->n - 1) << ", " << (this->m) << "]" << endl;
+            else
+                cout << "index: none" << endl;
+            cout << "offset: [" << (this->m + -1) << ", " << (0) << "]" << endl;
+            cout << "组中行数量: " << this->w << endl;
+            cout << "缓存组数量: " << group_size << "" << endl;
+            cout << "缓存行大小: " << line_size << endl;
+            cout << "总大小: " << (this->w * group_size * line_size) << endl;
+            show_mem_time();
+        }
     }
     virtual int hit_data(uint32_t tag, uint32_t index, int mem_idx)
     {
@@ -152,15 +162,20 @@ class ICache
             double miss_penalty = mem_info.miss_penalty;
             double p = hit_count * 1.0 / (hit_count + miss_count);
             double amat = access_time + (1 - p) * miss_penalty;
-            cout << setw(8) << mem_idx_2_str(mem_idx) << ": " << fixed << setprecision(1) << p * 100
-                 << "% (" << hit_count << " " << (hit_count + miss_count) << ")" << std::endl;
-            cout << setw(8) << ""
-                 << "  " << fixed << setprecision(1) << amat << " (" << access_time << " "
-                 << miss_penalty << ")" << endl;
+            /* FIXME 假定数据位宽为32 */
+            double load_cache_count = this->m < 2 ? 1 : (1 << (this->m - 2));
+            double tmt = miss_count * (miss_penalty * load_cache_count);
+            cout << setw(8) << mem_idx_2_str(mem_idx) << " count: " << fixed << setprecision(1)
+                 << p * 100 << "% (" << hit_count << " " << (hit_count + miss_count) << ")"
+                 << std::endl;
+            cout << setw(8) << mem_idx_2_str(mem_idx) << " AMAT: " << fixed << setprecision(1)
+                 << amat << " (" << access_time << " " << miss_penalty << ")" << endl;
+            cout << setw(8) << mem_idx_2_str(mem_idx) << " TMT: " << fixed << setprecision(1) << tmt
+                 << endl;
         }
         {
             double p = total_hit_count * 1.0 / (total_hit_count + total_miss_count);
-            cout << "合计"
+            cout << "合计count"
                  << ": " << fixed << setprecision(1) << p * 100 << "% (" << total_hit_count << " "
                  << (total_hit_count + total_miss_count) << ")" << std::endl;
         }
@@ -171,8 +186,8 @@ class ICache
 class CacheFIFO : public ICache
 {
    public:
-    CacheFIFO(uint32_t w, uint32_t n, uint32_t m)
-        : ICache(w, n, m)
+    CacheFIFO(uint32_t w, uint32_t n, uint32_t m, cache_cfg_t cfg)
+        : ICache(w, n, m, cfg)
     {
     }
 

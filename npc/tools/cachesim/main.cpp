@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <fstream>
@@ -103,19 +104,26 @@ int main(int argc, char *argv[])
 {
     std::string pro_name = argv[0];
     std::string filepath = "";
+    cache_cfg_t cfg;
 
     const struct option table[] = {
         {"help", no_argument, NULL, 'h'},
+        {"silence", no_argument, NULL, 's'},
         {"time", required_argument, NULL, 't'},
         {"cache", required_argument, NULL, 'c'},
         {0, 0, NULL, 0},
     };
     int opt;
     uint32_t w = 1, n = 1, m = 2;
-    while ((opt = getopt_long(argc, argv, "-ht:c:", table, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "-hst:c:", table, NULL)) != -1)
     {
         switch (opt)
         {
+            case 's':
+            {
+                cfg.silence = true;
+                break;
+            }
             case 'c':
             {
                 auto ret = parse_cache_parameter(optarg);
@@ -146,8 +154,26 @@ int main(int argc, char *argv[])
     }
 
     // cout << "Read file " << filepath << endl;
-    cache = new CacheFIFO(w, n, m);
-    int ret = parse_binary_file(filepath);
+    cache = new CacheFIFO(w, n, m, cfg);
+    int ret = 0;
+    if (filepath.empty())
+    {
+        std::vector<uint32_t> pcs = {
+            0x80001234,
+            0x80001238,
+            0x8000123c,
+            0x80001238,
+            0x80001234,
+        };
+        for (auto &pc : pcs)
+        {
+            cache->find_data(pc);
+        }
+    }
+    else
+    {
+        ret = parse_binary_file(filepath);
+    }
     cache->show_stat();
 
     return ret;
