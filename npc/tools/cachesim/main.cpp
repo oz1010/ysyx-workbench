@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
         {0, 0, NULL, 0},
     };
     int opt;
-    uint32_t w = 0, n = 0, m = 0;
+    uint32_t w = 1, n = 1, m = 2;
     while ((opt = getopt_long(argc, argv, "-ht:c:", table, NULL)) != -1)
     {
         switch (opt)
