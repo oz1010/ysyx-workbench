@@ -32,5 +32,6 @@ module top (
 );
 
 test_get_unalign_parameter case0(.case_num(0));
+test_cache_line case1(.case_num(1));
 
 endmodule
