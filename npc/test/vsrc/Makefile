@@ -35,14 +35,14 @@ VSRCS-y += ./test/vsrc/core/top.v
 # VDIRS-y									+= ./vsrc/ysyxSoC/perip/vga
 # # VSRCS-y		+= $(shell find -L ./vsrc/ysyxSoC/perip -name *.v)
 
-VCSR_CPPS   = $(shell find -L . -name *.cpp)
+VCSR_CPPS   = $(shell find -L . -name "*.cpp")
 VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS       += $(addprefix $(PRO_PATH)/,$(VSRCS-y))
 VSRCS     	+= $(addprefix $(WORK_DIR)/,$(VCSR_CPPS))
 INC_PATH    += $(PRO_PATH)/include
 INC_PATH    += $(PRO_PATH)/src/isa/$(GUEST_ISA)/include
 INC_PATH    += $(PRO_PATH)/../common/include
-INC_PATH    += $(PRO_PATH)/test/vsrc/core/common
+INC_PATH    += $(PRO_PATH)/test/vsrc/core/cases
 INC_PATH    += $(VGEN_DIR)
 INC_PATH    += $(VDIRS-y)
 INC_PATH    += $(PRO_PATH)/vsrc/core/common

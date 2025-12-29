@@ -11,7 +11,7 @@ module test_get_unalign_parameter(
     logic [ADDR_WIDTH-1:0] addr;
     logic [7:0] len;
     logic [2:0] size;
-    logic [3:0] strb[0:1];
+    logic [7:0] strb;
     logic [1:0] shift_val;
     
     // Test procedure
@@ -53,8 +53,8 @@ module test_get_unalign_parameter(
             get_unalign_parameter(code, address, len, size, strb, shift_val);
             if (len!=check_len ||
                 size!=check_size ||
-                strb[0]!=check_strb[0] ||
-                strb[1]!=check_strb[1] ||
+                strb[0 +: 4]!=check_strb[0] ||
+                strb[4 +: 4]!=check_strb[1] ||
                 shift_val!=check_shift_val
                 ) check_error=1;
             
