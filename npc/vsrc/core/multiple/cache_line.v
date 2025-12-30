@@ -22,10 +22,6 @@ module cache_line #(
     output  wire [DATA_WIDTH-1:0]       read_data
 );
 
-localparam check_cache_t = 0;
-localparam return_cache_t = 1;
-localparam update_cache_t = 2;
-
 /*
  31    m+n m+n-1   m m-1    0
 +---------+---------+--------+
@@ -45,48 +41,29 @@ wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  valid;
 reg  [line_width-1:0] line;
-reg  [1:0] state;
 wire [tag_width-1:0] line_tag = line[index_width+offset_width +: tag_width];
 reg  [write_offset_width:0] write_offset;
 
-assign read_en = state==check_cache_t && valid && tag==line_tag;
+assign read_en = valid && tag==line_tag;
 assign read_data = read_en ? line[8*offset +: DATA_WIDTH] : 0;
 
 always @(posedge clk) begin
     if (rst) begin
         valid <= 0;
         line <= 0;
-        state <= check_cache_t;
         write_offset <= 0;
     end else begin
-        /* FIXME update_en不能和write_en同时有效 */
         if (update_en) begin
-            case (state)
-                check_cache_t: begin
-                    write_offset <= 0;
-                    state <= update_cache_t;
-                    valid <= 0;
+            // 单次write信号应该只存在一个周期，直到写入预期次数的数据
+            if (write_en) begin
+                line[write_offset*DATA_WIDTH +: DATA_WIDTH] <= write_data;
+                write_offset <= write_offset + 1;
+                if (write_offset == write_offset_max) begin
+                    valid <= 1;
+                    write_offset <= write_offset;
                 end
-
-                update_cache_t: begin
-                    if (write_en && !valid) begin
-                        line[write_offset*DATA_WIDTH +: DATA_WIDTH] <= write_data;
-                        write_offset <= write_offset + 1;
-                        if (write_offset == write_offset_max) begin
-                            valid <= 1;
-                            write_offset <= write_offset;
-                        end
-                    end
-                end
-
-                default: begin
-                    `ifndef IN_YOSYS_STA
-                    $error("unknown state %d", state);
-                    `endif
-                end
-            endcase
+            end
         end else begin
-            state <= check_cache_t;
             write_offset <= 0;
         end
         

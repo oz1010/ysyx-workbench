@@ -154,6 +154,17 @@ function automatic [31:0] log2;
     end
 endfunction
 
+/* 向上取对数，用于计算最小的数据位宽 */
+function automatic [31:0] log2up;
+    input [31:0] value;
+    begin
+        logic [31:0] result;
+        result = log2(value);
+        log2up = ((value^(1<<result)) > 0) ? result+1 : 
+            result==0 ? 1 : result;
+    end
+endfunction
+
 function void check_dev_addr;
     input logic [31:0] addr;
     input logic [3:0] attr;

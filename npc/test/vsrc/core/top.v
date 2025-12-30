@@ -25,6 +25,14 @@ import "DPI-C" function void dpi_monitor_item(input int item_idx, input int id, 
 
 `include "riscv32e_defines.v"
 
+module test_timeout ();
+initial begin
+#100;
+$display("This is normal exit for timeout.");
+$finish; 
+end
+endmodule
+
 module top (
     input  wire         clock,
     input  wire         reset,
@@ -33,5 +41,7 @@ module top (
 
 test_get_unalign_parameter case0(.case_num(0));
 test_cache_line case1(.case_num(1));
+test_cache_block case2(.case_num(2));
+test_timeout casetimeout();
 
 endmodule

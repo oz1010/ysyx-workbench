@@ -1,15 +1,6 @@
 // 时间单位为1ps，没有缩放
 `timescale 1ps/1ps
 
-module my_module (
-    input clk,
-    input rst,
-    input [7:0] data_in,
-    output [7:0] data_out
-);
-    assign data_out = 8'hff ^ data_in; 
-endmodule
-
 module test_cache_line(
     input wire [7:0] case_num
 );
@@ -96,7 +87,6 @@ module test_cache_line(
         
         // 结束仿真
         $display("Case%d: test_cache_line done", case_num);
-        $finish;
     end
  
     task check_output;
