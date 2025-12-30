@@ -19,7 +19,7 @@ module test_cache_block(
     wire [DATA_WIDTH-1:0]      read_data;
 
     cache_block #(
-        .W(4),
+        .W(2),
         .N(1),
         .M(4)
     ) dut (
@@ -32,6 +32,16 @@ module test_cache_block(
         .read_en(read_en),
         .read_data(read_data)
     );
+
+    `define CHECK_OUTPUT(actual_read_en, actual_read_data, expected_read_en, expected_read_data) begin\
+            if (actual_read_en !== expected_read_en) begin \
+                $error("FAIL: read_en - Expected %h, Got %h", expected_read_en, actual_read_en); \
+                $finish; \
+            end else if (actual_read_data !== expected_read_data) begin \
+                $error("FAIL: read_data - Expected %h, Got %h", expected_read_data, actual_read_data); \
+                $finish; \
+            end \
+        end
 
     // 时钟生成
     initial begin
@@ -51,7 +61,7 @@ module test_cache_block(
         write_en = 0;
         addr = 32'h80001234;
         #2;
-        check_output(read_en, read_data, 0, 0);
+        `CHECK_OUTPUT(read_en, read_data, 0, 0);
 
         update_en = 1; #2;
         write_en = 1;
@@ -62,33 +72,44 @@ module test_cache_block(
         write_data = 32'h8000123c; #2; write_en = 0; #4; write_en = 1;
         update_en = 0;
         write_en = 0; #4;
-        check_output(read_en, read_data, 1, 32'h80001234);
+        `CHECK_OUTPUT(read_en, read_data, 1, 32'h80001234);
 
-        addr = 32'h8000123c; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001238; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001234; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001230; #2;
-        check_output(read_en, read_data, 1, addr);
+        addr = 32'h8000123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001238; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
         
-        addr = 32'h80001244; #2;
-        check_output(read_en, read_data, 0, 0);
+        addr = 32'h90001234; #2; `CHECK_OUTPUT(read_en, read_data, 0, 0);
         
-        addr = 32'h8000123c; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001238; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001234; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001230; #2;
-        check_output(read_en, read_data, 1, addr);
+        addr = 32'h8000123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001238; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+
+        update_en = 1; #2;
+        write_en = 1;
+        addr = 32'h90001234;
+        write_data = 32'h90001230; #2; write_en = 0; #4; write_en = 1;
+        write_data = 32'h90001234; #2; write_en = 0; #4; write_en = 1;
+        write_data = 32'h90001238; #2; write_en = 0; #4; write_en = 1;
+        write_data = 32'h9000123c; #2; write_en = 0; #4; write_en = 1;
+        update_en = 0;
+        write_en = 0; #4;
+        `CHECK_OUTPUT(read_en, read_data, 1, 32'h90001234);
+
+        addr = 32'h9000123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h90001238; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h90001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h90001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h8000123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001238; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
         
         // 结束仿真
         $display("Case%d: test_cache_block done", case_num);
     end
- 
+
     task check_output;
         input                   actual_read_en;
         input [DATA_WIDTH-1:0]  actual_read_data;
