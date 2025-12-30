@@ -46,6 +46,7 @@ INC_PATH    += $(PRO_PATH)/test/vsrc/core/cases
 INC_PATH    += $(VGEN_DIR)
 INC_PATH    += $(VDIRS-y)
 INC_PATH    += $(PRO_PATH)/vsrc/core/common
+INC_PATH    += $(PRO_PATH)/vsrc/core/multiple
 INC_PATH    += $(PRO_PATH)/vsrc/ysyxSoC/perip/uart16550/rtl
 INC_PATH    += $(PRO_PATH)/vsrc/ysyxSoC/perip/spi/rtl
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic
@@ -73,7 +74,8 @@ VCXXFLAGS += -DTOP_NAME="\"$(VMOD_NAME)\""
 VCXXFLAGS += -DTOP_FILE=V$(VMOD_NAME).h
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
-VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
+VERILATOR_CFLAGS += --timescale "1ns/1ns" --timing
+# --no-timing
 VERILATOR_CFLAGS += --autoflush
 VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
 
@@ -133,7 +135,7 @@ $(BINARY): $(VOBJS) $(OBJS) $(ARCHIVES)
 	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(ARCHIVES) $(LIBS)
 
 test: $(BINARY)
-	@$(BINARY)
+	@cd $(NPC_HOME); $(BINARY)
 
 clean:
 	rm -rf $(BUILD_DIR)

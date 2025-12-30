@@ -65,7 +65,7 @@ void init_vsimu(int argc, char *argv[])
     tfp = std::make_shared<VerilatedVcdC>();
     top->trace(tfp.get(), 99);  // Trace 99 levels of hierarchy (or see below)
     tfp->open("build/logs/simu_top.vcd");
-    LOG_INFO("Start trace ...\n");
+    printf("Start trace ...\n");
 #endif
 }
 
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
     int cnt = 0;
     uint32_t clock = 0;
     top->reset = 0;
-    while(!top->contextp()->gotFinish() && cnt++<18) {
+    while(!top->contextp()->gotFinish()) {
         top->clock = clock;
         clock = !clock;
         top->contextp()->timeInc(1);
