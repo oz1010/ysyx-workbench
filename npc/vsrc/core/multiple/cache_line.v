@@ -57,33 +57,39 @@ always @(posedge clk) begin
         valid <= 0;
         line <= 0;
         state <= check_cache_t;
+        write_offset <= 0;
     end else begin
-        case (state)
-            check_cache_t: begin
-                if (update_en) begin
+        /* FIXME update_en不能和write_en同时有效 */
+        if (update_en) begin
+            case (state)
+                check_cache_t: begin
                     write_offset <= 0;
                     state <= update_cache_t;
                     valid <= 0;
                 end
-            end
 
-            update_cache_t: begin
-                if (write_en) begin
-                    line[write_offset*DATA_WIDTH +: DATA_WIDTH] <= write_data;
-                    write_offset <= write_offset + 1;
-                    if (write_offset == write_offset_max) begin
-                        valid <= 1;
-                        state <= check_cache_t;
+                update_cache_t: begin
+                    if (write_en && !valid) begin
+                        line[write_offset*DATA_WIDTH +: DATA_WIDTH] <= write_data;
+                        write_offset <= write_offset + 1;
+                        if (write_offset == write_offset_max) begin
+                            valid <= 1;
+                            write_offset <= write_offset;
+                        end
                     end
                 end
-            end
 
-            default: begin
-                `ifndef IN_YOSYS_STA
-                $error("unknown state %d", state);
-                `endif
-            end
-        endcase
+                default: begin
+                    `ifndef IN_YOSYS_STA
+                    $error("unknown state %d", state);
+                    `endif
+                end
+            endcase
+        end else begin
+            state <= check_cache_t;
+            write_offset <= 0;
+        end
+        
     end
 end
 

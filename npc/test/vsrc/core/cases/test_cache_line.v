@@ -62,14 +62,14 @@ module test_cache_line(
         #2;
         check_output(read_en, read_data, 0, 0);
 
-        update_en = 1; #2; update_en = 0;
-
+        update_en = 1; #2;
         write_en = 1;
         addr = 32'h80001234;
         write_data = 32'h80001230; #2;
         write_data = 32'h80001234; #2;
         write_data = 32'h80001238; #2;
         write_data = 32'h8000123c; #2;
+        update_en = 0;
         write_en = 0; #2;
         check_output(read_en, read_data, 1, 32'h80001234);
 
