@@ -33,6 +33,16 @@ module test_cache_line(
         .read_data(read_data)
     );
 
+    `define CHECK_OUTPUT(actual_read_en, actual_read_data, expected_read_en, expected_read_data) begin\
+            if (actual_read_en !== expected_read_en) begin \
+                $error("FAIL: read_en - Expected %h, Got %h", expected_read_en, actual_read_en); \
+                $finish; \
+            end else if (actual_read_data !== expected_read_data) begin \
+                $error("FAIL: read_data - Expected %h, Got %h", expected_read_data, actual_read_data); \
+                $finish; \
+            end \
+        end
+
     // 时钟生成
     initial begin
         clk = 0;
@@ -51,7 +61,7 @@ module test_cache_line(
         write_en = 0;
         addr = 32'h80001234;
         #2;
-        check_output(read_en, read_data, 0, 0);
+        `CHECK_OUTPUT(read_en, read_data, 0, 0);
 
         update_en = 1; #2;
         write_en = 1;
@@ -62,51 +72,22 @@ module test_cache_line(
         write_data = 32'h8000123c; #2;
         update_en = 0;
         write_en = 0; #2;
-        check_output(read_en, read_data, 1, 32'h80001234);
+        `CHECK_OUTPUT(read_en, read_data, 1, 32'h80001234);
 
-        addr = 32'h8000123c; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001238; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001234; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001230; #2;
-        check_output(read_en, read_data, 1, addr);
+        addr = 32'h8000123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001238; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
         
-        addr = 32'h80001244; #2;
-        check_output(read_en, read_data, 0, 0);
+        addr = 32'h80001244; #2; `CHECK_OUTPUT(read_en, read_data, 0, 0);
         
-        addr = 32'h8000123c; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001238; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001234; #2;
-        check_output(read_en, read_data, 1, addr);
-        addr = 32'h80001230; #2;
-        check_output(read_en, read_data, 1, addr);
+        addr = 32'h8000123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001238; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h80001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
         
         // 结束仿真
         $display("Case%d: test_cache_line done", case_num);
     end
- 
-    task check_output;
-        input                   actual_read_en;
-        input [DATA_WIDTH-1:0]  actual_read_data;
-        input                   expected_read_en;
-        input [DATA_WIDTH-1:0]  expected_read_data;
-        begin
-            if (actual_read_en !== expected_read_en) begin
-                $error("FAIL: read_en - Expected %h, Got %h", 
-                          expected_read_en, actual_read_en);
-                $finish;
-            end
-
-            if (actual_read_data !== expected_read_data) begin
-                $error("FAIL: read_data - Expected %h, Got %h", 
-                          expected_read_data, actual_read_data);
-                $finish;
-            end
-        end
-    endtask
 
 endmodule
