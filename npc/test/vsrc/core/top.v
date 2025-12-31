@@ -42,6 +42,7 @@ module top (
 test_get_unalign_parameter case0(.case_num(0));
 test_cache_line case1(.case_num(1));
 test_cache_block case2(.case_num(2));
+test_cache case3(.case_num(3));
 test_timeout casetimeout();
 
 endmodule
