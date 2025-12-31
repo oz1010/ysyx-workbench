@@ -22,10 +22,6 @@ module cache_block #(
     output  wire [DATA_WIDTH-1:0]       read_data
 );
 
-localparam check_cache_t = 0;
-localparam update_cache_t = 1;
-localparam update_cache_done_t = 2;
-
 /*
  31    m+n m+n-1   m m-1    0
 +---------+---------+--------+
@@ -51,11 +47,10 @@ reg  [line_count-1:0] line_update_en;
 wire [line_count-1:0] line_read_en;
 wire [DATA_WIDTH-1:0] line_read_data[0:line_count-1];
 reg  [line_count_width-1:0] line_read_index;
+reg  [line_count_width-1:0] line_read_index_last;
 reg  [line_count_width-1:0] line_update_index;
 reg  [line_count_width-1:0] line_read_flag[0:line_count-1];
 reg  [line_count_width-1:0] line_read_min_flag;
-
-reg  [1:0] state;
 
 generate
     for (genvar i=0; i<line_count; ++i) begin
@@ -85,60 +80,38 @@ always @(*) begin
         end
     end
 end
+always @(*) begin
+    line_update_index = 0;
+    line_update_en = 0;
+    line_read_min_flag = line_read_flag[line_update_index];
+    for (integer i=1; i<line_count; ++i) begin
+        if (line_read_flag[i] < line_read_min_flag) begin
+            line_update_index = i[$bits(line_update_index)-1:0];
+            line_read_min_flag = line_read_flag[i];
+        end
+    end
+    if (update_en) line_update_en[line_update_index] = 1;
+end
 
 always @(posedge clk) begin
     if (rst) begin
-        state <= check_cache_t;
-        line_update_en <= 0;
         for (integer i=0; i<line_count; ++i) begin
             line_read_flag[i] <= 0;
         end
+        line_read_index_last <= {$bits(line_read_index_last){1'b1}};
     end else begin
-        if (update_en) begin
-            // 更新某个line
-            case (state)
-                check_cache_t: begin
-                    line_update_index = 0;
-                    line_read_min_flag = line_read_flag[line_update_index];
-                    for (integer i=1; i<line_count; ++i) begin
-                        if (line_read_flag[i] < line_read_min_flag) begin
-                            line_update_index = i[$bits(line_update_index)-1:0];
-                            line_read_min_flag = line_read_flag[i];
-                        end
-                    end
-                    line_update_en[line_update_index] <= 1;
-                    state <= update_cache_t;
-                end
-
-                update_cache_t: begin
-                    if (line_read_en[line_update_index]) begin
-                        state <= update_cache_done_t;
-                    end
-                end
-
-                update_cache_done_t: begin
-                    
-                end
-
-                default: begin
-                    `ifndef IN_YOSYS_STA
-                    $error("unknown state %d", state);
-                    `endif
-                end
-            endcase
-        end else begin
-            if (state==update_cache_done_t) begin
-                state <= check_cache_t;
-            end
-
-            if (read_en) begin
-                for (integer i=1; i<line_count; ++i) begin
+        // 命中缓存
+        if (!update_en &&read_en) begin
+            // line_read_index与之前不一致则更新未命中flag
+            if (line_read_index != line_read_index_last) begin
+                for (integer i=0; i<line_count; ++i) begin
                     if (line_read_flag[i] > 0) begin
                         line_read_flag[i] <= line_read_flag[i] - 1;
                     end
                 end
-                line_read_flag[line_read_index] <= line_read_flag_max[line_count_width-1:0];
+                line_read_index_last <= line_read_index;
             end
+            line_read_flag[line_read_index] <= line_read_flag_max[line_count_width-1:0];
         end
     end
 end
