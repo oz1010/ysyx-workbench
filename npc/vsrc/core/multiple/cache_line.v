@@ -36,7 +36,7 @@ localparam write_offset_width = M-2;
 localparam write_offset_max = (1<<write_offset_width)-1;
 
 wire [tag_width-1:0] tag = addr[index_width+offset_width +: tag_width];
-wire [index_width-1:0] index = addr[offset_width +: index_width];
+// wire [index_width-1:0] index = addr[offset_width +: index_width];
 wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  valid;

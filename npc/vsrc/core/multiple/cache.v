@@ -30,7 +30,7 @@ module cache #(
 */
 localparam block_count = (1<<N);
 localparam block_count_max = N>0 ? block_count-1 : 0;
-localparam block_count_width = N;
+localparam block_count_width = N==0 ? 1 : N;
 localparam block_count_bit_high = N>0 ? N-1 : 0;
 localparam line_read_flag_max = W-1;
 localparam tag_width = 32 - (M+N);
@@ -41,7 +41,7 @@ localparam write_offset_width = M-2;
 localparam write_offset_count = (1<<write_offset_width);
 
 wire [tag_width-1:0] tag = addr[index_width+offset_width +: tag_width];
-wire [index_width-1:0] index = addr[offset_width +: index_width];
+// wire [index_width-1:0] index = addr[offset_width +: index_width];
 wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  [block_count-1:0]          block_update_en;
@@ -50,7 +50,7 @@ wire [block_count-1:0]          block_read_en; // 包含index比较的信号
 wire [DATA_WIDTH-1:0]           block_read_data[0:block_count-1];
 wire [block_count_bit_high:0]   block_index;
 
-assign block_index = block_count==0 ? 0 : addr[offset_width +: block_count_width];
+assign block_index = block_count==1 ? 0 : addr[offset_width +: block_count_width];
 assign read_en = block_read_en[block_index];
 assign read_data = block_read_data[block_index];
 
