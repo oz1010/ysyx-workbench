@@ -41,7 +41,7 @@ wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  valid;
 reg  [line_width-1:0] line;
-wire [tag_width-1:0] line_tag = line[index_width+offset_width +: tag_width];
+reg  [tag_width-1:0] line_tag;
 reg  [write_offset_width:0] write_offset;
 
 assign read_en = valid && tag==line_tag;
@@ -51,6 +51,7 @@ always @(posedge clk) begin
     if (rst) begin
         valid <= 0;
         line <= 0;
+        line_tag <= 0;
         write_offset <= 0;
     end else begin
         if (update_en) begin
@@ -61,6 +62,7 @@ always @(posedge clk) begin
                 if (write_offset == write_offset_max) begin
                     valid <= 1;
                     write_offset <= write_offset;
+                    line_tag <= tag;
                 end
             end
         end else begin
