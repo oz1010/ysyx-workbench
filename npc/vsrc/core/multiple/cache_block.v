@@ -53,7 +53,7 @@ reg  [line_count_width-1:0] line_read_flag[0:line_count-1];
 reg  [line_count_width-1:0] line_read_min_flag;
 
 generate
-    for (genvar i=0; i<line_count; ++i) begin
+    for (genvar i=0; i<line_count; ++i) begin : genline
         cache_line #(
             .W(W),
             .N(N),
