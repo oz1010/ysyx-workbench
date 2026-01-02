@@ -363,10 +363,12 @@ icache #(
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH),
-    .INST_WIDTH(INST_WIDTH),
-    .W(1),
-    .N(0),
-    .M(6)
+`ifdef CONFIG_ICACHE
+    .W(`CONFIG_ICACHE_PARAMETER_W),
+    .N(`CONFIG_ICACHE_PARAMETER_N),
+    .M(`CONFIG_ICACHE_PARAMETER_M),
+`endif
+    .INST_WIDTH(INST_WIDTH)
 ) m_icache (
     .clk(clk),
     .rst(rst),

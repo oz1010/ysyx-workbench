@@ -130,4 +130,21 @@ config DIFF_MSIZE
   depends on DIFFTEST
   default 0x40000000
 
+menuconfig ICACHE
+  bool "ICache enable"
+  default y
+  if ICACHE
+    config ICACHE_PARAMETER_W
+      hex "ICache parameter W"
+      default 8
+
+    config ICACHE_PARAMETER_N
+      hex "ICache parameter N"
+      default 4
+
+    config ICACHE_PARAMETER_M
+      hex "ICache parameter M"
+      default 4
+  endif # ICACHE
+
 endmenu #MEMORY
