@@ -364,7 +364,9 @@ icache #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH),
     .INST_WIDTH(INST_WIDTH),
-    .BLOCK_SIZE(16)
+    .W(1),
+    .N(4),
+    .M(4)
 ) m_icache (
     .clk(clk),
     .rst(rst),
