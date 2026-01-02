@@ -5,7 +5,15 @@ module icache #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3,
     parameter INST_WIDTH = 32,
-    parameter BLOCK_SIZE = 16
+    /* 
+        w > 0
+        n > 0
+        m+n < 31
+        m > 1
+     */
+    parameter W = 2,
+    parameter N = 2,
+    parameter M = 3
 ) (
     input   wire                        clk,
     input   wire                        rst,
@@ -77,10 +85,11 @@ module icache #(
 |   tag   |  index  | offset |
 +---------+---------+--------+
 */
+localparam block_count = 1<<N;
 localparam tag_width = ADDR_WIDTH - (offset_width+index_width);
-localparam block_width = INST_WIDTH*BLOCK_SIZE;
+localparam block_width = INST_WIDTH*block_count;
 localparam offset_width = log2(INST_WIDTH/8);
-localparam index_width = log2(BLOCK_SIZE);
+localparam index_width = log2(block_count);
 localparam index_max = {index_width{1'h1}};
 localparam index_init = {index_width{1'h1}}>>1;
 
@@ -163,7 +172,7 @@ wire icache_ren = m_arid==`AXI4_ID_IFU &&
 wire                        read_en;
 wire [INST_WIDTH-1:0]       read_inst;
 reg                         r_write_en;
-reg  [log2(BLOCK_SIZE)-1:0] r_write_index = index_max;
+reg  [log2(block_count)-1:0] r_write_index = index_max;
 reg  [ADDR_WIDTH-1:0]       r_write_addr; // 缓存写入地址
 reg  [INST_WIDTH-1:0]       r_write_inst; // 缓存写入指令
 wire                        slave_en; // 从设备使能标记
@@ -277,7 +286,7 @@ axi4_salve_reader #(
 );
 
 wire [1:0]                  slave_state;
-assign slave_en = r_write_en && r_slave_index<BLOCK_SIZE;
+assign slave_en = r_write_en && r_slave_index<block_count;
 axi_master_reader #(
 `ifndef IN_YOSYS_STA
     .NAME("icache"),
@@ -318,7 +327,7 @@ icache_block #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .INST_WIDTH(INST_WIDTH),
-    .BLOCK_SIZE(BLOCK_SIZE)
+    .block_count(block_count)
 ) m_icache_block(
     .clk(clk),
     .rst(rst),
@@ -388,13 +397,13 @@ module icache_block #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter INST_WIDTH = 32,
-    parameter BLOCK_SIZE = 16
+    parameter block_count = 16
 ) (
     input   wire                        clk,
     input   wire                        rst,
     input   wire [ADDR_WIDTH-1:0]       write_addr,
     input   wire                        write_en,
-    input   wire [log2(BLOCK_SIZE)-1:0] write_index,
+    input   wire [log2(block_count)-1:0] write_index,
     input   wire [INST_WIDTH-1:0]       write_inst,
     input   wire [ADDR_WIDTH-1:0]       read_addr,
     output  wire                        read_en,
@@ -412,15 +421,15 @@ localparam update_cache_t = 2;
 +---------+---------+--------+
 */
 localparam tag_width = ADDR_WIDTH - (offset_width+index_width);
-localparam block_width = INST_WIDTH*BLOCK_SIZE;
+localparam block_width = INST_WIDTH*block_count;
 localparam offset_width = log2(INST_WIDTH/8);
-localparam index_width = log2(BLOCK_SIZE);
+localparam index_width = log2(block_count);
 localparam index_max = {index_width{1'h1}};
 
 reg [block_width-1:0] block = 0;
 wire valid = tag==rtag;
 reg [tag_width-1:0] tag = 0;
-reg [log2(BLOCK_SIZE)-1:0] current_write_index = 0;
+reg [log2(block_count)-1:0] current_write_index = 0;
 reg [1:0] cache_state = check_cache_t;
 
 wire [tag_width-1:0] rtag = read_addr[index_width+offset_width +: tag_width];
