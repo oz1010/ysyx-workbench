@@ -85,19 +85,10 @@ module icache #(
 |   tag   |  index  | offset |
 +---------+---------+--------+
 */
-localparam block_count = 1<<N;
-localparam tag_width = ADDR_WIDTH - (offset_width+index_width);
-localparam block_width = INST_WIDTH*block_count;
-localparam offset_width = log2(INST_WIDTH/8);
-localparam index_width = log2(block_count);
-localparam index_max = {index_width{1'h1}};
-localparam index_init = {index_width{1'h1}}>>1;
 
-localparam check_cache_t = 0;
-localparam return_cache_t = 1;
-localparam update_cache_t = 2;
-
-reg [1:0] icache_read_state = check_cache_t;
+localparam offset_width = M;
+localparam index_width = N;
+localparam cache_line_size = 1<<(M);
 
 /* 与master端通信 */
 reg                         c_m_awready = 0;
@@ -169,12 +160,6 @@ wire icache_ren = m_arid==`AXI4_ID_IFU &&
         || ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
     );
 
-wire                        read_en;
-wire [INST_WIDTH-1:0]       read_inst;
-reg                         r_write_en;
-reg  [log2(block_count)-1:0] r_write_index = index_max;
-reg  [ADDR_WIDTH-1:0]       r_write_addr; // 缓存写入地址
-reg  [INST_WIDTH-1:0]       r_write_inst; // 缓存写入指令
 wire                        slave_en; // 从设备使能标记
 reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
 wire [INST_WIDTH-1:0]       slave_inst; // 从设备读取指令
@@ -241,9 +226,6 @@ assign s_arburst = icache_ren ? c_s_arburst : m_arburst;
 assign s_rready = icache_ren ? c_s_rready : m_rready;
 
 initial begin
-    r_write_en = 0;
-    r_write_addr = 0;
-    r_write_inst = 0;
     r_slave_addr = 0;
     r_slave_index = 0;
 end
@@ -277,16 +259,16 @@ axi4_salve_reader #(
     .rlast(c_m_rlast),
     .rid(c_m_rid),
     .enable(icache_ren),
-    .data_en(read_en),
+    .data_en(impl_read_en),
     .read_addr(read_addr),
-    .read_data(read_inst),
+    .read_data(impl_read_data),
     .read_len(),
     .read_size(read_size),
     .read_state(read_state)
 );
 
 wire [1:0]                  slave_state;
-assign slave_en = r_write_en && r_slave_index<block_count;
+assign slave_en = impl_update_en && r_slave_index<(cache_line_size/((INST_WIDTH/8)));
 axi_master_reader #(
 `ifndef IN_YOSYS_STA
     .NAME("icache"),
@@ -323,161 +305,64 @@ axi_master_reader #(
     .read_state(slave_state)
 );
 
-icache_block #(
+reg [ADDR_WIDTH-1:0]       impl_addr;
+reg                        impl_update_en;
+reg                        impl_write_en;
+reg [DATA_WIDTH-1:0]       impl_write_data;
+wire                       impl_read_en;
+wire [DATA_WIDTH-1:0]      impl_read_data;
+cache #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
-    .INST_WIDTH(INST_WIDTH),
-    .block_count(block_count)
-) m_icache_block(
+    .W(W),
+    .N(N),
+    .M(M)
+) icache_impl (
     .clk(clk),
     .rst(rst),
-    .write_addr(r_write_addr),
-    .write_en(r_write_en),
-    .write_index(r_write_index),
-    .write_inst(r_write_inst),
-    .read_addr(read_addr),
-    .read_en(read_en),
-    .read_inst(read_inst)
+    .addr(impl_addr),
+    .update_en(impl_update_en),
+    .write_en(impl_write_en),
+    .write_data(impl_write_data),
+    .read_en(impl_read_en),
+    .read_data(impl_read_data)
 );
+assign impl_addr = c_m_araddr;
+assign impl_write_en = impl_update_en && c_s_rvalid && c_s_rready;
+assign impl_write_data = c_s_rdata;
 
 always @(posedge clk) begin
     if (rst) begin
     end else begin
         if (icache_ren) begin
-            case (icache_read_state)
-                check_cache_t: begin
-                    if (read_en) begin
-                        icache_read_state <= return_cache_t;
-                        func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1);
-                    end else begin
-                        icache_read_state <= update_cache_t;
-                        r_write_en <= 1;
-                        r_write_index <= index_max; /* 默认都是从0开始更新，非0值即可 */
-                        r_write_addr <= 0;
-                        r_slave_addr <= {read_addr[ADDR_WIDTH-1:(offset_width+index_width)], {(offset_width+index_width){1'b0}}};
-                        r_slave_index <= 0;
-                        func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_MISS, 1);
-                    end
+            if (c_m_arvalid && c_m_arready) begin
+                if (impl_read_en) begin 
+                    func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1);
+                end else begin
+                    func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_MISS, 1);
                 end
-
-                return_cache_t: icache_read_state <= check_cache_t;
-
-                update_cache_t: begin
-                    // 等待从设备读取完成数据
-                    if (slave_state == `AXI4_STATE_DATA && c_s_rvalid) begin
-                        r_write_index <= r_write_index + 1;
-                        r_write_addr <= r_slave_addr;
-                        r_write_inst <= slave_inst;
-                        r_slave_addr <= r_slave_addr + (INST_WIDTH/8);
-                        r_slave_index <= r_slave_index + 1;
-                    end
-
-                    // 等待缓存更新好
-                    if (read_en) begin
-                        r_write_en <= 0;
-                        r_write_addr <= 0;
-                        r_write_inst <= 0;
-                        icache_read_state <= return_cache_t;
-                    end
-                end
-
-                `ifndef IN_YOSYS_STA
-                default: $error("icache found unknown read state %x", icache_read_state);
-                `endif
-            endcase
-        end
-    end
-end
-
-endmodule
-
-
-/* 单个缓存块 */
-module icache_block #(
-    parameter ADDR_WIDTH = 32,
-    parameter DATA_WIDTH = 32,
-    parameter INST_WIDTH = 32,
-    parameter block_count = 16
-) (
-    input   wire                        clk,
-    input   wire                        rst,
-    input   wire [ADDR_WIDTH-1:0]       write_addr,
-    input   wire                        write_en,
-    input   wire [log2(block_count)-1:0] write_index,
-    input   wire [INST_WIDTH-1:0]       write_inst,
-    input   wire [ADDR_WIDTH-1:0]       read_addr,
-    output  wire                        read_en,
-    output  wire [INST_WIDTH-1:0]       read_inst
-);
-
-localparam check_cache_t = 0;
-localparam return_cache_t = 1;
-localparam update_cache_t = 2;
-
-/*
- 31    m+n m+n-1   m m-1    0
-+---------+---------+--------+
-|   tag   |  index  | offset |
-+---------+---------+--------+
-*/
-localparam tag_width = ADDR_WIDTH - (offset_width+index_width);
-localparam block_width = INST_WIDTH*block_count;
-localparam offset_width = log2(INST_WIDTH/8);
-localparam index_width = log2(block_count);
-localparam index_max = {index_width{1'h1}};
-
-reg [block_width-1:0] block = 0;
-wire valid = tag==rtag;
-reg [tag_width-1:0] tag = 0;
-reg [log2(block_count)-1:0] current_write_index = 0;
-reg [1:0] cache_state = check_cache_t;
-
-wire [tag_width-1:0] rtag = read_addr[index_width+offset_width +: tag_width];
-wire [index_width-1:0] rindex = read_addr[offset_width +: index_width];
-wire [offset_width-1:0] roffset = read_addr[0 +: offset_width];
-
-wire [tag_width-1:0] wtag = write_addr[index_width+offset_width +: tag_width];
-wire [index_width-1:0] windex = write_addr[offset_width +: index_width];
-wire [offset_width-1:0] woffset = write_addr[0 +: offset_width];
-
-assign read_en = valid && rtag==tag && cache_state==check_cache_t;
-generate
-    for (genvar offset=0; offset<(INST_WIDTH/8); ++offset) begin
-        assign read_inst[offset*8 +: 8] = read_en ? block[((offset + {rindex, roffset})*8)%block_width +: 8] : 0;
-    end
-endgenerate
-
-always @(posedge clk) begin
-    if (rst || valid) begin
-        current_write_index <= 0;
-        cache_state <= check_cache_t;
-    end else begin
-        case (cache_state)
-        check_cache_t: begin
-            if (write_en) begin
-                cache_state <= update_cache_t;
-                tag <= rtag^{tag_width{1'h1}};
             end
-        end
 
-        update_cache_t: begin
-            if (write_en) begin
-                if (current_write_index == write_index) begin
-                    current_write_index <= write_index + 1;
-                    for (integer offset=0; offset<(INST_WIDTH/8); ++offset) begin
-                        block[((offset[0 +: offset_width+index_width] + {windex, woffset})*8)%block_width +: 8] <= write_inst[offset*8 +: 8];
-                    end
+            if (impl_update_en) begin
+                // 等待从设备读取完成数据
+                if (slave_state == `AXI4_STATE_DATA && c_s_rvalid) begin
+                    r_slave_addr <= r_slave_addr + (INST_WIDTH/8);
+                    r_slave_index <= r_slave_index + 1;
+                end
 
-                    if (write_index == index_max && !valid) begin
-                        tag <= wtag;
-                        current_write_index <= 0;
-                        cache_state <= check_cache_t;
-                    end
+                // 等待缓存更新好
+                if (impl_read_en) begin
+                    impl_update_en <= 0;
+                end
+            end else begin
+                // 未命中缓存，准备更新
+                if (!impl_read_en) begin
+                    impl_update_en <= 1;
+                    r_slave_addr <= {read_addr[ADDR_WIDTH-1:offset_width], {(offset_width){1'b0}}};
+                    r_slave_index <= 0;
                 end
             end
         end
-
-        endcase
     end
 end
 

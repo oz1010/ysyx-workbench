@@ -365,8 +365,8 @@ icache #(
     .RRESP_WIDTH(RRESP_WIDTH),
     .INST_WIDTH(INST_WIDTH),
     .W(1),
-    .N(4),
-    .M(4)
+    .N(0),
+    .M(6)
 ) m_icache (
     .clk(clk),
     .rst(rst),
