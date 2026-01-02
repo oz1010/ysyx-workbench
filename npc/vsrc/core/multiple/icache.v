@@ -151,6 +151,7 @@ reg  [2:0]                  c_s_arsize;
 reg  [1:0]                  c_s_arburst;
 reg                         c_s_rready;
 
+`ifdef CONFIG_ICACHE
 wire icache_wen = 0;
 wire icache_ren = m_arid==`AXI4_ID_IFU &&
     ( 
@@ -159,6 +160,10 @@ wire icache_ren = m_arid==`AXI4_ID_IFU &&
         || ( m_araddr>=`CONFIG_PSRAM_BASE && m_araddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
         || ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
     );
+`else
+wire icache_wen = 0;
+wire icache_ren = 0;
+`endif
 
 wire                        slave_en; // 从设备使能标记
 reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
