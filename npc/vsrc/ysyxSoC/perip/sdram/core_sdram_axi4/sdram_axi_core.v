@@ -453,7 +453,7 @@ localparam REFRESH_CNT_W = 17;
 reg [REFRESH_CNT_W-1:0] refresh_timer_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
-    refresh_timer_q <= SDRAM_START_DELAY;
+    refresh_timer_q <= SDRAM_START_DELAY + 100;
 else if (refresh_timer_q == {REFRESH_CNT_W{1'b0}})
     refresh_timer_q <= SDRAM_REFRESH_CYCLES;
 else
@@ -724,10 +724,7 @@ if (rst_i)
     ack_q   <= 1'b0;
 else
 begin
-    // FIXME 会造成读写ack响应时序混乱
-    /* if (SDRAM_DATA_COUNT == 2 && state_q == STATE_WRITE0)
-        ack_q <= 1'b1;
-    else */if (state_q == STATE_WRITE1)
+    if (state_q == STATE_WRITE1)
         ack_q <= 1'b1;
     else if (rd_q[SDRAM_READ_LATENCY+1])
         ack_q <= 1'b1;
