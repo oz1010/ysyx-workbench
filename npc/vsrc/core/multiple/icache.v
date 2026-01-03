@@ -89,6 +89,8 @@ module icache #(
 localparam offset_width = M;
 localparam index_width = N;
 localparam cache_line_size = 1<<(M);
+localparam cache_line_load_count = cache_line_size<4 ? 1 : (cache_line_size/((INST_WIDTH/8))); // 单次cache_line加载次数，数据位宽一般为32
+localparam cache_line_load_len = log2(cache_line_load_count);
 
 /* 与master端通信 */
 reg                         c_m_awready = 0;
@@ -273,7 +275,7 @@ axi4_salve_reader #(
 );
 
 wire [1:0]                  slave_state;
-assign slave_en = impl_update_en && r_slave_index<(cache_line_size/((INST_WIDTH/8)));
+assign slave_en = impl_update_en && r_slave_index<cache_line_load_count;
 axi_master_reader #(
 `ifndef IN_YOSYS_STA
     .NAME("icache"),
