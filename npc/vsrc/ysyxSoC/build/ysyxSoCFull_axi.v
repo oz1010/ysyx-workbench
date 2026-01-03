@@ -1478,7 +1478,6 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
   input  [3:0]  auto_anon_in_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_anon_in_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [2:0]  auto_anon_in_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_anon_in_awburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_anon_in_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_anon_in_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_anon_in_wdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -1493,7 +1492,6 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
   input  [3:0]  auto_anon_in_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_anon_in_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [2:0]  auto_anon_in_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_anon_in_arburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_anon_in_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_anon_in_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [3:0]  auto_anon_in_rid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -1536,13 +1534,11 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
   output [3:0]  auto_anon_out_0_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_anon_out_0_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [2:0]  auto_anon_out_0_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_anon_out_0_awburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_anon_out_0_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_anon_out_0_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_anon_out_0_wdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [3:0]  auto_anon_out_0_wstrb,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_anon_out_0_wlast,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-                auto_anon_out_0_bready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
+  output        auto_anon_out_0_bready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_anon_out_0_bvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [3:0]  auto_anon_out_0_bid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [1:0]  auto_anon_out_0_bresp,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -1551,13 +1547,11 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
   output [3:0]  auto_anon_out_0_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_anon_out_0_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [2:0]  auto_anon_out_0_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_anon_out_0_arburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_anon_out_0_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_anon_out_0_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [3:0]  auto_anon_out_0_rid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_anon_out_0_rdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_anon_out_0_rresp,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_anon_out_0_rlast	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
+  input  [1:0]  auto_anon_out_0_rresp	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
 );
 
   wire [3:0]  _in_0_bT_9;	// src/main/scala/chisel3/util/Mux.scala:30:73
@@ -1737,8 +1731,7 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
       ? anyValid
       : state_3_0 & auto_anon_out_0_rvalid | state_3_1 & auto_anon_out_1_rvalid
         | state_3_2 & auto_anon_out_2_rvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:272:23, :276:36, :291:24, :308:22, src/main/scala/chisel3/util/Mux.scala:30:73
-  assign _in_0_rT_5 =
-    muxState_3_0 & auto_anon_out_0_rlast | muxState_3_1 | muxState_3_2;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:292:23, src/main/scala/chisel3/util/Mux.scala:30:73
+  assign _in_0_rT_5 = muxState_3_0 | muxState_3_1 | muxState_3_2;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:292:23, src/main/scala/chisel3/util/Mux.scala:30:73
   assign _in_0_rT_20 =
     (muxState_3_0 ? auto_anon_out_0_rid : 4'h0)
     | (muxState_3_1 ? auto_anon_out_1_rid : 4'h0)
@@ -2403,18 +2396,15 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
   assign auto_anon_out_0_awid = auto_anon_in_awid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_awaddr = auto_anon_in_awaddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_awsize = auto_anon_in_awsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
-  assign auto_anon_out_0_awburst = auto_anon_in_awburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_wvalid = in_0_wvalid & _awIn_0_io_deq_bits[0];	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :74:47, :84:73, :169:43, :252:40
   assign auto_anon_out_0_wdata = auto_anon_in_wdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_wstrb = auto_anon_in_wstrb;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
-  assign auto_anon_out_0_wlast = auto_anon_in_wlast;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_bready =
     auto_anon_in_bready & (idle_4 ? readys_readys_1[0] : state_4_0);	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :272:23, :278:73, :291:24, :300:24, :302:31, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/tilelink/Arbiter.scala:26:18
   assign auto_anon_out_0_arvalid = auto_anon_in_arvalid & requestARIO_0_0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :71:97, :252:40
   assign auto_anon_out_0_arid = auto_anon_in_arid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_araddr = auto_anon_in_araddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_arsize = auto_anon_in_arsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
-  assign auto_anon_out_0_arburst = auto_anon_in_arburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9
   assign auto_anon_out_0_rready =
     auto_anon_in_rready & (idle_3 ? readys_readys[0] : state_3_0);	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :272:23, :278:73, :291:24, :300:24, :302:31, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/tilelink/Arbiter.scala:26:18
 endmodule
@@ -3262,7 +3252,6 @@ module AXI4ToAPB(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4T
   input         auto_in_awvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [3:0]  auto_in_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_in_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [7:0]  auto_in_awlen,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [2:0]  auto_in_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_in_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_in_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -3276,7 +3265,6 @@ module AXI4ToAPB(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4T
   input         auto_in_arvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [3:0]  auto_in_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_in_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [7:0]  auto_in_arlen,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [2:0]  auto_in_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_in_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_in_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -3302,27 +3290,15 @@ module AXI4ToAPB(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4T
     ~accept_read & _is_write_T & auto_in_awvalid & auto_in_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:51:{32,44}, :52:{26,39,61,73}
   reg         is_write_r;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/util/package.scala:88:63
   wire        is_write = _is_write_T ? accept_write : is_write_r;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/util/package.scala:88:{42,63}, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:51:32, :52:{39,61,73}
-  `ifndef SYNTHESIS	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13
-    always @(posedge clock) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13
-      if (~reset & auto_in_arvalid & (|auto_in_arlen)) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:{13,25,40}
-        if (`ASSERT_VERBOSE_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13
-          $error("Assertion failed at AXI4ToAPB.scala:61\n");	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13
-        if (`STOP_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13
-          $fatal;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13
-      end
-      if (~reset & auto_in_awvalid & (|auto_in_awlen)) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:61:13, :62:{13,25,40}
-        if (`ASSERT_VERBOSE_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:62:13
-          $error("Assertion failed at AXI4ToAPB.scala:62\n");	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:62:13
-        if (`STOP_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:62:13
-          $fatal;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:62:13
-      end
-      if (~reset & auto_in_arvalid & auto_in_arsize > 3'h2) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:45:25, :61:13, :64:{13,25,41}
+  `ifndef SYNTHESIS	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:64:13
+    always @(posedge clock) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:64:13
+      if (~reset & auto_in_arvalid & auto_in_arsize > 3'h2) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:45:25, :64:{13,25,41}
         if (`ASSERT_VERBOSE_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:64:13
           $error("Assertion failed at AXI4ToAPB.scala:64\n");	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:64:13
         if (`STOP_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:64:13
           $fatal;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:64:13
       end
-      if (~reset & auto_in_awvalid & auto_in_awsize > 3'h2) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:45:25, :61:13, :65:{13,25,41}
+      if (~reset & auto_in_awvalid & auto_in_awsize > 3'h2) begin	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:45:25, :64:13, :65:{13,25,41}
         if (`ASSERT_VERBOSE_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:65:13
           $error("Assertion failed at AXI4ToAPB.scala:65\n");	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:65:13
         if (`STOP_COND_)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:65:13
@@ -3429,654 +3405,6 @@ module AXI4ToAPB(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4T
     is_write ? (accept_write ? auto_in_wstrb : wstrb_reg_r) : 4'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/util/package.scala:88:{42,63}, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:45:25, :52:{39,61,73}, :80:25
 endmodule
 
-// VCS coverage exclude_file
-module ram_2x47(	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  input         R0_addr,
-                R0_en,
-                R0_clk,
-  output [46:0] R0_data,
-  input         W0_addr,
-                W0_en,
-                W0_clk,
-  input  [46:0] W0_data
-);
-
-  reg [46:0] Memory[0:1];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  always @(posedge W0_clk) begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    if (W0_en & 1'h1)	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      Memory[W0_addr] <= W0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_MEM_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    reg [63:0] _RANDOM_MEM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `ifdef RANDOMIZE_MEM_INIT	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        for (logic [1:0] i = 2'h0; i < 2'h2; i += 2'h1) begin
-          for (logic [6:0] j = 7'h0; j < 7'h40; j += 7'h20) begin
-            _RANDOM_MEM[j +: 32] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-          end
-          Memory[i[0]] = _RANDOM_MEM[46:0];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        end
-      `endif // RANDOMIZE_MEM_INIT
-    end // initial
-  `endif // ENABLE_INITIAL_MEM_
-  assign R0_data = R0_en ? Memory[R0_addr] : 47'bx;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-endmodule
-
-module Queue2_AXI4BundleAW(	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  input         clock,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-                reset,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  output        io_enq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_enq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [3:0]  io_enq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [31:0] io_enq_bits_addr,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [2:0]  io_enq_bits_size,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [1:0]  io_enq_bits_burst,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_deq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output        io_deq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [3:0]  io_deq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [31:0] io_deq_bits_addr,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [7:0]  io_deq_bits_len,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [2:0]  io_deq_bits_size	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-);
-
-  wire [46:0] _ram_ext_R0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  reg         wrap;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27
-  wire        ptr_match = wrap == wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:260:33
-  wire        empty = ptr_match & ~maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :261:{25,28}
-  wire        full = ptr_match & maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :262:24
-  wire        do_enq = ~full & io_enq_valid;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :262:24, :286:19
-  always @(posedge clock) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    if (reset) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap_1 <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      maybe_full <= 1'h0;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-    end
-    else begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic do_deq = io_deq_ready & ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :261:25, :285:19
-      if (do_enq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap <= wrap - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (do_deq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap_1 <= wrap_1 - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (~(do_enq == do_deq))	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27, :276:{15,27}, :277:16
-        maybe_full <= do_enq;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27
-    end
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_REG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `ifdef FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_BEFORE_INITIAL
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic [31:0] _RANDOM[0:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `ifdef INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `endif // INIT_RANDOM_PROLOG_
-      `ifdef RANDOMIZE_REG_INIT	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        _RANDOM[/*Zero width*/ 1'b0] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap = _RANDOM[/*Zero width*/ 1'b0][0];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap_1 = _RANDOM[/*Zero width*/ 1'b0][1];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        maybe_full = _RANDOM[/*Zero width*/ 1'b0][2];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-      `endif // RANDOMIZE_REG_INIT
-    end // initial
-    `ifdef FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_AFTER_INITIAL
-  `endif // ENABLE_INITIAL_REG_
-  ram_2x47 ram_ext (	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    .R0_addr (wrap_1),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .R0_en   (1'h1),
-    .R0_clk  (clock),
-    .R0_data (_ram_ext_R0_data),
-    .W0_addr (wrap),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .W0_en   (do_enq),	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-    .W0_clk  (clock),
-    .W0_data ({io_enq_bits_id, io_enq_bits_addr, 8'h0, io_enq_bits_size})	// src/main/scala/chisel3/util/Decoupled.scala:255:14, :256:91
-  );	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  assign io_enq_ready = ~full;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :262:24, :286:19
-  assign io_deq_valid = ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :261:25, :285:19
-  assign io_deq_bits_id = _ram_ext_R0_data[46:43];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_addr = _ram_ext_R0_data[42:11];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_len = _ram_ext_R0_data[10:3];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_size = _ram_ext_R0_data[2:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-endmodule
-
-// VCS coverage exclude_file
-module ram_2x36(	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  input         R0_addr,
-                R0_en,
-                R0_clk,
-  output [35:0] R0_data,
-  input         W0_addr,
-                W0_en,
-                W0_clk,
-  input  [35:0] W0_data
-);
-
-  reg [35:0] Memory[0:1];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  always @(posedge W0_clk) begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    if (W0_en & 1'h1)	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      Memory[W0_addr] <= W0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_MEM_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    reg [63:0] _RANDOM_MEM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `ifdef RANDOMIZE_MEM_INIT	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        for (logic [1:0] i = 2'h0; i < 2'h2; i += 2'h1) begin
-          for (logic [6:0] j = 7'h0; j < 7'h40; j += 7'h20) begin
-            _RANDOM_MEM[j +: 32] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-          end
-          Memory[i[0]] = _RANDOM_MEM[35:0];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        end
-      `endif // RANDOMIZE_MEM_INIT
-    end // initial
-  `endif // ENABLE_INITIAL_MEM_
-  assign R0_data = R0_en ? Memory[R0_addr] : 36'bx;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-endmodule
-
-module Queue2_AXI4BundleW(	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  input         clock,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-                reset,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  output        io_enq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_enq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [31:0] io_enq_bits_data,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [3:0]  io_enq_bits_strb,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_enq_bits_last,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-                io_deq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output        io_deq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [31:0] io_deq_bits_data,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [3:0]  io_deq_bits_strb	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-);
-
-  wire [35:0] _ram_ext_R0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  reg         wrap;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27
-  wire        ptr_match = wrap == wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:260:33
-  wire        empty = ptr_match & ~maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :261:{25,28}
-  wire        full = ptr_match & maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :262:24
-  wire        do_enq = ~full & io_enq_valid;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :262:24, :286:19
-  always @(posedge clock) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    if (reset) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap_1 <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      maybe_full <= 1'h0;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-    end
-    else begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic do_deq = io_deq_ready & ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :261:25, :285:19
-      if (do_enq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap <= wrap - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (do_deq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap_1 <= wrap_1 - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (~(do_enq == do_deq))	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27, :276:{15,27}, :277:16
-        maybe_full <= do_enq;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27
-    end
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_REG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `ifdef FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_BEFORE_INITIAL
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic [31:0] _RANDOM[0:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `ifdef INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `endif // INIT_RANDOM_PROLOG_
-      `ifdef RANDOMIZE_REG_INIT	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        _RANDOM[/*Zero width*/ 1'b0] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap = _RANDOM[/*Zero width*/ 1'b0][0];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap_1 = _RANDOM[/*Zero width*/ 1'b0][1];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        maybe_full = _RANDOM[/*Zero width*/ 1'b0][2];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-      `endif // RANDOMIZE_REG_INIT
-    end // initial
-    `ifdef FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_AFTER_INITIAL
-  `endif // ENABLE_INITIAL_REG_
-  ram_2x36 ram_ext (	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    .R0_addr (wrap_1),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .R0_en   (1'h1),
-    .R0_clk  (clock),
-    .R0_data (_ram_ext_R0_data),
-    .W0_addr (wrap),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .W0_en   (do_enq),	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-    .W0_clk  (clock),
-    .W0_data ({io_enq_bits_data, io_enq_bits_strb})	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  );	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  assign io_enq_ready = ~full;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :262:24, :286:19
-  assign io_deq_valid = ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :261:25, :285:19
-  assign io_deq_bits_data = _ram_ext_R0_data[35:4];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_strb = _ram_ext_R0_data[3:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-endmodule
-
-// VCS coverage exclude_file
-module ram_2x6(	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  input        R0_addr,
-               R0_en,
-               R0_clk,
-  output [5:0] R0_data,
-  input        W0_addr,
-               W0_en,
-               W0_clk,
-  input  [5:0] W0_data
-);
-
-  reg [5:0] Memory[0:1];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  always @(posedge W0_clk) begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    if (W0_en & 1'h1)	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      Memory[W0_addr] <= W0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_MEM_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    reg [31:0] _RANDOM_MEM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `ifdef RANDOMIZE_MEM_INIT	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        for (logic [1:0] i = 2'h0; i < 2'h2; i += 2'h1) begin
-          _RANDOM_MEM = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-          Memory[i[0]] = _RANDOM_MEM[5:0];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        end
-      `endif // RANDOMIZE_MEM_INIT
-    end // initial
-  `endif // ENABLE_INITIAL_MEM_
-  assign R0_data = R0_en ? Memory[R0_addr] : 6'bx;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-endmodule
-
-module Queue2_AXI4BundleB(	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  input        clock,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-               reset,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  output       io_enq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input        io_enq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [3:0] io_enq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [1:0] io_enq_bits_resp,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input        io_deq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output       io_deq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [3:0] io_deq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [1:0] io_deq_bits_resp	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-);
-
-  wire [5:0] _ram_ext_R0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  reg        wrap;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg        wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg        maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27
-  wire       ptr_match = wrap == wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:260:33
-  wire       empty = ptr_match & ~maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :261:{25,28}
-  wire       full = ptr_match & maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :262:24
-  wire       do_enq = ~full & io_enq_valid;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :262:24, :286:19
-  always @(posedge clock) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    if (reset) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap_1 <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      maybe_full <= 1'h0;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-    end
-    else begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic do_deq = io_deq_ready & ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :261:25, :285:19
-      if (do_enq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap <= wrap - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (do_deq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap_1 <= wrap_1 - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (~(do_enq == do_deq))	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27, :276:{15,27}, :277:16
-        maybe_full <= do_enq;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27
-    end
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_REG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `ifdef FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_BEFORE_INITIAL
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic [31:0] _RANDOM[0:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `ifdef INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `endif // INIT_RANDOM_PROLOG_
-      `ifdef RANDOMIZE_REG_INIT	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        _RANDOM[/*Zero width*/ 1'b0] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap = _RANDOM[/*Zero width*/ 1'b0][0];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap_1 = _RANDOM[/*Zero width*/ 1'b0][1];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        maybe_full = _RANDOM[/*Zero width*/ 1'b0][2];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-      `endif // RANDOMIZE_REG_INIT
-    end // initial
-    `ifdef FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_AFTER_INITIAL
-  `endif // ENABLE_INITIAL_REG_
-  ram_2x6 ram_ext (	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    .R0_addr (wrap_1),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .R0_en   (1'h1),
-    .R0_clk  (clock),
-    .R0_data (_ram_ext_R0_data),
-    .W0_addr (wrap),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .W0_en   (do_enq),	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-    .W0_clk  (clock),
-    .W0_data ({io_enq_bits_id, io_enq_bits_resp})	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  );	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  assign io_enq_ready = ~full;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :262:24, :286:19
-  assign io_deq_valid = ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :261:25, :285:19
-  assign io_deq_bits_id = _ram_ext_R0_data[5:2];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_resp = _ram_ext_R0_data[1:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-endmodule
-
-module Queue2_AXI4BundleAR(	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  input         clock,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-                reset,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  output        io_enq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_enq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [3:0]  io_enq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [31:0] io_enq_bits_addr,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [2:0]  io_enq_bits_size,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [1:0]  io_enq_bits_burst,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_deq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output        io_deq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [3:0]  io_deq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [31:0] io_deq_bits_addr,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [7:0]  io_deq_bits_len,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [2:0]  io_deq_bits_size	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-);
-
-  wire [46:0] _ram_ext_R0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  reg         wrap;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27
-  wire        ptr_match = wrap == wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:260:33
-  wire        empty = ptr_match & ~maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :261:{25,28}
-  wire        full = ptr_match & maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :262:24
-  wire        do_enq = ~full & io_enq_valid;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :262:24, :286:19
-  always @(posedge clock) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    if (reset) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap_1 <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      maybe_full <= 1'h0;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-    end
-    else begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic do_deq = io_deq_ready & ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :261:25, :285:19
-      if (do_enq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap <= wrap - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (do_deq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap_1 <= wrap_1 - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (~(do_enq == do_deq))	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27, :276:{15,27}, :277:16
-        maybe_full <= do_enq;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27
-    end
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_REG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `ifdef FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_BEFORE_INITIAL
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic [31:0] _RANDOM[0:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `ifdef INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `endif // INIT_RANDOM_PROLOG_
-      `ifdef RANDOMIZE_REG_INIT	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        _RANDOM[/*Zero width*/ 1'b0] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap = _RANDOM[/*Zero width*/ 1'b0][0];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap_1 = _RANDOM[/*Zero width*/ 1'b0][1];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        maybe_full = _RANDOM[/*Zero width*/ 1'b0][2];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-      `endif // RANDOMIZE_REG_INIT
-    end // initial
-    `ifdef FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_AFTER_INITIAL
-  `endif // ENABLE_INITIAL_REG_
-  ram_2x47 ram_ext (	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    .R0_addr (wrap_1),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .R0_en   (1'h1),
-    .R0_clk  (clock),
-    .R0_data (_ram_ext_R0_data),
-    .W0_addr (wrap),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .W0_en   (do_enq),	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-    .W0_clk  (clock),
-    .W0_data ({io_enq_bits_id, io_enq_bits_addr, 8'h0, io_enq_bits_size})	// src/main/scala/chisel3/util/Decoupled.scala:255:14, :256:91
-  );	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  assign io_enq_ready = ~full;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :262:24, :286:19
-  assign io_deq_valid = ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :261:25, :285:19
-  assign io_deq_bits_id = _ram_ext_R0_data[46:43];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_addr = _ram_ext_R0_data[42:11];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_len = _ram_ext_R0_data[10:3];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_size = _ram_ext_R0_data[2:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-endmodule
-
-// VCS coverage exclude_file
-module ram_2x39(	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  input         R0_addr,
-                R0_en,
-                R0_clk,
-  output [38:0] R0_data,
-  input         W0_addr,
-                W0_en,
-                W0_clk,
-  input  [38:0] W0_data
-);
-
-  reg [38:0] Memory[0:1];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  always @(posedge W0_clk) begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    if (W0_en & 1'h1)	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      Memory[W0_addr] <= W0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_MEM_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    reg [63:0] _RANDOM_MEM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-      `ifdef RANDOMIZE_MEM_INIT	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        for (logic [1:0] i = 2'h0; i < 2'h2; i += 2'h1) begin
-          for (logic [6:0] j = 7'h0; j < 7'h40; j += 7'h20) begin
-            _RANDOM_MEM[j +: 32] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-          end
-          Memory[i[0]] = _RANDOM_MEM[38:0];	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-        end
-      `endif // RANDOMIZE_MEM_INIT
-    end // initial
-  `endif // ENABLE_INITIAL_MEM_
-  assign R0_data = R0_en ? Memory[R0_addr] : 39'bx;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-endmodule
-
-module Queue2_AXI4BundleR(	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  input         clock,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-                reset,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-  output        io_enq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_enq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [3:0]  io_enq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [31:0] io_enq_bits_data,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input  [1:0]  io_enq_bits_resp,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  input         io_deq_ready,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output        io_deq_valid,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [3:0]  io_deq_bits_id,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [31:0] io_deq_bits_data,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output [1:0]  io_deq_bits_resp,	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-  output        io_deq_bits_last	// src/main/scala/chisel3/util/Decoupled.scala:255:14
-);
-
-  wire [38:0] _ram_ext_R0_data;	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  reg         wrap;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40
-  reg         maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27
-  wire        ptr_match = wrap == wrap_1;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:260:33
-  wire        empty = ptr_match & ~maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :261:{25,28}
-  wire        full = ptr_match & maybe_full;	// src/main/scala/chisel3/util/Decoupled.scala:259:27, :260:33, :262:24
-  wire        do_enq = ~full & io_enq_valid;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :262:24, :286:19
-  always @(posedge clock) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    if (reset) begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      wrap_1 <= 1'h0;	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-      maybe_full <= 1'h0;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-    end
-    else begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic do_deq = io_deq_ready & ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :261:25, :285:19
-      if (do_enq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap <= wrap - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (do_deq)	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-        wrap_1 <= wrap_1 - 1'h1;	// src/main/scala/chisel3/util/Counter.scala:61:40, :77:24
-      if (~(do_enq == do_deq))	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27, :276:{15,27}, :277:16
-        maybe_full <= do_enq;	// src/main/scala/chisel3/util/Decoupled.scala:51:35, :259:27
-    end
-  end // always @(posedge)
-  `ifdef ENABLE_INITIAL_REG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `ifdef FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_BEFORE_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_BEFORE_INITIAL
-    initial begin	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      automatic logic [31:0] _RANDOM[0:0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `ifdef INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        `INIT_RANDOM_PROLOG_	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `endif // INIT_RANDOM_PROLOG_
-      `ifdef RANDOMIZE_REG_INIT	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        _RANDOM[/*Zero width*/ 1'b0] = `RANDOM;	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap = _RANDOM[/*Zero width*/ 1'b0][0];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        wrap_1 = _RANDOM[/*Zero width*/ 1'b0][1];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7
-        maybe_full = _RANDOM[/*Zero width*/ 1'b0][2];	// src/main/scala/chisel3/util/Counter.scala:61:40, src/main/scala/chisel3/util/Decoupled.scala:243:7, :259:27
-      `endif // RANDOMIZE_REG_INIT
-    end // initial
-    `ifdef FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-      `FIRRTL_AFTER_INITIAL	// src/main/scala/chisel3/util/Decoupled.scala:243:7
-    `endif // FIRRTL_AFTER_INITIAL
-  `endif // ENABLE_INITIAL_REG_
-  ram_2x39 ram_ext (	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-    .R0_addr (wrap_1),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .R0_en   (1'h1),
-    .R0_clk  (clock),
-    .R0_data (_ram_ext_R0_data),
-    .W0_addr (wrap),	// src/main/scala/chisel3/util/Counter.scala:61:40
-    .W0_en   (do_enq),	// src/main/scala/chisel3/util/Decoupled.scala:51:35
-    .W0_clk  (clock),
-    .W0_data ({io_enq_bits_id, io_enq_bits_data, io_enq_bits_resp, 1'h1})	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  );	// src/main/scala/chisel3/util/Decoupled.scala:256:91
-  assign io_enq_ready = ~full;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :262:24, :286:19
-  assign io_deq_valid = ~empty;	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :261:25, :285:19
-  assign io_deq_bits_id = _ram_ext_R0_data[38:35];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_data = _ram_ext_R0_data[34:3];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_resp = _ram_ext_R0_data[2:1];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-  assign io_deq_bits_last = _ram_ext_R0_data[0];	// src/main/scala/chisel3/util/Decoupled.scala:243:7, :256:91
-endmodule
-
-module AXI4Buffer(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:37:9
-  input         clock,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:37:9
-                reset,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:37:9
-  output        auto_in_awready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_in_awvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [3:0]  auto_in_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [31:0] auto_in_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [2:0]  auto_in_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_in_awburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_in_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_in_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [31:0] auto_in_wdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [3:0]  auto_in_wstrb,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_in_wlast,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-                auto_in_bready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_in_bvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [3:0]  auto_in_bid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_in_bresp,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_in_arready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_in_arvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [3:0]  auto_in_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [31:0] auto_in_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [2:0]  auto_in_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_in_arburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_in_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_in_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [3:0]  auto_in_rid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [31:0] auto_in_rdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_in_rresp,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_in_rlast,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_out_awready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_out_awvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [3:0]  auto_out_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [31:0] auto_out_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [7:0]  auto_out_awlen,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [2:0]  auto_out_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_out_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_out_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [31:0] auto_out_wdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [3:0]  auto_out_wstrb,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_out_bready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_out_bvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [3:0]  auto_out_bid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_out_bresp,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_out_arready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_out_arvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [3:0]  auto_out_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [31:0] auto_out_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [7:0]  auto_out_arlen,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [2:0]  auto_out_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output        auto_out_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input         auto_out_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [3:0]  auto_out_rid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [31:0] auto_out_rdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_out_rresp	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-);
-
-  Queue2_AXI4BundleAW nodeOut_awdeq_q (	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-    .clock             (clock),
-    .reset             (reset),
-    .io_enq_ready      (auto_in_awready),
-    .io_enq_valid      (auto_in_awvalid),
-    .io_enq_bits_id    (auto_in_awid),
-    .io_enq_bits_addr  (auto_in_awaddr),
-    .io_enq_bits_size  (auto_in_awsize),
-    .io_enq_bits_burst (auto_in_awburst),
-    .io_deq_ready      (auto_out_awready),
-    .io_deq_valid      (auto_out_awvalid),
-    .io_deq_bits_id    (auto_out_awid),
-    .io_deq_bits_addr  (auto_out_awaddr),
-    .io_deq_bits_len   (auto_out_awlen),
-    .io_deq_bits_size  (auto_out_awsize)
-  );	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-  Queue2_AXI4BundleW nodeOut_wdeq_q (	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-    .clock            (clock),
-    .reset            (reset),
-    .io_enq_ready     (auto_in_wready),
-    .io_enq_valid     (auto_in_wvalid),
-    .io_enq_bits_data (auto_in_wdata),
-    .io_enq_bits_strb (auto_in_wstrb),
-    .io_enq_bits_last (auto_in_wlast),
-    .io_deq_ready     (auto_out_wready),
-    .io_deq_valid     (auto_out_wvalid),
-    .io_deq_bits_data (auto_out_wdata),
-    .io_deq_bits_strb (auto_out_wstrb)
-  );	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-  Queue2_AXI4BundleB nodeIn_bdeq_q (	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-    .clock            (clock),
-    .reset            (reset),
-    .io_enq_ready     (auto_out_bready),
-    .io_enq_valid     (auto_out_bvalid),
-    .io_enq_bits_id   (auto_out_bid),
-    .io_enq_bits_resp (auto_out_bresp),
-    .io_deq_ready     (auto_in_bready),
-    .io_deq_valid     (auto_in_bvalid),
-    .io_deq_bits_id   (auto_in_bid),
-    .io_deq_bits_resp (auto_in_bresp)
-  );	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-  Queue2_AXI4BundleAR nodeOut_ardeq_q (	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-    .clock             (clock),
-    .reset             (reset),
-    .io_enq_ready      (auto_in_arready),
-    .io_enq_valid      (auto_in_arvalid),
-    .io_enq_bits_id    (auto_in_arid),
-    .io_enq_bits_addr  (auto_in_araddr),
-    .io_enq_bits_size  (auto_in_arsize),
-    .io_enq_bits_burst (auto_in_arburst),
-    .io_deq_ready      (auto_out_arready),
-    .io_deq_valid      (auto_out_arvalid),
-    .io_deq_bits_id    (auto_out_arid),
-    .io_deq_bits_addr  (auto_out_araddr),
-    .io_deq_bits_len   (auto_out_arlen),
-    .io_deq_bits_size  (auto_out_arsize)
-  );	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-  Queue2_AXI4BundleR nodeIn_rdeq_q (	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-    .clock            (clock),
-    .reset            (reset),
-    .io_enq_ready     (auto_out_rready),
-    .io_enq_valid     (auto_out_rvalid),
-    .io_enq_bits_id   (auto_out_rid),
-    .io_enq_bits_data (auto_out_rdata),
-    .io_enq_bits_resp (auto_out_rresp),
-    .io_deq_ready     (auto_in_rready),
-    .io_deq_valid     (auto_in_rvalid),
-    .io_deq_bits_id   (auto_in_rid),
-    .io_deq_bits_data (auto_in_rdata),
-    .io_deq_bits_resp (auto_in_rresp),
-    .io_deq_bits_last (auto_in_rlast)
-  );	// src/main/scala/chisel3/util/Decoupled.scala:362:21
-endmodule
-
 module Queue1_BundleMap(	// src/main/scala/chisel3/util/Decoupled.scala:243:7
   input  clock,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
          reset,	// src/main/scala/chisel3/util/Decoupled.scala:243:7
@@ -4132,7 +3460,6 @@ module AXI4UserYanker(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   input  [3:0]  auto_in_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_in_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [2:0]  auto_in_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_in_awburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_in_awecho_real_last,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_in_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_in_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -4149,7 +3476,6 @@ module AXI4UserYanker(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   input  [3:0]  auto_in_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [31:0] auto_in_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [2:0]  auto_in_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  input  [1:0]  auto_in_arburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_in_arecho_real_last,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
                 auto_in_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_in_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -4163,7 +3489,6 @@ module AXI4UserYanker(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   output [3:0]  auto_out_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_out_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [2:0]  auto_out_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_out_awburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_out_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_out_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_out_wdata,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -4178,7 +3503,6 @@ module AXI4UserYanker(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   output [3:0]  auto_out_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_out_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [2:0]  auto_out_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_out_arburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_out_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_out_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input  [3:0]  auto_out_rid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -4746,7 +4070,6 @@ module AXI4UserYanker(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   assign auto_out_awid = auto_in_awid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_awaddr = auto_in_awaddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_awsize = auto_in_awsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
-  assign auto_out_awburst = auto_in_awburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_wvalid = auto_in_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_wdata = auto_in_wdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_wstrb = auto_in_wstrb;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
@@ -4756,7 +4079,6 @@ module AXI4UserYanker(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   assign auto_out_arid = auto_in_arid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_araddr = auto_in_araddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_arsize = auto_in_arsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
-  assign auto_out_arburst = auto_in_arburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
   assign auto_out_rready = auto_in_rready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:36:9
 endmodule
 
@@ -4984,7 +4306,6 @@ module AXI4Fragmenter(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   output [3:0]  auto_out_awid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_out_awaddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [2:0]  auto_out_awsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_out_awburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_out_awecho_real_last,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_out_wready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_out_wvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -5001,7 +4322,6 @@ module AXI4Fragmenter(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   output [3:0]  auto_out_arid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [31:0] auto_out_araddr,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output [2:0]  auto_out_arsize,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
-  output [1:0]  auto_out_arburst,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   output        auto_out_arecho_real_last,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
                 auto_out_rready,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
   input         auto_out_rvalid,	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25
@@ -5315,7 +4635,6 @@ module AXI4Fragmenter(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   assign auto_out_awaddr =
     ~{_out_bits_addr_T_6[31:2], _out_bits_addr_T_6[1:0] | ~(_out_bits_addr_T_7[1:0])};	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, :130:{26,28,34}, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/util/package.scala:243:{46,71,76}
   assign auto_out_awsize = _deq_q_1_io_deq_bits_size;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, src/main/scala/chisel3/util/Decoupled.scala:362:21
-  assign auto_out_awburst = _deq_q_1_io_deq_bits_burst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, src/main/scala/chisel3/util/Decoupled.scala:362:21
   assign auto_out_awecho_real_last = ~(|len_1);	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, :72:23, :118:27
   assign auto_out_wvalid = nodeOut_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, :185:33
   assign auto_out_wlast = w_last;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, :179:27
@@ -5324,7 +4643,6 @@ module AXI4Fragmenter(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-ch
   assign auto_out_araddr =
     ~{_out_bits_addr_T[31:2], _out_bits_addr_T[1:0] | ~(_out_bits_addr_T_1[1:0])};	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, :130:{26,28,34}, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/util/package.scala:243:{46,71,76}
   assign auto_out_arsize = _deq_q_io_deq_bits_size;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, src/main/scala/chisel3/util/Decoupled.scala:362:21
-  assign auto_out_arburst = _deq_q_io_deq_bits_burst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, src/main/scala/chisel3/util/Decoupled.scala:362:21
   assign auto_out_arecho_real_last = ~(|len);	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9, :72:23, :118:27
   assign auto_out_rready = auto_in_rready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:37:9
 endmodule
@@ -5488,7 +4806,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   wire [3:0]  _axi4frag_auto_out_awid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire [31:0] _axi4frag_auto_out_awaddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire [2:0]  _axi4frag_auto_out_awsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
-  wire [1:0]  _axi4frag_auto_out_awburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire        _axi4frag_auto_out_awecho_real_last;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire        _axi4frag_auto_out_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire [31:0] _axi4frag_auto_out_wdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
@@ -5499,7 +4816,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   wire [3:0]  _axi4frag_auto_out_arid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire [31:0] _axi4frag_auto_out_araddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire [2:0]  _axi4frag_auto_out_arsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
-  wire [1:0]  _axi4frag_auto_out_arburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire        _axi4frag_auto_out_arecho_real_last;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire        _axi4frag_auto_out_rready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   wire        _axi4yank_auto_in_awready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
@@ -5519,7 +4835,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   wire [3:0]  _axi4yank_auto_out_awid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire [31:0] _axi4yank_auto_out_awaddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire [2:0]  _axi4yank_auto_out_awsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-  wire [1:0]  _axi4yank_auto_out_awburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire        _axi4yank_auto_out_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire [31:0] _axi4yank_auto_out_wdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire [3:0]  _axi4yank_auto_out_wstrb;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
@@ -5529,34 +4844,7 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   wire [3:0]  _axi4yank_auto_out_arid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire [31:0] _axi4yank_auto_out_araddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire [2:0]  _axi4yank_auto_out_arsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-  wire [1:0]  _axi4yank_auto_out_arburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
   wire        _axi4yank_auto_out_rready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-  wire        _axi4buf_auto_in_awready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_in_wready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_in_bvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [3:0]  _axi4buf_auto_in_bid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [1:0]  _axi4buf_auto_in_bresp;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_in_arready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_in_rvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [3:0]  _axi4buf_auto_in_rid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [31:0] _axi4buf_auto_in_rdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [1:0]  _axi4buf_auto_in_rresp;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_in_rlast;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_out_awvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [3:0]  _axi4buf_auto_out_awid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [31:0] _axi4buf_auto_out_awaddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [7:0]  _axi4buf_auto_out_awlen;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [2:0]  _axi4buf_auto_out_awsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_out_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [31:0] _axi4buf_auto_out_wdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [3:0]  _axi4buf_auto_out_wstrb;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_out_bready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_out_arvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [3:0]  _axi4buf_auto_out_arid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [31:0] _axi4buf_auto_out_araddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [7:0]  _axi4buf_auto_out_arlen;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire [2:0]  _axi4buf_auto_out_arsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-  wire        _axi4buf_auto_out_rready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
   wire        _axi42apb_auto_in_awready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
   wire        _axi42apb_auto_in_wready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
   wire        _axi42apb_auto_in_bvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
@@ -5721,17 +5009,14 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
   wire [3:0]  _axi4xbar_1_auto_anon_out_0_awid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [31:0] _axi4xbar_1_auto_anon_out_0_awaddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [2:0]  _axi4xbar_1_auto_anon_out_0_awsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-  wire [1:0]  _axi4xbar_1_auto_anon_out_0_awburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire        _axi4xbar_1_auto_anon_out_0_wvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [31:0] _axi4xbar_1_auto_anon_out_0_wdata;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [3:0]  _axi4xbar_1_auto_anon_out_0_wstrb;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-  wire        _axi4xbar_1_auto_anon_out_0_wlast;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire        _axi4xbar_1_auto_anon_out_0_bready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire        _axi4xbar_1_auto_anon_out_0_arvalid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [3:0]  _axi4xbar_1_auto_anon_out_0_arid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [31:0] _axi4xbar_1_auto_anon_out_0_araddr;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire [2:0]  _axi4xbar_1_auto_anon_out_0_arsize;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-  wire [1:0]  _axi4xbar_1_auto_anon_out_0_arburst;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire        _axi4xbar_1_auto_anon_out_0_rready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire        _axi4xbar_auto_anon_in_awready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   wire        _axi4xbar_auto_anon_in_wready;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
@@ -5872,93 +5157,87 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_anon_out_0_rlast   (_axi4frag_auto_in_rlast)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
   );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   AXI4Xbar_1 axi4xbar_1 (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .clock                         (clock),
-    .reset                         (reset),
-    .auto_anon_in_awready         (_axi4xbar_1_auto_anon_in_awready),
-    .auto_anon_in_awvalid         (_axi4yank_auto_out_awvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_awid       (_axi4yank_auto_out_awid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_awaddr     (_axi4yank_auto_out_awaddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_awsize     (_axi4yank_auto_out_awsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_awburst    (_axi4yank_auto_out_awburst),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_wready          (_axi4xbar_1_auto_anon_in_wready),
-    .auto_anon_in_wvalid          (_axi4yank_auto_out_wvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_wdata      (_axi4yank_auto_out_wdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_wstrb      (_axi4yank_auto_out_wstrb),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_wlast      (_axi4yank_auto_out_wlast),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_bready          (_axi4yank_auto_out_bready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_bvalid          (_axi4xbar_1_auto_anon_in_bvalid),
-    .auto_anon_in_bid        (_axi4xbar_1_auto_anon_in_bid),
-    .auto_anon_in_bresp      (_axi4xbar_1_auto_anon_in_bresp),
-    .auto_anon_in_arready         (_axi4xbar_1_auto_anon_in_arready),
-    .auto_anon_in_arvalid         (_axi4yank_auto_out_arvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_arid       (_axi4yank_auto_out_arid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_araddr     (_axi4yank_auto_out_araddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_arsize     (_axi4yank_auto_out_arsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_arburst    (_axi4yank_auto_out_arburst),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_rready          (_axi4yank_auto_out_rready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
-    .auto_anon_in_rvalid          (_axi4xbar_1_auto_anon_in_rvalid),
-    .auto_anon_in_rid        (_axi4xbar_1_auto_anon_in_rid),
-    .auto_anon_in_rdata      (_axi4xbar_1_auto_anon_in_rdata),
-    .auto_anon_in_rresp      (_axi4xbar_1_auto_anon_in_rresp),
-    .auto_anon_in_rlast      (_axi4xbar_1_auto_anon_in_rlast),
-    .auto_anon_out_2_awready      (_axi4ram_auto_in_awready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_awvalid      (_axi4xbar_1_auto_anon_out_2_awvalid),
-    .auto_anon_out_2_awid    (_axi4xbar_1_auto_anon_out_2_awid),
-    .auto_anon_out_2_awaddr  (_axi4xbar_1_auto_anon_out_2_awaddr),
-    .auto_anon_out_2_wready       (_axi4ram_auto_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_wvalid       (_axi4xbar_1_auto_anon_out_2_wvalid),
-    .auto_anon_out_2_wdata   (_axi4xbar_1_auto_anon_out_2_wdata),
-    .auto_anon_out_2_wstrb   (_axi4xbar_1_auto_anon_out_2_wstrb),
-    .auto_anon_out_2_bready       (_axi4xbar_1_auto_anon_out_2_bready),
-    .auto_anon_out_2_bvalid       (_axi4ram_auto_in_bvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_bid     (_axi4ram_auto_in_bid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_bresp   (_axi4ram_auto_in_bresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_arready      (_axi4ram_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_arvalid      (_axi4xbar_1_auto_anon_out_2_arvalid),
-    .auto_anon_out_2_arid    (_axi4xbar_1_auto_anon_out_2_arid),
-    .auto_anon_out_2_araddr  (_axi4xbar_1_auto_anon_out_2_araddr),
-    .auto_anon_out_2_rready       (_axi4xbar_1_auto_anon_out_2_rready),
-    .auto_anon_out_2_rvalid       (_axi4ram_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_rid     (_axi4ram_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_rdata   (_axi4ram_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_2_rresp   (_axi4ram_auto_in_rresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
-    .auto_anon_out_1_awvalid      (_axi4xbar_1_auto_anon_out_1_awvalid),
-    .auto_anon_out_1_wvalid       (_axi4xbar_1_auto_anon_out_1_wvalid),
-    .auto_anon_out_1_arready      (_lmrom_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
-    .auto_anon_out_1_arvalid      (_axi4xbar_1_auto_anon_out_1_arvalid),
-    .auto_anon_out_1_arid    (_axi4xbar_1_auto_anon_out_1_arid),
-    .auto_anon_out_1_araddr  (_axi4xbar_1_auto_anon_out_1_araddr),
-    .auto_anon_out_1_rready       (_axi4xbar_1_auto_anon_out_1_rready),
-    .auto_anon_out_1_rvalid       (_lmrom_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
-    .auto_anon_out_1_rid     (_lmrom_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
-    .auto_anon_out_1_rdata   (_lmrom_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
-    .auto_anon_out_0_awready      (_axi4buf_auto_in_awready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_awvalid      (_axi4xbar_1_auto_anon_out_0_awvalid),
-    .auto_anon_out_0_awid    (_axi4xbar_1_auto_anon_out_0_awid),
-    .auto_anon_out_0_awaddr  (_axi4xbar_1_auto_anon_out_0_awaddr),
-    .auto_anon_out_0_awsize  (_axi4xbar_1_auto_anon_out_0_awsize),
-    .auto_anon_out_0_awburst (_axi4xbar_1_auto_anon_out_0_awburst),
-    .auto_anon_out_0_wready       (_axi4buf_auto_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_wvalid       (_axi4xbar_1_auto_anon_out_0_wvalid),
-    .auto_anon_out_0_wdata   (_axi4xbar_1_auto_anon_out_0_wdata),
-    .auto_anon_out_0_wstrb   (_axi4xbar_1_auto_anon_out_0_wstrb),
-    .auto_anon_out_0_wlast   (_axi4xbar_1_auto_anon_out_0_wlast),
-    .auto_anon_out_0_bready       (_axi4xbar_1_auto_anon_out_0_bready),
-    .auto_anon_out_0_bvalid       (_axi4buf_auto_in_bvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_bid     (_axi4buf_auto_in_bid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_bresp   (_axi4buf_auto_in_bresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_arready      (_axi4buf_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_arvalid      (_axi4xbar_1_auto_anon_out_0_arvalid),
-    .auto_anon_out_0_arid    (_axi4xbar_1_auto_anon_out_0_arid),
-    .auto_anon_out_0_araddr  (_axi4xbar_1_auto_anon_out_0_araddr),
-    .auto_anon_out_0_arsize  (_axi4xbar_1_auto_anon_out_0_arsize),
-    .auto_anon_out_0_arburst (_axi4xbar_1_auto_anon_out_0_arburst),
-    .auto_anon_out_0_rready       (_axi4xbar_1_auto_anon_out_0_rready),
-    .auto_anon_out_0_rvalid       (_axi4buf_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_rid     (_axi4buf_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_rdata   (_axi4buf_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_rresp   (_axi4buf_auto_in_rresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_anon_out_0_rlast   (_axi4buf_auto_in_rlast)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
+    .clock                        (clock),
+    .reset                        (reset),
+    .auto_anon_in_awready        (_axi4xbar_1_auto_anon_in_awready),
+    .auto_anon_in_awvalid        (_axi4yank_auto_out_awvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_awid      (_axi4yank_auto_out_awid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_awaddr    (_axi4yank_auto_out_awaddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_awsize    (_axi4yank_auto_out_awsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_wready         (_axi4xbar_1_auto_anon_in_wready),
+    .auto_anon_in_wvalid         (_axi4yank_auto_out_wvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_wdata     (_axi4yank_auto_out_wdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_wstrb     (_axi4yank_auto_out_wstrb),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_wlast     (_axi4yank_auto_out_wlast),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_bready         (_axi4yank_auto_out_bready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_bvalid         (_axi4xbar_1_auto_anon_in_bvalid),
+    .auto_anon_in_bid       (_axi4xbar_1_auto_anon_in_bid),
+    .auto_anon_in_bresp     (_axi4xbar_1_auto_anon_in_bresp),
+    .auto_anon_in_arready        (_axi4xbar_1_auto_anon_in_arready),
+    .auto_anon_in_arvalid        (_axi4yank_auto_out_arvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_arid      (_axi4yank_auto_out_arid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_araddr    (_axi4yank_auto_out_araddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_arsize    (_axi4yank_auto_out_arsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_rready         (_axi4yank_auto_out_rready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
+    .auto_anon_in_rvalid         (_axi4xbar_1_auto_anon_in_rvalid),
+    .auto_anon_in_rid       (_axi4xbar_1_auto_anon_in_rid),
+    .auto_anon_in_rdata     (_axi4xbar_1_auto_anon_in_rdata),
+    .auto_anon_in_rresp     (_axi4xbar_1_auto_anon_in_rresp),
+    .auto_anon_in_rlast     (_axi4xbar_1_auto_anon_in_rlast),
+    .auto_anon_out_2_awready     (_axi4ram_auto_in_awready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_awvalid     (_axi4xbar_1_auto_anon_out_2_awvalid),
+    .auto_anon_out_2_awid   (_axi4xbar_1_auto_anon_out_2_awid),
+    .auto_anon_out_2_awaddr (_axi4xbar_1_auto_anon_out_2_awaddr),
+    .auto_anon_out_2_wready      (_axi4ram_auto_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_wvalid      (_axi4xbar_1_auto_anon_out_2_wvalid),
+    .auto_anon_out_2_wdata  (_axi4xbar_1_auto_anon_out_2_wdata),
+    .auto_anon_out_2_wstrb  (_axi4xbar_1_auto_anon_out_2_wstrb),
+    .auto_anon_out_2_bready      (_axi4xbar_1_auto_anon_out_2_bready),
+    .auto_anon_out_2_bvalid      (_axi4ram_auto_in_bvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_bid    (_axi4ram_auto_in_bid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_bresp  (_axi4ram_auto_in_bresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_arready     (_axi4ram_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_arvalid     (_axi4xbar_1_auto_anon_out_2_arvalid),
+    .auto_anon_out_2_arid   (_axi4xbar_1_auto_anon_out_2_arid),
+    .auto_anon_out_2_araddr (_axi4xbar_1_auto_anon_out_2_araddr),
+    .auto_anon_out_2_rready      (_axi4xbar_1_auto_anon_out_2_rready),
+    .auto_anon_out_2_rvalid      (_axi4ram_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_rid    (_axi4ram_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_rdata  (_axi4ram_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_2_rresp  (_axi4ram_auto_in_rresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/SRAM.scala:144:29
+    .auto_anon_out_1_awvalid     (_axi4xbar_1_auto_anon_out_1_awvalid),
+    .auto_anon_out_1_wvalid      (_axi4xbar_1_auto_anon_out_1_wvalid),
+    .auto_anon_out_1_arready     (_lmrom_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
+    .auto_anon_out_1_arvalid     (_axi4xbar_1_auto_anon_out_1_arvalid),
+    .auto_anon_out_1_arid   (_axi4xbar_1_auto_anon_out_1_arid),
+    .auto_anon_out_1_araddr (_axi4xbar_1_auto_anon_out_1_araddr),
+    .auto_anon_out_1_rready      (_axi4xbar_1_auto_anon_out_1_rready),
+    .auto_anon_out_1_rvalid      (_lmrom_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
+    .auto_anon_out_1_rid    (_lmrom_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
+    .auto_anon_out_1_rdata  (_lmrom_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:43:25
+    .auto_anon_out_0_awready     (_axi42apb_auto_in_awready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_awvalid     (_axi4xbar_1_auto_anon_out_0_awvalid),
+    .auto_anon_out_0_awid   (_axi4xbar_1_auto_anon_out_0_awid),
+    .auto_anon_out_0_awaddr (_axi4xbar_1_auto_anon_out_0_awaddr),
+    .auto_anon_out_0_awsize (_axi4xbar_1_auto_anon_out_0_awsize),
+    .auto_anon_out_0_wready      (_axi42apb_auto_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_wvalid      (_axi4xbar_1_auto_anon_out_0_wvalid),
+    .auto_anon_out_0_wdata  (_axi4xbar_1_auto_anon_out_0_wdata),
+    .auto_anon_out_0_wstrb  (_axi4xbar_1_auto_anon_out_0_wstrb),
+    .auto_anon_out_0_bready      (_axi4xbar_1_auto_anon_out_0_bready),
+    .auto_anon_out_0_bvalid      (_axi42apb_auto_in_bvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_bid    (_axi42apb_auto_in_bid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_bresp  (_axi42apb_auto_in_bresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_arready     (_axi42apb_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_arvalid     (_axi4xbar_1_auto_anon_out_0_arvalid),
+    .auto_anon_out_0_arid   (_axi4xbar_1_auto_anon_out_0_arid),
+    .auto_anon_out_0_araddr (_axi4xbar_1_auto_anon_out_0_araddr),
+    .auto_anon_out_0_arsize (_axi4xbar_1_auto_anon_out_0_arsize),
+    .auto_anon_out_0_rready      (_axi4xbar_1_auto_anon_out_0_rready),
+    .auto_anon_out_0_rvalid      (_axi42apb_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_rid    (_axi42apb_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_rdata  (_axi42apb_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
+    .auto_anon_out_0_rresp  (_axi42apb_auto_in_rresp)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
   );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
   APBFanout apbxbar (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:29:27
     .auto_anon_in_psel       (_apbdelay_delayer_out_psel),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/APBDelayer.scala:34:27
@@ -6287,26 +5566,24 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .clock                (clock),
     .reset                (reset),
     .auto_in_awready     (_axi42apb_auto_in_awready),
-    .auto_in_awvalid     (_axi4buf_auto_out_awvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_awid   (_axi4buf_auto_out_awid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_awaddr (_axi4buf_auto_out_awaddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_awlen  (_axi4buf_auto_out_awlen),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_awsize (_axi4buf_auto_out_awsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
+    .auto_in_awvalid     (_axi4xbar_1_auto_anon_out_0_awvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_awid   (_axi4xbar_1_auto_anon_out_0_awid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_awaddr (_axi4xbar_1_auto_anon_out_0_awaddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_awsize (_axi4xbar_1_auto_anon_out_0_awsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
     .auto_in_wready      (_axi42apb_auto_in_wready),
-    .auto_in_wvalid      (_axi4buf_auto_out_wvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_wdata  (_axi4buf_auto_out_wdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_wstrb  (_axi4buf_auto_out_wstrb),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_bready      (_axi4buf_auto_out_bready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
+    .auto_in_wvalid      (_axi4xbar_1_auto_anon_out_0_wvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_wdata  (_axi4xbar_1_auto_anon_out_0_wdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_wstrb  (_axi4xbar_1_auto_anon_out_0_wstrb),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_bready      (_axi4xbar_1_auto_anon_out_0_bready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
     .auto_in_bvalid      (_axi42apb_auto_in_bvalid),
     .auto_in_bid    (_axi42apb_auto_in_bid),
     .auto_in_bresp  (_axi42apb_auto_in_bresp),
     .auto_in_arready     (_axi42apb_auto_in_arready),
-    .auto_in_arvalid     (_axi4buf_auto_out_arvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_arid   (_axi4buf_auto_out_arid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_araddr (_axi4buf_auto_out_araddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_arlen  (_axi4buf_auto_out_arlen),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_arsize (_axi4buf_auto_out_arsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .auto_in_rready      (_axi4buf_auto_out_rready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
+    .auto_in_arvalid     (_axi4xbar_1_auto_anon_out_0_arvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_arid   (_axi4xbar_1_auto_anon_out_0_arid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_araddr (_axi4xbar_1_auto_anon_out_0_araddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_arsize (_axi4xbar_1_auto_anon_out_0_arsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
+    .auto_in_rready      (_axi4xbar_1_auto_anon_out_0_rready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
     .auto_in_rvalid      (_axi42apb_auto_in_rvalid),
     .auto_in_rid    (_axi42apb_auto_in_rid),
     .auto_in_rdata  (_axi42apb_auto_in_rdata),
@@ -6321,62 +5598,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_out_pslverr     (_apbdelay_delayer_in_pslverr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/APBDelayer.scala:34:27
     .auto_out_prdata      (_apbdelay_delayer_in_prdata)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/APBDelayer.scala:34:27
   );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-  AXI4Buffer axi4buf (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
-    .clock                 (clock),
-    .reset                 (reset),
-    .auto_in_awready      (_axi4buf_auto_in_awready),
-    .auto_in_awvalid      (_axi4xbar_1_auto_anon_out_0_awvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_awid    (_axi4xbar_1_auto_anon_out_0_awid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_awaddr  (_axi4xbar_1_auto_anon_out_0_awaddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_awsize  (_axi4xbar_1_auto_anon_out_0_awsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_awburst (_axi4xbar_1_auto_anon_out_0_awburst),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_wready       (_axi4buf_auto_in_wready),
-    .auto_in_wvalid       (_axi4xbar_1_auto_anon_out_0_wvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_wdata   (_axi4xbar_1_auto_anon_out_0_wdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_wstrb   (_axi4xbar_1_auto_anon_out_0_wstrb),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_wlast   (_axi4xbar_1_auto_anon_out_0_wlast),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_bready       (_axi4xbar_1_auto_anon_out_0_bready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_bvalid       (_axi4buf_auto_in_bvalid),
-    .auto_in_bid     (_axi4buf_auto_in_bid),
-    .auto_in_bresp   (_axi4buf_auto_in_bresp),
-    .auto_in_arready      (_axi4buf_auto_in_arready),
-    .auto_in_arvalid      (_axi4xbar_1_auto_anon_out_0_arvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_arid    (_axi4xbar_1_auto_anon_out_0_arid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_araddr  (_axi4xbar_1_auto_anon_out_0_araddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_arsize  (_axi4xbar_1_auto_anon_out_0_arsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_arburst (_axi4xbar_1_auto_anon_out_0_arburst),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_rready       (_axi4xbar_1_auto_anon_out_0_rready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
-    .auto_in_rvalid       (_axi4buf_auto_in_rvalid),
-    .auto_in_rid     (_axi4buf_auto_in_rid),
-    .auto_in_rdata   (_axi4buf_auto_in_rdata),
-    .auto_in_rresp   (_axi4buf_auto_in_rresp),
-    .auto_in_rlast   (_axi4buf_auto_in_rlast),
-    .auto_out_awready     (_axi42apb_auto_in_awready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_awvalid     (_axi4buf_auto_out_awvalid),
-    .auto_out_awid   (_axi4buf_auto_out_awid),
-    .auto_out_awaddr (_axi4buf_auto_out_awaddr),
-    .auto_out_awlen  (_axi4buf_auto_out_awlen),
-    .auto_out_awsize (_axi4buf_auto_out_awsize),
-    .auto_out_wready      (_axi42apb_auto_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_wvalid      (_axi4buf_auto_out_wvalid),
-    .auto_out_wdata  (_axi4buf_auto_out_wdata),
-    .auto_out_wstrb  (_axi4buf_auto_out_wstrb),
-    .auto_out_bready      (_axi4buf_auto_out_bready),
-    .auto_out_bvalid      (_axi42apb_auto_in_bvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_bid    (_axi42apb_auto_in_bid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_bresp  (_axi42apb_auto_in_bresp),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_arready     (_axi42apb_auto_in_arready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_arvalid     (_axi4buf_auto_out_arvalid),
-    .auto_out_arid   (_axi4buf_auto_out_arid),
-    .auto_out_araddr (_axi4buf_auto_out_araddr),
-    .auto_out_arlen  (_axi4buf_auto_out_arlen),
-    .auto_out_arsize (_axi4buf_auto_out_arsize),
-    .auto_out_rready      (_axi4buf_auto_out_rready),
-    .auto_out_rvalid      (_axi42apb_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_rid    (_axi42apb_auto_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_rdata  (_axi42apb_auto_in_rdata),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-    .auto_out_rresp  (_axi42apb_auto_in_rresp)	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/amba/AXI4ToAPB.scala:103:30
-  );	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Buffer.scala:68:29
   AXI4UserYanker axi4yank (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
     .clock                          (clock),
     .reset                          (reset),
@@ -6385,7 +5606,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_in_awid             (_axi4frag_auto_out_awid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_awaddr           (_axi4frag_auto_out_awaddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_awsize           (_axi4frag_auto_out_awsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
-    .auto_in_awburst          (_axi4frag_auto_out_awburst),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_awecho_real_last (_axi4frag_auto_out_awecho_real_last),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_wready                (_axi4yank_auto_in_wready),
     .auto_in_wvalid                (_axi4frag_auto_out_wvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
@@ -6402,7 +5622,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_in_arid             (_axi4frag_auto_out_arid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_araddr           (_axi4frag_auto_out_araddr),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_arsize           (_axi4frag_auto_out_arsize),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
-    .auto_in_arburst          (_axi4frag_auto_out_arburst),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_arecho_real_last (_axi4frag_auto_out_arecho_real_last),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_rready                (_axi4frag_auto_out_rready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Fragmenter.scala:224:30
     .auto_in_rvalid                (_axi4yank_auto_in_rvalid),
@@ -6416,7 +5635,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_out_awid            (_axi4yank_auto_out_awid),
     .auto_out_awaddr          (_axi4yank_auto_out_awaddr),
     .auto_out_awsize          (_axi4yank_auto_out_awsize),
-    .auto_out_awburst         (_axi4yank_auto_out_awburst),
     .auto_out_wready               (_axi4xbar_1_auto_anon_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
     .auto_out_wvalid               (_axi4yank_auto_out_wvalid),
     .auto_out_wdata           (_axi4yank_auto_out_wdata),
@@ -6431,7 +5649,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_out_arid            (_axi4yank_auto_out_arid),
     .auto_out_araddr          (_axi4yank_auto_out_araddr),
     .auto_out_arsize          (_axi4yank_auto_out_arsize),
-    .auto_out_arburst         (_axi4yank_auto_out_arburst),
     .auto_out_rready               (_axi4yank_auto_out_rready),
     .auto_out_rvalid               (_axi4xbar_1_auto_anon_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
     .auto_out_rid             (_axi4xbar_1_auto_anon_in_rid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:241:30
@@ -6476,7 +5693,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_out_awid             (_axi4frag_auto_out_awid),
     .auto_out_awaddr           (_axi4frag_auto_out_awaddr),
     .auto_out_awsize           (_axi4frag_auto_out_awsize),
-    .auto_out_awburst          (_axi4frag_auto_out_awburst),
     .auto_out_awecho_real_last (_axi4frag_auto_out_awecho_real_last),
     .auto_out_wready                (_axi4yank_auto_in_wready),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
     .auto_out_wvalid                (_axi4frag_auto_out_wvalid),
@@ -6493,7 +5709,6 @@ module ysyxSoCASIC(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
     .auto_out_arid             (_axi4frag_auto_out_arid),
     .auto_out_araddr           (_axi4frag_auto_out_araddr),
     .auto_out_arsize           (_axi4frag_auto_out_arsize),
-    .auto_out_arburst          (_axi4frag_auto_out_arburst),
     .auto_out_arecho_real_last (_axi4frag_auto_out_arecho_real_last),
     .auto_out_rready                (_axi4frag_auto_out_rready),
     .auto_out_rvalid                (_axi4yank_auto_in_rvalid),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/UserYanker.scala:125:30
