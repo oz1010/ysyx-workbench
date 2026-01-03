@@ -277,12 +277,14 @@ wire [3:0] resp_id_w = req_out_w[3:0];
 wire resp_valid_w;
 
 // 处理非对齐地址数据处理
+wire sign_rdata_en = sign_rdata_addr_offset>0;
 reg sign_rdata_idx;
-// reg sign_rdata_en;
 reg [31:0] sign_rdata[0:1];
 wire [1:0] sign_rdata_addr_offset = axi_araddr_i[1:0];
-// wire [31:0] ram_sign_rdata = sign_rdata_en?sign_rdata[sign_rdata_idx]:ram_read_data_i;
-wire [31:0] ram_sign_rdata = sign_rdata[sign_rdata_idx];
+// wire [31:0] ram_sign_rdata = sign_rdata[sign_rdata_idx];
+wire [31:0] ram_sign_rdata = sign_rdata_en ? 
+    sign_rdata[sign_rdata_idx] :
+    ram_read_data_i;
 // TODO 临时使用axi_rready_i替换resp_is_read_w信号。解决两次激活读信号而引起多次读ram的问题，造成读取数据不符合预期。
 /* 必须保障与ram_ack同时生效 */
 assign sign_rdata[0] = axi_rready_i ? (ram_read_data_i << 8*sign_rdata_addr_offset) : 0;
