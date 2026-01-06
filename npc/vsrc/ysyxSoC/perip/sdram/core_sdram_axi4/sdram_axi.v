@@ -118,12 +118,14 @@ parameter BRESP_WIDTH = 3;
 parameter RRESP_WIDTH = 2;
 
 wire [ADDR_WIDTH-1:0]       read_addr;
+wire [ADDR_WIDTH-1:0]       read_addr_align;
 wire [7:0]                  read_len;
 wire [2:0]                  read_size;
 wire [31:0]                 read_index;
 wire [1:0]                  read_state;
 reg                         r_read_data_en;
 reg [DATA_WIDTH-1:0]        r_read_data;
+assign read_addr_align = {read_addr[DATA_WIDTH-1:2], {2{1'b0}}} + read_index*(1<<read_size);
 axi4_salve_burst_reader #(
     `ifndef IN_YOSYS_STA
     .NAME("sdram_reader"),
@@ -185,12 +187,11 @@ always @(posedge clk_i) begin
 
                 if (read_tick == read_tick_max) begin
                     r_read_data_en <= 1;
-                    r_read_data <= dpi_vdev_read(read_addr+ read_index*(1<<read_size), (1<<read_size));
-                    // r_read_data <= 1;
+                    r_read_data <= dpi_vdev_read(read_addr_align, (1<<read_size));
                 end
 
-                if (r_read_data_en) begin
-                    // $display("sdram read data done, addr %x size %x data %x rindex %x", (r_araddr+ (4*rindex)), ((1<<r_arsize)), r_rdata, rindex-1);
+                if (inport_rvalid_o && inport_rready_i) begin
+                    // $display("sdram read data done, addr %x data %x size %x index %x", read_addr_align, r_read_data, ((1<<read_size)), read_index);
 
                     r_read_data_en <= 0;
                     r_read_data <= 0;
