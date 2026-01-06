@@ -96,36 +96,22 @@ assign sdram_ba_o = 0;
 assign sdram_data_output_o = 0;
 assign sdram_data_out_en_o = 0;
 
-reg          r_awready;
-reg          r_wready;
-reg          r_bvalid;
-reg [  1:0]  r_bresp;
-reg [  3:0]  r_bid;
-
-assign inport_awready_o = r_awready;
-assign inport_wready_o = r_wready;
-assign inport_bvalid_o = r_bvalid;
-assign inport_bresp_o = r_bresp;
-assign inport_bid_o = r_bid;
-
-localparam idle_t = 0;
-localparam data_t = 1;
-localparam resp_t = 2;
-
 parameter ADDR_WIDTH = 32;
 parameter DATA_WIDTH = 32;
-parameter BRESP_WIDTH = 3;
+parameter BRESP_WIDTH = 2;
 parameter RRESP_WIDTH = 2;
 
 wire [ADDR_WIDTH-1:0]       read_addr;
 wire [ADDR_WIDTH-1:0]       read_addr_align;
+wire [31:0]                 read_size_align;
 wire [7:0]                  read_len;
 wire [2:0]                  read_size;
 wire [31:0]                 read_index;
 wire [1:0]                  read_state;
 reg                         r_read_data_en;
 reg [DATA_WIDTH-1:0]        r_read_data;
-assign read_addr_align = {read_addr[DATA_WIDTH-1:2], {2{1'b0}}} + read_index*(1<<read_size);
+assign read_size_align = 4;
+assign read_addr_align = {read_addr[DATA_WIDTH-1:2], {2{1'b0}}} + read_index*4;
 axi4_salve_burst_reader #(
     `ifndef IN_YOSYS_STA
     .NAME("sdram_reader"),
@@ -135,7 +121,7 @@ axi4_salve_burst_reader #(
     .DATA_WIDTH(DATA_WIDTH),
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
-) m_axi4_salve_reader (
+) sdram_reader (
     .clk(clk_i),
     .rst(rst_i),
     .arready(inport_arready_o),
@@ -187,11 +173,13 @@ always @(posedge clk_i) begin
 
                 if (read_tick == read_tick_max) begin
                     r_read_data_en <= 1;
-                    r_read_data <= dpi_vdev_read(read_addr_align, (1<<read_size));
+                    r_read_data <= dpi_vdev_read(read_addr_align, read_size_align);
                 end
 
                 if (inport_rvalid_o && inport_rready_i) begin
-                    // $display("sdram read data done, addr %x data %x size %x index %x", read_addr_align, r_read_data, ((1<<read_size)), read_index);
+                    `ifndef IN_YOSYS_STA
+                    // $display("sdram read data done, addr %x data %x offset %x size %x index %x", read_addr_align, r_read_data, {{30{1'b0}},read_addr[1:0]}, (1<<read_size), read_index);
+                    `endif
 
                     r_read_data_en <= 0;
                     r_read_data <= 0;
@@ -206,15 +194,68 @@ always @(posedge clk_i) begin
     end
 end
 
-reg [1:0] wstate;
+wire [ADDR_WIDTH-1:0]       write_addr;
+wire [DATA_WIDTH-1:0]       write_data;
+wire [DATA_WIDTH/8-1:0]     write_strb;
+wire [7:0]                  write_len;
+// wire [2:0]                  write_size;
+wire [31:0]                 write_index;
+wire                        write_valid;
+axi4_salve_burst_writer #(
+    `ifndef IN_YOSYS_STA
+    .NAME("sdram_writer"),
+    `endif
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH)
+) sdram_writer (
+    .clk(clk_i),
+    .rst(rst_i),
+    .awready(inport_awready_o),
+    .awvalid(inport_awvalid_i),
+    .awaddr(inport_awaddr_i),
+    .awid(inport_awid_i),
+    .awlen(inport_awlen_i),
+    .awsize(2),
+    .awburst(inport_awburst_i),
+    .wready(inport_wready_o),
+    .wvalid(inport_wvalid_i),
+    .wdata(inport_wdata_i),
+    .wstrb(inport_wstrb_i),
+    .wlast(inport_wlast_i),
+    .bready(inport_bready_i),
+    .bvalid(inport_bvalid_o),
+    .bresp(inport_bresp_o),
+    .bid(inport_bid_o),
+    .enable(1),
+    .write_addr(write_addr),
+    .write_data(write_data),
+    .write_strb(write_strb),
+    .write_len(write_len),
+    .write_size(),
+    .write_index(write_index),
+    .write_valid(write_valid)
+);
+
+reg [1:0] write_offset;
+reg [2:0] write_size;
+wire [31:0] write_addr_align = ({write_addr[31:2],{2{1'b0}}}+4*write_index+{30'h0,write_offset});
+wire [31:0] write_data_align = (write_data>>(8*write_offset));
+wire [31:0] write_size_align = {29'h0,write_size};
+always @(*) begin
+    get_unalign_from_mask(write_strb, write_offset, write_size);
+end
+
 always @(posedge clk_i) begin
     if (rst_i) begin
-        r_awready <= 0;
-        r_wready <= 0;
-        r_bvalid <= 0;
-        r_bresp <= 0;
-        r_bid <= 0; 
     end else begin
+        if (write_valid) begin
+            dpi_vdev_write(write_addr_align, write_data_align, write_size_align);
+            `ifndef IN_YOSYS_STA
+            // $display("sdram write data done, addr %x data %x size %x", write_addr_align, write_data_align, write_size_align);
+            `endif
+        end
     end
 end
 
