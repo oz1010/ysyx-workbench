@@ -166,11 +166,14 @@ wire icache_ren = m_arid==`AXI4_ID_IFU &&
 wire icache_wen = 0;
 wire icache_ren = 0;
 `endif
+wire slave_len_burst_en = ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) );
 
 wire                        slave_en; // 从设备使能标记
 reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
 wire [INST_WIDTH-1:0]       slave_inst; // 从设备读取指令
 reg  [31:0]                 r_slave_index; // 从设备指令计数
+wire [7:0]                  slave_len; // 从设备burst模式读取的长度
+assign slave_len = slave_len_burst_en ? cache_line_load_len[7:0] : 0; // 其他存储器比如flash暂时不支持burst模式
 
 assign m_awready = icache_wen ? c_m_awready : s_awready;
 assign m_wready = icache_wen ? c_m_wready : s_wready;
@@ -307,7 +310,7 @@ axi_master_reader #(
     .read_sign(0),
     .read_addr(r_slave_addr),
     .read_data(slave_inst),
-    .read_len(0),
+    .read_len(slave_len),
     .read_size(2),
     .read_state(slave_state)
 );
@@ -352,7 +355,7 @@ always @(posedge clk) begin
 
             if (impl_update_en) begin
                 // 等待从设备读取完成数据
-                if (slave_state == `AXI4_STATE_DATA && c_s_rvalid) begin
+                if (c_s_rvalid && c_s_rready) begin
                     r_slave_addr <= r_slave_addr + (INST_WIDTH/8);
                     r_slave_index <= r_slave_index + 1;
                 end
