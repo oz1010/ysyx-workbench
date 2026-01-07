@@ -13,42 +13,9 @@ config ISA_loongarch32r
   bool "loongarch32r"
 endchoice
 
-menu "Processor Options"
-
-choice 
-    depends on ISA_riscv
-    prompt "RISC-V Processor Type"
-    default ISA_RISCV_MULTIPLE
-
-    config ISA_RISCV_SINGLE
-        bool "single"
-    config ISA_RISCV_MULTIPLE
-        bool "multiple"
-endchoice
-
-config ISA
-  string
-  default "x86" if ISA_x86
-  default "mips32" if ISA_mips32
-  default "riscv32" if ISA_riscv && !RV64
-  default "riscv64" if ISA_riscv &&  RV64
-  default "loongarch32r" if ISA_loongarch32r
-  default "none"
-
-config ISA64
-  depends on ISA_riscv && RV64
-  bool
-  default y
-
-config CORE_FREQUENCY
-    int "Frequency (Hz) of the core"
-    default 97000000
-
-endmenu
-
-# if ISA_riscv
-# source "src/isa/riscv32/Kconfig"
-# endif
+if ISA_riscv
+source "src/isa/riscv32/Kconfig"
+endif
 
 choice
   prompt "NPC execution engine"

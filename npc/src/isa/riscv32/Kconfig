@@ -1,0 +1,49 @@
+menu "RISC-V Processor Options"
+
+menuconfig ICACHE
+  bool "ICache enable"
+  default y
+  if ICACHE
+    config ICACHE_PARAMETER_W
+      int "ICache parameter W"
+      default 8
+
+    config ICACHE_PARAMETER_N
+      int "ICache parameter N"
+      default 4
+
+    config ICACHE_PARAMETER_M
+      int "ICache parameter M"
+      default 4
+  endif # ICACHE
+
+choice 
+    depends on ISA_riscv
+    prompt "RISC-V Processor Type"
+    default ISA_RISCV_MULTIPLE
+
+    config ISA_RISCV_SINGLE
+        bool "single"
+    config ISA_RISCV_MULTIPLE
+        bool "multiple"
+endchoice
+
+config ISA
+  string
+  default "x86" if ISA_x86
+  default "mips32" if ISA_mips32
+  default "riscv32" if ISA_riscv && !RV64
+  default "riscv64" if ISA_riscv &&  RV64
+  default "loongarch32r" if ISA_loongarch32r
+  default "none"
+
+config ISA64
+  depends on ISA_riscv && RV64
+  bool
+  default y
+
+config CORE_FREQUENCY
+    int "Frequency (Hz) of the core"
+    default 97000000
+
+endmenu
