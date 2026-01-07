@@ -74,7 +74,8 @@ module axi4_delayer(
   wire read_in_sdram_addr = in_araddr>=`CONFIG_SDRAM_BASE && in_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
   wire [31:0] delta = read_in_sdram_addr ? sdram_delay_cycle_delta[31:0] : 0;
 
-  wire ar_start = in_arvalid && read_in_sdram_addr && sdram_delay_cycle_delta!=0;
+  wire ar_start = in_arvalid && read_in_sdram_addr;
+  wire ar_catch = in_arvalid && out_arready && read_in_sdram_addr;
   delayer #(
     `ifndef IN_YOSYS_STA
     .NAME("ar_delayer"),
@@ -84,13 +85,14 @@ module axi4_delayer(
     .clk(clock),
     .rst(reset),
     .start(ar_start),
+    .catch(ar_catch),
     .delta(delta),
-    .in_signal(out_arready),
-    .out_signal(in_arready)
+    .in_signal(in_arvalid),
+    .out_signal(out_arvalid)
   );
 
-  // assign in_arready = out_arready;
-  assign out_arvalid = in_arvalid;
+  assign in_arready = out_arready;
+  // assign out_arvalid = in_arvalid;
   assign out_arid = in_arid;
   assign out_araddr = in_araddr;
   assign out_arlen = in_arlen;

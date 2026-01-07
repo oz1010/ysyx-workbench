@@ -2,8 +2,8 @@
  * 信号延时模块，将in_signal的触发信号，等待一定周期后，再通过out_signal释放一个类似的触发信号。触发延时需要满足两个条件
  *   - start 信号开启延时
  *   - delta 延时量不为零
- * 开启延时后，delay_cycle不断累积变化量
- * 当in_signal信号触发，delay_cycle不断进行递减。直到delay_cycle为0时释放out_signal触发信号
+ * 当start信号触发，delay_cycle不断累积变化量
+ * 当catch信号触发，delay_cycle不断进行递减。直到delay_cycle为0时释放out_signal触发信号
  */
 module delayer #(
     `ifndef IN_YOSYS_STA
@@ -14,6 +14,7 @@ module delayer #(
     input               clk,
     input               rst,
     input               start,
+    input               catch,
     input [31:0]        delta,
     input               in_signal,
     output              out_signal
@@ -37,11 +38,11 @@ module delayer #(
         end else begin
             case (delay_state)
                 idle_t: begin
-                    if (start) begin
+                    if (start && delta!=0) begin
                         delay_state <= delay_t;
                         delay_cycle <= delta; // 需要记录第一个周期
                         // 启动时直接捕获触发信号
-                        if (in_signal) begin
+                        if (catch) begin
                             delay_state <= delay_wait_t;
                             delay_cycle <= (delta >> K_BITS);
                         end
@@ -50,7 +51,7 @@ module delayer #(
 
                 delay_t: begin
                     delay_cycle <= delay_cycle + delta;
-                    if (in_signal) begin
+                    if (catch) begin
                         delay_state <= delay_wait_t;
                         delay_cycle <= (delay_cycle >> K_BITS);
                     end
