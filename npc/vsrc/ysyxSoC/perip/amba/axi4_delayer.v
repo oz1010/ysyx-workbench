@@ -71,9 +71,11 @@ module axi4_delayer(
   localparam [63:0] sdram_frequency = `CONFIG_SDRAM_FREQUENCY;
   localparam sdram_delay_cycle_delta =  sdram_frequency>core_frequency ? 0 : (((core_frequency << K_BITS) / sdram_frequency) - (1<<K_BITS)) ; // 每个周期需要延时的累加数，需要减1
 
-  wire read_in_sdram_addr = in_araddr>=`CONFIG_SDRAM_BASE && in_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
   wire [31:0] delta = sdram_delay_cycle_delta[31:0];
+  wire in_sdram_addr = in_araddr>=`CONFIG_SDRAM_BASE && in_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
+  wire sdram_delay_en = in_sdram_addr && delta!=0;
 
+  wire delay_arvalid, delay_arready;
   delayer #(
     `ifndef IN_YOSYS_STA
     .NAME("ar_delayer"),
@@ -84,14 +86,15 @@ module axi4_delayer(
   ) ar_delayer (
     .clk(clock),
     .rst(reset),
-    .enable(read_in_sdram_addr),
+    .enable(sdram_delay_en),
     .start(in_arvalid),
     .catch(out_arready),
     .delta(delta),
     .in_signal({in_arvalid, out_arready}),
-    .out_signal({out_arvalid, in_arready})
+    .out_signal({delay_arvalid, delay_arready})
   );
 
+  reg delay_rvalid, delay_rready;
   delayer #(
     `ifndef IN_YOSYS_STA
     .NAME("r_delayer"),
@@ -101,27 +104,23 @@ module axi4_delayer(
   ) r_delayer (
     .clk(clock),
     .rst(reset),
-    .enable(read_in_sdram_addr),
+    .enable(sdram_delay_en),
     .start(in_rready),
     .catch(out_rvalid),
     .delta(delta),
     .in_signal({out_rvalid, in_rready}),
-    .out_signal({in_rvalid, out_rready})
-    // .in_signal({out_rvalid}),
-    // .out_signal({in_rvalid})
-    // .in_signal({in_rready}),
-    // .out_signal({out_rready})
+    .out_signal({delay_rvalid, delay_rready})
   );
 
-  // assign in_arready = out_arready;
-  // assign out_arvalid = in_arvalid;
+  assign in_arready = sdram_delay_en ? delay_arready : out_arready;
+  assign out_arvalid = sdram_delay_en ? delay_arvalid : in_arvalid;
   assign out_arid = in_arid;
   assign out_araddr = in_araddr;
   assign out_arlen = in_arlen;
   assign out_arsize = in_arsize;
   assign out_arburst = in_arburst;
-  // assign out_rready = in_rready;
-  // assign in_rvalid = out_rvalid;
+  assign out_rready = sdram_delay_en ? delay_rready : in_rready;
+  assign in_rvalid = sdram_delay_en ? delay_rready : out_rvalid;
   assign in_rid = out_rid;
   assign in_rdata = out_rdata;
   assign in_rresp = out_rresp;

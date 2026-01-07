@@ -30,9 +30,7 @@ module delayer #(
     reg delay_signal;
     reg last_start, last_catch;
 
-    assign out_signal   = (delta == 0) ? in_signal :
-            (delta!=0 && delay_cycle==0) ? {SIGNAL_WIDTH{delay_signal}} : 
-            0;
+    assign out_signal   = {SIGNAL_WIDTH{delay_signal}};
     
     // 转换为触发信号，类似捕捉上升沿
     always @(posedge clk) begin
