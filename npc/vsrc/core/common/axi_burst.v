@@ -68,7 +68,7 @@ module axi4_salve_burst_reader #(
             r_read_index <= 0;
             r_read_index_max <= 0;
 
-            r_arready <= 1;
+            r_arready <= 0;
             r_rresp <= 0;
             r_rid <= 0;
         end else begin
@@ -170,13 +170,18 @@ module axi4_salve_burst_writer #(
 
     always @(posedge clk) begin
         if (rst || !enable) begin
-            r_awready <= 1;
-            r_wready <= 1;
+            r_awready <= 0;
+            r_wready <= 0;
             r_bvalid <= 0;
             r_bresp <= 0;
             r_bid <= 0;
             r_write_index <= 0;
         end else begin
+            if (!in_write_mode) begin
+                r_awready <= 1;
+                r_wready <= 1;
+            end
+
             // write request
             if (awvalid && awready) begin
                 r_awready <= 0;
