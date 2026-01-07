@@ -9,15 +9,18 @@ module delayer #(
     `ifndef IN_YOSYS_STA
     parameter NAME,
     `endif
+    parameter SIGNAL_WIDTH = 1,
+    parameter SKIP_DELAY_EN = 0,
     parameter K_BITS = 8 // 延时放大系数，对应移位项
 ) (
     input               clk,
     input               rst,
+    input               enable,
     input               start,
     input               catch,
     input [31:0]        delta,
-    input               in_signal,
-    output              out_signal
+    input [SIGNAL_WIDTH-1:0]    in_signal,
+    output [SIGNAL_WIDTH-1:0]   out_signal
 );
 
     enum [2:0] { idle_t, delay_t, delay_wait_t, err_t } state_t;
@@ -25,24 +28,33 @@ module delayer #(
     reg [31:0] delay_cycle;
     reg [2:0] delay_state;
     reg delay_signal;
+    reg last_start, last_catch;
 
     assign out_signal   = (delta == 0) ? in_signal :
-            (delta!=0 && delay_cycle==0) ? delay_signal : 
+            (delta!=0 && delay_cycle==0) ? {SIGNAL_WIDTH{delay_signal}} : 
             0;
+    
+    // 转换为触发信号，类似捕捉上升沿
+    always @(posedge clk) begin
+        last_start <= start;
+        last_catch <= catch;
+    end
+    wire start_trigger = enable && start && !last_start;
+    wire catch_trigger = enable && catch && !last_catch;
 
     always @(posedge clk or posedge rst) begin
-        if (rst) begin
+        if (rst || !enable) begin
             delay_cycle <= 0;
             delay_signal <= 0;
             delay_state <= idle_t;
         end else begin
             case (delay_state)
                 idle_t: begin
-                    if (start && delta!=0) begin
+                    if (start_trigger && delta!=0) begin
                         delay_state <= delay_t;
                         delay_cycle <= delta; // 需要记录第一个周期
                         // 启动时直接捕获触发信号
-                        if (catch) begin
+                        if (catch_trigger && SKIP_DELAY_EN) begin
                             delay_state <= delay_wait_t;
                             delay_cycle <= (delta >> K_BITS);
                         end
@@ -51,7 +63,7 @@ module delayer #(
 
                 delay_t: begin
                     delay_cycle <= delay_cycle + delta;
-                    if (catch) begin
+                    if (catch_trigger) begin
                         delay_state <= delay_wait_t;
                         delay_cycle <= (delay_cycle >> K_BITS);
                     end

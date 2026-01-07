@@ -100,7 +100,7 @@ parameter ADDR_WIDTH = 32;
 parameter DATA_WIDTH = 32;
 parameter BRESP_WIDTH = 2;
 parameter RRESP_WIDTH = 2;
-
+wire read_in_sdram_addr = inport_araddr_i>=`CONFIG_SDRAM_BASE && inport_araddr_i<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
 wire [ADDR_WIDTH-1:0]       read_addr;
 wire [ADDR_WIDTH-1:0]       read_addr_align;
 wire [31:0]                 read_size_align;
@@ -137,7 +137,7 @@ axi4_salve_burst_reader #(
     .rdata(inport_rdata_o),
     .rlast(inport_rlast_o),
     .rid(inport_rid_o),
-    .enable(1),
+    .enable(read_in_sdram_addr),
     .read_data_en(r_read_data_en),
     .read_data(r_read_data),
     .read_addr(read_addr),
@@ -176,6 +176,10 @@ always @(posedge clk_i) begin
                     r_read_data <= dpi_vdev_read(read_addr_align, read_size_align);
                 end
 
+                if (inport_rvalid_o) begin
+                    read_tick <= 0;
+                end
+
                 if (inport_rvalid_o && inport_rready_i) begin
                     `ifndef IN_YOSYS_STA
                     // $display("sdram read data done, addr %x data %x offset %x size %x index %x", read_addr_align, r_read_data, {{30{1'b0}},read_addr[1:0]}, (1<<read_size), read_index);
@@ -183,7 +187,6 @@ always @(posedge clk_i) begin
 
                     r_read_data_en <= 0;
                     r_read_data <= 0;
-                    read_tick <= 0;
                 end
             end
 
@@ -194,6 +197,7 @@ always @(posedge clk_i) begin
     end
 end
 
+wire write_in_sdram_addr = inport_awaddr_i>=`CONFIG_SDRAM_BASE && inport_awaddr_i<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
 wire [ADDR_WIDTH-1:0]       write_addr;
 wire [DATA_WIDTH-1:0]       write_data;
 wire [DATA_WIDTH/8-1:0]     write_strb;
@@ -228,7 +232,7 @@ axi4_salve_burst_writer #(
     .bvalid(inport_bvalid_o),
     .bresp(inport_bresp_o),
     .bid(inport_bid_o),
-    .enable(1),
+    .enable(write_in_sdram_addr),
     .write_addr(write_addr),
     .write_data(write_data),
     .write_strb(write_strb),

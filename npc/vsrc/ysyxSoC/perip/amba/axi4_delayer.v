@@ -72,34 +72,56 @@ module axi4_delayer(
   localparam sdram_delay_cycle_delta =  sdram_frequency>core_frequency ? 0 : (((core_frequency << K_BITS) / sdram_frequency) - (1<<K_BITS)) ; // 每个周期需要延时的累加数，需要减1
 
   wire read_in_sdram_addr = in_araddr>=`CONFIG_SDRAM_BASE && in_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
-  wire [31:0] delta = read_in_sdram_addr ? sdram_delay_cycle_delta[31:0] : 0;
+  wire [31:0] delta = sdram_delay_cycle_delta[31:0];
 
-  wire ar_start = in_arvalid && read_in_sdram_addr;
-  wire ar_catch = in_arvalid && out_arready && read_in_sdram_addr;
   delayer #(
     `ifndef IN_YOSYS_STA
     .NAME("ar_delayer"),
     `endif
+    .SKIP_DELAY_EN(1),
+    .SIGNAL_WIDTH(2),
     .K_BITS(K_BITS)
   ) ar_delayer (
     .clk(clock),
     .rst(reset),
-    .start(ar_start),
-    .catch(ar_catch),
+    .enable(read_in_sdram_addr),
+    .start(in_arvalid),
+    .catch(out_arready),
     .delta(delta),
-    .in_signal(in_arvalid),
-    .out_signal(out_arvalid)
+    .in_signal({in_arvalid, out_arready}),
+    .out_signal({out_arvalid, in_arready})
   );
 
-  assign in_arready = out_arready;
+  delayer #(
+    `ifndef IN_YOSYS_STA
+    .NAME("r_delayer"),
+    `endif
+    .SIGNAL_WIDTH(2),
+    .K_BITS(K_BITS)
+  ) r_delayer (
+    .clk(clock),
+    .rst(reset),
+    .enable(read_in_sdram_addr),
+    .start(in_rready),
+    .catch(out_rvalid),
+    .delta(delta),
+    .in_signal({out_rvalid, in_rready}),
+    .out_signal({in_rvalid, out_rready})
+    // .in_signal({out_rvalid}),
+    // .out_signal({in_rvalid})
+    // .in_signal({in_rready}),
+    // .out_signal({out_rready})
+  );
+
+  // assign in_arready = out_arready;
   // assign out_arvalid = in_arvalid;
   assign out_arid = in_arid;
   assign out_araddr = in_araddr;
   assign out_arlen = in_arlen;
   assign out_arsize = in_arsize;
   assign out_arburst = in_arburst;
-  assign out_rready = in_rready;
-  assign in_rvalid = out_rvalid;
+  // assign out_rready = in_rready;
+  // assign in_rvalid = out_rvalid;
   assign in_rid = out_rid;
   assign in_rdata = out_rdata;
   assign in_rresp = out_rresp;
