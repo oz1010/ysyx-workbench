@@ -453,14 +453,19 @@ module axi_master_reader #(
 
                 `AXI4_STATE_DATA: begin
                     // read data
+                    if (!rready) begin
+                        r_rready <= 1;
+                    end
                     if (rvalid) begin
                         // 读取非对齐地址时，read_len必然是0；而burst模式下，不支持非对齐方式；
                         if (read_len == 0) begin
                             s_read_idx <= s_read_idx + 1;
                         end
                     end
-                    if (rlast) begin
+                    if (rvalid && rready) begin
                         r_rready <= 0;
+                    end
+                    if (rlast) begin
                         s_read_idx <= 0;
                         func_dev_skip(0, read_addr, {21'h0, r_record_arsize, r_record_arlen}, s_read_data);
                         // check error response

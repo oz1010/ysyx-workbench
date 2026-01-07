@@ -87,11 +87,8 @@ module axi4_salve_burst_reader #(
                 end
             
                 `AXI4_STATE_DATA: begin
-                    if (read_data_en) begin
-                        r_read_index <= r_read_index + 1;
-                    end
-
                     if (rvalid && rready) begin
+                        r_read_index <= r_read_index + 1;
                         if (rlast) begin
                             r_read_state <= `AXI4_STATE_ADDR;
 

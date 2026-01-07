@@ -63,7 +63,33 @@ module axi4_delayer(
   input  [1:0]  out_bresp
 );
 
-  assign in_arready = out_arready;
+  localparam K_BITS = 8; // 延时放大系数，对应移位项
+  /*
+   * 当sdram频率高于core时，则delta为0，延时不会生效
+   */
+  localparam [63:0] core_frequency = `CONFIG_CORE_FREQUENCY;
+  localparam [63:0] sdram_frequency = `CONFIG_SDRAM_FREQUENCY;
+  localparam sdram_delay_cycle_delta =  sdram_frequency>core_frequency ? 0 : (((core_frequency << K_BITS) / sdram_frequency) - (1<<K_BITS)) ; // 每个周期需要延时的累加数，需要减1
+
+  wire read_in_sdram_addr = in_araddr>=`CONFIG_SDRAM_BASE && in_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE);
+  wire [31:0] delta = read_in_sdram_addr ? sdram_delay_cycle_delta[31:0] : 0;
+
+  wire ar_start = in_arvalid && read_in_sdram_addr && sdram_delay_cycle_delta!=0;
+  delayer #(
+    `ifndef IN_YOSYS_STA
+    .NAME("ar_delayer"),
+    `endif
+    .K_BITS(K_BITS)
+  ) ar_delayer (
+    .clk(clock),
+    .rst(reset),
+    .start(ar_start),
+    .delta(delta),
+    .in_signal(out_arready),
+    .out_signal(in_arready)
+  );
+
+  // assign in_arready = out_arready;
   assign out_arvalid = in_arvalid;
   assign out_arid = in_arid;
   assign out_araddr = in_araddr;
