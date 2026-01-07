@@ -108,6 +108,8 @@ wire [DATA_WIDTH-1:0] read_data;
 wire [2:0] read_size = inst_opn_size;
 wire [1:0] read_state;
 
+wire fence_enable = in_wait_prev_ready && (inst_code==`INST_FENCE || inst_code==`INST_FENCE_I);
+
 axi_master_writer #(
 `ifndef IN_YOSYS_STA
     .NAME("LSU"),
@@ -197,11 +199,12 @@ always @(posedge clk) begin
         r_result_update_csr <= r_result_update_csr;
 
         if (in_wait_prev_ready) begin
-            if (in_test_mode) begin
+            if (in_test_mode || fence_enable) begin
                 // 用于调试的地址段，向这里写数据会触发内置的调试函数
                 // notify next
                 r_dnpc <= pc + 4;
-                r_result <= func_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2);
+                if (in_test_mode) begin r_result <= func_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2); end
+                else begin r_result <= 0; end
                 r_result_mem_width <= 0;
                 r_result_update_csr <= 0;
                 r_prev_ready <= 1;
