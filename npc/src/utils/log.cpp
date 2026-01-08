@@ -21,10 +21,12 @@ FILE *log_fp = NULL;
 const char *log_file_path = "";
 FILE *perf_fp = NULL;
 FILE *icbin_fp = NULL;
+FILE *dcbin_fp = NULL;
 extern std::string cfg_output;
 extern std::string cfg_log_name;
 extern std::string cfg_perf_name;
 extern std::string cfg_icbin_name;
+extern std::string cfg_dcbin_name;
 
 void init_log() {
   Assert(!cfg_output.empty(), "Output directory is empty");
@@ -59,6 +61,15 @@ void init_log() {
   Log("icache bin is written to %s", icbin_file.c_str());
 #else
   Log("icache bin is written to none");
+#endif
+
+#if CONFIG_DCACHE_BIN
+  std::string dcbin_file = cfg_output + "/" + (cfg_dcbin_name.empty() ? "npc-data.bin" : cfg_dcbin_name);
+  dcbin_fp = fopen(dcbin_file.c_str(), "wb");
+  Assert(dcbin_fp, "Can not open '%s'", dcbin_file.c_str());
+  Log("dcache bin is written to %s", dcbin_file.c_str());
+#else
+  Log("dcache bin is written to none");
 #endif
 
 }

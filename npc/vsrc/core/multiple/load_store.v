@@ -217,6 +217,8 @@ always @(posedge clk) begin
                     r_prev_ready <= 1;
                 end
 
+                if (awvalid && awready) func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, awaddr);
+
             end else if (read_enable) begin
                 case (read_state)
                     `AXI4_STATE_DATA: begin
@@ -233,6 +235,8 @@ always @(posedge clk) begin
                         end
                     end
                 endcase
+
+                if (arvalid && arready) func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, araddr);
             end else begin
                 `ifndef IN_YOSYS_STA
                 $error("Found unsopport inst_code(%x) in LSU", inst_code);

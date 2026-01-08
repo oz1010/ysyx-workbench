@@ -88,6 +88,7 @@ std::string cfg_log_name;
 std::string cfg_output = "";
 std::string cfg_perf_name = "";
 std::string cfg_icbin_name = "";
+std::string cfg_dcbin_name = "";
 static char *cfg_img_file = NULL;
 int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
 static char *cfg_difftest_so_file = NULL;
