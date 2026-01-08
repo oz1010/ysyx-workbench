@@ -11,6 +11,7 @@ module test_cache(
 
     reg [ADDR_WIDTH-1:0]       addr;
     reg                        update_en;
+    reg                        reset_en;
     reg                        write_en;
     reg [DATA_WIDTH-1:0]       write_data;
     wire                       read_en;
@@ -25,6 +26,7 @@ module test_cache(
         .rst(rst),
         .addr(addr),
         .update_en(update_en),
+        .reset_en(reset_en),
         .write_en(write_en),
         .write_data(write_data),
         .read_en(read_en),
@@ -56,6 +58,7 @@ module test_cache(
         rst = 0;
 
         update_en = 0;
+        reset_en = 0;
         write_en = 0;
         addr = 32'h80001234;
         #2;
@@ -109,6 +112,22 @@ module test_cache(
         addr = 32'h80001234; #2; `CHECK_OUTPUT(read_en, read_data, 0, 0);
         addr = 32'h81001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
         addr = 32'h81001234; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+
+        addr = 32'h81001234; reset_en = 1; #2; reset_en = 0; #2
+
+        addr = 32'h81001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h81001234; #2; `CHECK_OUTPUT(read_en, read_data, 0, 0);
+
+        update_en = 1; #4;
+        write_en = 1;
+        addr = 32'h8100123c;
+        write_data = 32'h8100123c; #2; write_en = 0; #4; write_en = 1;
+        update_en = 0;
+        write_en = 0; #4;
+        `CHECK_OUTPUT(read_en, read_data, 1, 32'h8100123c);
+
+        addr = 32'h81001230; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
+        addr = 32'h8100123c; #2; `CHECK_OUTPUT(read_en, read_data, 1, addr);
         
         // 结束仿真
         $display("Case%d: test_cache done", case_num);
