@@ -23,6 +23,7 @@ _skip_to_fast_load:
     mv s0, zero
     la sp, _stack_pointer
     la a0, _test_init
+    fence.i // 无效化icache，强制触发重新缓存
     jalr a0
 1:  j 1b // 不会跳转到此处
 
