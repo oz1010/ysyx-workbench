@@ -25,7 +25,7 @@ _start_ssbl:
     /* .data段加载到RAM */
     LOAD_TO_RAM   _data_load, _data_start, _data_end
     /* .bss段直接清理 */
-    LOAD_TO_RAM   0, _bss_start, _bss_end
+    SET_MEM32     0, _bss_start, _bss_end
 
 _skip_to_fast_load:
     // 通过寄存器进行单向跳转，直接jal xxx跳转会出错
