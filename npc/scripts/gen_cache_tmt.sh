@@ -2,7 +2,7 @@
 
 set -e
 
-data_file=$NPC_HOME/datas/icache/npc-inst.bin
+data_file=${1:-$NPC_HOME/datas/icache/npc-inst.bin}
 sim_tool=$NPC_HOME/tools/cachesim/build/cachesim
 sim_args="-t flash,4,2466.0 -t sdram,4,149.6 -s"
 cache_args=(
