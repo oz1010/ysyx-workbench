@@ -39,6 +39,7 @@ uint32_t hw_flash_idx = 0;
 hw_monitor_ctx_t hw_monitor_ctx;
 extern FILE *perf_fp;
 extern FILE *icbin_fp;
+extern FILE *dcbin_fp;
 static const char *event_strs[HW_MONITOR_ID_COUNT] = {
     "INVALID", "IFU", "IDU", "LSU", "EXU", "WBU",
 };
@@ -197,12 +198,19 @@ void invalid_inst(int thispc, int inst)
 void dpi_cpu_stat_ctrl(int dtype, int delta)
 {
     static uint64_t last_update_tick = 0;
+    bool flush_file = false;
 
     if (delta == 0)
     {
         last_update_tick = 0;
         memset(&hw_cpu_stat, 0, sizeof(hw_cpu_stat_t));
         return;
+    }
+
+    if (hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_update_tick > 10000)
+    {
+        last_update_tick = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
+        flush_file = true;
     }
 
     switch (dtype)
@@ -213,14 +221,25 @@ void dpi_cpu_stat_ctrl(int dtype, int delta)
             hw_cpu_stat.counts[dtype] += delta;
             break;
 
-        case HW_CPU_STAT_PC:
+        case HW_CPU_STAT_INST:
         {
 #if CONFIG_ICACHE_BIN
             fwrite(&delta, 1, 4, icbin_fp);
-            if (hw_cpu_stat.counts[HW_CPU_STAT_TICK] - last_update_tick > 10000)
+            if (flush_file)
             {
-                last_update_tick = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
                 fflush(icbin_fp);
+            }
+#endif
+            break;
+        }
+
+        case HW_CPU_STAT_DATA:
+        {
+#if CONFIG_DCACHE_BIN
+            fwrite(&delta, 1, 4, dcbin_fp);
+            if (flush_file)
+            {
+                fflush(dcbin_fp);
             }
 #endif
             break;

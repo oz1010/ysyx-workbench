@@ -40,7 +40,7 @@ always @(posedge clk) begin
         // IFU取到指令
         if (!last_if_valid && if_valid) begin
             func_monitor_item(1, {28'h0,`AXI4_ID_IFU}, 1);
-            func_cpu_stat_ctrl(`HW_CPU_STAT_PC, pc);
+            func_cpu_stat_ctrl(`HW_CPU_STAT_INST, pc);
         end
         // 译码出各种类别的指令, 如计算类指令, 访存指令, CSR指令等
         if (!last_id_valid && id_valid) begin

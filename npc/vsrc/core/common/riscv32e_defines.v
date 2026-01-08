@@ -123,7 +123,8 @@
 `define HW_CPU_STAT_ICACHE_HIT          1
 `define HW_CPU_STAT_ICACHE_MISS         2
 `define HW_CPU_STAT_ICACHE_MEM_INDEX    3
-`define HW_CPU_STAT_PC                  4
+`define HW_CPU_STAT_INST                4
+`define HW_CPU_STAT_DATA                5
 
 `ifdef IN_YOSYS_STA
 `else
