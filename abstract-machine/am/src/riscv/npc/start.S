@@ -7,6 +7,7 @@
 _start:
     LOAD_TO_RAM _ssbl_load, _ssbl_start, _ssbl_end
     la a0, _ssbl_start
+    fence.i // 无效化icache，强制触发重新缓存
     jalr a0
 
 /* second stage bootloader */
@@ -32,5 +33,6 @@ _skip_to_fast_load:
     mv s0, zero
     la sp, _stack_pointer
     la a0, _trm_init
+    fence.i // 无效化icache，强制触发重新缓存
     jalr a0
 1:  j 1b // 不会跳转到此处
