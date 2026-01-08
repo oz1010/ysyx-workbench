@@ -140,8 +140,8 @@ always @(posedge clk) begin
                 `INST_SRA:          r_result <= src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) );
                 `INST_OR:           r_result <= src1 | src2;
                 `INST_AND:          r_result <= src1 & src2;
-                `INST_FENCE:        func_invalid_inst(pc, inst);
-                `INST_FENCE_I:      func_invalid_inst(pc, inst);
+                // `INST_FENCE:        func_invalid_inst(pc, inst);
+                // `INST_FENCE_I:      func_invalid_inst(pc, inst);
                 `INST_ECALL:        begin r_dnpc <= func_raise_intr((0<<31|11<<0), pc); r_result_update_csr <= 0; end // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
                 `INST_EBREAK:       func_exit_simu(a[0]);
                 `INST_CSRRW:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end

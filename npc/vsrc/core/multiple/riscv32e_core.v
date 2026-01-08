@@ -371,7 +371,7 @@ icache #(
     .INST_WIDTH(INST_WIDTH)
 ) m_icache (
     .clk(clk),
-    .rst(rst),
+    .rst(rst||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
 
     .m_awready(m_awready),
     .m_awvalid(m_awvalid),
@@ -661,6 +661,10 @@ inst_decode #(
     .next_ready(ex_ls_ready),
     .next_valid(id_valid)
 );
+wire fence_enable = (inst_code == `INST_FENCE) || (inst_code == `INST_FENCE_I);
+reg last_fence_enable;
+always @(posedge clk ) last_fence_enable <= fence_enable;
+wire fence_enable_trigger = fence_enable && !last_fence_enable;
 assign ls_enable = 
 (inst_code == `INST_LB) ||
 (inst_code == `INST_LH) ||
@@ -669,7 +673,8 @@ assign ls_enable =
 (inst_code == `INST_LHU) ||
 (inst_code == `INST_SB) ||
 (inst_code == `INST_SH) ||
-(inst_code == `INST_SW)
+(inst_code == `INST_SW) ||
+fence_enable
 ;
 assign ex_enable = !ls_enable;
 assign ex_ls_ready = ({1{ex_enable}} & ex_ready) | ({1{ls_enable}} & ls_ready);
