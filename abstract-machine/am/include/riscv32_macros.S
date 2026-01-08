@@ -37,6 +37,30 @@
 .endm
 
 /*
+ * 宏：设置内存范围为指定数据，数据位宽32
+ * 参数：
+ *   data_value -- 指定的数据值
+ *   start_sym -- 数据存储开始位置符号；
+ *   end_sym -- 数据存储结束位置符号，不包含；
+ * 使用示例：
+ *   SET_MEM32   _text_load, _text_start, _text_end
+ *   SET_MEM32   0, _bss_start, _bss_end
+ */
+.macro SET_MEM32 data_value, start_sym, end_sym
+    la a0, \data_value
+    la a1, \start_sym
+    la a2, \end_sym
+
+1:  /* 循环设置32值 */
+    bge a1, a2, 2f
+    sw a0, 0(a1)
+    addi a1, a1, 4
+    j 1b
+
+2:
+.endm
+
+/*
  * 宏：初始化内存，主要用于辅助加载。当发现是快速加载模式，则会跳过初始化。
  * 参数：无
  * 使用示例：
@@ -56,7 +80,7 @@ _init_ram:
     /* .data段加载到RAM */
     LOAD_TO_RAM   _data_load, _data_start, _data_end
     /* .bss段直接清理 */
-    LOAD_TO_RAM   0, _bss_start, _bss_end
+    SET_MEM32     0, _bss_start, _bss_end
 _init_ram_skiped:
     ret
 
