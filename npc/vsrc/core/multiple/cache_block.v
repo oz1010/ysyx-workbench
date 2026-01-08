@@ -16,6 +16,7 @@ module cache_block #(
     
     input   wire [ADDR_WIDTH-1:0]       addr,
     input   wire                        update_en,
+    input   wire                        reset_en,
     input   wire                        write_en,
     input   wire [DATA_WIDTH-1:0]       write_data,
     output  wire                        read_en,
@@ -44,6 +45,7 @@ wire [tag_width-1:0] tag = addr[index_width+offset_width +: tag_width];
 wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  [line_count-1:0] line_update_en;
+wire [line_count-1:0] line_reset_en;
 wire [line_count-1:0] line_read_en;
 wire [DATA_WIDTH-1:0] line_read_data[0:line_count-1];
 reg  [line_count_width-1:0] line_read_index;
@@ -54,13 +56,14 @@ reg  [line_count_width-1:0] line_read_min_flag;
 
 generate
     for (genvar i=0; i<line_count; ++i) begin : genline
+        assign line_reset_en[i] = i==line_read_index && reset_en;
         cache_line #(
             .W(W),
             .N(N),
             .M(M)
         ) line (
             .clk(clk),
-            .rst(rst),
+            .rst(rst || line_reset_en[i]),
             .addr(addr),
             .update_en(line_update_en[i]),
             .write_en(write_en),

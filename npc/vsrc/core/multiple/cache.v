@@ -16,6 +16,7 @@ module cache #(
     
     input   wire [ADDR_WIDTH-1:0]       addr,
     input   wire                        update_en,
+    input   wire                        reset_en, // addr会选中特定的line，只要reset_en激活即可无效对应数据
     input   wire                        write_en,
     input   wire [DATA_WIDTH-1:0]       write_data,
     output  wire                        read_en,
@@ -45,6 +46,7 @@ wire [tag_width-1:0] tag = addr[index_width+offset_width +: tag_width];
 wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  [block_count-1:0]          block_update_en;
+wire [block_count-1:0]          block_reset_en;
 wire [block_count-1:0]          block_read_en_inner; // 未包含index比较的信号
 wire [block_count-1:0]          block_read_en; // 包含index比较的信号
 wire [DATA_WIDTH-1:0]           block_read_data[0:block_count-1];
@@ -56,6 +58,7 @@ assign read_data = block_read_data[block_index];
 
 generate
     for (genvar i=0; i<block_count; ++i) begin : genblock
+        assign block_reset_en[i] = block_index==i && reset_en;
         cache_block #(
             .W(W),
             .N(N),
@@ -65,6 +68,7 @@ generate
             .rst(rst),
             .addr(addr),
             .update_en(block_update_en[i]),
+            .reset_en(block_reset_en[i]),
             .write_en(write_en),
             .write_data(write_data),
             .read_en(block_read_en_inner[i]),

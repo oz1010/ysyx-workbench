@@ -332,6 +332,7 @@ cache #(
     .rst(rst),
     .addr(impl_addr),
     .update_en(impl_update_en),
+    .reset_en(0),
     .write_en(impl_write_en),
     .write_data(impl_write_data),
     .read_en(impl_read_en),
