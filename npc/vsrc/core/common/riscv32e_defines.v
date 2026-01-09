@@ -91,6 +91,7 @@
 `define AXI4_ID_EXU         4'h4
 `define AXI4_ID_WBU         4'h5
 `define AXI4_ID_ICACHE      4'h6
+`define AXI4_ID_DCACHE      4'h7
 
 `define SRAM_TYPE_AXI4_LITE 0
 `define SRAM_TYPE_AXI4      1
