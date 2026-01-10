@@ -628,9 +628,9 @@ begin
         for(integer i=0; i<SDRAM_DATA_COUNT; ++i) begin
             // 读取数据且数据大小为4字节（arsize=2）时，dqm存储地址偏移
             // dqm_q[i]       <= (inport_size_i==3'h2) ? inport_addr_i[1:0] : {SDRAM_DQM_W{1'b0}};
-            // dqm_q[i]       <= {SDRAM_DQM_W{1'b0}};
+            dqm_q[i]       <= {SDRAM_DQM_W{1'b0}};
             // 读取数据时，dqm存储地址偏移
-            dqm_q[i]       <= inport_addr_i[1:0];
+            // dqm_q[i]       <= inport_addr_i[1:0];
         end
     end
     //-----------------------------------------
