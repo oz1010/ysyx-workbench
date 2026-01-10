@@ -17,6 +17,23 @@ menuconfig ICACHE
       default 4
   endif # ICACHE
 
+menuconfig DCACHE
+  bool "DCache enable"
+  default n
+  if DCACHE
+    config DCACHE_PARAMETER_W
+      int "DCache parameter W"
+      default 8
+
+    config DCACHE_PARAMETER_N
+      int "DCache parameter N"
+      default 4
+
+    config DCACHE_PARAMETER_M
+      int "DCache parameter M"
+      default 4
+  endif # DCACHE
+
 choice 
     depends on ISA_riscv
     prompt "RISC-V Processor Type"

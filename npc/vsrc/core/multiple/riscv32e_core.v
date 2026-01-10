@@ -181,6 +181,36 @@ wire [1:0]                  icache_rresp;
 wire [31:0]                 icache_rdata;
 wire                        icache_rlast;
 wire [3:0]                  icache_rid;
+/* 数据缓存后的 axi4信号 */
+wire                        dcache_awready;
+wire                        dcache_awvalid;
+wire [31:0]                 dcache_awaddr;
+wire [3:0]                  dcache_awid;
+wire [7:0]                  dcache_awlen;
+wire [2:0]                  dcache_awsize;
+wire [1:0]                  dcache_awburst;
+wire                        dcache_wready;
+wire                        dcache_wvalid;
+wire [31:0]                 dcache_wdata;
+wire [3:0]                  dcache_wstrb;
+wire                        dcache_wlast;
+wire                        dcache_bready;
+wire                        dcache_bvalid;
+wire [1:0]                  dcache_bresp;
+wire [3:0]                  dcache_bid;
+wire                        dcache_arready;
+wire                        dcache_arvalid;
+wire [31:0]                 dcache_araddr;
+wire [3:0]                  dcache_arid;
+wire [7:0]                  dcache_arlen;
+wire [2:0]                  dcache_arsize;
+wire [1:0]                  dcache_arburst;
+wire                        dcache_rready;
+wire                        dcache_rvalid;
+wire [1:0]                  dcache_rresp;
+wire [31:0]                 dcache_rdata;
+wire                        dcache_rlast;
+wire [3:0]                  dcache_rid;
 /**
     0 -- clint
     1 -- exter dev
@@ -361,6 +391,83 @@ icache #(
     .s_rid(icache_rid)
 );
 
+/* 数据缓存 */
+dcache #(
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .BRESP_WIDTH(BRESP_WIDTH),
+    .RRESP_WIDTH(RRESP_WIDTH),
+`ifdef CONFIG_DCACHE
+    .W(`CONFIG_DCACHE_PARAMETER_W),
+    .N(`CONFIG_DCACHE_PARAMETER_N),
+    .M(`CONFIG_DCACHE_PARAMETER_M),
+`endif
+    .INST_WIDTH(INST_WIDTH)
+) m_dcache (
+    .clk(clk),
+    .rst(rst),
+
+    .m_awready(awready2),
+    .m_awvalid(awvalid2),
+    .m_awaddr(awaddr2),
+    .m_awid(awid2),
+    .m_awlen(awlen2),
+    .m_awsize(awsize2),
+    .m_awburst(awburst2),
+    .m_wready(wready2),
+    .m_wvalid(wvalid2),
+    .m_wdata(wdata2),
+    .m_wstrb(wstrb2),
+    .m_wlast(wlast2),
+    .m_bready(bready2),
+    .m_bvalid(bvalid2),
+    .m_bresp(bresp2),
+    .m_bid(bid2),
+    .m_arready(arready2),
+    .m_arvalid(arvalid2),
+    .m_araddr(araddr2),
+    .m_arid(arid2),
+    .m_arlen(arlen2),
+    .m_arsize(arsize2),
+    .m_arburst(arburst2),
+    .m_rready(rready2),
+    .m_rvalid(rvalid2),
+    .m_rresp(rresp2),
+    .m_rdata(rdata2),
+    .m_rlast(rlast2),
+    .m_rid(rid2),
+
+    .s_awready(dcache_awready),
+    .s_awvalid(dcache_awvalid),
+    .s_awaddr(dcache_awaddr),
+    .s_awid(dcache_awid),
+    .s_awlen(dcache_awlen),
+    .s_awsize(dcache_awsize),
+    .s_awburst(dcache_awburst),
+    .s_wready(dcache_wready),
+    .s_wvalid(dcache_wvalid),
+    .s_wdata(dcache_wdata),
+    .s_wstrb(dcache_wstrb),
+    .s_wlast(dcache_wlast),
+    .s_bready(dcache_bready),
+    .s_bvalid(dcache_bvalid),
+    .s_bresp(dcache_bresp),
+    .s_bid(dcache_bid),
+    .s_arready(dcache_arready),
+    .s_arvalid(dcache_arvalid),
+    .s_araddr(dcache_araddr),
+    .s_arid(dcache_arid),
+    .s_arlen(dcache_arlen),
+    .s_arsize(dcache_arsize),
+    .s_arburst(dcache_arburst),
+    .s_rready(dcache_rready),
+    .s_rvalid(dcache_rvalid),
+    .s_rresp(dcache_rresp),
+    .s_rdata(dcache_rdata),
+    .s_rlast(dcache_rlast),
+    .s_rid(dcache_rid)
+);
+
 /* arbiter模块 */
 arbiter_axi4 #(
     .USER_M_COUNT(2),
@@ -371,35 +478,35 @@ arbiter_axi4 #(
 ) m_arbiter_axi4(
     .clk(clk),
     .rst(rst),
-    .u_awreadys(   {icache_awready,     awready2   }),
-    .u_awvalids(   {icache_awvalid,     awvalid2   }),
-    .u_awaddrs(    {icache_awaddr,      awaddr2    }),
-    .u_awids(      {icache_awid,        awid2      }),
-    .u_awlens(     {icache_awlen,       awlen2     }),
-    .u_awsizes(    {icache_awsize,      awsize2    }),
-    .u_awbursts(   {icache_awburst,     awburst2   }),
-    .u_wreadys(    {icache_wready,      wready2    }),
-    .u_wvalids(    {icache_wvalid,      wvalid2    }),
-    .u_wdatas(     {icache_wdata,       wdata2     }),
-    .u_wstrbs(     {icache_wstrb,       wstrb2     }),
-    .u_wlasts(     {icache_wlast,       wlast2     }),
-    .u_breadys(    {icache_bready,      bready2    }),
-    .u_bvalids(    {icache_bvalid,      bvalid2    }),
-    .u_bresps(     {icache_bresp,       bresp2     }),
-    .u_bids(       {icache_bid,         bid2       }),
-    .u_arreadys(   {icache_arready,     arready2   }),
-    .u_arvalids(   {icache_arvalid,     arvalid2   }),
-    .u_araddrs(    {icache_araddr,      araddr2    }),
-    .u_arids(      {icache_arid,        arid2      }),
-    .u_arlens(     {icache_arlen,       arlen2     }),
-    .u_arsizes(    {icache_arsize,      arsize2    }),
-    .u_arbursts(   {icache_arburst,     arburst2   }),
-    .u_rreadys(    {icache_rready,      rready2    }),
-    .u_rvalids(    {icache_rvalid,      rvalid2    }),
-    .u_rresps(     {icache_rresp,       rresp2     }),
-    .u_rdatas(     {icache_rdata,       rdata2     }),
-    .u_rlasts(     {icache_rlast,       rlast2     }),
-    .u_rids(       {icache_rid,         rid2       }),
+    .u_awreadys(   {icache_awready,     dcache_awready   }),
+    .u_awvalids(   {icache_awvalid,     dcache_awvalid   }),
+    .u_awaddrs(    {icache_awaddr,      dcache_awaddr    }),
+    .u_awids(      {icache_awid,        dcache_awid      }),
+    .u_awlens(     {icache_awlen,       dcache_awlen     }),
+    .u_awsizes(    {icache_awsize,      dcache_awsize    }),
+    .u_awbursts(   {icache_awburst,     dcache_awburst   }),
+    .u_wreadys(    {icache_wready,      dcache_wready    }),
+    .u_wvalids(    {icache_wvalid,      dcache_wvalid    }),
+    .u_wdatas(     {icache_wdata,       dcache_wdata     }),
+    .u_wstrbs(     {icache_wstrb,       dcache_wstrb     }),
+    .u_wlasts(     {icache_wlast,       dcache_wlast     }),
+    .u_breadys(    {icache_bready,      dcache_bready    }),
+    .u_bvalids(    {icache_bvalid,      dcache_bvalid    }),
+    .u_bresps(     {icache_bresp,       dcache_bresp     }),
+    .u_bids(       {icache_bid,         dcache_bid       }),
+    .u_arreadys(   {icache_arready,     dcache_arready   }),
+    .u_arvalids(   {icache_arvalid,     dcache_arvalid   }),
+    .u_araddrs(    {icache_araddr,      dcache_araddr    }),
+    .u_arids(      {icache_arid,        dcache_arid      }),
+    .u_arlens(     {icache_arlen,       dcache_arlen     }),
+    .u_arsizes(    {icache_arsize,      dcache_arsize    }),
+    .u_arbursts(   {icache_arburst,     dcache_arburst   }),
+    .u_rreadys(    {icache_rready,      dcache_rready    }),
+    .u_rvalids(    {icache_rvalid,      dcache_rvalid    }),
+    .u_rresps(     {icache_rresp,       dcache_rresp     }),
+    .u_rdatas(     {icache_rdata,       dcache_rdata     }),
+    .u_rlasts(     {icache_rlast,       dcache_rlast     }),
+    .u_rids(       {icache_rid,         dcache_rid       }),
 
     .awready(m_awready),
     .awvalid(m_awvalid),
