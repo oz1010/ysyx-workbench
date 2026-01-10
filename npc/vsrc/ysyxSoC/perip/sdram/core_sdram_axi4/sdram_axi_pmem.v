@@ -133,6 +133,9 @@ reg         req_hold_wr_q;
 
 wire        req_fifo_accept_w;
 
+// 非对齐地址读数据处理，axi需要发送两个包，实际逻辑为3个包，需要纠正
+wire req_araddr_unaligned = (|axi_araddr_i[1:0] && axi_arlen_i==1);
+
 //-----------------------------------------------------------------
 // Sequential
 //-----------------------------------------------------------------
@@ -194,7 +197,7 @@ begin
     else if (axi_arvalid_i && axi_arready_o)
     begin
         req_rd_q      <= (axi_arlen_i != 0);
-        req_len_q     <= 1<<axi_arlen_i - 8'd1; // 剩余需要访问的数据量，注意总数据量为2^arlen
+        req_len_q     <= req_araddr_unaligned ? 0 : (1<<axi_arlen_i - 8'd1); // 剩余需要访问的数据量，注意总数据量为2^arlen
         req_addr_q    <= calculate_addr_next(axi_araddr_i, axi_arburst_i, axi_arlen_i);
         req_id_q      <= axi_arid_i;
         req_axburst_q <= axi_arburst_i;
