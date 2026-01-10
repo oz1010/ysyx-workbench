@@ -194,7 +194,7 @@ begin
     else if (axi_arvalid_i && axi_arready_o)
     begin
         req_rd_q      <= (axi_arlen_i != 0);
-        req_len_q     <= axi_arlen_i - 8'd1;
+        req_len_q     <= 1<<axi_arlen_i - 8'd1; // 剩余需要访问的数据量，注意总数据量为2^arlen
         req_addr_q    <= calculate_addr_next(axi_araddr_i, axi_arburst_i, axi_arlen_i);
         req_id_q      <= axi_arid_i;
         req_axburst_q <= axi_arburst_i;
