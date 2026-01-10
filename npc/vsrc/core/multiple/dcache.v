@@ -154,13 +154,14 @@ reg  [1:0]                  c_s_arburst;
 reg                         c_s_rready;
 
 `ifdef CONFIG_DCACHE
-wire dcache_wen = m_awid==`AXI4_ID_LSU &&
-    ( 
-           ( m_awaddr>=`CONFIG_MROM_BASE && m_awaddr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
-        || ( m_awaddr>=`CONFIG_FLASH_BASE && m_awaddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE) )
-        || ( m_awaddr>=`CONFIG_PSRAM_BASE && m_awaddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
-        || ( m_awaddr>=`CONFIG_SDRAM_BASE && m_awaddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
-    );
+// wire dcache_wen = m_awid==`AXI4_ID_LSU &&
+//     ( 
+//            ( m_awaddr>=`CONFIG_MROM_BASE && m_awaddr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
+//         || ( m_awaddr>=`CONFIG_FLASH_BASE && m_awaddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE) )
+//         || ( m_awaddr>=`CONFIG_PSRAM_BASE && m_awaddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
+//         || ( m_awaddr>=`CONFIG_SDRAM_BASE && m_awaddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
+//     );
+wire dcache_wen = 0; // 写数据透传
 wire dcache_ren = m_arid==`AXI4_ID_LSU &&
     ( 
            ( m_araddr>=`CONFIG_MROM_BASE && m_araddr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
@@ -176,7 +177,7 @@ wire slave_len_burst_en = ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_S
 
 wire                        slave_en; // 从设备使能标记
 reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
-wire [INST_WIDTH-1:0]       slave_inst; // 从设备读取指令
+wire [INST_WIDTH-1:0]       slave_data; // 从设备读取指令
 reg  [31:0]                 r_slave_index; // 从设备指令计数
 wire [7:0]                  slave_len; // 从设备burst模式读取的长度
 assign slave_len = slave_len_burst_en ? cache_line_load_len[7:0] : 0; // 其他存储器比如flash暂时不支持burst模式
@@ -247,6 +248,7 @@ initial begin
 end
 
 wire [ADDR_WIDTH-1:0]       read_addr;
+wire [7:0]                  read_len;
 wire [2:0]                  read_size;
 wire [1:0]                  read_state;
 axi4_salve_reader #(
@@ -278,7 +280,7 @@ axi4_salve_reader #(
     .data_en(impl_read_en),
     .read_addr(read_addr),
     .read_data(impl_read_data),
-    .read_len(),
+    .read_len(read_len),
     .read_size(read_size),
     .read_state(read_state)
 );
@@ -315,7 +317,7 @@ axi_master_reader #(
     .enable(slave_en),
     .read_sign(0),
     .read_addr(r_slave_addr),
-    .read_data(slave_inst),
+    .read_data(slave_data),
     .read_len(slave_len),
     .read_size(2),
     .read_state(slave_state)
@@ -345,15 +347,29 @@ cache #(
     .read_en(impl_read_en),
     .read_data(impl_read_data)
 );
-assign impl_addr = dcache_ren ? c_m_araddr : 
-    dcache_wen ? c_m_awaddr : 
+reg [31:0] impl_reset_addr;
+assign impl_addr = dcache_ren ? c_m_araddr :
+    m_awvalid ? m_awaddr :
+    impl_reset_en ? impl_reset_addr : 
     0;
 assign impl_write_en = impl_update_en && c_s_rvalid && c_s_rready;
 assign impl_write_data = c_s_rdata;
 
 always @(posedge clk) begin
     if (rst) begin
+        impl_reset_en <= 0;
+        impl_reset_addr <= 0;
     end else begin
+        if (m_awvalid && impl_read_en) begin
+            impl_reset_en <= 1;
+            impl_reset_addr <= m_awaddr;
+        end
+
+        if (impl_reset_en) begin
+            impl_reset_en <= 0;
+            impl_reset_addr <= 0;
+        end
+
         if (dcache_ren) begin
             if (c_m_arvalid && c_m_arready) begin
                 // if (impl_read_en) begin 

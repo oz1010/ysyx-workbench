@@ -69,6 +69,11 @@ static void welcome()
     IFDEF(CONFIG_ICACHE, 
         Log(ANSI_FMT("ICache W-N-M: %d-%d-%d", ANSI_FG_BLUE),
             CONFIG_ICACHE_PARAMETER_W, CONFIG_ICACHE_PARAMETER_N, CONFIG_ICACHE_PARAMETER_M));
+    Log("DCache: %s",
+        MUXDEF(CONFIG_DCACHE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
+    IFDEF(CONFIG_DCACHE, 
+        Log(ANSI_FMT("DCache W-N-M: %d-%d-%d", ANSI_FG_BLUE),
+            CONFIG_DCACHE_PARAMETER_W, CONFIG_DCACHE_PARAMETER_N, CONFIG_DCACHE_PARAMETER_M));
     Log("Build time: %s, %s", __TIME__, __DATE__);
     raw_stdout("Welcome to %s-NPC!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
     raw_stdout("For help, type \"help\"\n");
