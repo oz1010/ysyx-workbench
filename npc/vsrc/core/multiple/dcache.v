@@ -339,7 +339,7 @@ cache #(
 ) dcache_impl (
     .clk(clk),
     .rst(rst),
-    .addr(impl_addr),
+    .addr(impl_addr_aligned),
     .update_en(impl_update_en),
     .reset_en(impl_reset_en),
     .write_en(impl_write_en),
@@ -347,6 +347,7 @@ cache #(
     .read_en(impl_read_en),
     .read_data(impl_read_data)
 );
+wire [31:0] impl_addr_aligned = {impl_addr[31:2], 2'b0}; // 需要注意4字节对齐
 reg [31:0] impl_reset_addr;
 assign impl_addr = dcache_ren ? c_m_araddr :
     m_awvalid ? m_awaddr :
