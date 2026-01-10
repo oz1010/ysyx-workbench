@@ -83,7 +83,7 @@ module sdram_axi
 );
 
 // TODO 暂时不处理sdram控制器的这些逻辑，这里直接读写取指定地址的数据
-`define USING_TEMP_TEST 1
+// `define USING_TEMP_TEST 1
 
 `ifdef USING_TEMP_TEST
 
