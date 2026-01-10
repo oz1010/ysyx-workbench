@@ -16,8 +16,8 @@ module sdram(
 
     // ref. https://www.mouser.com/datasheet/2/12/alliance_MT48LC-1155509.pdf
 
-    assign dq = (state==read_t && counter==cas_latency-1) ? rdata[15:0] :
-                (state==read_t && (counter==cas_latency)) ? rdata[31:16] :
+    assign dq = (state==read_t && counter==(cas_latency-1+2*read_index-2)) ? rdata[15:0] :
+                (state==read_t && (counter==cas_latency+2*read_index-2)) ? rdata[31:16] :
                 16'bz;
 
     wire [3:0] input_cmd = {cs, ras, cas, we};
@@ -25,6 +25,8 @@ module sdram(
     typedef enum [2:0] { idle_t, active_t, read_t, write_t, err_t } state_t;
     reg [2:0] state;
     reg [7:0] counter;
+    reg [7:0] read_index; // 记录需要读取数据当前索引值
+    reg [7:0] read_index_max; // 记录需要读取数据最大值
     reg [31:0] addr;
     reg [31:0] rdata;
     reg [12:0] active_rows[0:3]; /* 存储当前激活的bank对应的row，减少active命令发送 */
@@ -57,7 +59,8 @@ module sdram(
     wire [7:0] burst_length = 8'h1<<mx_burst_length;
     wire [7:0] cas_latency = {5'h0, mx_cas_latency};
 
-    wire read_done = (state==read_t) && (counter == cas_latency);
+    wire [7:0] read_done_count = (cas_latency + 2 * (read_index_max - 1));
+    wire read_done = (state==read_t) && (counter == read_done_count);
     wire [31:0] roffset = {30'h0, dqm};
 
     initial begin
@@ -90,6 +93,7 @@ module sdram(
 
                 // READ 读出目标存储体的一列
                 4'b0101: begin
+                    read_index_max <= read_index_max + 1;
                     if (state == active_t || state == idle_t) begin
                         state <= read_t;
                         addr <= ram_addr + roffset;
@@ -145,6 +149,8 @@ module sdram(
             end
         end else begin
             state <= idle_t;
+            read_index <= 0;
+            read_index_max <= 0;
         end
     end
 
@@ -162,18 +168,17 @@ module sdram(
             active_t: ;
 
             read_t: begin
-                if (counter == 0) begin
+                if (counter == (cas_latency + 2 * read_index - 2)) begin
                     // read rdata
-                    if (burst_length == 1) begin
-                        rdata <= dpi_vdev_read(addr, 2);
-                    end else begin
-                        rdata <= dpi_vdev_read(addr, 4);
-                    end
+                    integer new_rdata = dpi_vdev_read(addr, burst_length == 1 ? 2 : 4);
+                    rdata <= new_rdata;
+                    read_index <= read_index + 1;
+                    addr <= addr + 4;
+                    // $display("sdram read data, addr %x data %x index %x", addr, new_rdata, read_index);
                 end
 
                 if (read_done) begin
                     // end read rdata
-                    // $display("read data done addr %x data %x counter %x", addr, rdata, counter);
                     state <= idle_t;
                     rdata <= 0;
                 end
