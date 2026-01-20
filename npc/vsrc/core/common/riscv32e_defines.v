@@ -127,6 +127,11 @@
 `define HW_CPU_STAT_INST                4
 `define HW_CPU_STAT_DATA                5
 
+`define TRIGGER_EDGE_NEG                0 // 下降沿
+`define TRIGGER_EDGE_POS                1 // 上升沿
+`define TRIGGER_LEVEL_LOW               2 // 低水平  
+`define TRIGGER_LEVEL_HIGH              3 // 高水平
+
 `ifdef IN_YOSYS_STA
 `else
 typedef struct {
@@ -279,25 +284,52 @@ function void read_unalign_data;
     end
 endfunction
 
+// function void get_unalign_addr_data;
+//     input   logic [7:0]         idx;
+//     input   logic               is_sign;
+//     input   logic [2:0]         size;
+//     input   logic [31:0]        in_data;
+//     input   logic [1:0]         shift_val;
+//     output  logic [31:0]        result;
+//     begin
+//         logic [31:0] s_data;
+//         logic [31:0] data0;
+//         logic [31:0] size0;
+//         case (idx)
+//             0: s_data = in_data >> (8*shift_val);
+//             1: s_data = s_data | (in_data<<(32-8*shift_val));
+
+//             `ifndef IN_YOSYS_STA
+//             default: $error("read unalign in_data is error idx %x", idx);
+//             `endif
+//         endcase
+
+//         // 处理大小
+//         size0 = 8*(1<<size);
+//         case (size)
+//             0:  data0 = (s_data) & 32'h000000FF;
+//             1:  data0 = (s_data) & 32'h0000FFFF;
+//             2:  data0 = (s_data) & 32'hFFFFFFFF;
+//             default: ;
+//         endcase
+
+//         // 处理符号位
+//         result = is_sign ? func_sext(data0, size0) : data0;
+//     end
+// endfunction
+
+// 直接处理64位数据（拼接的两个数据）
 function void get_unalign_addr_data;
-    input   logic [7:0]         idx;
     input   logic               is_sign;
     input   logic [2:0]         size;
-    input   logic [31:0]        in_data;
+    input   logic [63:0]        in_data;
     input   logic [1:0]         shift_val;
     output  logic [31:0]        result;
     begin
         logic [31:0] s_data;
         logic [31:0] data0;
         logic [31:0] size0;
-        case (idx)
-            0: s_data = in_data >> (8*shift_val);
-            1: s_data = s_data | (in_data<<(32-8*shift_val));
-
-            `ifndef IN_YOSYS_STA
-            default: $error("read unalign in_data is error idx %x", idx);
-            `endif
-        endcase
+        s_data = in_data[8*shift_val +: 32];
 
         // 处理大小
         size0 = 8*(1<<size);

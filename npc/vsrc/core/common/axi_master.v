@@ -391,17 +391,29 @@ module axi_master_reader #(
 
     `ifdef IN_YOSYS_STA
     always @(posedge clk) begin
-        s_read_data <= rdata;
+        s_read_data <= s_multi_read_data[s_read_shift_val*8 +: DATA_WIDTH];
     end
     `else
     always @(*) begin
         s_read_data = 0;
         if (r_read_state == `AXI4_STATE_DATA) begin
             /* 依次读取非对齐数据，用组合逻辑实现； */
-            get_unalign_addr_data(s_read_idx, read_sign, read_size, rdata, s_read_shift_val, s_read_data);
+            get_unalign_addr_data(read_sign, read_size, s_multi_read_data, s_read_shift_val, s_read_data);
         end
     end
     `endif
+
+    // 未对齐多包需要单独拼接
+    wire s_multi_unaligned_read = s_read_shift_val!=0 && arlen==8'h1;
+    reg [DATA_WIDTH-1:0] s_multi_read_data_low;
+    wire [2*DATA_WIDTH-1:0] s_multi_read_data = {rdata, s_multi_unaligned_read ? s_multi_read_data_low : rdata};
+    always @(posedge clk) begin
+        if (rst || !enable) begin
+            s_multi_read_data_low <= 0;
+        end else begin
+            if (rvalid && s_read_idx==0) s_multi_read_data_low <= rdata;
+        end
+    end
 
     always @(*) begin
         s_read_len = 0;
@@ -467,7 +479,7 @@ module axi_master_reader #(
                     end
                     if (rlast) begin
                         s_read_idx <= 0;
-                        func_dev_skip(0, read_addr, {21'h0, r_record_arsize, r_record_arlen}, s_read_data);
+                        func_dev_skip(0, read_addr, {21'h0, r_record_arsize, r_record_arlen}, read_data);
                         // check error response
                         `ifndef IN_YOSYS_STA
                         if (rresp!=0 || rlast!=1 || rid!=ID) begin
