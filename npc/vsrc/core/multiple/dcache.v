@@ -250,8 +250,9 @@ end
 wire [ADDR_WIDTH-1:0]       read_addr;
 wire [7:0]                  read_len;
 wire [2:0]                  read_size;
+wire [31:0]                 read_index;
 wire [1:0]                  read_state;
-axi4_salve_reader #(
+axi4_salve_burst_reader #(
     `ifndef IN_YOSYS_STA
     .NAME("dcache"),
     `endif
@@ -277,11 +278,12 @@ axi4_salve_reader #(
     .rlast(c_m_rlast),
     .rid(c_m_rid),
     .enable(dcache_ren),
-    .data_en(impl_read_en),
-    .read_addr(read_addr),
+    .read_data_en(impl_read_en && c_m_rready), // 直连rvalid信号
     .read_data(impl_read_data),
+    .read_addr(read_addr),
     .read_len(read_len),
     .read_size(read_size),
+    .read_index(read_index),
     .read_state(read_state)
 );
 
@@ -349,7 +351,8 @@ cache #(
 );
 wire [31:0] impl_addr_aligned = {impl_addr[31:2], 2'b0}; // 需要注意4字节对齐
 reg [31:0] impl_reset_addr;
-assign impl_addr = dcache_ren ? c_m_araddr :
+wire [ADDR_WIDTH-1:0]  slave_read_addr = read_addr + read_index*4; // 处理burst模式时，需要读取不同地址的值
+assign impl_addr = dcache_ren ? slave_read_addr : 
     m_awvalid ? m_awaddr :
     impl_reset_en ? impl_reset_addr : 
     0;
@@ -395,7 +398,7 @@ always @(posedge clk) begin
                 // 未命中缓存，准备更新
                 if (!impl_read_en) begin
                     impl_update_en <= 1;
-                    r_slave_addr <= {read_addr[ADDR_WIDTH-1:offset_width], {(offset_width){1'b0}}};
+                    r_slave_addr <= {slave_read_addr[ADDR_WIDTH-1:offset_width], {(offset_width){1'b0}}};
                     r_slave_index <= 0;
                 end
             end
