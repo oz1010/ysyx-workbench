@@ -32,17 +32,17 @@ static inline void outl(uintptr_t addr, uint32_t data)
     *(volatile uint32_t *)addr = data;
 }
 
-#define CHECK_DATA(type, a, b)                                                  \
-    do                                                                          \
-    {                                                                           \
-        type a_v = (a);                                                         \
-        type b_v = (b);                                                         \
-        if (a_v != b_v)                                                         \
-        {                                                                       \
-            printf("error.\n");                                                 \
-            printf("current addr: %#x data: %#x check: %#x\n", addr, a_v, b_v); \
-            halt((int)b_v);                                                     \
-        }                                                                       \
+#define CHECK_DATA(type, a, b)                                                                  \
+    do                                                                                          \
+    {                                                                                           \
+        type a_v = (a);                                                                         \
+        type b_v = (b);                                                                         \
+        if (a_v != b_v)                                                                         \
+        {                                                                                       \
+            printf("error.\n");                                                                 \
+            printf("current addr: %#x data: %#x check: %#x type: " #type "\n", addr, a_v, b_v); \
+            halt((int)b_v);                                                                     \
+        }                                                                                       \
     } while (0)
 
 #define SDRAM_ADDR 0xa0000000
