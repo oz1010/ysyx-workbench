@@ -124,6 +124,8 @@ static void statistic()
     uint64_t hw_tick = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
     uint64_t icache_hit = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_HIT];
     uint64_t icache_miss = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS];
+    uint64_t dcache_hit = hw_cpu_stat.counts[HW_CPU_STAT_DCACHE_HIT];
+    uint64_t dcache_miss = hw_cpu_stat.counts[HW_CPU_STAT_DCACHE_MISS];
 
     IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") "lu"
@@ -137,6 +139,7 @@ static void statistic()
         Log("Finish running in less than 1 us and can not calculate the simulation frequency");
     Log("Hardware total ticks = " NUMBERIC_FMT, hw_tick);
     Log("Hardware icache hit = " NUMBERIC_FMT ", miss = " NUMBERIC_FMT ", hit/miss = " FLOAT_FMT, icache_hit, icache_miss, (icache_miss>0?icache_hit*1.0/icache_miss:0));
+    Log("Hardware dcache hit = " NUMBERIC_FMT ", miss = " NUMBERIC_FMT ", hit/miss = " FLOAT_FMT, dcache_hit, dcache_miss, (dcache_miss>0?dcache_hit*1.0/dcache_miss:0));
     if (hw_tick > 0)
         Log("Hardware IPC = " FLOAT_FMT " inst/cycle", npc_ctx.nr_guest_inst / (hw_tick * 1.0));
 

@@ -218,6 +218,8 @@ void dpi_cpu_stat_ctrl(int dtype, int delta)
         case HW_CPU_STAT_TICK:
         case HW_CPU_STAT_ICACHE_HIT:
         case HW_CPU_STAT_ICACHE_MISS:
+        case HW_CPU_STAT_DCACHE_HIT:
+        case HW_CPU_STAT_DCACHE_MISS:
             hw_cpu_stat.counts[dtype] += delta;
             break;
 

@@ -126,6 +126,8 @@
 `define HW_CPU_STAT_ICACHE_MEM_INDEX    3
 `define HW_CPU_STAT_INST                4
 `define HW_CPU_STAT_DATA                5
+`define HW_CPU_STAT_DCACHE_HIT          6
+`define HW_CPU_STAT_DCACHE_MISS         7
 
 `define TRIGGER_EDGE_NEG                0 // 下降沿
 `define TRIGGER_EDGE_POS                1 // 上升沿
