@@ -132,6 +132,42 @@
 `define TRIGGER_LEVEL_LOW               2 // 低水平  
 `define TRIGGER_LEVEL_HIGH              3 // 高水平
 
+/* axi4总线信号定义 */
+`define AXI4_ADDR_W                     32
+`define AXI4_DATA_W                     32
+`define AXI4_ID_W                       4
+`define AXI4_LEN_W                      8
+`define AXI4_SIZE_W                     3
+`define AXI4_BURST_W                    2
+`define AXI4_RESP_W                     2
+`define AXI4_AR_CH_W                    (1+1+`AXI4_ADDR_W+`AXI4_ID_W+`AXI4_LEN_W+`AXI4_SIZE_W+`AXI4_BURST_W)
+`define AXI4_R_CH_W                     (1+1+`AXI4_RESP_W+`AXI4_DATA_W+1+`AXI4_ID_W)
+`define AXI4_BUS_R_W                    (`AXI4_AR_CH_W+`AXI4_R_CH_W)
+`define AXI4_BUS_M_IN_W                 (1+1+`AXI4_RESP_W+`AXI4_DATA_W+1+`AXI4_ID_W)
+`define AXI4_BUS_M_OUT_W                (1+`AXI4_ADDR_W+`AXI4_ID_W+`AXI4_LEN_W+`AXI4_SIZE_W+`AXI4_BURST_W+1)
+`define AXI4_BUS_S_IN_W                 `AXI4_BUS_M_OUT_W
+`define AXI4_BUS_S_OUT_W                `AXI4_BUS_M_IN_W
+/* 这里不能用inout来实现，否则综合会引入三态电路逻辑
+    以下视角为master，slave正好相反
+ */
+`define AXI4_SIG_DECL(PREFIX) \
+    /* input    */  wire                        PREFIX``arready; \
+    /* output   */  wire                        PREFIX``arvalid; \
+    /* output   */  wire [`AXI4_ADDR_W-1:0]     PREFIX``araddr; \
+    /* output   */  wire [`AXI4_ID_W-1:0]       PREFIX``arid; \
+    /* output   */  wire [`AXI4_LEN_W-1:0]      PREFIX``arlen; \
+    /* output   */  wire [`AXI4_SIZE_W-1:0]     PREFIX``arsize; \
+    /* output   */  wire [`AXI4_BURST_W-1:0]    PREFIX``arburst
+
+`define AXI4_BUS_TO_M_SIG(PREFIX, BUS_IN, BUS_OUT) \
+    assign BUS_OUT[1 +: 1] = PREFIX``arvalid; \
+    assign PREFIX``arready = BUS_IN[0 +: 1]
+
+`define AXI4_BUS_TO_M_SIG_DECL(PREFIX, BUS_IN, BUS_OUT) \
+    `AXI4_SIG_DECL(PREFIX); \
+    `AXI4_BUS_TO_M_SIG(PREFIX, BUS_IN, BUS_OUT)
+
+
 `ifdef IN_YOSYS_STA
 `else
 typedef struct {
