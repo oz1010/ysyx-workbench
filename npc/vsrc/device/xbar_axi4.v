@@ -301,10 +301,11 @@ assign rlast = s_rlasts[ridx_select%SLAVE_COUNT];
 assign rid = s_rids[ridx_select%SLAVE_COUNT];
 
 // 组合式slave写选择器
+integer widx;
 always @(*) begin
     widx_select = 0;
     for (integer sid=0; sid<SLAVE_COUNT; ++sid) begin
-        integer widx = (sid + {{32-$bits(widx_last){1'b0}}, widx_last}) % SLAVE_COUNT;
+        widx = (sid + {{32-$bits(widx_last){1'b0}}, widx_last}) % SLAVE_COUNT;
         if (widx_select == 0
             && awaddr>=s_slave_start_addrs[widx]
             && awaddr<=s_slave_end_addrs[widx]
@@ -325,10 +326,11 @@ always @(posedge clk or posedge rst) begin
 end
 
 // 组合式slave读选择器
+integer ridx;
 always @(*) begin
     ridx_select = 0;
     for (integer sid=0; sid<SLAVE_COUNT; ++sid) begin
-        integer ridx = (sid + {{32-$bits(ridx_last){1'b0}}, ridx_last}) % SLAVE_COUNT;
+        ridx = (sid + {{32-$bits(ridx_last){1'b0}}, ridx_last}) % SLAVE_COUNT;
         if (ridx_select == 0
             && araddr>=s_slave_start_addrs[ridx]
             && araddr<=s_slave_end_addrs[ridx]
