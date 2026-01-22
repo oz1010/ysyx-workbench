@@ -376,11 +376,11 @@ always @(posedge clk) begin
 
         if (dcache_ren) begin
             if (c_m_arvalid && c_m_arready) begin
-                // if (impl_read_en) begin 
-                //     func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1);
-                // end else begin
-                //     func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_MISS, 1);
-                // end
+                if (impl_read_en) begin 
+                    func_cpu_stat_ctrl(`HW_CPU_STAT_DCACHE_HIT, 1);
+                end else begin
+                    func_cpu_stat_ctrl(`HW_CPU_STAT_DCACHE_MISS, 1);
+                end
             end
 
             if (impl_update_en) begin
