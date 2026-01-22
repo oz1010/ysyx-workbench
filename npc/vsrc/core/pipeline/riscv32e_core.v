@@ -62,65 +62,65 @@ wire ex_ls_valid;
 wire ex_ls_ready;
 
 /* ifu axi4 信号 */
-wire                        awready1;
-wire                        awvalid1;
-wire [ADDR_WIDTH-1:0]       awaddr1;
-wire [3:0]                  awid1;
-wire [7:0]                  awlen1;
-wire [2:0]                  awsize1;
-wire [1:0]                  awburst1;
-wire                        wready1;
-wire                        wvalid1;
-wire [DATA_WIDTH-1:0]       wdata1;
-wire [DATA_WIDTH/8-1:0]     wstrb1;
-wire                        wlast1;
-wire                        bready1;
-wire                        bvalid1;
-wire [BRESP_WIDTH-1:0]      bresp1;
-wire [3:0]                  bid1;
-wire                        arready1;
-wire                        arvalid1;
-wire [ADDR_WIDTH-1:0]       araddr1;
-wire [3:0]                  arid1;
-wire [7:0]                  arlen1;
-wire [2:0]                  arsize1;
-wire [1:0]                  arburst1;
-wire                        rready1;
-wire                        rvalid1;
-wire [RRESP_WIDTH-1:0]      rresp1;
-wire [DATA_WIDTH-1:0]       rdata1;
-wire                        rlast1;
-wire [3:0]                  rid1;
+wire                        if_awready;
+wire                        if_awvalid;
+wire [ADDR_WIDTH-1:0]       if_awaddr;
+wire [3:0]                  if_awid;
+wire [7:0]                  if_awlen;
+wire [2:0]                  if_awsize;
+wire [1:0]                  if_awburst;
+wire                        if_wready;
+wire                        if_wvalid;
+wire [DATA_WIDTH-1:0]       if_wdata;
+wire [DATA_WIDTH/8-1:0]     if_wstrb;
+wire                        if_wlast;
+wire                        if_bready;
+wire                        if_bvalid;
+wire [BRESP_WIDTH-1:0]      if_bresp;
+wire [3:0]                  if_bid;
+wire                        if_arready;
+wire                        if_arvalid;
+wire [ADDR_WIDTH-1:0]       if_araddr;
+wire [3:0]                  if_arid;
+wire [7:0]                  if_arlen;
+wire [2:0]                  if_arsize;
+wire [1:0]                  if_arburst;
+wire                        if_rready;
+wire                        if_rvalid;
+wire [RRESP_WIDTH-1:0]      if_rresp;
+wire [DATA_WIDTH-1:0]       if_rdata;
+wire                        if_rlast;
+wire [3:0]                  if_rid;
 /* lsu axi4 信号 */
-wire                        awready2;
-wire                        awvalid2;
-wire [ADDR_WIDTH-1:0]       awaddr2;
-wire [3:0]                  awid2;
-wire [7:0]                  awlen2;
-wire [2:0]                  awsize2;
-wire [1:0]                  awburst2;
-wire                        wready2;
-wire                        wvalid2;
-wire [DATA_WIDTH-1:0]       wdata2;
-wire [DATA_WIDTH/8-1:0]     wstrb2;
-wire                        wlast2;
-wire                        bready2;
-wire                        bvalid2;
-wire [BRESP_WIDTH-1:0]      bresp2;
-wire [3:0]                  bid2;
-wire                        arready2;
-wire                        arvalid2;
-wire [ADDR_WIDTH-1:0]       araddr2;
-wire [3:0]                  arid2;
-wire [7:0]                  arlen2;
-wire [2:0]                  arsize2;
-wire [1:0]                  arburst2;
-wire                        rready2;
-wire                        rvalid2;
-wire [RRESP_WIDTH-1:0]      rresp2;
-wire [DATA_WIDTH-1:0]       rdata2;
-wire                        rlast2;
-wire [3:0]                  rid2;
+wire                        ls_awready;
+wire                        ls_awvalid;
+wire [ADDR_WIDTH-1:0]       ls_awaddr;
+wire [3:0]                  ls_awid;
+wire [7:0]                  ls_awlen;
+wire [2:0]                  ls_awsize;
+wire [1:0]                  ls_awburst;
+wire                        ls_wready;
+wire                        ls_wvalid;
+wire [DATA_WIDTH-1:0]       ls_wdata;
+wire [DATA_WIDTH/8-1:0]     ls_wstrb;
+wire                        ls_wlast;
+wire                        ls_bready;
+wire                        ls_bvalid;
+wire [BRESP_WIDTH-1:0]      ls_bresp;
+wire [3:0]                  ls_bid;
+wire                        ls_arready;
+wire                        ls_arvalid;
+wire [ADDR_WIDTH-1:0]       ls_araddr;
+wire [3:0]                  ls_arid;
+wire [7:0]                  ls_arlen;
+wire [2:0]                  ls_arsize;
+wire [1:0]                  ls_arburst;
+wire                        ls_rready;
+wire                        ls_rvalid;
+wire [RRESP_WIDTH-1:0]      ls_rresp;
+wire [DATA_WIDTH-1:0]       ls_rdata;
+wire                        ls_rlast;
+wire [3:0]                  ls_rid;
 /* 仲裁后的 axi4信号 */
 wire                        m_awready;
 wire                        m_awvalid;
@@ -330,35 +330,35 @@ icache #(
     .clk(clk),
     .rst(rst||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
 
-    .m_awready(awready1),
-    .m_awvalid(awvalid1),
-    .m_awaddr(awaddr1),
-    .m_awid(awid1),
-    .m_awlen(awlen1),
-    .m_awsize(awsize1),
-    .m_awburst(awburst1),
-    .m_wready(wready1),
-    .m_wvalid(wvalid1),
-    .m_wdata(wdata1),
-    .m_wstrb(wstrb1),
-    .m_wlast(wlast1),
-    .m_bready(bready1),
-    .m_bvalid(bvalid1),
-    .m_bresp(bresp1),
-    .m_bid(bid1),
-    .m_arready(arready1),
-    .m_arvalid(arvalid1),
-    .m_araddr(araddr1),
-    .m_arid(arid1),
-    .m_arlen(arlen1),
-    .m_arsize(arsize1),
-    .m_arburst(arburst1),
-    .m_rready(rready1),
-    .m_rvalid(rvalid1),
-    .m_rresp(rresp1),
-    .m_rdata(rdata1),
-    .m_rlast(rlast1),
-    .m_rid(rid1),
+    .m_awready(if_awready),
+    .m_awvalid(if_awvalid),
+    .m_awaddr(if_awaddr),
+    .m_awid(if_awid),
+    .m_awlen(if_awlen),
+    .m_awsize(if_awsize),
+    .m_awburst(if_awburst),
+    .m_wready(if_wready),
+    .m_wvalid(if_wvalid),
+    .m_wdata(if_wdata),
+    .m_wstrb(if_wstrb),
+    .m_wlast(if_wlast),
+    .m_bready(if_bready),
+    .m_bvalid(if_bvalid),
+    .m_bresp(if_bresp),
+    .m_bid(if_bid),
+    .m_arready(if_arready),
+    .m_arvalid(if_arvalid),
+    .m_araddr(if_araddr),
+    .m_arid(if_arid),
+    .m_arlen(if_arlen),
+    .m_arsize(if_arsize),
+    .m_arburst(if_arburst),
+    .m_rready(if_rready),
+    .m_rvalid(if_rvalid),
+    .m_rresp(if_rresp),
+    .m_rdata(if_rdata),
+    .m_rlast(if_rlast),
+    .m_rid(if_rid),
 
     .s_awready(icache_awready),
     .s_awvalid(icache_awvalid),
@@ -407,35 +407,35 @@ dcache #(
     .clk(clk),
     .rst(rst),
 
-    .m_awready(awready2),
-    .m_awvalid(awvalid2),
-    .m_awaddr(awaddr2),
-    .m_awid(awid2),
-    .m_awlen(awlen2),
-    .m_awsize(awsize2),
-    .m_awburst(awburst2),
-    .m_wready(wready2),
-    .m_wvalid(wvalid2),
-    .m_wdata(wdata2),
-    .m_wstrb(wstrb2),
-    .m_wlast(wlast2),
-    .m_bready(bready2),
-    .m_bvalid(bvalid2),
-    .m_bresp(bresp2),
-    .m_bid(bid2),
-    .m_arready(arready2),
-    .m_arvalid(arvalid2),
-    .m_araddr(araddr2),
-    .m_arid(arid2),
-    .m_arlen(arlen2),
-    .m_arsize(arsize2),
-    .m_arburst(arburst2),
-    .m_rready(rready2),
-    .m_rvalid(rvalid2),
-    .m_rresp(rresp2),
-    .m_rdata(rdata2),
-    .m_rlast(rlast2),
-    .m_rid(rid2),
+    .m_awready(ls_awready),
+    .m_awvalid(ls_awvalid),
+    .m_awaddr(ls_awaddr),
+    .m_awid(ls_awid),
+    .m_awlen(ls_awlen),
+    .m_awsize(ls_awsize),
+    .m_awburst(ls_awburst),
+    .m_wready(ls_wready),
+    .m_wvalid(ls_wvalid),
+    .m_wdata(ls_wdata),
+    .m_wstrb(ls_wstrb),
+    .m_wlast(ls_wlast),
+    .m_bready(ls_bready),
+    .m_bvalid(ls_bvalid),
+    .m_bresp(ls_bresp),
+    .m_bid(ls_bid),
+    .m_arready(ls_arready),
+    .m_arvalid(ls_arvalid),
+    .m_araddr(ls_araddr),
+    .m_arid(ls_arid),
+    .m_arlen(ls_arlen),
+    .m_arsize(ls_arsize),
+    .m_arburst(ls_arburst),
+    .m_rready(ls_rready),
+    .m_rvalid(ls_rvalid),
+    .m_rresp(ls_rresp),
+    .m_rdata(ls_rdata),
+    .m_rlast(ls_rlast),
+    .m_rid(ls_rid),
 
     .s_awready(dcache_awready),
     .s_awvalid(dcache_awvalid),
@@ -709,35 +709,35 @@ inst_fetch #(
     .pc(pc),
     .inst(inst),
 
-    .awready(awready1),
-    .awvalid(awvalid1),
-    .awaddr(awaddr1),
-    .awid(awid1),
-    .awlen(awlen1),
-    .awsize(awsize1),
-    .awburst(awburst1),
-    .wready(wready1),
-    .wvalid(wvalid1),
-    .wdata(wdata1),
-    .wstrb(wstrb1),
-    .wlast(wlast1),
-    .bready(bready1),
-    .bvalid(bvalid1),
-    .bresp(bresp1),
-    .bid(bid1),
-    .arready(arready1),
-    .arvalid(arvalid1),
-    .araddr(araddr1),
-    .arid(arid1),
-    .arlen(arlen1),
-    .arsize(arsize1),
-    .arburst(arburst1),
-    .rready(rready1),
-    .rvalid(rvalid1),
-    .rresp(rresp1),
-    .rdata(rdata1),
-    .rlast(rlast1),
-    .rid(rid1),
+    .awready(if_awready),
+    .awvalid(if_awvalid),
+    .awaddr(if_awaddr),
+    .awid(if_awid),
+    .awlen(if_awlen),
+    .awsize(if_awsize),
+    .awburst(if_awburst),
+    .wready(if_wready),
+    .wvalid(if_wvalid),
+    .wdata(if_wdata),
+    .wstrb(if_wstrb),
+    .wlast(if_wlast),
+    .bready(if_bready),
+    .bvalid(if_bvalid),
+    .bresp(if_bresp),
+    .bid(if_bid),
+    .arready(if_arready),
+    .arvalid(if_arvalid),
+    .araddr(if_araddr),
+    .arid(if_arid),
+    .arlen(if_arlen),
+    .arsize(if_arsize),
+    .arburst(if_arburst),
+    .rready(if_rready),
+    .rvalid(if_rvalid),
+    .rresp(if_rresp),
+    .rdata(if_rdata),
+    .rlast(if_rlast),
+    .rid(if_rid),
 
     .enable(execute_time<=1 || valid),
     .next_ready(id_ready),
@@ -836,35 +836,35 @@ load_store #(
     .mem_result_width(ls_mem_result_width),
     .result_update_csr(ls_result_update_csr),
 
-    .awready(awready2),
-    .awvalid(awvalid2),
-    .awaddr(awaddr2),
-    .awid(awid2),
-    .awlen(awlen2),
-    .awsize(awsize2),
-    .awburst(awburst2),
-    .wready(wready2),
-    .wvalid(wvalid2),
-    .wdata(wdata2),
-    .wstrb(wstrb2),
-    .wlast(wlast2),
-    .bready(bready2),
-    .bvalid(bvalid2),
-    .bresp(bresp2),
-    .bid(bid2),
-    .arready(arready2),
-    .arvalid(arvalid2),
-    .araddr(araddr2),
-    .arid(arid2),
-    .arlen(arlen2),
-    .arsize(arsize2),
-    .arburst(arburst2),
-    .rready(rready2),
-    .rvalid(rvalid2),
-    .rresp(rresp2),
-    .rdata(rdata2),
-    .rlast(rlast2),
-    .rid(rid2),
+    .awready(ls_awready),
+    .awvalid(ls_awvalid),
+    .awaddr(ls_awaddr),
+    .awid(ls_awid),
+    .awlen(ls_awlen),
+    .awsize(ls_awsize),
+    .awburst(ls_awburst),
+    .wready(ls_wready),
+    .wvalid(ls_wvalid),
+    .wdata(ls_wdata),
+    .wstrb(ls_wstrb),
+    .wlast(ls_wlast),
+    .bready(ls_bready),
+    .bvalid(ls_bvalid),
+    .bresp(ls_bresp),
+    .bid(ls_bid),
+    .arready(ls_arready),
+    .arvalid(ls_arvalid),
+    .araddr(ls_araddr),
+    .arid(ls_arid),
+    .arlen(ls_arlen),
+    .arsize(ls_arsize),
+    .arburst(ls_arburst),
+    .rready(ls_rready),
+    .rvalid(ls_rvalid),
+    .rresp(ls_rresp),
+    .rdata(ls_rdata),
+    .rlast(ls_rlast),
+    .rid(ls_rid),
 
     .prev_ready(ls_ready),
     .prev_valid(id_valid && ls_enable),
