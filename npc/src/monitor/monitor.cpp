@@ -43,6 +43,15 @@ extern void set_pc(paddr_t addr);
 
 static void welcome()
 {
+    IFDEF(CONFIG_ISA_riscv, Log("Processor type: %s", ANSI_FMT(
+        MUXDEF(CONFIG_ISA_RISCV_SINGLE, "single", 
+            MUXDEF(CONFIG_ISA_RISCV_MULTIPLE, "multiple", 
+                MUXDEF(CONFIG_ISA_RISCV_PIPELINE, "pipeline", 
+                    "unknown"
+                )
+            )
+        ), 
+        ANSI_FG_GREEN)));
     Log("Trace: %s",
         MUXDEF(CONFIG_TRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
 #if CONFIG_TRACE

@@ -37,12 +37,14 @@ menuconfig DCACHE
 choice 
     depends on ISA_riscv
     prompt "RISC-V Processor Type"
-    default ISA_RISCV_MULTIPLE
+    default ISA_RISCV_PIPELINE
 
     config ISA_RISCV_SINGLE
         bool "single"
     config ISA_RISCV_MULTIPLE
         bool "multiple"
+    config ISA_RISCV_PIPELINE
+        bool "pipeline"
 endchoice
 
 config ISA
