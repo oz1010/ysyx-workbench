@@ -213,10 +213,11 @@ assign arburst = m_arbursts[ridx_select];
 assign rready = m_rreadys[ridx_select];
 
 // 组合式master写选择器
+integer widx;
 always @(*) begin
     widx_select = 0;
     for (integer mid=0; mid<MASTER_COUNT; ++mid) begin
-        integer widx = (mid + {{32-$bits(widx_last){1'b0}}, widx_last}) % MASTER_COUNT;
+        widx = (mid + {{32-$bits(widx_last){1'b0}}, widx_last}) % MASTER_COUNT;
         if (widx_select == 0 && m_awaddrs[widx] != 0) begin
             widx_select = widx[$bits(widx_select)-1:0];
         end
@@ -234,10 +235,11 @@ always @(posedge clk or posedge rst) begin
 end
 
 // 组合式master读选择器
+integer ridx;
 always @(*) begin
     ridx_select = 0;
     for (integer mid=0; mid<MASTER_COUNT; ++mid) begin
-        integer ridx = (mid + {{32-$bits(ridx_last){1'b0}}, ridx_last}) % MASTER_COUNT;
+        ridx = (mid + {{32-$bits(ridx_last){1'b0}}, ridx_last}) % MASTER_COUNT;
         if (ridx_select == 0 && m_araddrs[ridx] != 0) begin
             ridx_select = ridx[$bits(ridx_select)-1:0];
         end
