@@ -281,9 +281,12 @@ assign s_rlast[AXI4_SLAVE_COUNT-1] = io_master_rlast;
 assign s_rid[AXI4_SLAVE_COUNT-1] = io_master_rid;
 
 /* 常用处理器信号 */
-wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x;
 wire [INST_WIDTH-1:0] inst;
 reg [63:0] execute_time;
+wire [INST_WIDTH-1:0] src1, src2, a0;
+wire wb_gpr_wen;
+wire [4:0] wb_gpr_windex;
+wire [INST_WIDTH-1:0] wb_gpr_wdata;
 
 assign valid = wb_valid;
 // assign w_pc = pc;
@@ -297,6 +300,23 @@ always @(posedge clk) begin
         func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 1);
     end
 end
+
+/* 寄存器组 */
+gprs #(
+    .INST_WIDTH(INST_WIDTH),
+    .REG_COUNT(`RISCV_CSR_COUNT)
+) m_gprs (
+    .clk(clk),
+    .rst(rst),
+    .rs1(rs1),
+    .src1(src1),
+    .rs2(rs2),
+    .src2(src2),
+    .a0(a0),
+    .wen(wb_gpr_wen),
+    .windex(wb_gpr_windex),
+    .wdata(wb_gpr_wdata)
+);
 
 /* 性能监控 */
 perf_monitor m_perf_monitor (
@@ -792,7 +812,7 @@ assign ex_ls_ready = ({1{ex_enable}} & ex_ready) | ({1{ls_enable}} & ls_ready);
 /* 执行ex */
 wire [INST_WIDTH-1:0] ex_dnpc, ex_result;
 wire [7:0] ex_mem_result_width;
-wire ex_result_update_csr;
+wire ex_result_update_gpr;
 execute #(
     .INST_WIDTH(INST_WIDTH)
 ) exu(
@@ -801,26 +821,26 @@ execute #(
 
     .in_ready(ex_ready),
     .in_valid(id_valid && ex_enable),
-    .rs1(rs1),
-    .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
     .inst(inst),
     .pc(pc),
-    .x(x),
+    .src1(src1),
+    .src2(src2),
+    .a0(a0),
 
     .out_ready(wb_ready),
     .out_valid(ex_valid),
     .dnpc(ex_dnpc),
     .result(ex_result),
     .mem_result_width(ex_mem_result_width),
-    .result_update_csr(ex_result_update_csr)
+    .result_update_gpr(ex_result_update_gpr)
 );
 
 /* 读存储ls */
 wire [INST_WIDTH-1:0] ls_dnpc, ls_result;
 wire [7:0] ls_mem_result_width;
-wire ls_result_update_csr;
+wire ls_result_update_gpr;
 load_store #(
     .INST_WIDTH(INST_WIDTH)
 ) lsu(
@@ -859,30 +879,29 @@ load_store #(
 
     .in_ready(ls_ready),
     .in_valid(id_valid && ls_enable),
-    .rs1(rs1),
-    .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
     .inst(inst),
     .pc(pc),
-    .x(x),
+    .src1(src1),
+    .src2(src2),
 
     .out_ready(wb_ready),
     .out_valid(ls_valid),
     .dnpc(ls_dnpc),
     .result(ls_result),
     .mem_result_width(ls_mem_result_width),
-    .result_update_csr(ls_result_update_csr)
+    .result_update_gpr(ls_result_update_gpr)
 );
 
 /* 回写wb */
 wire [INST_WIDTH-1:0] dnpc, result;
 wire [7:0] mem_result_width;
-wire result_update_csr;
+wire result_update_gpr;
 assign dnpc = ({INST_WIDTH{ex_enable}} & ex_dnpc) | ({INST_WIDTH{ls_enable}} & ls_dnpc);
 assign result = ({INST_WIDTH{ex_enable}} & ex_result) | ({INST_WIDTH{ls_enable}} & ls_result);
 assign mem_result_width = ({8{ex_enable}} & ex_mem_result_width) | ({8{ls_enable}} & ls_mem_result_width);
-assign result_update_csr = ({1{ex_enable}} & ex_result_update_csr) | ({1{ls_enable}} & ls_result_update_csr);
+assign result_update_gpr = ({1{ex_enable}} & ex_result_update_gpr) | ({1{ls_enable}} & ls_result_update_gpr);
 assign ex_ls_valid = ({1{ex_enable}} & ex_valid) | ({1{ls_enable}} & ls_valid);
 write_back #(
     .INST_WIDTH(INST_WIDTH)
@@ -890,19 +909,21 @@ write_back #(
     .clk(clk),
     .rst(rst),
 
-    .w_x(x),
+    .gpr_wen(wb_gpr_wen),
+    .gpr_windex(wb_gpr_windex),
+    .gpr_wdata(wb_gpr_wdata),
 
     .in_ready(wb_ready),
     .in_valid(ex_ls_valid),
     .rd(rd),
-    .rs1(rs1),
-    .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
     .result(result),
     .mem_result_width(mem_result_width),
-    .result_update_csr(result_update_csr),
+    .result_update_gpr(result_update_gpr),
     .dnpc(dnpc),
+    .src1(src1),
+    .src2(src2),
 
     .out_ready(),
     .out_valid(wb_valid),

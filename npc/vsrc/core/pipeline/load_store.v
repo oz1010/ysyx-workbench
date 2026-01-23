@@ -42,20 +42,20 @@ module load_store #(
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
-    input   wire [4:0]                  rs1,
-    input   wire [4:0]                  rs2,
     input   wire [INST_WIDTH-1:0]       imm,
     input   wire [15:0]                 inst_code,
     input   wire [INST_WIDTH-1:0]       inst,
     input   wire [INST_WIDTH-1:0]       pc,
-    input   wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0]  x,
+    input   wire [INST_WIDTH-1:0]       src1,
+    input   wire [INST_WIDTH-1:0]       src2,
+
     /* 模块输入数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
     output  wire [INST_WIDTH-1:0]       dnpc,
     output  wire [INST_WIDTH-1:0]       result,
     output  wire [7:0]                  mem_result_width,
-    output  wire                        result_update_csr
+    output  wire                        result_update_gpr
 );
 
 reg r_in_ready, r_out_valid;
@@ -65,22 +65,12 @@ assign out_valid = r_out_valid;
 reg [INST_WIDTH-1:0] r_dnpc;
 reg [INST_WIDTH-1:0] r_result;
 reg [7:0] r_result_mem_width;
-reg r_result_update_csr;
+reg r_result_update_gpr;
 
 assign dnpc = r_dnpc;
 assign result = r_result;
 assign mem_result_width = r_result_mem_width;
-assign result_update_csr = r_result_update_csr;
-
-wire [INST_WIDTH-1:0] xs[0:`RISCV_CSR_COUNT-1];
-generate
-    for (genvar i = 0; i<`RISCV_CSR_COUNT; ++i) begin
-        assign xs[i] = x[i*INST_WIDTH +: INST_WIDTH];
-    end
-endgenerate
-
-wire [31:0] src1 = xs[rs1];
-wire [31:0] src2 = xs[rs2];
+assign result_update_gpr = r_result_update_gpr;
 
 wire in_wait_in_ready = (in_valid && !in_ready);
 wire in_test_mode = in_wait_in_ready && ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff);
@@ -187,7 +177,7 @@ always @(posedge clk) begin
         r_dnpc <= 0;
         r_result <= 0;
         r_result_mem_width <= 0;
-        r_result_update_csr <= 0;
+        r_result_update_gpr <= 0;
 
         r_in_ready <= 0;
         r_out_valid <= 0;
@@ -195,7 +185,7 @@ always @(posedge clk) begin
         r_dnpc <= r_dnpc;
         r_result <= r_result;
         r_result_mem_width <= r_result_mem_width;
-        r_result_update_csr <= r_result_update_csr;
+        r_result_update_gpr <= r_result_update_gpr;
 
         if (in_wait_in_ready) begin
             if (in_test_mode || fence_enable) begin
@@ -205,14 +195,14 @@ always @(posedge clk) begin
                 if (in_test_mode) begin r_result <= func_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2); end
                 else begin r_result <= 0; end
                 r_result_mem_width <= 0;
-                r_result_update_csr <= 0;
+                r_result_update_gpr <= 0;
                 r_in_ready <= 1;
             end else if (write_enable) begin
                 if (write_state==`AXI4_STATE_RESPONSE && bvalid && bready) begin
                     r_dnpc <= pc + 4;
                     r_result <= 0;
                     r_result_mem_width <= 0;
-                    r_result_update_csr <= 0;
+                    r_result_update_gpr <= 0;
                     r_in_ready <= 1;
                 end
 
@@ -229,7 +219,7 @@ always @(posedge clk) begin
                             // notify prev module
                             r_dnpc <= pc + 4;
                             r_result_mem_width <= 0;
-                            r_result_update_csr <= 1;
+                            r_result_update_gpr <= 1;
                             r_in_ready <= 1;
                         end
                     end

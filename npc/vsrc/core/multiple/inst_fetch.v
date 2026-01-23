@@ -10,9 +10,7 @@ module inst_fetch #(
     input   wire                        clk,
     input   wire                        rst,
 
-    input   wire [INST_WIDTH-1:0]       pc,
-    output  wire [INST_WIDTH-1:0]       inst,
-
+    /* AXI4总线master */
     input   wire                        awready,
     output  wire                        awvalid,
     output  wire [ADDR_WIDTH-1:0]       awaddr,
@@ -29,7 +27,6 @@ module inst_fetch #(
     input   wire                        bvalid,
     input   wire [BRESP_WIDTH-1:0]      bresp,
     input   wire [3:0]                  bid,
-
     input   wire                        arready,
     output  wire                        arvalid,
     output  wire [ADDR_WIDTH-1:0]       araddr,
@@ -44,9 +41,14 @@ module inst_fetch #(
     input   wire                        rlast,
     input   wire [3:0]                  rid,
 
-    input   wire                        enable,
-    input   wire                        next_ready,
-    output  wire                        next_valid
+    /* 模块输入数据总线 */
+    output  wire                        in_ready,
+    input   wire                        in_valid,
+    input   wire [INST_WIDTH-1:0]       pc,
+    /* 模块输出数据总线 */
+    input   wire                        out_ready,
+    output  wire                        out_valid,
+    output  wire [INST_WIDTH-1:0]       inst
 );
 
     assign awvalid = 0;
@@ -68,12 +70,12 @@ module inst_fetch #(
             in_read_en <= 0;
         end else begin
             if (in_read_en) begin
-                if (next_valid) begin
+                if (out_valid) begin
                     in_read_en <= 0;
                 end
             end
 
-            if (enable) begin
+            if (in_valid) begin
                 in_read_en <= 1;
             end
         end
@@ -83,11 +85,13 @@ module inst_fetch #(
         if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
             reg [INST_WIDTH-1:0] r_inst = 0;
 
-            wire read_en = enable || in_read_en;
+            wire read_en = in_valid || in_read_en;
+            // wire read_en = in_valid;
             wire [1:0] read_state;
             wire [INST_WIDTH-1:0] read_data;
             
-            assign next_valid = rvalid && rready;
+            assign in_ready = 1;
+            assign out_valid = rvalid && rready;
             assign inst = r_inst;
 
             axi_master_reader #(
@@ -143,7 +147,7 @@ module inst_fetch #(
             end
 
         end else begin : sram_unknown
-            assign next_valid = 1;
+            assign out_valid = 1;
             assign inst = 0;
 
             `ifndef IN_YOSYS_STA
