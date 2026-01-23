@@ -44,7 +44,8 @@ module inst_fetch #(
     input   wire                        rlast,
     input   wire [3:0]                  rid,
 
-    input   wire                        enable,
+    output  wire                        prev_ready,
+    input   wire                        prev_valid,
     input   wire                        next_ready,
     output  wire                        next_valid
 );
@@ -73,7 +74,7 @@ module inst_fetch #(
                 end
             end
 
-            if (enable) begin
+            if (prev_valid) begin
                 in_read_en <= 1;
             end
         end
@@ -83,10 +84,12 @@ module inst_fetch #(
         if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
             reg [INST_WIDTH-1:0] r_inst = 0;
 
-            wire read_en = enable || in_read_en;
+            wire read_en = prev_valid || in_read_en;
+            // wire read_en = prev_valid;
             wire [1:0] read_state;
             wire [INST_WIDTH-1:0] read_data;
             
+            assign prev_ready = 1;
             assign next_valid = rvalid && rready;
             assign inst = r_inst;
 

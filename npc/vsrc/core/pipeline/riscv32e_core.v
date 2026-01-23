@@ -48,6 +48,7 @@ module riscv32e_core #(
 );
 
 /* 模块通信消息 */
+wire if_ready;
 wire if_valid;
 wire id_ready;
 wire id_valid;
@@ -56,6 +57,7 @@ wire ex_valid;
 wire ls_ready;
 wire ls_valid;
 wire wb_ready;
+wire wb_valid;
 wire ex_enable;
 wire ls_enable;
 wire ex_ls_valid;
@@ -283,7 +285,7 @@ wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x;
 wire [INST_WIDTH-1:0] inst;
 reg [63:0] execute_time;
 
-assign valid = wb_ready;
+assign valid = wb_valid;
 // assign w_pc = pc;
 
 always @(posedge clk) begin
@@ -739,7 +741,8 @@ inst_fetch #(
     .rlast(if_rlast),
     .rid(if_rid),
 
-    .enable(execute_time<=1 || valid),
+    .prev_ready(if_ready),
+    .prev_valid(!rst && (execute_time==0 || valid)),
     .next_ready(id_ready),
     .next_valid(if_valid)
 );
@@ -900,7 +903,9 @@ write_back #(
     .w_pc(pc),
 
     .prev_ready(wb_ready),
-    .prev_valid(ex_ls_valid)
+    .prev_valid(ex_ls_valid),
+    .next_ready(),
+    .next_valid(wb_valid)
 );
 
 endmodule

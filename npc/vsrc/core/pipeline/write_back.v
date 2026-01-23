@@ -21,8 +21,10 @@ module write_back #(
     input wire [INST_WIDTH-1:0] dnpc,
     output wire [INST_WIDTH-1:0] w_pc,
 
-    output wire prev_ready,
-    input wire prev_valid
+    output  wire                        prev_ready,
+    input   wire                        prev_valid,
+    input   wire                        next_ready,
+    output  wire                        next_valid
 );
 
 /* 寄存器组 */
@@ -56,16 +58,19 @@ assign w_pc = pc;
 wire [INST_WIDTH-1:0] src1 = xs[rs1];
 
 reg r_prev_ready;
+reg r_next_valid;
 reg [7:0] cnt;
 
 
 assign prev_ready = r_prev_ready;
+assign next_valid = r_next_valid;
 
 always @(posedge clk) begin
     if (rst) begin
         pc <= func_get_reset_pc();
         xs[0] <= 0;
         r_prev_ready <= 0;
+        r_next_valid <= 0;
     end else begin
 
         if (prev_valid) begin
@@ -75,11 +80,13 @@ always @(posedge clk) begin
 
                 pc <= dnpc;
                 r_prev_ready <= 1;
+                r_next_valid <= 1;
             end
         end
 
         if (prev_valid && prev_ready) begin
             r_prev_ready <= 0;
+            r_next_valid <= 0;
         end
 
         // 确保 x0 始终为零
