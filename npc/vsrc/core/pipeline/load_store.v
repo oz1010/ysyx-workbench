@@ -5,23 +5,10 @@ module load_store #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input wire clk,
-    input wire rst,
+    input   wire                        clk,
+    input   wire                        rst,
 
-    input wire [4:0] rs1,
-    input wire [4:0] rs2,
-    input wire [INST_WIDTH-1:0] imm,
-    input wire [15:0] inst_code,
-
-    input wire [INST_WIDTH-1:0] inst,
-    input wire [INST_WIDTH-1:0] pc,
-    output wire [INST_WIDTH-1:0] dnpc,
-
-    input wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x,
-    output wire [INST_WIDTH-1:0] result,
-    output wire [7:0] mem_result_width,
-    output wire result_update_csr,
-
+    /* AXI4总线master */
     input   wire                        awready,
     output  wire                        awvalid,
     output  wire [ADDR_WIDTH-1:0]       awaddr,
@@ -38,7 +25,6 @@ module load_store #(
     input   wire                        bvalid,
     input   wire [BRESP_WIDTH-1:0]      bresp,
     input   wire [3:0]                  bid,
-
     input   wire                        arready,
     output  wire                        arvalid,
     output  wire [ADDR_WIDTH-1:0]       araddr,
@@ -53,15 +39,28 @@ module load_store #(
     input   wire                        rlast,
     input   wire [3:0]                  rid,
 
-    output wire prev_ready,
-    input wire prev_valid,
-    input wire next_ready,
-    output wire next_valid
+    /* 模块输入数据总线 */
+    output  wire                        in_ready,
+    input   wire                        in_valid,
+    input   wire [4:0]                  rs1,
+    input   wire [4:0]                  rs2,
+    input   wire [INST_WIDTH-1:0]       imm,
+    input   wire [15:0]                 inst_code,
+    input   wire [INST_WIDTH-1:0]       inst,
+    input   wire [INST_WIDTH-1:0]       pc,
+    input   wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0]  x,
+    /* 模块输入数据总线 */
+    input   wire                        out_ready,
+    output  wire                        out_valid,
+    output  wire [INST_WIDTH-1:0]       dnpc,
+    output  wire [INST_WIDTH-1:0]       result,
+    output  wire [7:0]                  mem_result_width,
+    output  wire                        result_update_csr
 );
 
-reg r_prev_ready, r_next_valid;
-assign prev_ready = r_prev_ready;
-assign next_valid = r_next_valid;
+reg r_in_ready, r_out_valid;
+assign in_ready = r_in_ready;
+assign out_valid = r_out_valid;
 
 reg [INST_WIDTH-1:0] r_dnpc;
 reg [INST_WIDTH-1:0] r_result;
@@ -83,8 +82,8 @@ endgenerate
 wire [31:0] src1 = xs[rs1];
 wire [31:0] src2 = xs[rs2];
 
-wire in_wait_prev_ready = (prev_valid && !prev_ready);
-wire in_test_mode = in_wait_prev_ready && ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff);
+wire in_wait_in_ready = (in_valid && !in_ready);
+wire in_test_mode = in_wait_in_ready && ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff);
 
 wire [2:0] inst_opn_size = 
       inst_code == `INST_SB ? 0
@@ -95,20 +94,20 @@ wire [2:0] inst_opn_size =
     : inst_code == `INST_LHU ? 1
     : 2;
 
-wire write_enable = in_wait_prev_ready && (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW);
+wire write_enable = in_wait_in_ready && (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW);
 wire [ADDR_WIDTH-1:0] write_addr = src1+imm;
 wire [DATA_WIDTH-1:0] write_data = src2;
 wire [2:0] write_size = inst_opn_size;
 wire [1:0] write_state;
 
-wire read_enable = in_wait_prev_ready && (inst_code==`INST_LB || inst_code==`INST_LH || inst_code==`INST_LW || inst_code==`INST_LBU || inst_code==`INST_LHU);
+wire read_enable = in_wait_in_ready && (inst_code==`INST_LB || inst_code==`INST_LH || inst_code==`INST_LW || inst_code==`INST_LBU || inst_code==`INST_LHU);
 wire read_sign = (inst_code==`INST_LB || inst_code==`INST_LH || inst_code==`INST_LW);
 wire [ADDR_WIDTH-1:0] read_addr = src1+imm;
 wire [DATA_WIDTH-1:0] read_data;
 wire [2:0] read_size = inst_opn_size;
 wire [1:0] read_state;
 
-wire fence_enable = in_wait_prev_ready && (inst_code==`INST_FENCE || inst_code==`INST_FENCE_I);
+wire fence_enable = in_wait_in_ready && (inst_code==`INST_FENCE || inst_code==`INST_FENCE_I);
 
 axi_master_writer #(
 `ifndef IN_YOSYS_STA
@@ -190,15 +189,15 @@ always @(posedge clk) begin
         r_result_mem_width <= 0;
         r_result_update_csr <= 0;
 
-        r_prev_ready <= 0;
-        r_next_valid <= 0;
+        r_in_ready <= 0;
+        r_out_valid <= 0;
     end else begin
         r_dnpc <= r_dnpc;
         r_result <= r_result;
         r_result_mem_width <= r_result_mem_width;
         r_result_update_csr <= r_result_update_csr;
 
-        if (in_wait_prev_ready) begin
+        if (in_wait_in_ready) begin
             if (in_test_mode || fence_enable) begin
                 // 用于调试的地址段，向这里写数据会触发内置的调试函数
                 // notify next
@@ -207,14 +206,14 @@ always @(posedge clk) begin
                 else begin r_result <= 0; end
                 r_result_mem_width <= 0;
                 r_result_update_csr <= 0;
-                r_prev_ready <= 1;
+                r_in_ready <= 1;
             end else if (write_enable) begin
                 if (write_state==`AXI4_STATE_RESPONSE && bvalid && bready) begin
                     r_dnpc <= pc + 4;
                     r_result <= 0;
                     r_result_mem_width <= 0;
                     r_result_update_csr <= 0;
-                    r_prev_ready <= 1;
+                    r_in_ready <= 1;
                 end
 
                 if (awvalid && awready) func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, awaddr);
@@ -231,7 +230,7 @@ always @(posedge clk) begin
                             r_dnpc <= pc + 4;
                             r_result_mem_width <= 0;
                             r_result_update_csr <= 1;
-                            r_prev_ready <= 1;
+                            r_in_ready <= 1;
                         end
                     end
                 endcase
@@ -244,15 +243,15 @@ always @(posedge clk) begin
             end
 
         end
-        if (prev_valid && prev_ready) begin
-            r_prev_ready <= 0;
+        if (in_valid && in_ready) begin
+            r_in_ready <= 0;
         end
         
-        if (prev_valid && prev_ready) begin
-            r_next_valid <= 1;
+        if (in_valid && in_ready) begin
+            r_out_valid <= 1;
         end
-        if (next_valid && next_ready) begin
-            r_next_valid <= 0;
+        if (out_valid && out_ready) begin
+            r_out_valid <= 0;
         end
 
     end
