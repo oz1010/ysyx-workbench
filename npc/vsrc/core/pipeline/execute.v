@@ -1,27 +1,26 @@
 module execute #(
     parameter INST_WIDTH = 32
 ) (
-    input wire clk,
-    input wire rst,
+    input   wire                        clk,
+    input   wire                        rst,
 
-    input wire [4:0] rs1,
-    input wire [4:0] rs2,
-    input wire [INST_WIDTH-1:0] imm,
-    input wire [15:0] inst_code,
-
-    input wire [INST_WIDTH-1:0] inst,
-    input wire [INST_WIDTH-1:0] pc,
-    output wire [INST_WIDTH-1:0] dnpc,
-
-    input wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x,
-    output wire [INST_WIDTH-1:0] result,
-    output wire [7:0] mem_result_width,
-    output wire result_update_csr,
-
-    output wire prev_ready,
-    input wire prev_valid,
-    input wire next_ready,
-    output wire next_valid
+    /* 模块输入数据总线 */
+    output  wire                        in_ready,
+    input   wire                        in_valid,
+    input   wire [4:0]                  rs1,
+    input   wire [4:0]                  rs2,
+    input   wire [INST_WIDTH-1:0]       imm,
+    input   wire [15:0]                 inst_code,
+    input   wire [INST_WIDTH-1:0]       inst,
+    input   wire [INST_WIDTH-1:0]       pc,
+    input   wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0]  x,
+    /* 模块输入数据总线 */
+    input   wire                        out_ready,
+    output  wire                        out_valid,
+    output  wire [INST_WIDTH-1:0]       dnpc,
+    output  wire [INST_WIDTH-1:0]       result,
+    output  wire [7:0]                  mem_result_width,
+    output  wire                        result_update_csr
 );
 
 wire [1:0] w_ex_prev_state, w_ex_next_state;
@@ -29,10 +28,10 @@ wire [1:0] w_ex_prev_state, w_ex_next_state;
 scom m_scom_ex(
     .clk(clk),
     .rst(rst),
-    .prev_ready(prev_ready),
-    .prev_valid(prev_valid),
-    .next_ready(next_ready),
-    .next_valid(next_valid),
+    .prev_ready(in_ready),
+    .prev_valid(in_valid),
+    .next_ready(out_ready),
+    .next_valid(out_valid),
     .prev_state(w_ex_prev_state),
     .next_state(w_ex_next_state)
 );

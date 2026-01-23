@@ -708,9 +708,6 @@ inst_fetch #(
     .clk(clk),
     .rst(rst),
 
-    .pc(pc),
-    .inst(inst),
-
     .awready(if_awready),
     .awvalid(if_awvalid),
     .awaddr(if_awaddr),
@@ -741,10 +738,13 @@ inst_fetch #(
     .rlast(if_rlast),
     .rid(if_rid),
 
-    .prev_ready(if_ready),
-    .prev_valid(!rst && (execute_time==0 || valid)),
-    .next_ready(id_ready),
-    .next_valid(if_valid)
+    .in_ready(if_ready),
+    .in_valid(!rst && (execute_time==0 || valid)),
+    .pc(pc),
+
+    .out_ready(id_ready),
+    .out_valid(if_valid),
+    .inst(inst)
 );
 
 /* 译码id */
@@ -759,17 +759,17 @@ inst_decode #(
     .clk(clk),
     .rst(rst),
 
+    .in_ready(id_ready),
+    .in_valid(if_valid),
     .inst(inst),
+
+    .out_ready(ex_ls_ready),
+    .out_valid(id_valid),
     .rd(rd),
     .rs1(rs1),
     .rs2(rs2),
     .imm(imm),
-    .icode(inst_code),
-
-    .prev_ready(id_ready),
-    .prev_valid(if_valid),
-    .next_ready(ex_ls_ready),
-    .next_valid(id_valid)
+    .icode(inst_code)
 );
 wire fence_enable = (inst_code == `INST_FENCE) || (inst_code == `INST_FENCE_I);
 reg last_fence_enable;
@@ -799,22 +799,22 @@ execute #(
     .clk(clk),
     .rst(rst),
 
+    .in_ready(ex_ready),
+    .in_valid(id_valid && ex_enable),
     .rs1(rs1),
     .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
     .inst(inst),
     .pc(pc),
-    .dnpc(ex_dnpc),
     .x(x),
+
+    .out_ready(wb_ready),
+    .out_valid(ex_valid),
+    .dnpc(ex_dnpc),
     .result(ex_result),
     .mem_result_width(ex_mem_result_width),
-    .result_update_csr(ex_result_update_csr),
-
-    .prev_ready(ex_ready),
-    .prev_valid(id_valid && ex_enable),
-    .next_ready(wb_ready),
-    .next_valid(ex_valid)
+    .result_update_csr(ex_result_update_csr)
 );
 
 /* 读存储ls */
@@ -826,18 +826,6 @@ load_store #(
 ) lsu(
     .clk(clk),
     .rst(rst),
-
-    .rs1(rs1),
-    .rs2(rs2),
-    .imm(imm),
-    .inst_code(inst_code),
-    .inst(inst),
-    .pc(pc),
-    .dnpc(ls_dnpc),
-    .x(x),
-    .result(ls_result),
-    .mem_result_width(ls_mem_result_width),
-    .result_update_csr(ls_result_update_csr),
 
     .awready(ls_awready),
     .awvalid(ls_awvalid),
@@ -869,10 +857,22 @@ load_store #(
     .rlast(ls_rlast),
     .rid(ls_rid),
 
-    .prev_ready(ls_ready),
-    .prev_valid(id_valid && ls_enable),
-    .next_ready(wb_ready),
-    .next_valid(ls_valid)
+    .in_ready(ls_ready),
+    .in_valid(id_valid && ls_enable),
+    .rs1(rs1),
+    .rs2(rs2),
+    .imm(imm),
+    .inst_code(inst_code),
+    .inst(inst),
+    .pc(pc),
+    .x(x),
+
+    .out_ready(wb_ready),
+    .out_valid(ls_valid),
+    .dnpc(ls_dnpc),
+    .result(ls_result),
+    .mem_result_width(ls_mem_result_width),
+    .result_update_csr(ls_result_update_csr)
 );
 
 /* 回写wb */
@@ -890,22 +890,23 @@ write_back #(
     .clk(clk),
     .rst(rst),
 
+    .w_x(x),
+
+    .in_ready(wb_ready),
+    .in_valid(ex_ls_valid),
     .rd(rd),
     .rs1(rs1),
     .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
-    .w_x(x),
     .result(result),
     .mem_result_width(mem_result_width),
     .result_update_csr(result_update_csr),
     .dnpc(dnpc),
-    .w_pc(pc),
 
-    .prev_ready(wb_ready),
-    .prev_valid(ex_ls_valid),
-    .next_ready(),
-    .next_valid(wb_valid)
+    .out_ready(),
+    .out_valid(wb_valid),
+    .w_pc(pc)
 );
 
 endmodule

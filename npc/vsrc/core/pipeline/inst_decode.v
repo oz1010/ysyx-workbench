@@ -1,20 +1,21 @@
 module inst_decode #(
     parameter INST_WIDTH = 32
 ) (
-    input wire clk,
-    input wire rst,
+    input wire                          clk,
+    input wire                          rst,
 
-    input wire [INST_WIDTH-1:0] inst,
-    output wire [4:0] rd,
-    output wire [4:0] rs1,
-    output wire [4:0] rs2,
-    output wire [INST_WIDTH-1:0] imm,
-    output wire [15:0] icode,
-
-    output wire prev_ready,
-    input wire prev_valid,
-    input wire next_ready,
-    output wire next_valid
+    /* 模块输入数据总线 */
+    output  wire                        in_ready,
+    input   wire                        in_valid,
+    input   wire [INST_WIDTH-1:0]       inst,
+    /* 模块输出数据总线 */
+    input   wire                        out_ready,
+    output  wire                        out_valid,
+    output  wire [4:0]                  rd,
+    output  wire [4:0]                  rs1,
+    output  wire [4:0]                  rs2,
+    output  wire [INST_WIDTH-1:0]       imm,
+    output  wire [15:0]                 icode
 );
 
 reg [4:0] r_rd;
@@ -27,10 +28,10 @@ wire [1:0] wid_prev_state, wid_next_state;
 scom m_scom_id(
     .clk(clk),
     .rst(rst),
-    .prev_ready(prev_ready),
-    .prev_valid(prev_valid),
-    .next_ready(next_ready),
-    .next_valid(next_valid),
+    .prev_ready(in_ready),
+    .prev_valid(in_valid),
+    .next_ready(out_ready),
+    .next_valid(out_valid),
     .prev_state(wid_prev_state),
     .next_state(wid_next_state)
 );

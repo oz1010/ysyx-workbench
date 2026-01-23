@@ -5,26 +5,28 @@ module write_back #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
+    input   wire                        clk,
+    input   wire                        rst,
 
-    input wire [4:0] rd,
-    input wire [4:0] rs1,
-    input wire [4:0] rs2,
-    input wire [INST_WIDTH-1:0] imm,
-    input wire [15:0] inst_code,
+    /* TODO 寄存器组输出，用于外部访问。需要将寄存器组移到外面 */
+    output  wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] w_x,
 
-    output wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] w_x,
-    input wire [INST_WIDTH-1:0] result,
-    input wire [7:0] mem_result_width,
-    input wire result_update_csr,
-    input wire [INST_WIDTH-1:0] dnpc,
-    output wire [INST_WIDTH-1:0] w_pc,
-
-    output  wire                        prev_ready,
-    input   wire                        prev_valid,
-    input   wire                        next_ready,
-    output  wire                        next_valid
+    /* 模块输入数据总线 */
+    output  wire                        in_ready,
+    input   wire                        in_valid,
+    input   wire [4:0]                  rd,
+    input   wire [4:0]                  rs1,
+    input   wire [4:0]                  rs2,
+    input   wire [INST_WIDTH-1:0]       imm,
+    input   wire [15:0]                 inst_code,
+    input   wire [INST_WIDTH-1:0]       result,
+    input   wire [7:0]                  mem_result_width,
+    input   wire                        result_update_csr,
+    input   wire [INST_WIDTH-1:0]       dnpc,
+    /* 模块输出数据总线 */
+    input   wire                        out_ready,
+    output  wire                        out_valid,
+    output  wire [INST_WIDTH-1:0]       w_pc
 );
 
 /* 寄存器组 */
@@ -57,36 +59,36 @@ wire [INST_WIDTH-1:0] w_mem_result_width = {{INST_WIDTH-8{1'b0}}, mem_result_wid
 assign w_pc = pc;
 wire [INST_WIDTH-1:0] src1 = xs[rs1];
 
-reg r_prev_ready;
-reg r_next_valid;
+reg r_in_ready;
+reg r_out_valid;
 reg [7:0] cnt;
 
 
-assign prev_ready = r_prev_ready;
-assign next_valid = r_next_valid;
+assign in_ready = r_in_ready;
+assign out_valid = r_out_valid;
 
 always @(posedge clk) begin
     if (rst) begin
         pc <= func_get_reset_pc();
         xs[0] <= 0;
-        r_prev_ready <= 0;
-        r_next_valid <= 0;
+        r_in_ready <= 0;
+        r_out_valid <= 0;
     end else begin
 
-        if (prev_valid) begin
+        if (in_valid) begin
             if (w_mem_result_width > 0) begin
             end else begin
                 if (result_update_csr) xs[rd] <= result;
 
                 pc <= dnpc;
-                r_prev_ready <= 1;
-                r_next_valid <= 1;
+                r_in_ready <= 1;
+                r_out_valid <= 1;
             end
         end
 
-        if (prev_valid && prev_ready) begin
-            r_prev_ready <= 0;
-            r_next_valid <= 0;
+        if (in_valid && in_ready) begin
+            r_in_ready <= 0;
+            r_out_valid <= 0;
         end
 
         // 确保 x0 始终为零
