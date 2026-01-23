@@ -62,6 +62,8 @@ typedef enum { SYNC_TO_SIMU, SYNC_TO_CPU } sync_type_t;
 
 static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t type)
 {
+    // TOP_S_X
+    // _simu->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060295_CORE0__DOT__m_reg_group__DOT__x
     if (type == SYNC_TO_SIMU){
         memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
         _simu->rootp->TOP_S_PC = _cpu->pc;

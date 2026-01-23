@@ -48,6 +48,7 @@ module riscv32e_core #(
 );
 
 /* 模块通信消息 */
+wire if_ready;
 wire if_valid;
 wire id_ready;
 wire id_valid;
@@ -56,6 +57,7 @@ wire ex_valid;
 wire ls_ready;
 wire ls_valid;
 wire wb_ready;
+wire wb_valid;
 wire ex_enable;
 wire ls_enable;
 wire ex_ls_valid;
@@ -279,11 +281,14 @@ assign s_rlast[AXI4_SLAVE_COUNT-1] = io_master_rlast;
 assign s_rid[AXI4_SLAVE_COUNT-1] = io_master_rid;
 
 /* 常用处理器信号 */
-wire [INST_WIDTH*`RISCV_CSR_COUNT-1:0] x;
 wire [INST_WIDTH-1:0] inst;
 reg [63:0] execute_time;
+wire [INST_WIDTH-1:0] src1, src2, a0;
+wire wb_gpr_wen;
+wire [4:0] wb_gpr_windex;
+wire [INST_WIDTH-1:0] wb_gpr_wdata;
 
-assign valid = wb_ready;
+assign valid = wb_valid;
 // assign w_pc = pc;
 
 always @(posedge clk) begin
@@ -295,6 +300,23 @@ always @(posedge clk) begin
         func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 1);
     end
 end
+
+/* 寄存器组 */
+gprs #(
+    .INST_WIDTH(INST_WIDTH),
+    .REG_COUNT(`RISCV_CSR_COUNT)
+) m_gprs (
+    .clk(clk),
+    .rst(rst),
+    .rs1(rs1),
+    .src1(src1),
+    .rs2(rs2),
+    .src2(src2),
+    .a0(a0),
+    .wen(wb_gpr_wen),
+    .windex(wb_gpr_windex),
+    .wdata(wb_gpr_wdata)
+);
 
 /* 性能监控 */
 perf_monitor m_perf_monitor (
@@ -706,9 +728,6 @@ inst_fetch #(
     .clk(clk),
     .rst(rst),
 
-    .pc(pc),
-    .inst(inst),
-
     .awready(if_awready),
     .awvalid(if_awvalid),
     .awaddr(if_awaddr),
@@ -739,9 +758,13 @@ inst_fetch #(
     .rlast(if_rlast),
     .rid(if_rid),
 
-    .enable(execute_time<=1 || valid),
-    .next_ready(id_ready),
-    .next_valid(if_valid)
+    .in_ready(if_ready),
+    .in_valid(!rst && (execute_time==0 || valid)),
+    .pc(pc),
+
+    .out_ready(id_ready),
+    .out_valid(if_valid),
+    .inst(inst)
 );
 
 /* 译码id */
@@ -756,17 +779,17 @@ inst_decode #(
     .clk(clk),
     .rst(rst),
 
+    .in_ready(id_ready),
+    .in_valid(if_valid),
     .inst(inst),
+
+    .out_ready(ex_ls_ready),
+    .out_valid(id_valid),
     .rd(rd),
     .rs1(rs1),
     .rs2(rs2),
     .imm(imm),
-    .icode(inst_code),
-
-    .prev_ready(id_ready),
-    .prev_valid(if_valid),
-    .next_ready(ex_ls_ready),
-    .next_valid(id_valid)
+    .icode(inst_code)
 );
 wire fence_enable = (inst_code == `INST_FENCE) || (inst_code == `INST_FENCE_I);
 reg last_fence_enable;
@@ -789,52 +812,40 @@ assign ex_ls_ready = ({1{ex_enable}} & ex_ready) | ({1{ls_enable}} & ls_ready);
 /* 执行ex */
 wire [INST_WIDTH-1:0] ex_dnpc, ex_result;
 wire [7:0] ex_mem_result_width;
-wire ex_result_update_csr;
+wire ex_result_update_gpr;
 execute #(
     .INST_WIDTH(INST_WIDTH)
 ) exu(
     .clk(clk),
     .rst(rst),
 
-    .rs1(rs1),
-    .rs2(rs2),
+    .in_ready(ex_ready),
+    .in_valid(id_valid && ex_enable),
     .imm(imm),
     .inst_code(inst_code),
     .inst(inst),
     .pc(pc),
+    .src1(src1),
+    .src2(src2),
+    .a0(a0),
+
+    .out_ready(wb_ready),
+    .out_valid(ex_valid),
     .dnpc(ex_dnpc),
-    .x(x),
     .result(ex_result),
     .mem_result_width(ex_mem_result_width),
-    .result_update_csr(ex_result_update_csr),
-
-    .prev_ready(ex_ready),
-    .prev_valid(id_valid && ex_enable),
-    .next_ready(wb_ready),
-    .next_valid(ex_valid)
+    .result_update_gpr(ex_result_update_gpr)
 );
 
 /* 读存储ls */
 wire [INST_WIDTH-1:0] ls_dnpc, ls_result;
 wire [7:0] ls_mem_result_width;
-wire ls_result_update_csr;
+wire ls_result_update_gpr;
 load_store #(
     .INST_WIDTH(INST_WIDTH)
 ) lsu(
     .clk(clk),
     .rst(rst),
-
-    .rs1(rs1),
-    .rs2(rs2),
-    .imm(imm),
-    .inst_code(inst_code),
-    .inst(inst),
-    .pc(pc),
-    .dnpc(ls_dnpc),
-    .x(x),
-    .result(ls_result),
-    .mem_result_width(ls_mem_result_width),
-    .result_update_csr(ls_result_update_csr),
 
     .awready(ls_awready),
     .awvalid(ls_awvalid),
@@ -866,20 +877,31 @@ load_store #(
     .rlast(ls_rlast),
     .rid(ls_rid),
 
-    .prev_ready(ls_ready),
-    .prev_valid(id_valid && ls_enable),
-    .next_ready(wb_ready),
-    .next_valid(ls_valid)
+    .in_ready(ls_ready),
+    .in_valid(id_valid && ls_enable),
+    .imm(imm),
+    .inst_code(inst_code),
+    .inst(inst),
+    .pc(pc),
+    .src1(src1),
+    .src2(src2),
+
+    .out_ready(wb_ready),
+    .out_valid(ls_valid),
+    .dnpc(ls_dnpc),
+    .result(ls_result),
+    .mem_result_width(ls_mem_result_width),
+    .result_update_gpr(ls_result_update_gpr)
 );
 
 /* 回写wb */
 wire [INST_WIDTH-1:0] dnpc, result;
 wire [7:0] mem_result_width;
-wire result_update_csr;
+wire result_update_gpr;
 assign dnpc = ({INST_WIDTH{ex_enable}} & ex_dnpc) | ({INST_WIDTH{ls_enable}} & ls_dnpc);
 assign result = ({INST_WIDTH{ex_enable}} & ex_result) | ({INST_WIDTH{ls_enable}} & ls_result);
 assign mem_result_width = ({8{ex_enable}} & ex_mem_result_width) | ({8{ls_enable}} & ls_mem_result_width);
-assign result_update_csr = ({1{ex_enable}} & ex_result_update_csr) | ({1{ls_enable}} & ls_result_update_csr);
+assign result_update_gpr = ({1{ex_enable}} & ex_result_update_gpr) | ({1{ls_enable}} & ls_result_update_gpr);
 assign ex_ls_valid = ({1{ex_enable}} & ex_valid) | ({1{ls_enable}} & ls_valid);
 write_back #(
     .INST_WIDTH(INST_WIDTH)
@@ -887,20 +909,25 @@ write_back #(
     .clk(clk),
     .rst(rst),
 
+    .gpr_wen(wb_gpr_wen),
+    .gpr_windex(wb_gpr_windex),
+    .gpr_wdata(wb_gpr_wdata),
+
+    .in_ready(wb_ready),
+    .in_valid(ex_ls_valid),
     .rd(rd),
-    .rs1(rs1),
-    .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
-    .w_x(x),
     .result(result),
     .mem_result_width(mem_result_width),
-    .result_update_csr(result_update_csr),
+    .result_update_gpr(result_update_gpr),
     .dnpc(dnpc),
-    .w_pc(pc),
+    .src1(src1),
+    .src2(src2),
 
-    .prev_ready(wb_ready),
-    .prev_valid(ex_ls_valid)
+    .out_ready(),
+    .out_valid(wb_valid),
+    .w_pc(pc)
 );
 
 endmodule
