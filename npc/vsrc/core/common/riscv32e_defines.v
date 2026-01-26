@@ -73,6 +73,10 @@
 `define INST_MRET           16'd55
 `define INST_INVALID        16'hffff
 
+`define INST_STATE_LS_EX    0
+`define INST_STATE_FENCE    1
+`define INST_STATE_W        2
+
 `define ERR_INV_OPN         -2
 
 `define SCOM_INVALID        2'b00
@@ -449,7 +453,17 @@ function automatic [31:0] func_read_raw_csr;
     input [31:0] imm;
     begin
 `ifdef IN_YOSYS_STA
-        func_read_raw_csr = global_csrs[imm[11:0]];
+        logic [2:0] csr_idx;
+        case (imm[11:0])
+            32'h300: csr_idx = 1; // mstatus寄存器 - 存放处理器的状态
+            32'h305: csr_idx = 2; // mtvec寄存器 - 存放trap-handler基地址
+            32'h341: csr_idx = 3; // mepc寄存器 - 存放触发异常的PC
+            32'h342: csr_idx = 4; // mcause寄存器 - 存放触发异常的原因
+            32'hf11: csr_idx = 5; // Vendor ID, ysyx的ASCII码, 即0x79737978
+            32'hf12: csr_idx = 6; // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
+            default: csr_idx = 0; // Invalid
+        endcase
+        func_read_raw_csr = global_csrs[csr_idx];
 `else
         func_read_raw_csr = read_raw_csr(imm);
 `endif
@@ -461,9 +475,18 @@ function void func_write_raw_csr;
     input [31:0] src1;
     begin
 `ifdef IN_YOSYS_STA
+        logic [2:0] csr_idx;
+        case (imm[11:0])
+            32'h300: csr_idx = 1; // mstatus寄存器 - 存放处理器的状态
+            32'h305: csr_idx = 2; // mtvec寄存器 - 存放trap-handler基地址
+            32'h341: csr_idx = 3; // mepc寄存器 - 存放触发异常的PC
+            32'h342: csr_idx = 4; // mcause寄存器 - 存放触发异常的原因
+            32'hf11: csr_idx = 5; // Vendor ID, ysyx的ASCII码, 即0x79737978
+            32'hf12: csr_idx = 6; // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
+            default: csr_idx = 0; // Invalid
+        endcase
         // 使用异步方式写入csr
-        // global_csrs[imm[11:0]] = src1;
-        gloabl_csr_write_addr = imm[11:0];
+        gloabl_csr_write_addr = csr_idx;
         gloabl_csr_write_value = src1;
 `else
         write_raw_csr(imm, src1);
