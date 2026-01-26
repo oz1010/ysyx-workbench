@@ -169,6 +169,9 @@
     `AXI4_SIG_DECL(PREFIX); \
     `AXI4_BUS_TO_M_SIG(PREFIX, BUS_IN, BUS_OUT)
 
+`define INNER_CON_STATE_W               1
+`define INNER_CON_IDLE                  0
+`define INNER_CON_BUSY                  1
 
 `ifdef IN_YOSYS_STA
 `else
