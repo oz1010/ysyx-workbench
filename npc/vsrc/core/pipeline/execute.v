@@ -8,7 +8,7 @@ module execute #(
     output  wire                        in_ready,
     input   wire                        in_valid,
     input   wire [INST_WIDTH-1:0]       imm,
-    input   wire [15:0]                 inst_code,
+    input   wire [`INST_CODE_W-1:0]                 inst_code,
     input   wire [INST_WIDTH-1:0]       inst,
     input   wire [INST_WIDTH-1:0]       pc,
     input   wire [INST_WIDTH-1:0]       src1,

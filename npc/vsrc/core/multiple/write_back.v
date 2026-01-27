@@ -17,7 +17,7 @@ module write_back #(
     input   wire                        in_valid,
     input   wire [4:0]                  rd,
     input   wire [INST_WIDTH-1:0]       imm,
-    input   wire [15:0]                 inst_code,
+    input   wire [`INST_CODE_W-1:0]                 inst_code,
     input   wire [INST_WIDTH-1:0]       result,
     input   wire [7:0]                  mem_result_width,
     input   wire                        result_update_gpr,

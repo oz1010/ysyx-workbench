@@ -7,7 +7,7 @@ module test_get_unalign_parameter(
     parameter ADDR_WIDTH = 32;
     
     // Testbench signals
-    logic [15:0] inst_code;
+    logic [`INST_CODE_W-1:0] inst_code;
     logic [ADDR_WIDTH-1:0] addr;
     logic [7:0] len;
     logic [2:0] size;

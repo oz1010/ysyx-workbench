@@ -15,14 +15,14 @@ module inst_decode #(
     output  wire [4:0]                  rs1,
     output  wire [4:0]                  rs2,
     output  wire [INST_WIDTH-1:0]       imm,
-    output  wire [15:0]                 icode
+    output  wire [`INST_CODE_W-1:0]     icode
 );
 
 reg [4:0] r_rd;
 reg [4:0] r_rs1;
 reg [4:0] r_rs2;
 reg [INST_WIDTH-1:0] r_imm;
-reg [15:0] inst_code;
+reg [`INST_CODE_W-1:0] inst_code;
 wire [1:0] wid_prev_state, wid_next_state;
 
 scom m_scom_id(

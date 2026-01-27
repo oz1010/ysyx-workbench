@@ -11,7 +11,7 @@ module perf_monitor (
     input  wire         ls_ready,
     input  wire         ls_valid,
     input  wire         wb_ready,
-    input  wire [15:0]  inst_code,
+    input  wire [`INST_CODE_W-1:0]  inst_code,
     output wire         done
 );
 

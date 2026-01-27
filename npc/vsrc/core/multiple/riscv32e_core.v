@@ -773,7 +773,7 @@ wire [4:0] rd;
 wire [4:0] rs1;
 wire [4:0] rs2;
 wire [INST_WIDTH-1:0] imm;
-wire [15:0] inst_code;
+wire [`INST_CODE_W-1:0] inst_code;
 inst_decode #(
     .INST_WIDTH(INST_WIDTH)
 ) idu(
