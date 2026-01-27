@@ -54,6 +54,9 @@ end
 wire write_en = wen && (|windex);
 wire [INST_WIDTH-1:0]       write_data = write_en ? wdata : 0;
 wire [REG_INDEX_W-1:0]      write_index = write_en ? windex : 0;
-assign x[write_index] = write_data;
+
+always @(*) begin
+    x[write_index] = write_data;
+end
 
 endmodule

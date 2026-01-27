@@ -65,8 +65,8 @@ module ysyxSoCFull (
 );
 
 `ifdef IN_YOSYS_STA
-reg [31:0] global_csrs[0:4095];
-reg [11:0] gloabl_csr_write_addr;
+reg [31:0] global_csrs[0:7];
+reg [3:0] gloabl_csr_write_addr;
 reg [31:0] gloabl_csr_write_value;
 reg [31:0] global_ret_pc;
 reg [31:0] global_pc;
