@@ -1,7 +1,7 @@
 // integer general-purpose registers
 module gprs #(
     parameter INST_WIDTH = 32,
-    parameter REG_COUNT = `RISCV_CSR_COUNT
+    parameter REG_COUNT = `RISCV_GPR_COUNT
 ) (
     input   wire                        clk,
     input   wire                        rst,
@@ -45,14 +45,18 @@ assign src2 = x[rs2];
 assign a0 = a[0];
 
 /* 
- * 只有当写使能且索引为非零生效
- * 确保 x0 始终为零
+ * 减低延时（提高频率）优化策略：
+ *   - 使用onehot编码，避免使用多位比较器
+ *   - generate循环可以用MUX代替解码器
+ * x0 始终为零
  */
-always @(posedge clk) begin
-    if (rst) begin
-        x[0] <= 0;
-    end else begin
-        if (wen && (|windex)) x[windex] <= wdata;
+wire [`RISCV_GPR_COUNT-1:0] wen_onehot;
+assign wen_onehot = wen ? (1 << windex) : 0;
+always @(posedge clk) x[0] <= 0;
+genvar i;
+for (i=1 ; i<`RISCV_GPR_COUNT; ++i) begin
+    always @(posedge clk) begin
+        x[i] <= wen_onehot[i] ? wdata : x[i];
     end
 end
 

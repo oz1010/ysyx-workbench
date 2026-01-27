@@ -46,7 +46,7 @@ module riscv32e_cpu #(
 reg [INST_WIDTH-1:0] r_inst;
 
 /* 常用处理器信号 */
-wire [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
+wire [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
 // wire [INST_WIDTH-1:0] pc;
 
 assign valid = 1;

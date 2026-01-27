@@ -11,13 +11,13 @@ module write_back #(
     input wire [INST_WIDTH-1:0] imm,
     input wire [15:0] inst_code,
 
-    output wire [INST_WIDTH-1:0] w_x[`RISCV_CSR_COUNT-1:0],
+    output wire [INST_WIDTH-1:0] w_x[`RISCV_GPR_COUNT-1:0],
     output wire [INST_WIDTH-1:0] w_pc
 );
 
 /* 寄存器组 */
 // 通用寄存器
-reg [INST_WIDTH-1:0] x[`RISCV_CSR_COUNT-1:0];
+reg [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
 // 程序寄存器
 reg [INST_WIDTH-1:0] pc;
 // 当前指令寄存器
