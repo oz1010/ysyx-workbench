@@ -305,7 +305,7 @@ end
 /* 寄存器组 */
 gprs #(
     .INST_WIDTH(INST_WIDTH),
-    .REG_COUNT(`RISCV_CSR_COUNT)
+    .REG_COUNT(`RISCV_GPR_COUNT)
 ) m_gprs (
     .clk(clk),
     .rst(rst),
