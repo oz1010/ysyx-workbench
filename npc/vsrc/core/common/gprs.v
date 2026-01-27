@@ -48,15 +48,12 @@ assign a0 = a[0];
  * 只有当写使能且索引为非零生效
  * 确保 x0 始终为零
  */
-initial begin
-    x[0] = 0;
-end
-wire write_en = wen && (|windex);
-wire [INST_WIDTH-1:0]       write_data = write_en ? wdata : 0;
-wire [REG_INDEX_W-1:0]      write_index = write_en ? windex : 0;
-
-always @(*) begin
-    x[write_index] = write_data;
+always @(posedge clk) begin
+    if (rst) begin
+        x[0] <= 0;
+    end else begin
+        if (wen && (|windex)) x[windex] <= wdata;
+    end
 end
 
 endmodule
