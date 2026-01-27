@@ -15,63 +15,64 @@
 `define TYPE_J              3'd5
 `define TYPE_INVALID        3'b111
 
-`define INST_LUI            16'd0
-`define INST_AUIPC          16'd1
-`define INST_JAL            16'd2
-`define INST_JALR           16'd3
-`define INST_BEQ            16'd4
-`define INST_BNE            16'd5
-`define INST_BLT            16'd6
-`define INST_BGE            16'd7
-`define INST_BLTU           16'd8
-`define INST_BGEU           16'd9
-`define INST_LB             16'd10
-`define INST_LH             16'd11
-`define INST_LW             16'd12
-`define INST_LBU            16'd13
-`define INST_LHU            16'd14
-`define INST_SB             16'd15
-`define INST_SH             16'd16
-`define INST_SW             16'd17
-`define INST_ADDI           16'd18
-`define INST_SLTI           16'd19
-`define INST_SLTIU          16'd20
-`define INST_XORI           16'd21
-`define INST_ORI            16'd22
-`define INST_ANDI           16'd23
-`define INST_SLLI           16'd24
-`define INST_SRLI           16'd25
-`define INST_SRAI           16'd26
-`define INST_ADD            16'd27
-`define INST_SUB            16'd28
-`define INST_SLL            16'd29
-`define INST_SLT            16'd30
-`define INST_SLTU           16'd31
-`define INST_XOR            16'd32
-`define INST_SRL            16'd33
-`define INST_SRA            16'd34
-`define INST_OR             16'd35
-`define INST_AND            16'd36
-`define INST_FENCE          16'd37
-`define INST_FENCE_I        16'd38
-`define INST_ECALL          16'd39
-`define INST_EBREAK         16'd40
-`define INST_CSRRW          16'd41
-`define INST_CSRRS          16'd42
-`define INST_CSRRC          16'd43
-`define INST_CSRRWI         16'd44
-`define INST_CSRRSI         16'd45
-`define INST_CSRRCI         16'd46
-`define INST_MUL            16'd47
-`define INST_MULH           16'd48
-`define INST_MULHSU         16'd49
-`define INST_MULHU          16'd50
-`define INST_DIV            16'd51
-`define INST_DIVU           16'd52
-`define INST_REM            16'd53
-`define INST_REMU           16'd54
-`define INST_MRET           16'd55
-`define INST_INVALID        16'hffff
+`define INST_CODE_W         8
+`define INST_LUI            `INST_CODE_W'd0
+`define INST_AUIPC          `INST_CODE_W'd1
+`define INST_JAL            `INST_CODE_W'd2
+`define INST_JALR           `INST_CODE_W'd3
+`define INST_BEQ            `INST_CODE_W'd4
+`define INST_BNE            `INST_CODE_W'd5
+`define INST_BLT            `INST_CODE_W'd6
+`define INST_BGE            `INST_CODE_W'd7
+`define INST_BLTU           `INST_CODE_W'd8
+`define INST_BGEU           `INST_CODE_W'd9
+`define INST_LB             `INST_CODE_W'd10
+`define INST_LH             `INST_CODE_W'd11
+`define INST_LW             `INST_CODE_W'd12
+`define INST_LBU            `INST_CODE_W'd13
+`define INST_LHU            `INST_CODE_W'd14
+`define INST_SB             `INST_CODE_W'd15
+`define INST_SH             `INST_CODE_W'd16
+`define INST_SW             `INST_CODE_W'd17
+`define INST_ADDI           `INST_CODE_W'd18
+`define INST_SLTI           `INST_CODE_W'd19
+`define INST_SLTIU          `INST_CODE_W'd20
+`define INST_XORI           `INST_CODE_W'd21
+`define INST_ORI            `INST_CODE_W'd22
+`define INST_ANDI           `INST_CODE_W'd23
+`define INST_SLLI           `INST_CODE_W'd24
+`define INST_SRLI           `INST_CODE_W'd25
+`define INST_SRAI           `INST_CODE_W'd26
+`define INST_ADD            `INST_CODE_W'd27
+`define INST_SUB            `INST_CODE_W'd28
+`define INST_SLL            `INST_CODE_W'd29
+`define INST_SLT            `INST_CODE_W'd30
+`define INST_SLTU           `INST_CODE_W'd31
+`define INST_XOR            `INST_CODE_W'd32
+`define INST_SRL            `INST_CODE_W'd33
+`define INST_SRA            `INST_CODE_W'd34
+`define INST_OR             `INST_CODE_W'd35
+`define INST_AND            `INST_CODE_W'd36
+`define INST_FENCE          `INST_CODE_W'd37
+`define INST_FENCE_I        `INST_CODE_W'd38
+`define INST_ECALL          `INST_CODE_W'd39
+`define INST_EBREAK         `INST_CODE_W'd40
+`define INST_CSRRW          `INST_CODE_W'd41
+`define INST_CSRRS          `INST_CODE_W'd42
+`define INST_CSRRC          `INST_CODE_W'd43
+`define INST_CSRRWI         `INST_CODE_W'd44
+`define INST_CSRRSI         `INST_CODE_W'd45
+`define INST_CSRRCI         `INST_CODE_W'd46
+`define INST_MUL            `INST_CODE_W'd47
+`define INST_MULH           `INST_CODE_W'd48
+`define INST_MULHSU         `INST_CODE_W'd49
+`define INST_MULHU          `INST_CODE_W'd50
+`define INST_DIV            `INST_CODE_W'd51
+`define INST_DIVU           `INST_CODE_W'd52
+`define INST_REM            `INST_CODE_W'd53
+`define INST_REMU           `INST_CODE_W'd54
+`define INST_MRET           `INST_CODE_W'd55
+`define INST_INVALID        `INST_CODE_W'hff
 
 `define INST_STATE_LS_EX    0
 `define INST_STATE_FENCE    1
@@ -233,7 +234,7 @@ function void check_dev_addr;
 endfunction
 
 function void get_unalign_parameter;
-    input logic [15:0] inst_code;
+    input logic [`INST_CODE_W-1:0] inst_code;
     input logic [31:0] addr;
     output logic [7:0] len;
     output logic [2:0] size;
@@ -302,7 +303,7 @@ endfunction
 
 function void read_unalign_data;
     input logic [7:0] idx;
-    input logic [15:0] inst_code;
+    input logic [`INST_CODE_W-1:0] inst_code;
     input logic [31:0] data;
     input logic [1:0] shift_val;
     output logic [31:0] result;

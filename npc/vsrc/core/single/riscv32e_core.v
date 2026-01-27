@@ -71,7 +71,7 @@ wire [4:0] rs2;
 wire [6:0] funct7;
 wire [31:0] imm;
 wire [2:0] inst_type;
-wire [15:0] inst_code;
+wire [`INST_CODE_W-1:0] inst_code;
 decoder risc32e_decoder(r_inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
 
 /* 执行并更新结果 */

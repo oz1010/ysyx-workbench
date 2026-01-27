@@ -1,7 +1,7 @@
 `include "riscv32e_defines.v"
 
 module alu (
-    input [15:0] inst_code,
+    input [`INST_CODE_W-1:0] inst_code,
     input [31:0] src1,
     input [31:0] src2,
     input [31:0] imm,

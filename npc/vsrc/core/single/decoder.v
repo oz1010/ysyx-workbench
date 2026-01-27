@@ -10,7 +10,7 @@ module decoder (
     output [6:0] funct7,
     output [31:0] imm,
     output [2:0] inst_type,
-    output reg [15:0] inst_code
+    output reg [`INST_CODE_W-1:0] inst_code
 );
 
 // 提取字段
