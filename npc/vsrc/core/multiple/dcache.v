@@ -154,13 +154,7 @@ reg  [1:0]                  c_s_arburst;
 reg                         c_s_rready;
 
 `ifdef CONFIG_DCACHE
-// wire dcache_wen = m_awid==`AXI4_ID_LSU &&
-//     ( 
-//            ( m_awaddr>=`CONFIG_MROM_BASE && m_awaddr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
-//         || ( m_awaddr>=`CONFIG_FLASH_BASE && m_awaddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE) )
-//         || ( m_awaddr>=`CONFIG_PSRAM_BASE && m_awaddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
-//         || ( m_awaddr>=`CONFIG_SDRAM_BASE && m_awaddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
-//     );
+`ifndef IN_YOSYS_STA
 wire dcache_wen = 0; // 写数据透传
 wire dcache_ren = m_arid==`AXI4_ID_LSU &&
     ( 
@@ -172,7 +166,12 @@ wire dcache_ren = m_arid==`AXI4_ID_LSU &&
 `else
 wire dcache_wen = 0;
 wire dcache_ren = 0;
-`endif
+`endif // IN_YOSYS_STA
+`else
+wire dcache_wen = 0;
+wire dcache_ren = 0;
+`endif // CONFIG_DCACHE
+
 wire slave_len_burst_en = ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) );
 
 wire                        slave_en; // 从设备使能标记
