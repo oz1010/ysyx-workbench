@@ -15,74 +15,78 @@ module write_back #(
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
-    input   wire [4:0]                  rd,
-    input   wire [INST_WIDTH-1:0]       imm,
-    input   wire [`INST_CODE_W-1:0]                 inst_code,
-    input   wire [INST_WIDTH-1:0]       result,
-    input   wire [7:0]                  mem_result_width,
-    input   wire                        result_update_gpr,
-    input   wire [INST_WIDTH-1:0]       dnpc,
-    input   wire [INST_WIDTH-1:0]       src1,
-    input   wire [INST_WIDTH-1:0]       src2,
+    input   wire [INST_WIDTH-1:0]       in_pc,
+    input   wire [4:0]                  in_rd,
+    input   wire [INST_WIDTH-1:0]       in_result,
+    input   wire [7:0]                  in_mem_result_width,
+    input   wire                        in_result_update_gpr,
+
     /* 模块输出数据总线 */
     input   wire                        out_ready,
-    output  wire                        out_valid,
-    output  wire [INST_WIDTH-1:0]       w_pc
+    output  wire                        out_valid
 );
 
-// 程序寄存器
-reg [INST_WIDTH-1:0] pc = 0;
+    localparam STAGE_IN_DATA_W = 
+        INST_WIDTH + 
+        5 + 
+        INST_WIDTH + 
+        8 + 1;
 
-wire [1:0] w_wb_prev_state;
-wire [INST_WIDTH-1:0] w_mem_result_width = {{INST_WIDTH-8{1'b0}}, mem_result_width};
-assign w_pc = pc;
+    wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
+    wire                            stage_in_done;
+    reg                             r_stage_out_valid;
+    wire                            stage_out_done;
+    wire [`INNER_CON_STATE_W-1:0]   stage_state;
 
-reg r_in_ready;
-reg r_out_valid;
-reg [7:0] cnt;
-reg                         r_gpr_wen;
-reg [4:0]                   r_gpr_windex;
-reg [INST_WIDTH-1:0]        r_gpr_wdata;
+    inner_con #(
+        .IN_DATA_STORAGE(1),
+        .IN_DATA_W(STAGE_IN_DATA_W)
+    ) wb_con(
+        .clk(clk),
+        .rst(rst),
+        .in_valid(in_valid),
+        .in_ready(in_ready),
+        .in_bits({in_pc, in_rd, in_result, in_mem_result_width, in_result_update_gpr}),
+        .out_valid(out_valid),
+        .out_ready(out_ready),
+        .stage_in_bits(stage_in_bits),
+        .stage_in_done(stage_in_done),
+        .stage_out_valid(r_stage_out_valid),
+        .stage_out_done(stage_out_done),
+        .stage_state(stage_state)
+    );
 
-assign gpr_wen = r_gpr_wen;
-assign gpr_windex = r_gpr_windex;
-assign gpr_wdata = r_gpr_wdata;
+    wire [INST_WIDTH-1:0]       core_pc;
+    wire [4:0]                  rd;
+    wire [INST_WIDTH-1:0]       result;
+    wire [7:0]                  mem_result_width;
+    wire                        result_update_gpr;
 
-
-assign in_ready = r_in_ready;
-assign out_valid = r_out_valid;
-
-always @(posedge clk) begin
-    if (rst) begin
-        pc <= func_get_reset_pc();
-        r_in_ready <= 0;
-        r_out_valid <= 0;
-    end else begin
-
-        if (in_valid) begin
-            if (w_mem_result_width > 0) begin
-            end else begin
-                if (result_update_gpr) begin
-                    r_gpr_wen <= 1;
-                    r_gpr_windex <= rd;
-                    r_gpr_wdata <= result;
-                end
-
-                pc <= dnpc;
-                r_in_ready <= 1;
-                r_out_valid <= 1;
-            end
-        end
-
-        if (r_gpr_wen) begin
-            r_gpr_wen <= 0;
-        end
-
-        if (in_valid && in_ready) begin
-            r_in_ready <= 0;
-            r_out_valid <= 0;
+    assign {core_pc, rd, result, mem_result_width, result_update_gpr} = stage_in_bits;
+    // TODO 需要去除
+    reg [INST_WIDTH-1:0] pc;
+    always @(posedge clk) begin
+        if (rst) begin
+            pc <= func_get_reset_pc();
+        end else begin
+            pc <= (in_valid&&in_ready) ? core_pc : pc;
         end
     end
-end
+
+    reg                         r_gpr_wen;
+
+    assign gpr_wen = r_gpr_wen;
+    assign gpr_windex = rd;
+    assign gpr_wdata = result;
+
+    always @(posedge clk) begin
+        if (rst) begin
+            r_stage_out_valid <= 0;
+            r_gpr_wen <= 0;
+        end else begin
+            r_stage_out_valid <= stage_in_done ? 1 : 0;
+            r_gpr_wen <= (result_update_gpr&stage_in_done&(!|mem_result_width)) ? 1 : 0;
+        end
+    end
 
 endmodule
