@@ -18,7 +18,6 @@ module write_back #(
     input   wire [INST_WIDTH-1:0]       in_pc,
     input   wire [4:0]                  in_rd,
     input   wire [INST_WIDTH-1:0]       in_result,
-    input   wire [7:0]                  in_mem_result_width,
     input   wire                        in_result_update_gpr,
 
     /* 模块输出数据总线 */
@@ -30,7 +29,7 @@ module write_back #(
         INST_WIDTH + 
         5 + 
         INST_WIDTH + 
-        8 + 1;
+        1;
 
     wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
     wire                            stage_in_done;
@@ -46,7 +45,7 @@ module write_back #(
         .rst(rst),
         .in_valid(in_valid),
         .in_ready(in_ready),
-        .in_bits({in_pc, in_rd, in_result, in_mem_result_width, in_result_update_gpr}),
+        .in_bits({in_pc, in_rd, in_result, in_result_update_gpr}),
         .out_valid(out_valid),
         .out_ready(out_ready),
         .stage_in_bits(stage_in_bits),
@@ -59,10 +58,9 @@ module write_back #(
     wire [INST_WIDTH-1:0]       core_pc;
     wire [4:0]                  rd;
     wire [INST_WIDTH-1:0]       result;
-    wire [7:0]                  mem_result_width;
     wire                        result_update_gpr;
 
-    assign {core_pc, rd, result, mem_result_width, result_update_gpr} = stage_in_bits;
+    assign {core_pc, rd, result, result_update_gpr} = stage_in_bits;
     // TODO 需要去除
     reg [INST_WIDTH-1:0] pc;
     always @(posedge clk) begin
@@ -85,7 +83,7 @@ module write_back #(
             r_gpr_wen <= 0;
         end else begin
             r_stage_out_valid <= stage_in_done ? 1 : 0;
-            r_gpr_wen <= (result_update_gpr&stage_in_done&(!|mem_result_width)) ? 1 : 0;
+            r_gpr_wen <= (result_update_gpr&stage_in_done) ? 1 : 0;
         end
     end
 

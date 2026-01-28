@@ -49,10 +49,7 @@ module load_store #(
     input   wire [`INST_CODE_W-1:0]     in_inst_code,
     input   wire [INST_WIDTH-1:0]       in_src1,
     input   wire [INST_WIDTH-1:0]       in_src2,
-    input   wire [INST_WIDTH-1:0]       in_a0,
-    input   wire [INST_WIDTH-1:0]       in_dnpc,
     input   wire [INST_WIDTH-1:0]       in_result,
-    input   wire [7:0]                  in_mem_result_width,
     input   wire                        in_result_update_gpr,
 
     /* 模块输入数据总线 */
@@ -61,15 +58,14 @@ module load_store #(
     output  wire [INST_WIDTH-1:0]       out_pc,
     output  wire [4:0]                  out_rd,
     output  wire [INST_WIDTH-1:0]       out_result,
-    output  wire [7:0]                  out_mem_result_width,
     output  wire                        out_result_update_gpr
 );
 
     localparam STAGE_IN_DATA_W =
         5 + 
         `INST_CODE_W + 
-        INST_WIDTH*8 + 
-        8 + 1;
+        INST_WIDTH*6 + 
+        1;
 
     wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
     wire                            stage_in_done;
@@ -85,8 +81,8 @@ module load_store #(
         .rst(rst),
         .in_valid(in_valid),
         .in_ready(in_ready),
-        .in_bits({in_pc, in_inst, in_rd, in_imm, in_inst_code, in_src1, in_src2, in_a0, 
-            in_dnpc, in_result, in_mem_result_width, in_result_update_gpr}),
+        .in_bits({in_pc, in_inst, in_rd, in_imm, in_inst_code, in_src1, in_src2, 
+            in_result, in_result_update_gpr}),
         .out_valid(out_valid),
         .out_ready(out_ready),
         .stage_in_bits(stage_in_bits),
@@ -97,22 +93,34 @@ module load_store #(
     );
 
     assign {
-        pc, inst, rd, imm, inst_code, src1, src2, a0,
-        dnpc, result, mem_result_width, result_update_gpr
+        pc, inst, rd, imm, inst_code, src1, src2,
+        result, result_update_gpr
     } = stage_in_bits;
     assign {
         out_pc,
         out_rd,
         out_result,
-        out_mem_result_width,
         out_result_update_gpr
     } = {
         pc,
         rd,
-        result,
-        mem_result_width,
-        result_update_gpr
+        ls_enable ? r_result : result,
+        ls_enable ? r_result_update_gpr : result_update_gpr
     };
+
+    /* TODO 后面需要在解码时直接赋值 */
+    wire ls_enable = 
+        (inst_code == `INST_LB) ||
+        (inst_code == `INST_LH) ||
+        (inst_code == `INST_LW) ||
+        (inst_code == `INST_LBU) ||
+        (inst_code == `INST_LHU) ||
+        (inst_code == `INST_SB) ||
+        (inst_code == `INST_SH) ||
+        (inst_code == `INST_SW) ||
+        (inst_code == `INST_FENCE) || 
+        (inst_code == `INST_FENCE_I)
+        ;
 
     wire [INST_WIDTH-1:0]       pc;
     wire [INST_WIDTH-1:0]       inst;
@@ -121,25 +129,15 @@ module load_store #(
     wire [`INST_CODE_W-1:0]     inst_code;
     wire [INST_WIDTH-1:0]       src1;
     wire [INST_WIDTH-1:0]       src2;
-    wire [INST_WIDTH-1:0]       a0;
-    wire [INST_WIDTH-1:0]       dnpc;
     wire [INST_WIDTH-1:0]       result;
-    wire [7:0]                  mem_result_width;
     wire                        result_update_gpr;
 
     reg r_in_ready, r_out_valid;
     // assign in_ready = r_in_ready;
     // assign out_valid = r_out_valid;
 
-    reg [INST_WIDTH-1:0] r_dnpc;
     reg [INST_WIDTH-1:0] r_result;
-    reg [7:0] r_result_mem_width;
     reg r_result_update_gpr;
-
-    // assign dnpc = r_dnpc;
-    // assign result = r_result;
-    // assign mem_result_width = r_result_mem_width;
-    // assign result_update_gpr = r_result_update_gpr;
 
     wire in_wait_in_ready = (in_valid && !in_ready);
     wire in_test_mode = in_wait_in_ready && ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff);
@@ -243,18 +241,14 @@ module load_store #(
 
     always @(posedge clk) begin
         if (rst) begin
-            r_dnpc <= 0;
             r_result <= 0;
-            r_result_mem_width <= 0;
             r_result_update_gpr <= 0;
 
             r_in_ready <= 0;
             r_out_valid <= 0;
             r_stage_out_valid <= 0;
         end else begin
-            r_dnpc <= r_dnpc;
             r_result <= r_result;
-            r_result_mem_width <= r_result_mem_width;
             r_result_update_gpr <= r_result_update_gpr;
 
             r_stage_out_valid <= stage_in_done ? 1 : 0;
@@ -263,17 +257,13 @@ module load_store #(
                 if (in_test_mode || fence_enable) begin
                     // 用于调试的地址段，向这里写数据会触发内置的调试函数
                     // notify next
-                    r_dnpc <= pc + 4;
                     if (in_test_mode) begin r_result <= func_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2); end
                     else begin r_result <= 0; end
-                    r_result_mem_width <= 0;
                     r_result_update_gpr <= 0;
                     r_in_ready <= 1;
                 end else if (write_enable) begin
                     if (write_state==`AXI4_STATE_RESPONSE && bvalid && bready) begin
-                        r_dnpc <= pc + 4;
                         r_result <= 0;
-                        r_result_mem_width <= 0;
                         r_result_update_gpr <= 0;
                         r_in_ready <= 1;
                     end
@@ -289,8 +279,6 @@ module load_store #(
 
                             if (rlast) begin
                                 // notify prev module
-                                r_dnpc <= pc + 4;
-                                r_result_mem_width <= 0;
                                 r_result_update_gpr <= 1;
                                 r_in_ready <= 1;
                             end

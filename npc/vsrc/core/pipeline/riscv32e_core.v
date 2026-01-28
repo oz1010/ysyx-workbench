@@ -817,8 +817,7 @@ inst_decode #(
     .out_rs1(con_id_rs1),
     .out_rs2(con_id_rs2),
     .out_imm(con_id_imm),
-    .out_inst_code(con_id_inst_code),
-    .out_inst_state()
+    .out_inst_code(con_id_inst_code)
 );
 wire fence_enable = (inst_code == `INST_FENCE) || (inst_code == `INST_FENCE_I);
 reg last_fence_enable;
@@ -849,7 +848,6 @@ wire [INST_WIDTH-1:0] con_ex_src2;
 wire [INST_WIDTH-1:0] con_ex_a0;
 wire [INST_WIDTH-1:0] con_ex_dnpc;
 wire [INST_WIDTH-1:0] con_ex_result;
-wire [7:0] con_ex_mem_result_width;
 wire con_ex_result_update_gpr;
 execute #(
     .INST_WIDTH(INST_WIDTH)
@@ -861,6 +859,7 @@ execute #(
     .in_valid(con_id_valid),
     .in_pc(con_id_pc),
     .in_inst(con_id_inst),
+    .in_rd(con_id_rd),
     .in_imm(con_id_imm),
     .in_inst_code(con_id_inst_code),
     .in_src1(con_id_src1),
@@ -871,14 +870,12 @@ execute #(
     .out_valid(con_ex_valid),
     .out_pc(con_ex_pc),
     .out_inst(con_ex_inst),
+    .out_rd(con_ex_rd),
     .out_imm(con_ex_imm),
     .out_inst_code(con_ex_inst_code),
     .out_src1(con_ex_src1),
     .out_src2(con_ex_src2),
-    .out_a0(con_ex_a0),
-    .out_dnpc(con_ex_dnpc),
     .out_result(con_ex_result),
-    .out_mem_result_width(con_ex_mem_result_width),
     .out_result_update_gpr(con_ex_result_update_gpr)
 );
 
@@ -890,7 +887,6 @@ wire [INST_WIDTH-1:0] con_ls_imm;
 wire [`INST_CODE_W-1:0] con_ls_inst_code;
 wire [INST_WIDTH-1:0] con_ls_src1;
 wire [INST_WIDTH-1:0] con_ls_src2;
-wire [INST_WIDTH-1:0] con_ls_a0;
 wire [INST_WIDTH-1:0] con_ls_dnpc;
 wire [INST_WIDTH-1:0] con_ls_result;
 wire [7:0] con_ls_mem_result_width;
@@ -940,10 +936,7 @@ load_store #(
     .in_inst_code(con_ex_inst_code),
     .in_src1(con_ex_src1),
     .in_src2(con_ex_src2),
-    .in_a0(con_ex_a0),
-    .in_dnpc(con_ex_dnpc),
     .in_result(con_ex_result),
-    .in_mem_result_width(con_ex_mem_result_width),
     .in_result_update_gpr(con_ex_result_update_gpr),
 
     .out_ready(con_wb_ready),
@@ -951,17 +944,14 @@ load_store #(
     .out_pc(con_ls_pc),
     .out_rd(con_ls_rd),
     .out_result(con_ls_result),
-    .out_mem_result_width(con_ls_mem_result_width),
     .out_result_update_gpr(con_ls_result_update_gpr)
 );
 
 /* 回写wb */
 wire [INST_WIDTH-1:0] dnpc, result;
-wire [7:0] mem_result_width;
 wire result_update_gpr;
 assign dnpc = ({INST_WIDTH{con_ex_enable}} & ex_dnpc) | ({INST_WIDTH{con_ls_enable}} & ls_dnpc);
 assign result = ({INST_WIDTH{con_ex_enable}} & ex_result) | ({INST_WIDTH{con_ls_enable}} & ls_result);
-assign mem_result_width = ({8{con_ex_enable}} & ex_mem_result_width) | ({8{con_ls_enable}} & ls_mem_result_width);
 assign result_update_gpr = ({1{con_ex_enable}} & ex_result_update_gpr) | ({1{con_ls_enable}} & ls_result_update_gpr);
 assign con_ex_ls_valid = ({1{con_ex_enable}} & con_ex_valid) | ({1{con_ls_enable}} & con_ls_valid);
 
@@ -980,7 +970,6 @@ write_back #(
     .in_pc(con_ls_pc),
     .in_rd(con_ls_rd),
     .in_result(con_ls_result),
-    .in_mem_result_width(con_ls_mem_result_width),
     .in_result_update_gpr(con_ls_result_update_gpr),
 
     .out_ready(1),
