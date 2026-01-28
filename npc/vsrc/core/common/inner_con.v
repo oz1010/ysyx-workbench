@@ -1,7 +1,6 @@
 module inner_con #(
     parameter IN_DATA_STORAGE = 1, // 输入数据存储模式，stage_in_bits可以维持多个周期，但会存在延时；若是直连模式，stage_in_bits只能维持一个周期；
-    parameter IN_DATA_W = 1,
-    parameter OUT_DATA_W = 1
+    parameter IN_DATA_W = 1
 ) (
     input   wire                        clk,
     input   wire                        rst,
@@ -12,12 +11,10 @@ module inner_con #(
 
     output  wire                        out_valid,
     input   wire                        out_ready,
-    output  wire [OUT_DATA_W-1:0]       out_bits,
 
     output  wire [IN_DATA_W-1:0]        stage_in_bits,
     output  wire                        stage_in_done,      // 指示输入是否完成
     input   wire                        stage_out_valid,    // 需要保持到stage_out_done使能后
-    input   wire [OUT_DATA_W-1:0]       stage_out_bits,
     output  wire                        stage_out_done,
     output  wire [`INNER_CON_STATE_W-1:0]   stage_state
 );
@@ -27,7 +24,6 @@ reg [`INNER_CON_STATE_W-1:0]            r_stage_state;
 
 assign in_ready = r_in_ready;
 assign out_valid = stage_out_valid;
-assign out_bits = stage_out_bits;
 assign stage_in_done = in_valid && in_ready;
 assign stage_out_done = out_valid && out_ready;
 assign stage_state = r_stage_state;
@@ -50,7 +46,7 @@ endgenerate
 
 always @(posedge clk) begin
     if (rst) begin
-        r_in_ready <= 1;
+        r_in_ready <= 0;
         r_stage_state <= `INNER_CON_IDLE;
     end else begin
         case (stage_state)
