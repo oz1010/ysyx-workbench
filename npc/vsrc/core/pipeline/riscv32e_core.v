@@ -48,21 +48,9 @@ module riscv32e_core #(
     output wire             valid
 );
 
-/* TODO 需要清理的信号 */
-wire [INST_WIDTH-1:0] ex_dnpc;
-wire [INST_WIDTH-1:0] ex_result;
-wire [7:0] ex_mem_result_width;
-wire ex_result_update_gpr;
-wire [INST_WIDTH-1:0] ls_dnpc, ls_result;
-wire [7:0] ls_mem_result_width;
-wire ls_result_update_gpr;
-wire [4:0] rd = con_id_rd;
-wire [4:0] rs1 = con_id_rs1;
-wire [4:0] rs2 = con_id_rs2;
-wire [INST_WIDTH-1:0] imm = con_id_imm;
-wire [`INST_CODE_W-1:0] inst_code = con_id_inst_code;
-
 /* 模块之间的连接信号或数据 */
+wire                        con_core_ready;
+wire                        con_core_valid;
 wire                        con_if_ready;
 wire                        con_if_valid;
 wire                        con_id_ready;
@@ -73,10 +61,6 @@ wire                        con_ls_ready;
 wire                        con_ls_valid;
 wire                        con_wb_ready;
 wire                        con_wb_valid;
-wire                        con_ex_enable;
-wire                        con_ls_enable;
-wire                        con_ex_ls_valid;
-wire                        con_ex_ls_ready;
 
 /* ifu axi4 信号 */
 wire                        axi4_if_awready;
@@ -347,7 +331,7 @@ perf_monitor m_perf_monitor (
     .ls_ready(con_ls_ready),
     .ls_valid(con_ls_valid),
     .wb_ready(con_wb_ready),
-    .inst_code(inst_code),
+    .inst_code(con_id_inst_code),
     .done()
 );
 
@@ -735,6 +719,24 @@ exter_dev #(
     .rid(axi4_s_rid[1])
 );
 
+/* 原始核触发信号 */
+reg r_core_valid;
+always @(posedge clk) begin
+    if (rst) begin
+        r_core_valid <= 0;
+    end else begin
+        if ((!|execute_time) | (con_wb_valid&con_core_ready)) begin
+            r_core_valid <= 1;
+        end
+
+        if (con_core_valid & con_if_ready) begin
+            r_core_valid <= 0;
+        end
+    end
+end
+assign con_core_valid = r_core_valid;
+assign con_core_ready = 1;
+
 /* 取指if */
 wire [ADDR_WIDTH-1:0] con_if_pc;
 wire [INST_WIDTH-1:0] con_if_inst;
@@ -779,7 +781,7 @@ inst_fetch #(
     .jump_pc(),
 
     .in_ready(con_if_ready),
-    .in_valid(1),
+    .in_valid(con_core_valid),
 
     .out_ready(con_id_ready),
     .out_valid(con_if_valid),
@@ -819,23 +821,10 @@ inst_decode #(
     .out_imm(con_id_imm),
     .out_inst_code(con_id_inst_code)
 );
-wire fence_enable = (inst_code == `INST_FENCE) || (inst_code == `INST_FENCE_I);
+wire fence_enable = (con_id_inst_code == `INST_FENCE) || (con_id_inst_code == `INST_FENCE_I);
 reg last_fence_enable;
 always @(posedge clk ) last_fence_enable <= fence_enable;
-wire fence_enable_trigger = fence_enable && !last_fence_enable;
-assign con_ls_enable = 
-(inst_code == `INST_LB) ||
-(inst_code == `INST_LH) ||
-(inst_code == `INST_LW) ||
-(inst_code == `INST_LBU) ||
-(inst_code == `INST_LHU) ||
-(inst_code == `INST_SB) ||
-(inst_code == `INST_SH) ||
-(inst_code == `INST_SW) ||
-fence_enable
-;
-assign con_ex_enable = !con_ls_enable;
-assign con_ex_ls_ready = ({1{con_ex_enable}} & con_ex_ready) | ({1{con_ls_enable}} & con_ls_ready);
+wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
 wire [ADDR_WIDTH-1:0] con_ex_pc;
@@ -941,13 +930,6 @@ load_store #(
 );
 
 /* 回写wb */
-wire [INST_WIDTH-1:0] dnpc, result;
-wire result_update_gpr;
-assign dnpc = ({INST_WIDTH{con_ex_enable}} & ex_dnpc) | ({INST_WIDTH{con_ls_enable}} & ls_dnpc);
-assign result = ({INST_WIDTH{con_ex_enable}} & ex_result) | ({INST_WIDTH{con_ls_enable}} & ls_result);
-assign result_update_gpr = ({1{con_ex_enable}} & ex_result_update_gpr) | ({1{con_ls_enable}} & ls_result_update_gpr);
-assign con_ex_ls_valid = ({1{con_ex_enable}} & con_ex_valid) | ({1{con_ls_enable}} & con_ls_valid);
-
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
@@ -965,7 +947,7 @@ write_back #(
     .in_result(con_ls_result),
     .in_result_update_gpr(con_ls_result_update_gpr),
 
-    .out_ready(1),
+    .out_ready(con_core_ready),
     .out_valid(con_wb_valid)
 );
 
