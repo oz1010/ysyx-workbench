@@ -881,15 +881,8 @@ execute #(
 
 /* 读存储ls */
 wire [ADDR_WIDTH-1:0] con_ls_pc;
-wire [INST_WIDTH-1:0] con_ls_inst;
 wire [4:0] con_ls_rd;
-wire [INST_WIDTH-1:0] con_ls_imm;
-wire [`INST_CODE_W-1:0] con_ls_inst_code;
-wire [INST_WIDTH-1:0] con_ls_src1;
-wire [INST_WIDTH-1:0] con_ls_src2;
-wire [INST_WIDTH-1:0] con_ls_dnpc;
 wire [INST_WIDTH-1:0] con_ls_result;
-wire [7:0] con_ls_mem_result_width;
 wire con_ls_result_update_gpr;
 load_store #(
     .INST_WIDTH(INST_WIDTH)
