@@ -721,9 +721,12 @@ exter_dev #(
 
 /* 原始核触发信号 */
 reg r_core_valid;
+reg r_jump_en;
+reg [ADDR_WIDTH-1:0] r_jump_addr;
 always @(posedge clk) begin
     if (rst) begin
         r_core_valid <= 0;
+        r_jump_en <= 0;
     end else begin
         if ((!|execute_time) | (con_wb_valid&con_core_ready)) begin
             r_core_valid <= 1;
@@ -731,6 +734,15 @@ always @(posedge clk) begin
 
         if (con_core_valid & con_if_ready) begin
             r_core_valid <= 0;
+        end
+
+        if (con_ex_jump_en) begin
+            r_jump_en <= 1;
+            r_jump_addr <= con_ex_jump_addr;
+        end
+
+        if (con_core_valid & con_if_ready) begin
+            r_jump_en <= 0;
         end
     end
 end
@@ -777,8 +789,8 @@ inst_fetch #(
     .rlast(axi4_if_rlast),
     .rid(axi4_if_rid),
 
-    .jump_en(0),
-    .jump_pc(),
+    .jump_en(r_jump_en),
+    .jump_pc(r_jump_addr),
 
     .in_ready(con_if_ready),
     .in_valid(con_core_valid),
@@ -827,6 +839,8 @@ always @(posedge clk ) last_fence_enable <= fence_enable;
 wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
+wire con_ex_jump_en;
+wire [ADDR_WIDTH-1:0] con_ex_jump_addr;
 wire [ADDR_WIDTH-1:0] con_ex_pc;
 wire [INST_WIDTH-1:0] con_ex_inst;
 wire [4:0] con_ex_rd;
@@ -843,6 +857,9 @@ execute #(
 ) exu(
     .clk(clk),
     .rst(rst),
+
+    .jump_en(con_ex_jump_en),
+    .jump_addr(con_ex_jump_addr),
 
     .in_ready(con_ex_ready),
     .in_valid(con_id_valid),
