@@ -38,7 +38,8 @@ int isa_exec_once(Decode *s)
     s->isa.inst.val = inst_fetch(&snpc2, 4);
     s->snpc = snpc2;
 #else
-    s->isa.inst.val = inst_fetch(&s->snpc, 4);
+    // 已经实现IFU，不再需要单独读取指令
+    // s->isa.inst.val = inst_fetch(&s->snpc, 4);
 #endif
 
     int ret = exec_vsimu(s);
