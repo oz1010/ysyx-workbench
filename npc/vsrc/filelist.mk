@@ -45,14 +45,22 @@ VDIRS-y 								+= $(VDIRS_YSYXSOC-y)
 REF_STA_FILES							+= ./vsrc/yosys/$(VMOD_NAME).v
 REF_STA_FILES							+= ./vsrc/core/ysyx_23060295.v
 REF_STA_DIRS							+= $(VDIRS_CORE-y)
-REF_STA_FILES							+= $(shell find -L $(REF_STA_DIRS) -maxdepth 1 -name *.v)
+# REF_STA_FILES							+= $(shell find -L $(REF_STA_DIRS) -maxdepth 1 -name *.v)
+REF_STA_FILES							+= $(foreach d, $(REF_STA_DIRS), \
+												$(wildcard $(d)/*.v) \
+												$(wildcard $(d)/*.sv) \
+											)
 STA_FILES								?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
 STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
 STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys
 GEN_STA_FILE							?= $(STA_OUTPUT_DIR)/$(VMOD_NAME).v
 
-VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
+# VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
+VSRCS-y		+= $(foreach d, $(VDIRS-y), \
+					$(wildcard $(d)/*.v) \
+					$(wildcard $(d)/*.sv) \
+				)
 VSRCS-y     += $(shell find -L ./vsrc -name *.cpp)
 VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
@@ -84,6 +92,7 @@ VCXXFLAGS += $(addprefix -I,$(INC_PATH))
 VCXXFLAGS += -DTOP_NAME="\"$(VMOD_NAME)\""
 VCXXFLAGS += -DTOP_FILE=V$(VMOD_NAME).h
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
+VERILATOR_CFLAGS += -MMD -O3 --x-assign fast --x-initial fast --noassert
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
 VERILATOR_CFLAGS += --autoflush
@@ -92,7 +101,7 @@ VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
 VERILATOR_CFLAGS += $(INCLUDES)
 
 $(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS)
-	@echo + CV $<
+	@echo + CV $@
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) $(VERILATOR_CFLAGS) \
 		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
@@ -103,7 +112,7 @@ convert2v: $(GEN_STA_FILE)
 $(GEN_STA_FILE): $(STA_FILES)
 	@echo start convert2v
 	@mkdir -p $(dir $@)
-	$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
+	@$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
 		--no-public-params --no-timing --no-assert \
 		+1800-2005ext+ \
 		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
@@ -113,7 +122,7 @@ $(GEN_STA_FILE): $(STA_FILES)
 # sta: $(GEN_STA_FILE)
 sta: $(STA_FILES)
 	@echo start yosys-sta
-	make -C $(YOSYS_STA_HOME) sta \
+	@make -C $(YOSYS_STA_HOME) sta \
 		DESIGN=$(VMOD_NAME) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
 		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(STA_OUTPUT_DIR) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \

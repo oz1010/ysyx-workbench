@@ -19,9 +19,12 @@ define git_soft_checkout
 endef
 
 # prototype: git_commit(msg)
+# define git_commit
+# 	-@flock $(LOCK_DIR) $(MAKE) -C $(YSYX_HOME) .git_commit MSG='$(1)'
+# 	-@sync $(LOCK_DIR)
+# endef
 define git_commit
-	-@flock $(LOCK_DIR) $(MAKE) -C $(YSYX_HOME) .git_commit MSG='$(1)'
-	-@sync $(LOCK_DIR)
+	-@echo "\33[1;42m------ STEP: $(1) ------ \33[0m"
 endef
 
 .git_commit:
