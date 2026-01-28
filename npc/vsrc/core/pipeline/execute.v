@@ -67,19 +67,7 @@ module execute #(
         r_result, r_result_update_gpr
     };
 
-    /* TODO 后面需要在解码时直接赋值 */
-    wire ex_enable = !
-        (inst_code == `INST_LB) ||
-        (inst_code == `INST_LH) ||
-        (inst_code == `INST_LW) ||
-        (inst_code == `INST_LBU) ||
-        (inst_code == `INST_LHU) ||
-        (inst_code == `INST_SB) ||
-        (inst_code == `INST_SH) ||
-        (inst_code == `INST_SW) ||
-        (inst_code == `INST_FENCE) || 
-        (inst_code == `INST_FENCE_I)
-        ;
+    wire ex_enable = !(|(inst_code & `INST_CODE_MEM));
 
     wire [INST_WIDTH-1:0]       pc;
     wire [INST_WIDTH-1:0]       inst;
