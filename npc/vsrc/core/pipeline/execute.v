@@ -9,6 +9,7 @@ module execute #(
     input   wire                        in_valid,
     input   wire [INST_WIDTH-1:0]       in_pc,
     input   wire [INST_WIDTH-1:0]       in_inst,
+    input   wire [4:0]                  in_rd,
     input   wire [INST_WIDTH-1:0]       in_imm,
     input   wire [`INST_CODE_W-1:0]     in_inst_code,
     input   wire [INST_WIDTH-1:0]       in_src1,
@@ -19,25 +20,19 @@ module execute #(
     output  wire                        out_valid,
     output  wire [INST_WIDTH-1:0]       out_pc,
     output  wire [INST_WIDTH-1:0]       out_inst,
+    output  wire [4:0]                  out_rd,
     output  wire [INST_WIDTH-1:0]       out_imm,
     output  wire [`INST_CODE_W-1:0]     out_inst_code,
     output  wire [INST_WIDTH-1:0]       out_src1,
     output  wire [INST_WIDTH-1:0]       out_src2,
-    output  wire [INST_WIDTH-1:0]       out_a0,
-    output  wire [INST_WIDTH-1:0]       out_dnpc,
     output  wire [INST_WIDTH-1:0]       out_result,
-    output  wire [7:0]                  out_mem_result_width,
     output  wire                        out_result_update_gpr
 );
 
     localparam STAGE_IN_DATA_W = 
-        INST_WIDTH + 
+        INST_WIDTH*6 + 
         `INST_CODE_W + 
-        INST_WIDTH + 
-        INST_WIDTH + 
-        INST_WIDTH + 
-        INST_WIDTH + 
-        INST_WIDTH;
+        5;
 
     wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
     wire                            stage_in_done;
@@ -53,7 +48,7 @@ module execute #(
         .rst(rst),
         .in_valid(in_valid),
         .in_ready(in_ready),
-        .in_bits({in_pc, in_inst, in_imm, in_inst_code, in_src1, in_src2, in_a0}),
+        .in_bits({in_pc, in_inst, in_rd, in_imm, in_inst_code, in_src1, in_src2, in_a0}),
         .out_valid(out_valid),
         .out_ready(out_ready),
         .stage_in_bits(stage_in_bits),
@@ -63,26 +58,41 @@ module execute #(
         .stage_state(stage_state)
     );
 
-    assign {pc, inst, imm, inst_code, src1, src2, a0} = stage_in_bits;
+    assign {pc, inst, rd, imm, inst_code, src1, src2, a0} = stage_in_bits;
     assign {
-        out_pc, out_inst, out_imm, out_inst_code, out_src1, out_src2, out_a0, 
-        out_dnpc, out_result, out_mem_result_width, out_result_update_gpr
+        out_pc, out_inst, out_rd, out_imm, out_inst_code, out_src1, out_src2, 
+        out_result, out_result_update_gpr
     } = {
-        pc, inst, imm, inst_code, src1, src2, a0,
-        r_dnpc, r_result, r_result_mem_width, r_result_update_gpr
+        pc, inst, rd, imm, inst_code, src1, src2,
+        r_result, r_result_update_gpr
     };
 
+    /* TODO 后面需要在解码时直接赋值 */
+    wire ex_enable = !
+        (inst_code == `INST_LB) ||
+        (inst_code == `INST_LH) ||
+        (inst_code == `INST_LW) ||
+        (inst_code == `INST_LBU) ||
+        (inst_code == `INST_LHU) ||
+        (inst_code == `INST_SB) ||
+        (inst_code == `INST_SH) ||
+        (inst_code == `INST_SW) ||
+        (inst_code == `INST_FENCE) || 
+        (inst_code == `INST_FENCE_I)
+        ;
+
+    wire [INST_WIDTH-1:0]       pc;
+    wire [INST_WIDTH-1:0]       inst;
+    wire [4:0]                  rd;
     wire [INST_WIDTH-1:0]       imm;
     wire [`INST_CODE_W-1:0]     inst_code;
-    wire [INST_WIDTH-1:0]       inst;
-    wire [INST_WIDTH-1:0]       pc;
     wire [INST_WIDTH-1:0]       src1;
     wire [INST_WIDTH-1:0]       src2;
     wire [INST_WIDTH-1:0]       a0;
 
     reg [INST_WIDTH-1:0] r_dnpc;
     reg [INST_WIDTH-1:0] r_result;
-    reg [7:0] r_result_mem_width;
+    // reg [7:0] r_result_mem_width;
     reg r_result_update_gpr;
 
     wire signed [31:0] s_src1 = src1;
@@ -99,12 +109,12 @@ module execute #(
         if (rst) begin
             r_dnpc <= 0;
             r_result <= 0;
-            r_result_mem_width <= 0;
+            // r_result_mem_width <= 0;
             r_result_update_gpr <= 0;
         end else begin
             r_dnpc <= r_dnpc;
             r_result <= r_result;
-            r_result_mem_width <= r_result_mem_width;
+            // r_result_mem_width <= r_result_mem_width;
             r_result_update_gpr <= r_result_update_gpr;
 
             r_stage_out_valid <= stage_in_done ? 1 : 0;
@@ -113,8 +123,8 @@ module execute #(
                 // 默认更新程序寄存器
                 r_dnpc <= pc + 4;
                 r_result <= 0;
-                r_result_mem_width <= 0;
-                r_result_update_gpr <= 1;
+                // r_result_mem_width <= 0;
+                r_result_update_gpr <= ex_enable;
 
                 // 更新寄存器或回写内存
                 // $display("Step - update, alu_result:%x rd:%d inst_code:%x", alu_result, rd, inst_code);

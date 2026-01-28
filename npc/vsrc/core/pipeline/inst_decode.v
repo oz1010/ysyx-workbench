@@ -19,8 +19,7 @@ module inst_decode #(
     output  wire [4:0]                  out_rs1,
     output  wire [4:0]                  out_rs2,
     output  wire [INST_WIDTH-1:0]       out_imm,
-    output  wire [`INST_CODE_W-1:0]     out_inst_code,
-    output  wire [`INST_STATE_W-1:0]    out_inst_state
+    output  wire [`INST_CODE_W-1:0]     out_inst_code
 );
 
     localparam STAGE_IN_DATA_W = ADDR_WIDTH + INST_WIDTH;
@@ -52,7 +51,7 @@ module inst_decode #(
     );
 
     assign {pc, inst} = stage_in_bits;
-    assign {out_pc, out_inst, out_rd, out_rs1, out_rs2, out_imm, out_inst_code, out_inst_state} = {pc, inst, rd, rs1, rs2, imm, inst_code, inst_state};
+    assign {out_pc, out_inst, out_rd, out_rs1, out_rs2, out_imm, out_inst_code} = {pc, inst, rd, rs1, rs2, imm, inst_code};
 
     // 定义内部信号
     wire [6:0] opcode;
@@ -64,7 +63,6 @@ module inst_decode #(
     wire [6:0] funct7;
     wire [2:0] inst_type;
     reg [`INST_CODE_W-1:0] inst_code;
-    reg [`INST_STATE_W-1:0] inst_state;
 
     // 提取字段
     assign opcode = inst[6:0];
