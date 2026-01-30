@@ -31,7 +31,7 @@ assign stage_state = r_stage_state;
 generate
     if (IN_DATA_STORAGE) begin : storage_mode
         reg [IN_DATA_W-1:0] r_in_bits;
-        assign stage_in_bits = r_in_bits;
+        assign stage_in_bits = in_valid ? in_bits : r_in_bits;
         always @(posedge clk) begin
             if (rst) begin
                 r_in_bits <= 0;
