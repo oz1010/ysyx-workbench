@@ -127,27 +127,31 @@ wire clk = clock;
 wire rst = reset;
 
 // 检测core是否陷入循环，默认但指令执行周期比较短暂
-reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
-wire core_inst_done[`RISCV_CORE_NUM-1:0];
 wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
+wire core_inst_done[`RISCV_CORE_NUM-1:0];
+`ifndef IN_YOSYS_STA
+reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
+reg core_error[`RISCV_CORE_NUM-1:0];
 generate
     for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
         always @(posedge clk) begin
             if (rst) begin
+                core_error[i] <= 0;
                 core_inst_stuck_tick[i] <= 0;
             end else begin
                 core_inst_stuck_tick[i] <= core_inst_done[i] ? 0 : core_inst_stuck_tick[i] + 1;
-                if (core_inst_stuck_tick[i] >= 5000) begin
-`ifndef IN_YOSYS_STA
-                    $error("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d\n", i, core_pc[i], core_inst_stuck_tick[i]);
-`endif
-                    // $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d\n", i, core_pc[i], core_inst_stuck_tick[i]);
+                if (core_inst_stuck_tick[i] == 5000) begin
+                    $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
+                    core_error[i] <= 1;
+                    // $finish;
+                    // $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
                     // $finish;
                 end
             end
         end
     end
 endgenerate
+`endif
 
 riscv32e_core #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
