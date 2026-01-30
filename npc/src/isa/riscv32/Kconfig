@@ -65,4 +65,8 @@ config CORE_FREQUENCY
     int "Frequency (Hz) of the core"
     default 97000000
 
+config CORE_NUM
+    int "Number of processor cores"
+    default 1
+
 endmenu

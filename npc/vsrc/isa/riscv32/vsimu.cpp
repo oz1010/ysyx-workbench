@@ -51,6 +51,8 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #define RECORD_TRACE_VCD()
 #endif
 
+extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
+
 void init_dpi();
 void exit_dpi();
 uint8_t *get_vsimu_sram_addr();
@@ -77,6 +79,7 @@ static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t typ
 
 int exec_vsimu(Decode *s)
 {
+    bool simu_continue;
     s->dnpc = s->snpc;
 
     // 同步cpu到模拟处理器
@@ -101,8 +104,23 @@ int exec_vsimu(Decode *s)
         // if (top->contextp()->time() >= 1000000) {
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
         //     exit(-1);
-        // }        
-    } while (!top->contextp()->gotFinish() && !top->rootp->TOP_S_CORE_INST_DONE[0]);
+        // }
+
+        simu_continue = !top->contextp()->gotFinish() && npc_ctx.state==NPC_RUNNING;
+        for (int idx=0; idx<CONFIG_CORE_NUM; ++idx) {
+            if (top->rootp->TOP_S_CORE_INST_DONE[idx]) {
+                simu_continue = false;
+                break;
+            }
+            if (top->rootp->TOP_S_CORE_ERROR[idx]) {
+                printf("Found core%d error\n", idx);
+                set_npc_state(NPC_ABORT, cpu.pc, -4);
+                simu_continue = false;
+                break;
+            }
+        }
+    } while (simu_continue);
+
 
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
@@ -111,7 +129,7 @@ int exec_vsimu(Decode *s)
 
     // 仿真直接调用finish，强制修改状态
     if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING) {
-        npc_ctx.state = NPC_ABORT;
+        set_npc_state(NPC_ABORT, cpu.pc, -5);
     }
 
 #if CONFIG_PERF_MONITOR

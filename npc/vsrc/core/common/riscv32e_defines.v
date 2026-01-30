@@ -3,7 +3,7 @@
 
 `include "generated/autoconf.vh"
 
-`define RISCV_CORE_NUM      1
+`define RISCV_CORE_NUM      `CONFIG_CORE_NUM
 `define RISCV_INST_WIDTH    32
 `define RISCV_GPR_COUNT     32
 

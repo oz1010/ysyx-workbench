@@ -288,8 +288,22 @@ wire [4:0] wb_gpr_windex;
 wire [INST_WIDTH-1:0] wb_gpr_wdata;
 
 assign valid = con_wb_valid;
-// assign w_pc = pc;
 
+/* 当前正在处理的pc指示 */
+reg [INST_WIDTH-1:0] core_pc;
+assign pc = core_pc;
+`ifndef IN_YOSYS_STA
+always @(posedge clk) begin
+    if (rst) begin
+        core_pc <= con_if_pc;
+    end else begin
+        core_pc <= con_wb_valid ? con_if_pc :
+            core_pc;
+    end
+end
+`endif
+
+/* 核心执行tick计数 */
 always @(posedge clk) begin
     if (rst) begin
         execute_time <= 0;
