@@ -719,14 +719,14 @@ exter_dev #(
     .rid(axi4_s_rid[1])
 );
 
-/* 原始核触发信号 */
+/* 流水线控制信号 */
+wire ctrl_jump_en = con_ex_valid & con_ex_jump_en;
+wire [ADDR_WIDTH-1:0] ctrl_jump_addr = con_ex_jump_addr;
+wire ctrl_match_jump_inst = |(con_id_inst_code&`INST_CODE_JUMP) & con_id_valid;
 reg r_core_valid;
-reg r_jump_en;
-reg [ADDR_WIDTH-1:0] r_jump_addr;
 always @(posedge clk) begin
     if (rst) begin
         r_core_valid <= 0;
-        r_jump_en <= 0;
     end else begin
         if ((!|execute_time) | (con_wb_valid&con_core_ready)) begin
             r_core_valid <= 1;
@@ -734,15 +734,6 @@ always @(posedge clk) begin
 
         if (con_core_valid & con_if_ready) begin
             r_core_valid <= 0;
-        end
-
-        if (con_ex_jump_en) begin
-            r_jump_en <= 1;
-            r_jump_addr <= con_ex_jump_addr;
-        end
-
-        if (con_core_valid & con_if_ready) begin
-            r_jump_en <= 0;
         end
     end
 end
@@ -789,8 +780,8 @@ inst_fetch #(
     .rlast(axi4_if_rlast),
     .rid(axi4_if_rid),
 
-    .jump_en(r_jump_en),
-    .jump_pc(r_jump_addr),
+    .jump_en(ctrl_jump_en),
+    .jump_addr(ctrl_jump_addr),
 
     .in_ready(con_if_ready),
     .in_valid(con_core_valid),

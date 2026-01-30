@@ -57,7 +57,7 @@ always @(posedge clk) begin
         // WBU完成回写，移到仿真中去统计
 
         if (!last_id_valid && id_valid) begin
-            func_monitor_item(2, {16'h0, inst_code}, 1);
+            func_monitor_item(2, {{32-`INST_CODE_W{1'b0}}, inst_code}, 1);
         end
     end
 end

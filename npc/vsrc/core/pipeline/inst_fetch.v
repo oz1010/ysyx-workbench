@@ -43,7 +43,7 @@ module inst_fetch #(
 
     /* 模块额外的接口输入 */
     input   wire                        jump_en,
-    input   wire [INST_WIDTH-1:0]       jump_pc,
+    input   wire [INST_WIDTH-1:0]       jump_addr,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -57,6 +57,7 @@ module inst_fetch #(
 );
 
     reg [INST_WIDTH-1:0] pc;
+    wire [INST_WIDTH-1:0] snpc;
 
     assign awvalid = 0;
     assign awaddr = 0;
@@ -100,18 +101,15 @@ module inst_fetch #(
 
     assign stage_out_valid = rvalid && rready && rlast;
     assign {out_pc, out_inst} = {pc, read_inst};
+    assign snpc = pc + 4;
 
     always @(posedge clk) begin
         if (rst) begin
             pc <= func_get_reset_pc();
         end else begin
-            if (out_valid && out_ready) begin
-                if (jump_en) begin
-                    pc <= jump_pc;
-                end else begin
-                    pc <= pc + 4;
-                end
-            end
+            pc <= stage_out_done ? snpc : 
+                jump_en ? jump_addr :
+                pc;
         end
     end
 
