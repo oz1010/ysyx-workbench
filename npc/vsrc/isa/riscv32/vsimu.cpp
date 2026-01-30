@@ -114,7 +114,7 @@ int exec_vsimu(Decode *s)
             }
             if (top->rootp->TOP_S_CORE_ERROR[idx]) {
                 printf("Found core%d error\n", idx);
-                set_npc_state(NPC_ABORT, cpu.pc, -4);
+                set_npc_state(NPC_ABORT, top->rootp->TOP_S_PC, -4);
                 simu_continue = false;
                 break;
             }
@@ -129,7 +129,7 @@ int exec_vsimu(Decode *s)
 
     // 仿真直接调用finish，强制修改状态
     if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING) {
-        set_npc_state(NPC_ABORT, cpu.pc, -5);
+        set_npc_state(NPC_ABORT, top->rootp->TOP_S_PC, -5);
     }
 
 #if CONFIG_PERF_MONITOR
