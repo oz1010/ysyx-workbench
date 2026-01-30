@@ -44,7 +44,7 @@ module execute #(
     wire [`INNER_CON_STATE_W-1:0]   stage_state;
 
     inner_con #(
-        .IN_DATA_STORAGE(1),
+        .IN_DATA_STORAGE(0),
         .IN_DATA_W(STAGE_IN_DATA_W)
     ) ex_con(
         .clk(clk),
