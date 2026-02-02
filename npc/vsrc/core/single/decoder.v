@@ -93,7 +93,7 @@ always @(*) begin
         32'b0000000_zzzzz_zzzzz_110_zzzzz_01100_11: inst_code = `INST_OR;
         32'b0000000_zzzzz_zzzzz_111_zzzzz_01100_11: inst_code = `INST_AND;
         // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_FENCE;
-        // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_FENCE;
+        32'b0000000_00000_00000_001_00000_00011_11: inst_code = `INST_FENCE_I;
         32'b0000000_00000_00000_000_00000_11100_11: inst_code = `INST_ECALL;
         32'b0000000_00001_00000_000_00000_11100_11: inst_code = `INST_EBREAK;
         32'bzzzzzzz_zzzzz_zzzzz_001_zzzzz_11100_11: inst_code = `INST_CSRRW;
