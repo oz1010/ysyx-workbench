@@ -24,7 +24,11 @@
 #define LOG_TIME_STAMP_STR_MAX 48
 
 // ----------- state -----------
-
+/*
+ * END -- 需要等待指令执行完毕
+ * ABORT -- 直接终止指令执行
+ * QUIT -- 直接终止指令执行
+ */
 typedef enum { NPC_RUNNING, NPC_STOP, NPC_END, NPC_ABORT, NPC_QUIT } npc_state_t;
 
 typedef struct {

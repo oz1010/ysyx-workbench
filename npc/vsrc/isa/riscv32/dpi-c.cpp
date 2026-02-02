@@ -66,6 +66,8 @@ extern vdev_item_t vdev_items[NR_VDEV_ITEMS];
 #define FLASH_SIZE (16 * 1024 * 1024)
 #define TEST_INIF_FLASH_BASEADDR 0x30f00000
 
+extern paddr_t get_vsimu_pc(void);
+
 void init_dpi()
 {
     // #if defined(CONFIG_PMEM_MALLOC)
@@ -160,7 +162,7 @@ void switch_psram_context(uint32_t psram_idx)
 
 void exit_simu(int code)
 {
-    set_npc_state(NPC_END, cpu.pc, code);
+    set_npc_state(NPC_END, get_vsimu_pc(), code);
 }
 
 void invalid_inst(int thispc, int inst)
@@ -320,9 +322,9 @@ int sext(int x, int len)
         ret = _SEXT(x, 32);
     else
     {
-        raw_stdout(ANSI_FMT("%s:%d %s input len(%d) is error\n", ANSI_FG_RED), __FILE__, __LINE__,
+        raw_stdout(ANSI_FMT("%s:%d %s input len(%d) is error\n", ANSI_BG_RED), __FILE__, __LINE__,
                    __FUNCTION__, len);
-        set_npc_state(NPC_ABORT, cpu.pc, -3);
+        set_npc_state(NPC_ABORT, get_vsimu_pc(), -3);
     }
 
     return ret;
