@@ -52,6 +52,7 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #endif
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
+paddr_t get_vsimu_pc(void);
 
 void init_dpi();
 void exit_dpi();
@@ -106,15 +107,15 @@ int exec_vsimu(Decode *s)
         //     exit(-1);
         // }
 
-        simu_continue = !top->contextp()->gotFinish() && npc_ctx.state==NPC_RUNNING;
+        simu_continue = !top->contextp()->gotFinish() && (npc_ctx.state==NPC_RUNNING || npc_ctx.state==NPC_END || npc_ctx.state==NPC_QUIT);
         for (int idx=0; idx<CONFIG_CORE_NUM; ++idx) {
             if (top->rootp->TOP_S_CORE_INST_DONE[idx]) {
                 simu_continue = false;
                 break;
             }
             if (top->rootp->TOP_S_CORE_ERROR[idx]) {
-                printf("Found core%d error\n", idx);
-                set_npc_state(NPC_ABORT, top->rootp->TOP_S_PC, -4);
+                printf(ANSI_FMT("Found error in core%d\n", ANSI_BG_RED), idx);
+                set_npc_state(NPC_ABORT, get_vsimu_pc(), -4);
                 simu_continue = false;
                 break;
             }
@@ -129,7 +130,8 @@ int exec_vsimu(Decode *s)
 
     // 仿真直接调用finish，强制修改状态
     if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING) {
-        set_npc_state(NPC_ABORT, top->rootp->TOP_S_PC, -5);
+        printf(ANSI_FMT("Found finish in verilog\n", ANSI_BG_RED));
+        set_npc_state(NPC_ABORT, get_vsimu_pc(), -5);
     }
 
 #if CONFIG_PERF_MONITOR
@@ -180,7 +182,7 @@ void init_vsimu(int argc, char *argv[])
     }
     top->reset = 0;
 
-    cpu.pc = top->rootp->TOP_S_PC;
+    cpu.pc = get_vsimu_pc();
 }
 
 void exit_vsimu()
@@ -215,4 +217,9 @@ uint32_t *get_vsimu_vga_ctrl_regs_addr()
 void set_vsimu_pc(paddr_t addr)
 {
     top->rootp->TOP_S_PC = addr;
+}
+
+paddr_t get_vsimu_pc(void)
+{
+    return top->rootp->TOP_S_PC;
 }
