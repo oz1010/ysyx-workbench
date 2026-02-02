@@ -257,7 +257,7 @@ void dpi_cpu_stat_ctrl(int dtype, int delta)
 int fetch_inst(int addr)
 {
     vdev_item_t *vdev = find_vdev_item(addr);
-    if (unlikely(vdev != NULL))
+    if (unlikely(vdev == NULL))
     {
         raw_stdout("fetch inst is out of range, addr:%#.8x\n", addr);
         exit_simu(2);
@@ -272,7 +272,7 @@ void write_raw_mem(int addr, int len, int data)
     // raw_stdout("Mw write, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
     // addr &= ~0x3u;  // 读写地址四字节对齐
     vdev_item_t *vdev = find_vdev_item(addr);
-    if (unlikely(vdev != NULL))
+    if (unlikely(vdev == NULL))
     {
         raw_stdout("Write mem is out of range, addr:%#.8x len:%d data:%#.8x\n", addr, len, data);
         exit_simu(2);
@@ -285,7 +285,7 @@ int read_raw_mem(int addr, int len)
 {
     // addr &= ~0x3u;  // 读写地址四字节对齐
     vdev_item_t *vdev = find_vdev_item(addr);
-    if (unlikely(vdev != NULL))
+    if (unlikely(vdev == NULL))
     {
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);

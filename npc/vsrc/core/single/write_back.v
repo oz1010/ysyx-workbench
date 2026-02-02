@@ -100,7 +100,7 @@ always @(posedge clk) begin
             `INST_OR:           x[rd] <= src1 | src2;
             `INST_AND:          x[rd] <= src1 & src2;
             `INST_FENCE:        func_invalid_inst(pc, inst);
-            `INST_FENCE_I:      func_invalid_inst(pc, inst);
+            `INST_FENCE_I:      ; // 更新缓存，这里暂时没有
             `INST_ECALL:        pc <= dpi_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
             `INST_EBREAK:       func_exit_simu(a[0]);
             `INST_CSRRW:        begin x[rd] <= read_raw_csr(imm); write_raw_csr(imm, src1); end
