@@ -120,17 +120,12 @@ module load_store #(
     wire [INST_WIDTH-1:0]       result;
     wire                        result_update_gpr;
 
-    reg r_in_ready, r_out_valid;
-    // assign in_ready = r_in_ready;
-    // assign out_valid = r_out_valid;
-
     reg [INST_WIDTH-1:0] r_result;
     reg r_result_update_gpr;
 
-    wire in_wait_in_ready = (in_valid && !in_ready);
-    wire in_test_mode = in_wait_in_ready && ((src1+imm)>=32'h0f00_2000 && (src1+imm)<=32'h0fff_ffff);
-
-    wire [2:0] inst_opn_size = 
+    wire access_enable = !in_ready;
+    wire [INST_WIDTH-1:0]       access_addr = src1+imm;
+    wire [2:0]                  access_size = 
         inst_code == `INST_SB ? 0
         : inst_code == `INST_LB ? 0
         : inst_code == `INST_LBU ? 0
@@ -139,20 +134,23 @@ module load_store #(
         : inst_code == `INST_LHU ? 1
         : 2;
 
-    wire write_enable = in_wait_in_ready && (inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW);
-    wire [ADDR_WIDTH-1:0] write_addr = src1+imm;
+    reg r_write_enable;
+    wire write_inst = (inst_code==`INST_SB | inst_code==`INST_SH | inst_code==`INST_SW);
+    wire [ADDR_WIDTH-1:0] write_addr = access_addr;
     wire [DATA_WIDTH-1:0] write_data = src2;
-    wire [2:0] write_size = inst_opn_size;
+    wire [2:0] write_size = access_size;
     wire [1:0] write_state;
 
-    wire read_enable = in_wait_in_ready && (inst_code==`INST_LB || inst_code==`INST_LH || inst_code==`INST_LW || inst_code==`INST_LBU || inst_code==`INST_LHU);
-    wire read_sign = (inst_code==`INST_LB || inst_code==`INST_LH || inst_code==`INST_LW);
-    wire [ADDR_WIDTH-1:0] read_addr = src1+imm;
+    reg r_read_enable;
+    wire read_inst = (inst_code==`INST_LB | inst_code==`INST_LH | inst_code==`INST_LW | inst_code==`INST_LBU | inst_code==`INST_LHU);
+    wire read_sign = (inst_code==`INST_LB | inst_code==`INST_LH | inst_code==`INST_LW);
+    wire [ADDR_WIDTH-1:0] read_addr = access_addr;
     wire [DATA_WIDTH-1:0] read_data;
-    wire [2:0] read_size = inst_opn_size;
+    wire [2:0] read_size = access_size;
     wire [1:0] read_state;
 
-    wire fence_enable = in_wait_in_ready && (inst_code==`INST_FENCE || inst_code==`INST_FENCE_I);
+    wire fence_enable = (inst_code==`INST_FENCE | inst_code==`INST_FENCE_I);
+    wire test_mode_enable = access_addr>=32'h0f00_2000 & access_addr<=32'h0fff_ffff;
 
     axi_master_writer #(
     `ifndef IN_YOSYS_STA
@@ -184,7 +182,7 @@ module load_store #(
         .bvalid(bvalid),
         .bresp(bresp),
         .bid(bid),
-        .write_enable(write_enable),
+        .write_enable(r_write_enable),
         .write_addr(write_addr),
         .write_data(write_data),
         .write_size(write_size),
@@ -218,7 +216,7 @@ module load_store #(
         .rdata(rdata),
         .rlast(rlast),
         .rid(rid),
-        .enable(read_enable),
+        .enable(r_read_enable),
         .read_sign(read_sign),
         .read_addr(read_addr),
         .read_len(0),
@@ -232,64 +230,70 @@ module load_store #(
             r_result <= 0;
             r_result_update_gpr <= 0;
 
-            r_in_ready <= 0;
-            r_out_valid <= 0;
             r_stage_out_valid <= 0;
+            r_read_enable <= 0;
+            r_write_enable <= 0;
         end else begin
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;
 
-            r_stage_out_valid <= stage_in_done ? 1 : 0;
+            if (ls_enable && stage_in_done) begin
+                r_read_enable <= read_inst ? 1 : 0;
+                r_write_enable <= write_inst ? 1 : 0;
+            end
 
-            if (in_wait_in_ready) begin
-                if (in_test_mode || fence_enable) begin
-                    // 用于调试的地址段，向这里写数据会触发内置的调试函数
-                    // notify next
-                    if (in_test_mode) begin r_result <= func_test_intf({31'h0,(inst_code==`INST_SB || inst_code==`INST_SH || inst_code==`INST_SW)}, src1+imm, 4, src2); end
-                    else begin r_result <= 0; end
-                    r_result_update_gpr <= 0;
-                    r_in_ready <= 1;
-                end else if (write_enable) begin
-                    if (write_state==`AXI4_STATE_RESPONSE && bvalid && bready) begin
-                        r_result <= 0;
-                        r_result_update_gpr <= 0;
-                        r_in_ready <= 1;
+            if (!ls_enable) begin
+                /* 透传结果数据 */
+                r_stage_out_valid <= stage_in_done ? 1 : 0;
+            end else if (fence_enable) begin
+                r_stage_out_valid <= stage_in_done ? 1 : 0;
+                r_result <= 0;
+                r_result_update_gpr <= 0;
+            `ifndef IN_YOSYS_STA
+            end else if (test_mode_enable) begin
+                r_stage_out_valid <= stage_in_done ? 1 : 0;
+                r_result <= func_test_intf({31'h0,write_inst}, access_addr, 4, src2);
+                r_result <= 0;
+                r_result_update_gpr <= 0;
+            `endif
+            end else if (access_enable) begin
+                /* 处理读写逻辑 */
+                if (r_write_enable) begin
+                    if (awvalid & awready) begin
+                        func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, awaddr);
                     end
 
-                    if (awvalid && awready) func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, awaddr);
+                    if (bvalid & bready) begin
+                        r_write_enable <= 0;
+                        r_result <= 0;
+                        r_result_update_gpr <= 0;
+                        r_stage_out_valid <= 1;
+                    end
 
-                end else if (read_enable) begin
-                    case (read_state)
-                        `AXI4_STATE_DATA: begin
-                            if (rvalid) begin
-                                r_result <= read_data;
-                            end
+                end else if (r_read_enable) begin
+                    if (arvalid && arready) begin
+                        func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, araddr);
+                    end
 
-                            if (rlast) begin
-                                // notify prev module
-                                r_result_update_gpr <= 1;
-                                r_in_ready <= 1;
-                            end
-                        end
-                    endcase
+                    if (rvalid & rready) begin
+                        r_result <= read_data;
+                    end
 
-                    if (arvalid && arready) func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, araddr);
+                    if (rvalid & rready & rlast) begin
+                        // notify prev module
+                        r_result_update_gpr <= 1;
+                        r_stage_out_valid <= 1;
+                        r_read_enable <= 0;
+                    end
                 end else begin
-                    `ifndef IN_YOSYS_STA
-                    $error("Found unsopport inst_code(%x) in LSU", inst_code);
-                    `endif
+                    // `ifndef IN_YOSYS_STA
+                    // $error("Found unsopport inst_code(%x) in LSU", inst_code);
+                    // `endif
                 end
 
-            end
-            if (in_valid && in_ready) begin
-                r_in_ready <= 0;
-            end
-            
-            if (in_valid && in_ready) begin
-                r_out_valid <= 1;
-            end
-            if (out_valid && out_ready) begin
-                r_out_valid <= 0;
+                if (stage_out_done) r_stage_out_valid <= 0;
+            end else begin
+                r_stage_out_valid <= 0;
             end
 
         end
