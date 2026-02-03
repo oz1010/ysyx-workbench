@@ -28,8 +28,10 @@
 #endif
 #ifdef CONFIG_ISA_RISCV_PIPELINE
 #define TOP_S_PC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_pc)
+#define TOP_S_DNPC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_dnpc)
 #else
 #define TOP_S_PC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__wbu__DOT__pc)
+#define TOP_S_DNPC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_dnpc)
 #endif
 #define TOP_S_CORE_INST_DONE concat3(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, core_inst_done)
 #define TOP_S_CORE_ERROR concat3(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, core_error)
