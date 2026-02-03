@@ -291,14 +291,19 @@ assign valid = con_wb_valid;
 
 /* 当前正在处理的pc指示 */
 reg [INST_WIDTH-1:0] core_pc;
+reg [INST_WIDTH-1:0] core_dnpc;
 assign pc = core_pc;
 `ifndef IN_YOSYS_STA
 always @(posedge clk) begin
     if (rst) begin
         core_pc <= con_if_pc;
+        core_dnpc <= con_if_pc + 4;
     end else begin
         core_pc <= con_wb_valid ? con_if_pc :
             core_pc;
+        
+        core_dnpc <= con_ex_valid ? (con_ex_jump_en ? con_ex_jump_addr : (con_ex_pc + 4)) :
+            core_dnpc;
     end
 end
 `endif
@@ -958,9 +963,9 @@ write_back #(
     .clk(clk),
     .rst(rst),
 
-    .gpr_wen(wb_gpr_wen),
-    .gpr_windex(wb_gpr_windex),
-    .gpr_wdata(wb_gpr_wdata),
+    .gpr_wen(),
+    .gpr_windex(),
+    .gpr_wdata(),
 
     .in_ready(con_wb_ready),
     .in_valid(con_ls_valid),
@@ -972,5 +977,12 @@ write_back #(
     .out_ready(con_core_ready),
     .out_valid(con_wb_valid)
 );
+/*
+ * 更新寄存器需要与wb同步进行
+ * 避免wb_valid后，寄存器任然未更新成功
+ */
+assign wb_gpr_wen = (con_ls_valid&con_wb_ready);
+assign wb_gpr_windex = con_ls_rd;
+assign wb_gpr_wdata = con_ls_result;
 
 endmodule

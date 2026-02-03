@@ -52,7 +52,8 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #endif
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
-paddr_t get_vsimu_pc(void);
+extern paddr_t get_vsimu_pc(void);
+extern paddr_t get_vsimu_dnpc(void);
 
 void init_dpi();
 void exit_dpi();
@@ -126,7 +127,7 @@ int exec_vsimu(Decode *s)
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
 
-    s->dnpc = cpu.pc;
+    s->dnpc = get_vsimu_dnpc();
 
     // 仿真直接调用finish，强制修改状态
     if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING) {
@@ -222,4 +223,9 @@ void set_vsimu_pc(paddr_t addr)
 paddr_t get_vsimu_pc(void)
 {
     return top->rootp->TOP_S_PC;
+}
+
+paddr_t get_vsimu_dnpc(void)
+{
+    return top->rootp->TOP_S_DNPC;
 }
