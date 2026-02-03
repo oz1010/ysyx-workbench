@@ -24,10 +24,11 @@ static void mem_write(void *mem_item_arg, vaddr_t addr, int len, word_t data);
 
 #if !CONFIG_PMEM_MALLOC
 #if CONFIG_MEM_TYPE_MULTI
-static uint8_t raw_sram[MEM_SRAM_SIZE] PG_ALIGN = {};
-static uint8_t raw_mrom[MEM_MROM_SIZE] PG_ALIGN = {};
-static uint8_t raw_flash[MEM_FLASH_SIZE] PG_ALIGN = {};
-static uint8_t raw_psram[MEM_PSRAM_SIZE] PG_ALIGN = {};
+static uint8_t raw_sdram[CONFIG_SDRAM_SIZE] PG_ALIGN = {};
+static uint8_t raw_sram[CONFIG_SRAM_SIZE] PG_ALIGN = {};
+static uint8_t raw_mrom[CONFIG_MROM_SIZE] PG_ALIGN = {};
+static uint8_t raw_flash[CONFIG_FLASH_SIZE] PG_ALIGN = {};
+static uint8_t raw_psram[CONFIG_PSRAM_SIZE] PG_ALIGN = {};
 #else
 static uint8_t raw_memory[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
@@ -36,6 +37,7 @@ static uint8_t raw_memory[CONFIG_MSIZE] PG_ALIGN = {};
 // 推荐按地址从小到大排列
 mem_item_t mem_items[] = {
 #if CONFIG_MEM_TYPE_MULTI
+#if CONFIG_SRAM
   {
     .name = "sram",
     .startaddr = CONFIG_SRAM_BASE,
@@ -44,6 +46,8 @@ mem_item_t mem_items[] = {
     .read = mem_read,
     .write = mem_write,
   },
+#endif
+#if CONFIG_MROM
   {
     .name = "mrom",
     .startaddr = CONFIG_MROM_BASE,
@@ -52,6 +56,8 @@ mem_item_t mem_items[] = {
     .read = mem_read,
     .write = mem_write,
   },
+#endif
+#if CONFIG_FLASH
   {
     .name = "flash",
     .startaddr = CONFIG_FLASH_BASE,
@@ -60,6 +66,8 @@ mem_item_t mem_items[] = {
     .read = mem_read,
     .write = mem_write,
   },
+#endif
+#if CONFIG_PSRAM
   {
     .name = "psram",
     .startaddr = CONFIG_PSRAM_BASE,
@@ -68,6 +76,17 @@ mem_item_t mem_items[] = {
     .read = mem_read,
     .write = mem_write,
   },
+#endif
+#if CONFIG_SDRAM
+  {
+    .name = "sdram",
+    .startaddr = CONFIG_SDRAM_BASE,
+    .endaddr = (CONFIG_SDRAM_BASE+CONFIG_SDRAM_SIZE),
+    .raw_mem = MUXDEF(CONFIG_PMEM_MALLOC, 0, raw_sdram),
+    .read = mem_read,
+    .write = mem_write,
+  },
+#endif
 #else
   {
     .name = "memory",

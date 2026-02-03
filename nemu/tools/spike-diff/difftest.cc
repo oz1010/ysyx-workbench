@@ -41,6 +41,9 @@ static std::vector<std::pair<reg_t, mem_t*>> difftest_mem({
 #if CONFIG_PSRAM
     std::make_pair(reg_t(CONFIG_PSRAM_BASE), new mem_t(CONFIG_PSRAM_SIZE)),
 #endif
+#if CONFIG_SDRAM
+    std::make_pair(reg_t(CONFIG_SDRAM_BASE), new mem_t(CONFIG_SDRAM_SIZE)),
+#endif
   });
 #else
 static std::vector<std::pair<reg_t, mem_t*>> difftest_mem({
