@@ -444,6 +444,8 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
         }
         else if (vdev->type == VDEV_INNER)
         {
+            DIFFTEST_SKIP_REF();
+
             // 内部设备不会走vdev机制，需要单独触发此流程
             if (vdev->handler)
             {
