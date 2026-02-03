@@ -9,6 +9,77 @@ config MEM_TYPE_MULTI
   bool "multi"
 endchoice
 
+if MEM_TYPE_MULTI
+menuconfig SRAM
+  bool "SRAM memory"
+  default y
+  if SRAM
+    config SRAM_BASE
+      hex "SRAM memory base address"
+      default 0x0f000000
+
+    config SRAM_SIZE
+      hex "SRAM memory size"
+      default 0x00002000
+  endif # SRAM
+
+menuconfig MROM
+  bool "MROM memory"
+  default y
+  if MROM
+    config MROM_BASE
+      hex "MROM memory base address"
+      default 0x20000000
+
+    config MROM_SIZE
+      hex "MROM memory size"
+      default 0x00001000
+  endif # MROM
+
+menuconfig FLASH
+  bool "FLASH memory"
+  default y
+  if FLASH
+    config FLASH_BASE
+      hex "FLASH memory base address"
+      default 0x30000000
+
+    config FLASH_SIZE
+      hex "FLASH memory size"
+      default 0x01000000
+  endif # FLASH
+
+menuconfig PSRAM
+  bool "PSRAM memory"
+  default y
+  if PSRAM
+    config PSRAM_BASE
+      hex "PSRAM memory base address"
+      default 0x80000000
+
+    config PSRAM_SIZE
+      hex "PSRAM memory size"
+      default 0x00400000
+  endif # PSRAM
+
+menuconfig SDRAM
+  bool "SDRAM memory"
+  default y
+  if SDRAM
+    config SDRAM_BASE
+      hex "SDRAM memory base address"
+      default 0xa0000000
+
+    config SDRAM_SIZE
+      hex "SDRAM memory size"
+      default 0x04000000
+
+    config SDRAM_FREQUENCY
+      int "Frequency (Hz) of the sdram"
+      default 167000000
+  endif # SDRAM
+endif # MEM_TYPE_MULTI
+
 if MEM_TYPE_SINGLE
 config MBASE
   hex "Memory base address"
