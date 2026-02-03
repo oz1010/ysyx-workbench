@@ -114,6 +114,10 @@ void init_difftest(char *ref_so_file, long img_size, int port)
     }
     ref_difftest_memcpy(CONFIG_IMG_LOAD, pmem, img_size, DIFFTEST_TO_REF);
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
+
+#if CONFIG_DIFFTEST
+    Log("Differential initialization done.");
+#endif
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc)
