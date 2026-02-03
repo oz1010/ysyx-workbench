@@ -18,12 +18,36 @@
 #include "../../include/common.h"
 #include <difftest-def.h>
 
+#define DIFF_INFO(fmt, ...) do { \
+  const char *timestr = get_time_stamp_str(); \
+  printf("%s " ANSI_FMT("[%s:%d %s] " fmt "\n", ANSI_FG_GREEN), timestr, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); \
+}while(0)
+
 #define NR_GPR MUXDEF(CONFIG_RVE, 16, 32)
 
 static std::vector<std::pair<reg_t, abstract_device_t*>> difftest_plugin_devices;
 static std::vector<std::string> difftest_htif_args;
-static std::vector<std::pair<reg_t, mem_t*>> difftest_mem(
-    1, std::make_pair(reg_t(DRAM_BASE), new mem_t(CONFIG_DIFF_MSIZE)));
+#if CONFIG_MEM_TYPE_MULTI
+static std::vector<std::pair<reg_t, mem_t*>> difftest_mem({
+#if CONFIG_SRAM
+    std::make_pair(reg_t(CONFIG_SRAM_BASE), new mem_t(CONFIG_SRAM_SIZE)),
+#endif
+#if CONFIG_MROM
+    std::make_pair(reg_t(CONFIG_MROM_BASE), new mem_t(CONFIG_MROM_SIZE)),
+#endif
+#if CONFIG_FLASH
+    std::make_pair(reg_t(CONFIG_FLASH_BASE), new mem_t(CONFIG_FLASH_SIZE)),
+#endif
+#if CONFIG_PSRAM
+    std::make_pair(reg_t(CONFIG_PSRAM_BASE), new mem_t(CONFIG_PSRAM_SIZE)),
+#endif
+  });
+#else
+static std::vector<std::pair<reg_t, mem_t*>> difftest_mem({
+    std::make_pair(reg_t(DRAM_BASE), new mem_t(CONFIG_DIFF_MSIZE)),
+  });
+#endif
+
 static debug_module_config_t difftest_dm_config = {
   .progbufsize = 2,
   .max_sba_data_width = 0,
@@ -44,6 +68,25 @@ struct diff_context_t {
 static sim_t* s = NULL;
 static processor_t *p = NULL;
 static state_t *state = NULL;
+
+static const char* diff_size_str(uint32_t size_b) {
+  static char str[64];
+  uint32_t size_kb = size_b / 1024;
+  uint32_t size_mb = size_kb / 1024;
+  uint32_t size_gb = size_mb / 1024;
+
+  if (size_gb>0) {
+    snprintf(str, sizeof(str), "%uGB", size_gb);
+  } else if (size_mb>0) {
+    snprintf(str, sizeof(str), "%uMB", size_mb);
+  } else if (size_kb>0) {
+    snprintf(str, sizeof(str), "%uKB", size_kb);
+  }else {
+    snprintf(str, sizeof(str), "%uB", size_b);
+  }
+
+  return str;
+}
 
 void sim_t::diff_init(int port) {
   p = get_core("0");
@@ -120,6 +163,12 @@ __EXPORT void difftest_init(int port) {
       false,
       NULL,
       true);
+  for(auto item : difftest_mem) {
+    uint32_t base = item.first;
+    auto *mem = item.second;
+    uint32_t end = base + mem->size();
+    DIFF_INFO("Found memory item, [%#.8x %#.8x)-%s", base, end, diff_size_str(end-base));
+  }
   s->diff_init(port);
 }
 

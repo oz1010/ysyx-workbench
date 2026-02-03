@@ -18,15 +18,6 @@
 
 #include <common.h>
 
-#define MEM_SRAM_BASE 0x0f000000
-#define MEM_SRAM_SIZE 0x00002000
-#define MEM_MROM_BASE 0x20000000
-#define MEM_MROM_SIZE 0x00001000
-#define MEM_FLASH_BASE 0x30000000
-#define MEM_FLASH_SIZE 0x01000000
-#define MEM_PSRAM_BASE 0x80000000
-#define MEM_PSRAM_SIZE 0x00400000
-
 typedef struct _mem_item
 {
     const char* name;
