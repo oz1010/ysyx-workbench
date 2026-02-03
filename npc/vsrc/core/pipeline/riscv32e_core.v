@@ -981,7 +981,7 @@ write_back #(
  * 更新寄存器需要与wb同步进行
  * 避免wb_valid后，寄存器任然未更新成功
  */
-assign wb_gpr_wen = (con_ls_valid&con_wb_ready);
+assign wb_gpr_wen = (con_ls_valid&con_wb_ready) & con_ls_result_update_gpr;
 assign wb_gpr_windex = con_ls_rd;
 assign wb_gpr_wdata = con_ls_result;
 
