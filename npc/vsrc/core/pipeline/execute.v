@@ -93,7 +93,7 @@ module execute #(
     assign jump_en = r_jump_en;
     assign jump_addr = r_dnpc;
 
-    wire mdr_enable = 
+    wire mdr_inst = 
         inst_code==`INST_MUL |
         inst_code==`INST_MULH |
         inst_code==`INST_MULHSU |
@@ -103,19 +103,20 @@ module execute #(
         inst_code==`INST_REM |
         inst_code==`INST_REMU
         ;
-    reg r_mdr_valid;
-    reg [INST_WIDTH-1:0] r_mdr_result;
+    reg r_mdr_enable;
+    wire mdr_valid;
+    wire [INST_WIDTH-1:0] mdr_result;
     ex_muldivrem #(
         .INST_WIDTH(INST_WIDTH)
     ) m_muldivrem(
         .clk(clk),
         .rst(rst),
-        .enable(mdr_enable),
+        .enable(r_mdr_enable),
         .inst_code(inst_code),
         .src1(src1),
         .src2(src2),
-        .valid(r_mdr_valid),
-        .result(r_mdr_result)
+        .valid(mdr_valid),
+        .result(mdr_result)
     );
 
     always @(posedge clk) begin
@@ -140,10 +141,15 @@ module execute #(
                 r_result_update_gpr <= ex_enable;
             end
 
-            if (mdr_enable) begin
-                if (r_mdr_valid) begin
+            if (mdr_inst) begin
+                r_mdr_enable <= stage_in_done ? 1 : r_mdr_enable;
+                if (mdr_valid) begin
                     r_stage_out_valid <= 1;
-                    r_result <= r_mdr_result;
+                    r_result <= mdr_result;
+                    r_mdr_enable <= 0;
+                end
+                if (stage_out_done) begin
+                    r_stage_out_valid <= 0;
                 end
             end else begin
                 r_stage_out_valid <= stage_in_done ? 1 : 0;
