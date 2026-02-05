@@ -49,6 +49,8 @@ module riscv32e_core #(
 );
 
 /* 模块之间的连接信号或数据 */
+wire                        con_core_ready;
+wire                        con_core_valid;
 wire                        con_if_ready;
 wire                        con_if_valid;
 wire                        con_id_ready;
@@ -59,10 +61,6 @@ wire                        con_ls_ready;
 wire                        con_ls_valid;
 wire                        con_wb_ready;
 wire                        con_wb_valid;
-wire                        con_ex_enable;
-wire                        con_ls_enable;
-wire                        con_ex_ls_valid;
-wire                        con_ex_ls_ready;
 
 /* ifu axi4 信号 */
 wire                        axi4_if_awready;
@@ -290,8 +288,27 @@ wire [4:0] wb_gpr_windex;
 wire [INST_WIDTH-1:0] wb_gpr_wdata;
 
 assign valid = con_wb_valid;
-// assign w_pc = pc;
 
+/* 当前正在处理的pc指示 */
+reg [INST_WIDTH-1:0] core_pc;
+reg [INST_WIDTH-1:0] core_dnpc;
+assign pc = core_pc;
+`ifndef IN_YOSYS_STA
+always @(posedge clk) begin
+    if (rst) begin
+        core_pc <= con_if_pc;
+        core_dnpc <= con_if_pc + 4;
+    end else begin
+        core_pc <= con_wb_valid ? con_if_pc :
+            core_pc;
+        
+        core_dnpc <= con_ex_valid ? (con_ex_jump_en ? con_ex_jump_addr : (con_ex_pc + 4)) :
+            core_dnpc;
+    end
+end
+`endif
+
+/* 核心执行tick计数 */
 always @(posedge clk) begin
     if (rst) begin
         execute_time <= 0;
@@ -309,11 +326,11 @@ gprs #(
 ) m_gprs (
     .clk(clk),
     .rst(rst),
-    .rs1(rs1),
-    .src1(src1),
-    .rs2(rs2),
-    .src2(src2),
-    .a0(a0),
+    .rs1(con_id_rs1),
+    .src1(con_id_src1),
+    .rs2(con_id_rs2),
+    .src2(con_id_src2),
+    .a0(con_id_a0),
     .wen(wb_gpr_wen),
     .windex(wb_gpr_windex),
     .wdata(wb_gpr_wdata)
@@ -333,7 +350,7 @@ perf_monitor m_perf_monitor (
     .ls_ready(con_ls_ready),
     .ls_valid(con_ls_valid),
     .wb_ready(con_wb_ready),
-    .inst_code(inst_code),
+    .inst_code(con_id_inst_code),
     .done()
 );
 
@@ -721,7 +738,30 @@ exter_dev #(
     .rid(axi4_s_rid[1])
 );
 
+/* 流水线控制信号 */
+wire ctrl_jump_en = con_ex_valid & con_ex_jump_en;
+wire [ADDR_WIDTH-1:0] ctrl_jump_addr = con_ex_jump_addr;
+wire ctrl_match_jump_inst = |(con_id_inst_code&`INST_CODE_JUMP) & con_id_valid;
+reg r_core_valid;
+always @(posedge clk) begin
+    if (rst) begin
+        r_core_valid <= 0;
+    end else begin
+        if ((!|execute_time) | (con_wb_valid&con_core_ready)) begin
+            r_core_valid <= 1;
+        end
+
+        if (con_core_valid & con_if_ready) begin
+            r_core_valid <= 0;
+        end
+    end
+end
+assign con_core_valid = r_core_valid;
+assign con_core_ready = 1;
+
 /* 取指if */
+wire [ADDR_WIDTH-1:0] con_if_pc;
+wire [INST_WIDTH-1:0] con_if_inst;
 inst_fetch #(
     .SRAM_TYPE(`SRAM_TYPE_AXI4),
     .INST_WIDTH(INST_WIDTH)
@@ -759,21 +799,29 @@ inst_fetch #(
     .rlast(axi4_if_rlast),
     .rid(axi4_if_rid),
 
+    .jump_en(ctrl_jump_en),
+    .jump_addr(ctrl_jump_addr),
+
     .in_ready(con_if_ready),
-    .in_valid(!rst && (execute_time==0 || valid)),
-    .pc(pc),
+    .in_valid(con_core_valid),
 
     .out_ready(con_id_ready),
     .out_valid(con_if_valid),
-    .inst(inst)
+    .out_pc(con_if_pc),
+    .out_inst(con_if_inst)
 );
 
 /* 译码id */
-wire [4:0] rd;
-wire [4:0] rs1;
-wire [4:0] rs2;
-wire [INST_WIDTH-1:0] imm;
-wire [`INST_CODE_W-1:0] inst_code;
+wire [ADDR_WIDTH-1:0] con_id_pc;
+wire [INST_WIDTH-1:0] con_id_inst;
+wire [4:0] con_id_rd;
+wire [4:0] con_id_rs1;
+wire [4:0] con_id_rs2;
+wire [INST_WIDTH-1:0] con_id_imm;
+wire [`INST_CODE_W-1:0] con_id_inst_code;
+wire [INST_WIDTH-1:0] con_id_src1;
+wire [INST_WIDTH-1:0] con_id_src2;
+wire [INST_WIDTH-1:0] con_id_a0;
 inst_decode #(
     .INST_WIDTH(INST_WIDTH)
 ) idu(
@@ -782,66 +830,76 @@ inst_decode #(
 
     .in_ready(con_id_ready),
     .in_valid(con_if_valid),
-    .inst(inst),
+    .in_pc(con_if_pc),
+    .in_inst(con_if_inst),
 
-    .out_ready(con_ex_ls_ready),
+    .out_ready(con_ex_ready),
     .out_valid(con_id_valid),
-    .rd(rd),
-    .rs1(rs1),
-    .rs2(rs2),
-    .imm(imm),
-    .icode(inst_code)
+    .out_pc(con_id_pc),
+    .out_inst(con_id_inst),
+    .out_rd(con_id_rd),
+    .out_rs1(con_id_rs1),
+    .out_rs2(con_id_rs2),
+    .out_imm(con_id_imm),
+    .out_inst_code(con_id_inst_code)
 );
-wire fence_enable = (inst_code == `INST_FENCE) || (inst_code == `INST_FENCE_I);
+wire fence_enable = (con_id_inst_code == `INST_FENCE) || (con_id_inst_code == `INST_FENCE_I);
 reg last_fence_enable;
 always @(posedge clk ) last_fence_enable <= fence_enable;
-wire fence_enable_trigger = fence_enable && !last_fence_enable;
-assign con_ls_enable = 
-(inst_code == `INST_LB) ||
-(inst_code == `INST_LH) ||
-(inst_code == `INST_LW) ||
-(inst_code == `INST_LBU) ||
-(inst_code == `INST_LHU) ||
-(inst_code == `INST_SB) ||
-(inst_code == `INST_SH) ||
-(inst_code == `INST_SW) ||
-fence_enable
-;
-assign con_ex_enable = !con_ls_enable;
-assign con_ex_ls_ready = ({1{con_ex_enable}} & con_ex_ready) | ({1{con_ls_enable}} & con_ls_ready);
+wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
-wire [INST_WIDTH-1:0] ex_dnpc, ex_result;
-wire [7:0] ex_mem_result_width;
-wire ex_result_update_gpr;
+wire con_ex_jump_en;
+wire [ADDR_WIDTH-1:0] con_ex_jump_addr;
+wire [ADDR_WIDTH-1:0] con_ex_pc;
+wire [INST_WIDTH-1:0] con_ex_inst;
+wire [4:0] con_ex_rd;
+wire [INST_WIDTH-1:0] con_ex_imm;
+wire [`INST_CODE_W-1:0] con_ex_inst_code;
+wire [INST_WIDTH-1:0] con_ex_src1;
+wire [INST_WIDTH-1:0] con_ex_src2;
+wire [INST_WIDTH-1:0] con_ex_a0;
+wire [INST_WIDTH-1:0] con_ex_dnpc;
+wire [INST_WIDTH-1:0] con_ex_result;
+wire con_ex_result_update_gpr;
 execute #(
     .INST_WIDTH(INST_WIDTH)
 ) exu(
     .clk(clk),
     .rst(rst),
 
-    .in_ready(con_ex_ready),
-    .in_valid(con_id_valid && con_ex_enable),
-    .imm(imm),
-    .inst_code(inst_code),
-    .inst(inst),
-    .pc(pc),
-    .src1(src1),
-    .src2(src2),
-    .a0(a0),
+    .jump_en(con_ex_jump_en),
+    .jump_addr(con_ex_jump_addr),
 
-    .out_ready(con_wb_ready),
+    .in_ready(con_ex_ready),
+    .in_valid(con_id_valid),
+    .in_pc(con_id_pc),
+    .in_inst(con_id_inst),
+    .in_rd(con_id_rd),
+    .in_imm(con_id_imm),
+    .in_inst_code(con_id_inst_code),
+    .in_src1(con_id_src1),
+    .in_src2(con_id_src2),
+    .in_a0(con_id_a0),
+
+    .out_ready(con_ls_ready),
     .out_valid(con_ex_valid),
-    .dnpc(ex_dnpc),
-    .result(ex_result),
-    .mem_result_width(ex_mem_result_width),
-    .result_update_gpr(ex_result_update_gpr)
+    .out_pc(con_ex_pc),
+    .out_inst(con_ex_inst),
+    .out_rd(con_ex_rd),
+    .out_imm(con_ex_imm),
+    .out_inst_code(con_ex_inst_code),
+    .out_src1(con_ex_src1),
+    .out_src2(con_ex_src2),
+    .out_result(con_ex_result),
+    .out_result_update_gpr(con_ex_result_update_gpr)
 );
 
 /* 读存储ls */
-wire [INST_WIDTH-1:0] ls_dnpc, ls_result;
-wire [7:0] ls_mem_result_width;
-wire ls_result_update_gpr;
+wire [ADDR_WIDTH-1:0] con_ls_pc;
+wire [4:0] con_ls_rd;
+wire [INST_WIDTH-1:0] con_ls_result;
+wire con_ls_result_update_gpr;
 load_store #(
     .INST_WIDTH(INST_WIDTH)
 ) lsu(
@@ -879,56 +937,52 @@ load_store #(
     .rid(axi4_ls_rid),
 
     .in_ready(con_ls_ready),
-    .in_valid(con_id_valid && con_ls_enable),
-    .imm(imm),
-    .inst_code(inst_code),
-    .inst(inst),
-    .pc(pc),
-    .src1(src1),
-    .src2(src2),
+    .in_valid(con_ex_valid),
+    .in_pc(con_ex_pc),
+    .in_inst(con_ex_inst),
+    .in_rd(con_ex_rd),
+    .in_imm(con_ex_imm),
+    .in_inst_code(con_ex_inst_code),
+    .in_src1(con_ex_src1),
+    .in_src2(con_ex_src2),
+    .in_result(con_ex_result),
+    .in_result_update_gpr(con_ex_result_update_gpr),
 
     .out_ready(con_wb_ready),
     .out_valid(con_ls_valid),
-    .dnpc(ls_dnpc),
-    .result(ls_result),
-    .mem_result_width(ls_mem_result_width),
-    .result_update_gpr(ls_result_update_gpr)
+    .out_pc(con_ls_pc),
+    .out_rd(con_ls_rd),
+    .out_result(con_ls_result),
+    .out_result_update_gpr(con_ls_result_update_gpr)
 );
 
 /* 回写wb */
-wire [INST_WIDTH-1:0] dnpc, result;
-wire [7:0] mem_result_width;
-wire result_update_gpr;
-assign dnpc = ({INST_WIDTH{con_ex_enable}} & ex_dnpc) | ({INST_WIDTH{con_ls_enable}} & ls_dnpc);
-assign result = ({INST_WIDTH{con_ex_enable}} & ex_result) | ({INST_WIDTH{con_ls_enable}} & ls_result);
-assign mem_result_width = ({8{con_ex_enable}} & ex_mem_result_width) | ({8{con_ls_enable}} & ls_mem_result_width);
-assign result_update_gpr = ({1{con_ex_enable}} & ex_result_update_gpr) | ({1{con_ls_enable}} & ls_result_update_gpr);
-assign con_ex_ls_valid = ({1{con_ex_enable}} & con_ex_valid) | ({1{con_ls_enable}} & con_ls_valid);
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
     .clk(clk),
     .rst(rst),
 
-    .gpr_wen(wb_gpr_wen),
-    .gpr_windex(wb_gpr_windex),
-    .gpr_wdata(wb_gpr_wdata),
+    .gpr_wen(),
+    .gpr_windex(),
+    .gpr_wdata(),
 
     .in_ready(con_wb_ready),
-    .in_valid(con_ex_ls_valid),
-    .rd(rd),
-    .imm(imm),
-    .inst_code(inst_code),
-    .result(result),
-    .mem_result_width(mem_result_width),
-    .result_update_gpr(result_update_gpr),
-    .dnpc(dnpc),
-    .src1(src1),
-    .src2(src2),
+    .in_valid(con_ls_valid),
+    .in_pc(con_ls_pc),
+    .in_rd(con_ls_rd),
+    .in_result(con_ls_result),
+    .in_result_update_gpr(con_ls_result_update_gpr),
 
-    .out_ready(),
-    .out_valid(con_wb_valid),
-    .w_pc(pc)
+    .out_ready(con_core_ready),
+    .out_valid(con_wb_valid)
 );
+/*
+ * 更新寄存器需要与wb同步进行
+ * 避免wb_valid后，寄存器任然未更新成功
+ */
+assign wb_gpr_wen = (con_ls_valid&con_wb_ready) & con_ls_result_update_gpr;
+assign wb_gpr_windex = con_ls_rd;
+assign wb_gpr_wdata = con_ls_result;
 
 endmodule
