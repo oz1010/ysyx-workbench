@@ -41,15 +41,23 @@ module inst_fetch #(
     input   wire                        rlast,
     input   wire [3:0]                  rid,
 
+    /* 模块额外的接口输入 */
+    input   wire                        jump_en,
+    input   wire [INST_WIDTH-1:0]       jump_addr,
+
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
-    input   wire [INST_WIDTH-1:0]       pc,
+    // input   wire [INST_WIDTH-1:0]       in_pc,
     /* 模块输出数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [INST_WIDTH-1:0]       inst
+    output  wire [INST_WIDTH-1:0]       out_pc,
+    output  wire [INST_WIDTH-1:0]       out_inst
 );
+
+    reg [INST_WIDTH-1:0] pc;
+    wire [INST_WIDTH-1:0] snpc;
 
     assign awvalid = 0;
     assign awaddr = 0;
@@ -62,6 +70,48 @@ module inst_fetch #(
     assign wstrb = 0;
     assign wlast = 0;
     assign bready = 0;
+
+    wire [INST_WIDTH-1:0]           read_inst;
+
+    localparam STAGE_IN_DATA_W = 1;
+
+    // wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
+    wire                            stage_in_done;
+    wire                            stage_out_valid;
+    wire                            stage_out_done;
+    wire [`INNER_CON_STATE_W-1:0]   stage_state;
+
+    inner_con #(
+        .IN_DATA_STORAGE(1),
+        .IN_DATA_W(STAGE_IN_DATA_W)
+    ) if_con(
+        .clk(clk),
+        .rst(rst),
+        .in_valid(in_valid),
+        .in_ready(in_ready),
+        .in_bits(),
+        .out_valid(out_valid),
+        .out_ready(out_ready),
+        .stage_in_bits(),
+        .stage_in_done(stage_in_done),
+        .stage_out_valid(stage_out_valid),
+        .stage_out_done(stage_out_done),
+        .stage_state(stage_state)
+    );
+
+    assign stage_out_valid = rvalid && rready && rlast;
+    assign {out_pc, out_inst} = {pc, read_inst};
+    assign snpc = pc + 4;
+
+    always @(posedge clk) begin
+        if (rst) begin
+            pc <= func_get_reset_pc();
+        end else begin
+            pc <= stage_out_done ? snpc : 
+                jump_en ? jump_addr :
+                pc;
+        end
+    end
 
     /* 触发式记录使能 */
     reg in_read_en;
@@ -83,16 +133,15 @@ module inst_fetch #(
 
     generate
         if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-            reg [INST_WIDTH-1:0] r_inst = 0;
+            // reg [INST_WIDTH-1:0] r_inst = 0;
 
             wire read_en = in_valid || in_read_en;
-            // wire read_en = in_valid;
-            wire [1:0] read_state;
-            wire [INST_WIDTH-1:0] read_data;
+            // // wire read_en = in_valid;
+            // wire [1:0] read_state;
             
-            assign in_ready = 1;
-            assign out_valid = rvalid && rready;
-            assign inst = r_inst;
+            // assign in_ready = 1;
+            // assign out_valid = rvalid && rready;
+            // assign out_inst = r_inst;
 
             axi_master_reader #(
                 `ifndef IN_YOSYS_STA
@@ -124,10 +173,10 @@ module inst_fetch #(
                 .enable(read_en),
                 .read_sign(0),
                 .read_addr(pc),
-                .read_data(read_data),
+                .read_data(read_inst),
                 .read_len(0), // 读取数据总burst数量，2^n
                 .read_size(2), // 单个burst读取大小，2^n字节
-                .read_state(read_state)
+                .read_state()
             );
 
             always @(posedge clk) begin
@@ -139,16 +188,16 @@ module inst_fetch #(
                             check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                         end
                         
-                        if (rvalid) begin
-                            r_inst <= read_data;
-                        end
+                        // if (rvalid) begin
+                        //     r_inst <= read_inst;
+                        // end
                     end
                 end
             end
 
         end else begin : sram_unknown
             assign out_valid = 1;
-            assign inst = 0;
+            assign out_inst = 0;
 
             `ifndef IN_YOSYS_STA
             $error("IFU only support axi4 interface");
