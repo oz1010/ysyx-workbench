@@ -61,6 +61,28 @@ wire                        con_ls_ready;
 wire                        con_ls_valid;
 wire                        con_wb_ready;
 wire                        con_wb_valid;
+/* 模块直接输出的信号 */
+wire                        mod_con_if_ready;
+wire                        mod_con_if_valid;
+wire                        mod_con_id_ready;
+wire                        mod_con_id_valid;
+wire                        mod_con_ex_ready;
+wire                        mod_con_ex_valid;
+wire                        mod_con_ls_ready;
+wire                        mod_con_ls_valid;
+wire                        mod_con_wb_ready;
+wire                        mod_con_wb_valid;
+/* 将模块信号和控制信号关联后输出，默认直接输出 */
+assign con_if_ready = mod_con_if_ready;
+assign con_if_valid = mod_con_if_valid;
+assign con_id_ready = mod_con_id_ready;
+assign con_id_valid = mod_con_id_valid;
+assign con_ex_ready = mod_con_ex_ready;
+assign con_ex_valid = mod_con_ex_valid;
+assign con_ls_ready = mod_con_ls_ready;
+assign con_ls_valid = mod_con_ls_valid;
+assign con_wb_ready = mod_con_wb_ready;
+assign con_wb_valid = mod_con_wb_valid;
 
 /* ifu axi4 信号 */
 wire                        axi4_if_awready;
@@ -802,11 +824,11 @@ inst_fetch #(
     .jump_en(ctrl_jump_en),
     .jump_addr(ctrl_jump_addr),
 
-    .in_ready(con_if_ready),
+    .in_ready(mod_con_if_ready),
     .in_valid(con_core_valid),
 
     .out_ready(con_id_ready),
-    .out_valid(con_if_valid),
+    .out_valid(mod_con_if_valid),
     .out_pc(con_if_pc),
     .out_inst(con_if_inst)
 );
@@ -828,13 +850,13 @@ inst_decode #(
     .clk(clk),
     .rst(rst),
 
-    .in_ready(con_id_ready),
+    .in_ready(mod_con_id_ready),
     .in_valid(con_if_valid),
     .in_pc(con_if_pc),
     .in_inst(con_if_inst),
 
     .out_ready(con_ex_ready),
-    .out_valid(con_id_valid),
+    .out_valid(mod_con_id_valid),
     .out_pc(con_id_pc),
     .out_inst(con_id_inst),
     .out_rd(con_id_rd),
@@ -871,7 +893,7 @@ execute #(
     .jump_en(con_ex_jump_en),
     .jump_addr(con_ex_jump_addr),
 
-    .in_ready(con_ex_ready),
+    .in_ready(mod_con_ex_ready),
     .in_valid(con_id_valid),
     .in_pc(con_id_pc),
     .in_inst(con_id_inst),
@@ -883,7 +905,7 @@ execute #(
     .in_a0(con_id_a0),
 
     .out_ready(con_ls_ready),
-    .out_valid(con_ex_valid),
+    .out_valid(mod_con_ex_valid),
     .out_pc(con_ex_pc),
     .out_inst(con_ex_inst),
     .out_rd(con_ex_rd),
@@ -936,7 +958,7 @@ load_store #(
     .rlast(axi4_ls_rlast),
     .rid(axi4_ls_rid),
 
-    .in_ready(con_ls_ready),
+    .in_ready(mod_con_ls_ready),
     .in_valid(con_ex_valid),
     .in_pc(con_ex_pc),
     .in_inst(con_ex_inst),
@@ -949,7 +971,7 @@ load_store #(
     .in_result_update_gpr(con_ex_result_update_gpr),
 
     .out_ready(con_wb_ready),
-    .out_valid(con_ls_valid),
+    .out_valid(mod_con_ls_valid),
     .out_pc(con_ls_pc),
     .out_rd(con_ls_rd),
     .out_result(con_ls_result),
@@ -967,7 +989,7 @@ write_back #(
     .gpr_windex(),
     .gpr_wdata(),
 
-    .in_ready(con_wb_ready),
+    .in_ready(mod_con_wb_ready),
     .in_valid(con_ls_valid),
     .in_pc(con_ls_pc),
     .in_rd(con_ls_rd),
@@ -975,7 +997,7 @@ write_back #(
     .in_result_update_gpr(con_ls_result_update_gpr),
 
     .out_ready(con_core_ready),
-    .out_valid(con_wb_valid)
+    .out_valid(mod_con_wb_valid)
 );
 /*
  * 更新寄存器需要与wb同步进行
