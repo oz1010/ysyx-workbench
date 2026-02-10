@@ -48,6 +48,18 @@ module riscv32e_core #(
     output wire             valid
 );
 
+/* 模块信号输出宽度 */
+localparam IF_IN_DATA_W = 0;
+localparam IF_OUT_DATA_W = (ADDR_WIDTH + INST_WIDTH);
+localparam ID_IN_DATA_W = IF_OUT_DATA_W;
+localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W);
+localparam EX_IN_DATA_W = (INST_WIDTH*6 + `INST_CODE_W + 5);
+localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*6 + 1);
+localparam LS_IN_DATA_W = EX_OUT_DATA_W;
+localparam LS_OUT_DATA_W = (INST_WIDTH + 5 + INST_WIDTH + 1);
+localparam WB_IN_DATA_W = LS_OUT_DATA_W;
+localparam WB_OUT_DATA_W = 0;
+
 /* 模块之间的连接信号或数据 */
 wire                        con_core_ready;
 wire                        con_core_valid;
@@ -782,11 +794,16 @@ assign con_core_valid = r_core_valid;
 assign con_core_ready = 1;
 
 /* 取指if */
+wire [IF_OUT_DATA_W-1:0] mod_con_if_bits;
+wire [IF_OUT_DATA_W-1:0] con_if_bits;
 wire [ADDR_WIDTH-1:0] con_if_pc;
 wire [INST_WIDTH-1:0] con_if_inst;
+assign {con_if_pc, con_if_inst} = con_if_bits;
 inst_fetch #(
     .SRAM_TYPE(`SRAM_TYPE_AXI4),
-    .INST_WIDTH(INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH),
+    .IN_DATA_W(IF_IN_DATA_W),
+    .OUT_DATA_W(IF_OUT_DATA_W)
 ) ifu(
     .clk(clk),
     .rst(rst),
@@ -829,11 +846,23 @@ inst_fetch #(
 
     .out_ready(con_id_ready),
     .out_valid(mod_con_if_valid),
-    .out_pc(con_if_pc),
-    .out_inst(con_if_inst)
+    .out_bits(mod_con_if_bits)
+);
+stage_regs#(
+    .DATA_STORAGE(1),
+    .DATA_W(IF_OUT_DATA_W)
+) ifu_regs (
+    .clk(clk),
+    .rst(rst),
+    .valid(con_if_valid),
+    .ready(con_id_ready),
+    .bits(mod_con_if_bits),
+    .stage_bits(con_if_bits)
 );
 
 /* 译码id */
+wire [ID_OUT_DATA_W-1:0] mod_con_id_bits;
+wire [ID_OUT_DATA_W-1:0] con_id_bits;
 wire [ADDR_WIDTH-1:0] con_id_pc;
 wire [INST_WIDTH-1:0] con_id_inst;
 wire [4:0] con_id_rd;
@@ -844,26 +873,33 @@ wire [`INST_CODE_W-1:0] con_id_inst_code;
 wire [INST_WIDTH-1:0] con_id_src1;
 wire [INST_WIDTH-1:0] con_id_src2;
 wire [INST_WIDTH-1:0] con_id_a0;
+assign {con_id_pc, con_id_inst, con_id_rd, con_id_rs1, con_id_rs2, con_id_imm, con_id_inst_code} = con_id_bits;
 inst_decode #(
-    .INST_WIDTH(INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH),
+    .IN_DATA_W(ID_IN_DATA_W),
+    .OUT_DATA_W(ID_OUT_DATA_W)
 ) idu(
     .clk(clk),
     .rst(rst),
 
     .in_ready(mod_con_id_ready),
     .in_valid(con_if_valid),
-    .in_pc(con_if_pc),
-    .in_inst(con_if_inst),
+    .in_bits(con_if_bits),
 
     .out_ready(con_ex_ready),
     .out_valid(mod_con_id_valid),
-    .out_pc(con_id_pc),
-    .out_inst(con_id_inst),
-    .out_rd(con_id_rd),
-    .out_rs1(con_id_rs1),
-    .out_rs2(con_id_rs2),
-    .out_imm(con_id_imm),
-    .out_inst_code(con_id_inst_code)
+    .out_bits(mod_con_id_bits)
+);
+stage_regs#(
+    .DATA_STORAGE(1),
+    .DATA_W(ID_OUT_DATA_W)
+) idu_regs (
+    .clk(clk),
+    .rst(rst),
+    .valid(con_id_valid),
+    .ready(con_ex_ready),
+    .bits(mod_con_id_bits),
+    .stage_bits(con_id_bits)
 );
 wire fence_enable = (con_id_inst_code == `INST_FENCE) || (con_id_inst_code == `INST_FENCE_I);
 reg last_fence_enable;
@@ -871,6 +907,8 @@ always @(posedge clk ) last_fence_enable <= fence_enable;
 wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
+wire [EX_OUT_DATA_W-1:0] mod_con_ex_bits;
+wire [EX_OUT_DATA_W-1:0] con_ex_bits;
 wire con_ex_jump_en;
 wire [ADDR_WIDTH-1:0] con_ex_jump_addr;
 wire [ADDR_WIDTH-1:0] con_ex_pc;
@@ -884,8 +922,21 @@ wire [INST_WIDTH-1:0] con_ex_a0;
 wire [INST_WIDTH-1:0] con_ex_dnpc;
 wire [INST_WIDTH-1:0] con_ex_result;
 wire con_ex_result_update_gpr;
+assign {
+    con_ex_pc,
+    con_ex_inst,
+    con_ex_rd,
+    con_ex_imm,
+    con_ex_inst_code,
+    con_ex_src1,
+    con_ex_src2,
+    con_ex_result,
+    con_ex_result_update_gpr
+} = con_ex_bits;
 execute #(
-    .INST_WIDTH(INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH),
+    .IN_DATA_W(EX_IN_DATA_W),
+    .OUT_DATA_W(EX_OUT_DATA_W)
 ) exu(
     .clk(clk),
     .rst(rst),
@@ -895,35 +946,41 @@ execute #(
 
     .in_ready(mod_con_ex_ready),
     .in_valid(con_id_valid),
-    .in_pc(con_id_pc),
-    .in_inst(con_id_inst),
-    .in_rd(con_id_rd),
-    .in_imm(con_id_imm),
-    .in_inst_code(con_id_inst_code),
-    .in_src1(con_id_src1),
-    .in_src2(con_id_src2),
-    .in_a0(con_id_a0),
+    .in_bits({con_id_pc, con_id_inst, con_id_rd, con_id_imm, con_id_inst_code, con_id_src1, con_id_src2, con_id_a0}),
 
     .out_ready(con_ls_ready),
     .out_valid(mod_con_ex_valid),
-    .out_pc(con_ex_pc),
-    .out_inst(con_ex_inst),
-    .out_rd(con_ex_rd),
-    .out_imm(con_ex_imm),
-    .out_inst_code(con_ex_inst_code),
-    .out_src1(con_ex_src1),
-    .out_src2(con_ex_src2),
-    .out_result(con_ex_result),
-    .out_result_update_gpr(con_ex_result_update_gpr)
+    .out_bits(mod_con_ex_bits)
+);
+stage_regs#(
+    .DATA_STORAGE(1),
+    .DATA_W(EX_OUT_DATA_W)
+) exu_regs (
+    .clk(clk),
+    .rst(rst),
+    .valid(con_ex_valid),
+    .ready(con_ls_ready),
+    .bits(mod_con_ex_bits),
+    .stage_bits(con_ex_bits)
 );
 
 /* 读存储ls */
+wire [LS_OUT_DATA_W-1:0] mod_con_ls_bits;
+wire [LS_OUT_DATA_W-1:0] con_ls_bits;
 wire [ADDR_WIDTH-1:0] con_ls_pc;
 wire [4:0] con_ls_rd;
 wire [INST_WIDTH-1:0] con_ls_result;
 wire con_ls_result_update_gpr;
+assign {
+    con_ls_pc,
+    con_ls_rd,
+    con_ls_result,
+    con_ls_result_update_gpr
+} = con_ls_bits;
 load_store #(
-    .INST_WIDTH(INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH),
+    .IN_DATA_W(LS_IN_DATA_W),
+    .OUT_DATA_W(LS_OUT_DATA_W)
 ) lsu(
     .clk(clk),
     .rst(rst),
@@ -960,51 +1017,43 @@ load_store #(
 
     .in_ready(mod_con_ls_ready),
     .in_valid(con_ex_valid),
-    .in_pc(con_ex_pc),
-    .in_inst(con_ex_inst),
-    .in_rd(con_ex_rd),
-    .in_imm(con_ex_imm),
-    .in_inst_code(con_ex_inst_code),
-    .in_src1(con_ex_src1),
-    .in_src2(con_ex_src2),
-    .in_result(con_ex_result),
-    .in_result_update_gpr(con_ex_result_update_gpr),
+    .in_bits(con_ex_bits),
 
     .out_ready(con_wb_ready),
     .out_valid(mod_con_ls_valid),
-    .out_pc(con_ls_pc),
-    .out_rd(con_ls_rd),
-    .out_result(con_ls_result),
-    .out_result_update_gpr(con_ls_result_update_gpr)
+    .out_bits(mod_con_ls_bits)
+);
+stage_regs#(
+    .DATA_STORAGE(1),
+    .DATA_W(LS_OUT_DATA_W)
+) lsu_regs (
+    .clk(clk),
+    .rst(rst),
+    .valid(con_ls_valid),
+    .ready(con_wb_ready),
+    .bits(mod_con_ls_bits),
+    .stage_bits(con_ls_bits)
 );
 
 /* 回写wb */
 write_back #(
-    .INST_WIDTH(INST_WIDTH)
+    .INST_WIDTH(INST_WIDTH),
+    .IN_DATA_W(WB_IN_DATA_W),
+    .OUT_DATA_W(WB_OUT_DATA_W)
 ) wbu(
     .clk(clk),
     .rst(rst),
 
-    .gpr_wen(),
-    .gpr_windex(),
-    .gpr_wdata(),
+    .gpr_wen(wb_gpr_wen),
+    .gpr_windex(wb_gpr_windex),
+    .gpr_wdata(wb_gpr_wdata),
 
     .in_ready(mod_con_wb_ready),
     .in_valid(con_ls_valid),
-    .in_pc(con_ls_pc),
-    .in_rd(con_ls_rd),
-    .in_result(con_ls_result),
-    .in_result_update_gpr(con_ls_result_update_gpr),
+    .in_bits(con_ls_bits),
 
     .out_ready(con_core_ready),
     .out_valid(mod_con_wb_valid)
 );
-/*
- * 更新寄存器需要与wb同步进行
- * 避免wb_valid后，寄存器任然未更新成功
- */
-assign wb_gpr_wen = (con_ls_valid&con_wb_ready) & con_ls_result_update_gpr;
-assign wb_gpr_windex = con_ls_rd;
-assign wb_gpr_wdata = con_ls_result;
 
 endmodule

@@ -3,7 +3,9 @@ module load_store #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter BRESP_WIDTH = 2,
-    parameter RRESP_WIDTH = 2
+    parameter RRESP_WIDTH = 2,
+    parameter IN_DATA_W,
+    parameter OUT_DATA_W
 ) (
     input   wire                        clk,
     input   wire                        rst,
@@ -42,66 +44,34 @@ module load_store #(
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
-    input   wire [INST_WIDTH-1:0]       in_pc,
-    input   wire [INST_WIDTH-1:0]       in_inst,
-    input   wire [4:0]                  in_rd,
-    input   wire [INST_WIDTH-1:0]       in_imm,
-    input   wire [`INST_CODE_W-1:0]     in_inst_code,
-    input   wire [INST_WIDTH-1:0]       in_src1,
-    input   wire [INST_WIDTH-1:0]       in_src2,
-    input   wire [INST_WIDTH-1:0]       in_result,
-    input   wire                        in_result_update_gpr,
+    input   wire [IN_DATA_W-1:0]        in_bits,
 
     /* 模块输入数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [INST_WIDTH-1:0]       out_pc,
-    output  wire [4:0]                  out_rd,
-    output  wire [INST_WIDTH-1:0]       out_result,
-    output  wire                        out_result_update_gpr
+    output  wire [OUT_DATA_W-1:0]       out_bits
 );
-
-    localparam STAGE_IN_DATA_W =
-        5 + 
-        `INST_CODE_W + 
-        INST_WIDTH*6 + 
-        1;
-
-    wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
-    wire [`INNER_CON_STATE_W-1:0]   stage_state;
 
-    inner_con #(
-        .IN_DATA_STORAGE(1),
-        .IN_DATA_W(STAGE_IN_DATA_W)
-    ) ls_con(
+    inner_con ls_con(
         .clk(clk),
         .rst(rst),
         .in_valid(in_valid),
         .in_ready(in_ready),
-        .in_bits({in_pc, in_inst, in_rd, in_imm, in_inst_code, in_src1, in_src2, 
-            in_result, in_result_update_gpr}),
         .out_valid(out_valid),
         .out_ready(out_ready),
-        .stage_in_bits(stage_in_bits),
         .stage_in_done(stage_in_done),
         .stage_out_valid(r_stage_out_valid),
-        .stage_out_done(stage_out_done),
-        .stage_state(stage_state)
+        .stage_out_done(stage_out_done)
     );
 
     assign {
         pc, inst, rd, imm, inst_code, src1, src2,
         result, result_update_gpr
-    } = stage_in_bits;
-    assign {
-        out_pc,
-        out_rd,
-        out_result,
-        out_result_update_gpr
-    } = {
+    } = in_bits;
+    assign out_bits = {
         pc,
         rd,
         ls_enable ? r_result : result,

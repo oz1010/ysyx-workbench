@@ -1,5 +1,7 @@
 module execute #(
-    parameter INST_WIDTH = 32
+    parameter INST_WIDTH = 32,
+    parameter IN_DATA_W,
+    parameter OUT_DATA_W
 ) (
     input   wire                        clk,
     input   wire                        rst,
@@ -10,62 +12,30 @@ module execute #(
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
-    input   wire [INST_WIDTH-1:0]       in_pc,
-    input   wire [INST_WIDTH-1:0]       in_inst,
-    input   wire [4:0]                  in_rd,
-    input   wire [INST_WIDTH-1:0]       in_imm,
-    input   wire [`INST_CODE_W-1:0]     in_inst_code,
-    input   wire [INST_WIDTH-1:0]       in_src1,
-    input   wire [INST_WIDTH-1:0]       in_src2,
-    input   wire [INST_WIDTH-1:0]       in_a0,
+    input   wire [IN_DATA_W-1:0]        in_bits,
     /* 模块输入数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [INST_WIDTH-1:0]       out_pc,
-    output  wire [INST_WIDTH-1:0]       out_inst,
-    output  wire [4:0]                  out_rd,
-    output  wire [INST_WIDTH-1:0]       out_imm,
-    output  wire [`INST_CODE_W-1:0]     out_inst_code,
-    output  wire [INST_WIDTH-1:0]       out_src1,
-    output  wire [INST_WIDTH-1:0]       out_src2,
-    output  wire [INST_WIDTH-1:0]       out_result,
-    output  wire                        out_result_update_gpr
+    output  wire [OUT_DATA_W-1:0]       out_bits
 );
-
-    localparam STAGE_IN_DATA_W = 
-        INST_WIDTH*6 + 
-        `INST_CODE_W + 
-        5;
-
-    wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
-    wire [`INNER_CON_STATE_W-1:0]   stage_state;
 
-    inner_con #(
-        .IN_DATA_STORAGE(0),
-        .IN_DATA_W(STAGE_IN_DATA_W)
-    ) ex_con(
+    inner_con ex_con(
         .clk(clk),
         .rst(rst),
         .in_valid(in_valid),
         .in_ready(in_ready),
-        .in_bits({in_pc, in_inst, in_rd, in_imm, in_inst_code, in_src1, in_src2, in_a0}),
         .out_valid(out_valid),
         .out_ready(out_ready),
-        .stage_in_bits(stage_in_bits),
         .stage_in_done(stage_in_done),
         .stage_out_valid(r_stage_out_valid),
-        .stage_out_done(stage_out_done),
-        .stage_state(stage_state)
+        .stage_out_done(stage_out_done)
     );
 
-    assign {pc, inst, rd, imm, inst_code, src1, src2, a0} = stage_in_bits;
-    assign {
-        out_pc, out_inst, out_rd, out_imm, out_inst_code, out_src1, out_src2, 
-        out_result, out_result_update_gpr
-    } = {
+    assign {pc, inst, rd, imm, inst_code, src1, src2, a0} = in_bits;
+    assign out_bits = {
         pc, inst, rd, imm, inst_code, src1, src2,
         r_result, r_result_update_gpr
     };
@@ -83,7 +53,6 @@ module execute #(
 
     reg [INST_WIDTH-1:0] r_dnpc;
     reg [INST_WIDTH-1:0] r_result;
-    // reg [7:0] r_result_mem_width;
     reg r_result_update_gpr;
     reg r_jump_en;
 
@@ -124,12 +93,10 @@ module execute #(
             r_jump_en <= 0;
             r_dnpc <= 0;
             r_result <= 0;
-            // r_result_mem_width <= 0;
             r_result_update_gpr <= 0;
         end else begin
             r_dnpc <= r_dnpc;
             r_result <= r_result;
-            // r_result_mem_width <= r_result_mem_width;
             r_result_update_gpr <= r_result_update_gpr;
 
             if (stage_in_done) begin
@@ -137,7 +104,6 @@ module execute #(
                 r_jump_en <= 0;
                 r_dnpc <= pc + 4;
                 r_result <= 0;
-                // r_result_mem_width <= 0;
                 r_result_update_gpr <= ex_enable;
             end
 

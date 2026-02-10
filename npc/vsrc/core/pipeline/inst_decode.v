@@ -1,6 +1,8 @@
 module inst_decode #(
     parameter ADDR_WIDTH = 32,
-    parameter INST_WIDTH = 32
+    parameter INST_WIDTH = 32,
+    parameter IN_DATA_W,
+    parameter OUT_DATA_W
 ) (
     input wire                          clk,
     input wire                          rst,
@@ -8,50 +10,33 @@ module inst_decode #(
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
-    input   wire [ADDR_WIDTH-1:0]       in_pc,
-    input   wire [INST_WIDTH-1:0]       in_inst,
+    input   wire [IN_DATA_W-1:0]        in_bits,
     /* 模块输出数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [ADDR_WIDTH-1:0]       out_pc,
-    output  wire [INST_WIDTH-1:0]       out_inst,
-    output  wire [4:0]                  out_rd,
-    output  wire [4:0]                  out_rs1,
-    output  wire [4:0]                  out_rs2,
-    output  wire [INST_WIDTH-1:0]       out_imm,
-    output  wire [`INST_CODE_W-1:0]     out_inst_code
+    output  wire [OUT_DATA_W-1:0]       out_bits
 );
-
-    localparam STAGE_IN_DATA_W = ADDR_WIDTH + INST_WIDTH;
-
-    wire [STAGE_IN_DATA_W-1:0]      stage_in_bits;
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
-    wire [`INNER_CON_STATE_W-1:0]   stage_state;
+
     wire [ADDR_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           inst;
 
-    inner_con #(
-        .IN_DATA_STORAGE(1),
-        .IN_DATA_W(STAGE_IN_DATA_W)
-    ) id_con(
+    inner_con id_con(
         .clk(clk),
         .rst(rst),
         .in_valid(in_valid),
         .in_ready(in_ready),
-        .in_bits({in_pc, in_inst}),
         .out_valid(out_valid),
         .out_ready(out_ready),
-        .stage_in_bits(stage_in_bits),
         .stage_in_done(stage_in_done),
         .stage_out_valid(r_stage_out_valid),
-        .stage_out_done(stage_out_done),
-        .stage_state(stage_state)
+        .stage_out_done(stage_out_done)
     );
 
-    assign {pc, inst} = stage_in_bits;
-    assign {out_pc, out_inst, out_rd, out_rs1, out_rs2, out_imm, out_inst_code} = {pc, inst, rd, rs1, rs2, imm, inst_code};
+    assign {pc, inst} = in_bits;
+    assign out_bits = {pc, inst, rd, rs1, rs2, imm, inst_code};
 
     // 定义内部信号
     wire [6:0] opcode;
