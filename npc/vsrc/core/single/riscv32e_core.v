@@ -44,21 +44,47 @@ module riscv32e_core #(
 
 /* 寄存器组 */
 reg [INST_WIDTH-1:0] r_inst;
+reg r_valid;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
 // wire [INST_WIDTH-1:0] pc;
 
-assign valid = 1;
+assign valid = r_valid;
 // assign w_pc = pc;
 // assign w_x = x;
+
+// initial begin
+//     r_valid = 0;
+// end
+// assign r_valid = !rst;
+
+/** 
+ * 当前正在处理的pc指示
+ * 单周期处理器core_dnpc只需与core_pc一致即可
+ */
+reg [INST_WIDTH-1:0] core_pc;
+reg [INST_WIDTH-1:0] core_dnpc;
+wire [INST_WIDTH-1:0] dnpc;
+assign pc = core_pc;
+always @(posedge clk) begin
+    if (rst) begin
+        core_pc <= get_reset_pc();
+        core_dnpc <= get_reset_pc();
+        r_valid <= 0;
+    end else begin
+        core_pc <= dnpc;
+        core_dnpc <= dnpc;
+        r_valid <= 1;
+    end
+end
 
 /* 取指 */
 always @(*) begin
     if (rst) begin
         r_inst = 32'b0;
     end else begin
-        r_inst = fetch_inst(pc);
+        r_inst = fetch_inst(core_pc);
     end
 end
 
@@ -93,6 +119,7 @@ write_back #(
     .clk(clk),
     .rst(rst),
 
+    .pc(core_pc),
     .inst(r_inst),
     .rd(rd),
     .rs1(rs1),
@@ -100,7 +127,7 @@ write_back #(
     .imm(imm),
     .inst_code(inst_code),
     .w_x(x),
-    .w_pc(pc)
+    .dnpc(dnpc)
 );
 
 endmodule

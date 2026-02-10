@@ -446,11 +446,16 @@ void dpi_dev_skip(int write, int addr, int req_info, int data)
         {
             DIFFTEST_SKIP_REF();
 
-            // 内部设备不会走vdev机制，需要单独触发此流程
+            /** 
+             * 内部设备不会走vdev机制，需要单独触发此流程
+             * 单周期不能接入ysyxSOC外设
+             */
+            #if !CONFIG_ISA_RISCV_SINGLE
             if (vdev->handler)
             {
                 vdev->handler(vdev, write, addr, write ? awsize : arsize, (uint32_t *)&data);
             }
+            #endif
         }
 
         return;
