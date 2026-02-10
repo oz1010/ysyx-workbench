@@ -2,6 +2,7 @@ menu "RISC-V Processor Options"
 
 menuconfig ICACHE
   bool "ICache enable"
+  depends on !ISA_RISCV_SINGLE
   default y
   if ICACHE
     config ICACHE_PARAMETER_W
@@ -19,6 +20,7 @@ menuconfig ICACHE
 
 menuconfig DCACHE
   bool "DCache enable"
+  depends on !ISA_RISCV_SINGLE
   default n
   if DCACHE
     config DCACHE_PARAMETER_W
