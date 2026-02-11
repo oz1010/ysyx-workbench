@@ -21,7 +21,7 @@ menuconfig ICACHE
 menuconfig DCACHE
   bool "DCache enable"
   depends on !ISA_RISCV_SINGLE
-  default n
+  default y
   if DCACHE
     config DCACHE_PARAMETER_W
       int "DCache parameter W"
