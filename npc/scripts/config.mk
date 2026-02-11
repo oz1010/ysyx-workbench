@@ -21,6 +21,8 @@ $(warning $(COLOR_RED)Warning: .config does not exists!$(COLOR_END))
 $(warning $(COLOR_RED)To build the project, first run 'make menuconfig'.$(COLOR_END))
 endif
 
+CFG_NAME     ?= defconfig
+CONFIG_PATH  := configs
 Q            := @
 KCONFIG_PATH := $(NPC_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NPC_HOME)/tools/fixdep
@@ -32,6 +34,10 @@ silent := -s
 CONF   := $(KCONFIG_PATH)/build/conf
 MCONF  := $(KCONFIG_PATH)/build/mconf
 FIXDEP := $(FIXDEP_PATH)/build/fixdep
+
+# 生成静态编译目标，用于make自动补全
+$(shell echo "DEFCONFIG_TARGETS := $(patsubst $(CONFIG_PATH)/%,%,$(wildcard $(CONFIG_PATH)/*_defconfig))" > $(NPC_HOME)/.targets.inc)
+include $(NPC_HOME)/.targets.inc
 
 $(CONF):
 	$(Q)$(MAKE) $(silent) -C $(KCONFIG_PATH) NAME=conf
@@ -48,13 +54,14 @@ menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 	$(Q)$(VH_CONVERT) $(NPC_HOME)/include/generated/autoconf.h
 
 savedefconfig: $(CONF)
-	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)
+	$(Q)$< $(silent) --$@=configs/$(CFG_NAME) $(Kconfig)
 
-%defconfig: $(CONF) $(FIXDEP)
-	$(Q)$< $(silent) --defconfig=configs/$@ $(Kconfig)
+$(DEFCONFIG_TARGETS): $(CONF) $(FIXDEP)
+	$(Q)$< $(silent) --defconfig=$(CONFIG_PATH)/$@ $(Kconfig) && \
+		echo "# configuration written to .config"
 	$(Q)$< $(silent) --syncconfig $(Kconfig)
 
-.PHONY: menuconfig savedefconfig defconfig
+.PHONY: menuconfig savedefconfig $(DEFCONFIG_TARGETS)
 
 # Help text used by make help
 help:
