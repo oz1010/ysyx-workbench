@@ -31,7 +31,7 @@
 
 #if CONFIG_HAS_NVBOARD
 #include "nvboard.h"
-void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
+void nvboard_bind_all_pins(TOP_ROOT_CLASS *_simu);
 #endif
 
 /* The assembly code of instructions executed is only output to the screen
@@ -62,16 +62,23 @@ std::shared_ptr<VerilatedContext> contextp;
 std::shared_ptr<TOP_ROOT_CLASS> top;
 std::shared_ptr<VerilatedVcdC> tfp;
 
-typedef enum { SYNC_TO_SIMU, SYNC_TO_CPU } sync_type_t;
+typedef enum
+{
+    SYNC_TO_SIMU,
+    SYNC_TO_CPU
+} sync_type_t;
 
 static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t type)
 {
     // TOP_S_X
     // _simu->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060295_CORE0__DOT__m_reg_group__DOT__x
-    if (type == SYNC_TO_SIMU){
+    if (type == SYNC_TO_SIMU)
+    {
         memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
         _simu->rootp->TOP_S_PC = _cpu->pc;
-    } else {
+    }
+    else
+    {
         memcpy(&_cpu->gpr[0], &_simu->rootp->TOP_S_X.m_storage[0], sizeof(_cpu->gpr));
         _cpu->pc = _simu->rootp->TOP_S_PC;
     }
@@ -108,13 +115,18 @@ int exec_vsimu(Decode *s)
         //     exit(-1);
         // }
 
-        simu_continue = !top->contextp()->gotFinish() && (npc_ctx.state==NPC_RUNNING || npc_ctx.state==NPC_END || npc_ctx.state==NPC_QUIT);
-        for (int idx=0; idx<CONFIG_CORE_NUM; ++idx) {
-            if (top->rootp->TOP_S_CORE_INST_DONE[idx]) {
+        simu_continue =
+            !top->contextp()->gotFinish() &&
+            (npc_ctx.state == NPC_RUNNING || npc_ctx.state == NPC_END || npc_ctx.state == NPC_QUIT);
+        for (int idx = 0; idx < CONFIG_CORE_NUM; ++idx)
+        {
+            if (top->rootp->TOP_S_CORE_INST_DONE[idx])
+            {
                 simu_continue = false;
                 break;
             }
-            if (top->rootp->TOP_S_CORE_ERROR[idx]) {
+            if (top->rootp->TOP_S_CORE_ERROR[idx])
+            {
                 printf(ANSI_FMT("Found error in core%d\n", ANSI_BG_RED), idx);
                 set_npc_state(NPC_ABORT, get_vsimu_pc(), -4);
                 simu_continue = false;
@@ -123,20 +135,21 @@ int exec_vsimu(Decode *s)
         }
     } while (simu_continue);
 
-
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
 
     s->dnpc = get_vsimu_dnpc();
 
     // 仿真直接调用finish，强制修改状态
-    if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING) {
+    if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING)
+    {
         printf(ANSI_FMT("Found finish in verilog\n", ANSI_BG_RED));
         set_npc_state(NPC_ABORT, get_vsimu_pc(), -5);
     }
 
 #if CONFIG_PERF_MONITOR
-    if (top->rootp->TOP_S_CORE_INST_DONE[0]) {
+    if (top->rootp->TOP_S_CORE_INST_DONE[0])
+    {
         extern void add_monitor_item(int item_idx, int id, int delta);
         add_monitor_item(1, 5, 1);
     }
@@ -149,8 +162,8 @@ void init_vsimu(int argc, char *argv[])
 {
     Verilated::commandArgs(argc, argv);
     contextp = std::make_shared<VerilatedContext>();
-    contextp->debug(0);                 // Set debug level, 0 is off, 9 is highest
-    contextp->randReset(2);             // Randomization reset policy
+    contextp->debug(0);      // Set debug level, 0 is off, 9 is highest
+    contextp->randReset(2);  // Randomization reset policy
     // contextp->commandArgs(argc, argv);  // Pass arguments so Verilated code can see them
 
     top = std::make_shared<TOP_ROOT_CLASS>(contextp.get(), TOP_STR);
@@ -195,7 +208,7 @@ void exit_vsimu()
 
     tfp.reset();
     top.reset();
-	contextp.reset();
+    contextp.reset();
 
     exit_dpi();
 }
@@ -207,12 +220,14 @@ uint8_t *get_vsimu_sram_addr()
 
 uint32_t *get_vsimu_vga_fb_addr()
 {
-    return (uint32_t *)&top->rootp->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__fram_buffer[0];
+    return (uint32_t *)&top->rootp
+        ->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__fram_buffer[0];
 }
 
 uint32_t *get_vsimu_vga_ctrl_regs_addr()
 {
-    return (uint32_t *)&top->rootp->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__ctrl_regs[0];
+    return (uint32_t *)&top->rootp
+        ->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__ctrl_regs[0];
 }
 
 void set_vsimu_pc(paddr_t addr)
@@ -228,4 +243,42 @@ paddr_t get_vsimu_pc(void)
 paddr_t get_vsimu_dnpc(void)
 {
     return top->rootp->TOP_S_DNPC;
+}
+
+static constexpr uint32_t csr_addrs[] = {
+    0, CSR_MSTATUS, CSR_MTVEC, CSR_MEPC, CSR_MCAUSE, CSR_MVENDORID, CSR_MARCHID,
+};
+static const size_t csr_index_max = top->rootp->TOP_S_CSR.size();
+// 需要保持和vsrc/core/common/csrs.v get_csr_index一致的逻辑，否则容易出问题
+// static_assert(csr_index_max == ARRAY_SIZE(csr_addrs), "csr count may be dismatched");
+uint32_t get_csr_index(paddr_t addr)
+{
+    uint32_t csr_index = 0;
+    for (auto i = 1; i < ARRAY_SIZE(csr_addrs); ++i)
+    {
+        if (addr == csr_addrs[i])
+        {
+            csr_index = i;
+            break;
+        }
+    }
+    return csr_index;
+}
+void set_vsimu_csr(paddr_t addr, uint32_t data)
+{
+#if CONFIG_ISA_RISCV_SINGLE
+    cpu.csr[addr] = data;
+#else
+    cpu.csr[addr] = data;
+    top->rootp->TOP_S_CSR[get_csr_index(addr)] = data;
+#endif
+}
+uint32_t get_vsimu_csr(paddr_t addr)
+{
+#if CONFIG_ISA_RISCV_SINGLE
+    uint32_t data = cpu.csr[addr];
+#else
+    uint32_t data = top->rootp->TOP_S_CSR[get_csr_index(addr)];
+#endif
+    return data;
 }

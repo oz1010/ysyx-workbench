@@ -41,7 +41,8 @@ enum {
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
-  word_t csr[CSR_COUNT];
+  // IFDEF(CONFIG_ISA_RISCV_SINGLE, word_t csr[CSR_COUNT]);
+  word_t csr[CSR_COUNT]; // TODO ref会使用这个结构，不能直接屏蔽。否则会造成coredump，暂时先不处理。
 } MUXDEF(CONFIG_RV64, riscv64_CPU_state, concat(__GUEST_ISA__, _CPU_state));
 
 // decode
