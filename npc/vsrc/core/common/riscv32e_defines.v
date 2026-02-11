@@ -76,7 +76,8 @@
 `define INST_MRET           (`INST_CODE_W'h038|`INST_CODE_JUMP)
 `define INST_INVALID        (`INST_CODE_W'h0FF) // TODO 若定义为0，某些判断有问题
 
-`define ERR_INV_OPN         -2
+`define CORE_STATUS_W       32
+`define CORE_INV_OPN        `CORE_STATUS_W'h1 // 无效的操作数
 
 `define CSR_ADDR_W          12
 `define CSR_MSTATUS         (`CSR_ADDR_W'h300) // mstatus寄存器 - 存放处理器的状态

@@ -188,9 +188,9 @@ module execute #(
                         `INST_ORI:          r_result <= src1 | imm;
                         `INST_ANDI:         r_result <= src1 & imm;
 
-                        `INST_SLLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`ERR_INV_OPN); else r_result <= src1 << (imm&32'h1F);
-                        `INST_SRLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`ERR_INV_OPN); else r_result <= src1 >> (imm&32'h1F);
-                        `INST_SRAI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`ERR_INV_OPN); else r_result <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
+                        `INST_SLLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`CORE_INV_OPN); else r_result <= src1 << (imm&32'h1F);
+                        `INST_SRLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`CORE_INV_OPN); else r_result <= src1 >> (imm&32'h1F);
+                        `INST_SRAI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`CORE_INV_OPN); else r_result <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
                         `INST_ADD:          r_result <= src1 + src2;
                         `INST_SUB:          r_result <= src1 - src2;
                         `INST_SLL:          r_result <= src1 << (src2 & 32'h1F);
