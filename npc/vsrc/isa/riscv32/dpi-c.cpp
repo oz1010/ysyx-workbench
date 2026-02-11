@@ -67,6 +67,8 @@ extern vdev_item_t vdev_items[NR_VDEV_ITEMS];
 #define TEST_INIF_FLASH_BASEADDR 0x30f00000
 
 extern paddr_t get_vsimu_pc(void);
+extern void set_vsimu_csr(paddr_t addr, uint32_t data);
+extern uint32_t get_vsimu_csr(paddr_t addr);
 
 void init_dpi()
 {
@@ -334,12 +336,12 @@ void write_raw_csr(int idx, int data)
 {
     // printf("write csr %d %d\n", ri, data);
     // int ri = ri % CSR_COUNT;
-    cpu.csr[idx & 0xfff] = data;
+    set_vsimu_csr(idx & 0xfff, data);
 }
 
 int read_raw_csr(int idx)
 {
-    int ret = cpu.csr[idx & 0xfff];
+    int ret = get_vsimu_csr(idx & 0xfff);
     // printf("read csr %d %d\n", ri, ret);
     return ret;
 }

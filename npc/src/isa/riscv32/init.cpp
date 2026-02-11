@@ -18,6 +18,8 @@
 
 extern void init_vsimu(int argc, char *argv[]);
 extern void set_vsimu_pc(paddr_t addr);
+extern void set_vsimu_csr(paddr_t addr, uint32_t data);
+extern uint32_t get_vsimu_csr(paddr_t addr);
 
 vaddr_t reset_pc = CONFIG_IMG_LOAD;
 

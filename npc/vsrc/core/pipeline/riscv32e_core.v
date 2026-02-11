@@ -317,9 +317,6 @@ assign axi4_s_rid[AXI4_SLAVE_COUNT-1]       = io_master_rid;
 wire [INST_WIDTH-1:0] inst;
 reg [63:0] execute_time;
 wire [INST_WIDTH-1:0] src1, src2, a0;
-wire wb_gpr_wen;
-wire [4:0] wb_gpr_windex;
-wire [INST_WIDTH-1:0] wb_gpr_wdata;
 
 assign valid = con_wb_valid;
 
@@ -353,21 +350,61 @@ always @(posedge clk) begin
     end
 end
 
-/* 寄存器组 */
+/* gpr寄存器组 */
+wire [4:0] gpr_rs1 = con_id_rs1;
+wire [4:0] gpr_rs2 = con_id_rs2;
+wire [DATA_WIDTH-1:0] gpr_src1;
+wire [DATA_WIDTH-1:0] gpr_src2;
+wire [DATA_WIDTH-1:0] gpr_a0;
+wire gpr_wen = wb_gpr_wen;
+wire [4:0] gpr_windex = wb_gpr_windex;
+wire [DATA_WIDTH-1:0] gpr_wdata = wb_gpr_wdata;
 gprs #(
-    .INST_WIDTH(INST_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
     .REG_COUNT(`RISCV_GPR_COUNT)
 ) m_gprs (
     .clk(clk),
     .rst(rst),
-    .rs1(con_id_rs1),
-    .src1(con_id_src1),
-    .rs2(con_id_rs2),
-    .src2(con_id_src2),
-    .a0(con_id_a0),
+    .rs1(gpr_rs1),
+    .src1(gpr_src1),
+    .rs2(gpr_rs2),
+    .src2(gpr_src2),
+    .a0(gpr_a0),
     .wen(wb_gpr_wen),
     .windex(wb_gpr_windex),
     .wdata(wb_gpr_wdata)
+);
+
+/* csr寄存器组 */
+wire [`INST_CODE_W-1:0] csr_inst_code = con_id_inst_code;
+wire csr_raddr_en = 
+    (csr_inst_code==`INST_CSRRW) |
+    (csr_inst_code==`INST_CSRRS) |
+    (csr_inst_code==`INST_CSRRC) |
+    (csr_inst_code==`INST_CSRRWI) |
+    (csr_inst_code==`INST_CSRRSI) |
+    (csr_inst_code==`INST_CSRRCI) |
+    0;
+wire [`CSR_ADDR_W-1:0] csr_raddr = 
+    csr_raddr_en ? con_id_imm[0 +: `CSR_ADDR_W] :
+    (csr_inst_code==`INST_ECALL) ? `CSR_MTVEC :
+    (csr_inst_code==`INST_MRET) ? `CSR_MEPC :
+    0;
+wire [DATA_WIDTH-1:0] csr_rdata;
+wire csr_wen = con_ex_csr_wen;
+wire [`CSR_ADDR_W-1:0] csr_waddr = con_ex_csr_waddr;
+wire [DATA_WIDTH-1:0] csr_wdata = con_ex_csr_wdata;
+csrs #(
+    .DATA_WIDTH(DATA_WIDTH)
+) m_csrs (
+    .clk(clk),
+    .rst(rst),
+    .raddr(csr_raddr),
+    .rdata(csr_rdata),
+    .wen(csr_wen),
+    .waddr(csr_waddr),
+    .wdata(csr_wdata),
+    .cscode()
 );
 
 /* 性能监控 */
@@ -870,9 +907,9 @@ wire [4:0] con_id_rs1;
 wire [4:0] con_id_rs2;
 wire [INST_WIDTH-1:0] con_id_imm;
 wire [`INST_CODE_W-1:0] con_id_inst_code;
-wire [INST_WIDTH-1:0] con_id_src1;
-wire [INST_WIDTH-1:0] con_id_src2;
-wire [INST_WIDTH-1:0] con_id_a0;
+wire [DATA_WIDTH-1:0] con_id_src1 = gpr_src1;
+wire [DATA_WIDTH-1:0] con_id_src2 = gpr_src2;
+wire [DATA_WIDTH-1:0] con_id_a0 = gpr_a0;
 assign {con_id_pc, con_id_inst, con_id_rd, con_id_rs1, con_id_rs2, con_id_imm, con_id_inst_code} = con_id_bits;
 inst_decode #(
     .INST_WIDTH(INST_WIDTH),
@@ -911,6 +948,10 @@ wire [EX_OUT_DATA_W-1:0] mod_con_ex_bits;
 wire [EX_OUT_DATA_W-1:0] con_ex_bits;
 wire con_ex_jump_en;
 wire [ADDR_WIDTH-1:0] con_ex_jump_addr;
+wire [DATA_WIDTH-1:0] con_ex_csr_rdata = csr_rdata;
+wire con_ex_csr_wen;
+wire [`CSR_ADDR_W-1:0] con_ex_csr_waddr;
+wire [DATA_WIDTH-1:0] con_ex_csr_wdata;
 wire [ADDR_WIDTH-1:0] con_ex_pc;
 wire [INST_WIDTH-1:0] con_ex_inst;
 wire [4:0] con_ex_rd;
@@ -943,6 +984,10 @@ execute #(
 
     .jump_en(con_ex_jump_en),
     .jump_addr(con_ex_jump_addr),
+    .csr_rdata(con_ex_csr_rdata),
+    .csr_wen(con_ex_csr_wen),
+    .csr_waddr(con_ex_csr_waddr),
+    .csr_wdata(con_ex_csr_wdata),
 
     .in_ready(mod_con_ex_ready),
     .in_valid(con_id_valid),
@@ -1036,6 +1081,9 @@ stage_regs#(
 );
 
 /* 回写wb */
+wire wb_gpr_wen;
+wire [4:0] wb_gpr_windex;
+wire [DATA_WIDTH-1:0] wb_gpr_wdata;
 write_back #(
     .INST_WIDTH(INST_WIDTH),
     .IN_DATA_W(WB_IN_DATA_W),

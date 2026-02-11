@@ -25,6 +25,7 @@
 #define TOP_S_X concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__wbu__DOT__x)
 #else
 #define TOP_S_X concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__m_gprs__DOT__x)
+#define TOP_S_CSR concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__m_csrs__DOT__csrs)
 #endif
 #define TOP_S_PC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_pc)
 #define TOP_S_DNPC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_dnpc)

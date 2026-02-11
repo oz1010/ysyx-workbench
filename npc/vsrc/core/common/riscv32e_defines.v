@@ -77,7 +77,9 @@
 `define INST_INVALID        (`INST_CODE_W'h0FF) // TODO 若定义为0，某些判断有问题
 
 `define CORE_STATUS_W       32
-`define CORE_INV_OPN        `CORE_STATUS_W'h1 // 无效的操作数
+`define CORE_STATUS_ERROR_BIT 31
+`define CORE_STATUS_ERROR   (`CORE_STATUS_W'h1<<`CORE_STATUS_ERROR_BIT) // 有异常由最高位指明
+`define CORE_INV_OPN        (`CORE_STATUS_W'h0000_a000|`CORE_STATUS_ERROR) // 无效的操作数
 
 `define CSR_ADDR_W          12
 `define CSR_MSTATUS         (`CSR_ADDR_W'h300) // mstatus寄存器 - 存放处理器的状态
@@ -86,6 +88,8 @@
 `define CSR_MCAUSE          (`CSR_ADDR_W'h342) // mcause寄存器 - 存放触发异常的原因
 `define CSR_MVENDORID       (`CSR_ADDR_W'hf11) // Vendor ID, ysyx的ASCII码, 即0x79737978
 `define CSR_MARCHID         (`CSR_ADDR_W'hf12) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
+`define CSR_WRITE_COUNT     4 // 支持写入的寄存器数量
+`define CSR_RO_COUNT        2 // 支持只读的寄存器数量
 
 `define SCOM_INVALID        2'b00
 `define SCOM_FOUND          2'b01

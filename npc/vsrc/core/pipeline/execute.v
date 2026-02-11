@@ -1,5 +1,6 @@
 module execute #(
     parameter INST_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
@@ -8,6 +9,10 @@ module execute #(
 
     output  wire                        jump_en,
     output  wire [INST_WIDTH-1:0]       jump_addr,
+    input   wire [DATA_WIDTH-1:0]       csr_rdata,
+    output  wire                        csr_wen,
+    output  wire [`CSR_ADDR_W-1:0]      csr_waddr,
+    output  wire [DATA_WIDTH-1:0]       csr_wdata,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -99,8 +104,8 @@ module execute #(
         ((inst_code==`INST_BGE)&(s_src1>=s_src2)) ? pc_plus_imm :
         ((inst_code==`INST_BLTU)&(src1<src2)) ? pc_plus_imm :
         ((inst_code==`INST_BGEU)&(src1>=src2)) ? pc_plus_imm :
-        (inst_code==`INST_ECALL) ? func_read_raw_csr({{(32-`CSR_ADDR_W){1'b0}}, `CSR_MTVEC}) :
-        (inst_code==`INST_MRET) ? func_read_raw_csr({{(32-`CSR_ADDR_W){1'b0}}, `CSR_MEPC}) :
+        (inst_code==`INST_ECALL) ? csr_rdata :
+        (inst_code==`INST_MRET) ? csr_rdata :
         snpc;
     wire inst_jump_en =
         (inst_code==`INST_JAL) |
@@ -123,6 +128,15 @@ module execute #(
         (inst_code==`INST_BGEU) |
         (inst_code==`INST_ECALL) |
         (inst_code==`INST_MRET) |
+        0;
+    assign csr_wen =
+        (inst_code==`INST_CSRRW) |
+        (inst_code==`INST_CSRRS) |
+        0;
+    assign csr_waddr = imm[0 +: `CSR_ADDR_W];
+    assign csr_wdata = 
+        (inst_code==`INST_CSRRW) ? src1 :
+        (inst_code==`INST_CSRRS) ? (csr_rdata|src1) :
         0;
 
     always @(posedge clk) begin
@@ -205,8 +219,8 @@ module execute #(
                         // `INST_FENCE_I:      func_invalid_inst(pc, inst);
                         `INST_ECALL:        func_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
                         `INST_EBREAK:       func_exit_simu(a0);
-                        `INST_CSRRW:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
-                        `INST_CSRRS:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
+                        `INST_CSRRW:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
+                        `INST_CSRRS:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
                         `INST_CSRRC:        func_invalid_inst(pc, inst);
                         `INST_CSRRWI:       func_invalid_inst(pc, inst);
                         `INST_CSRRSI:       func_invalid_inst(pc, inst);
