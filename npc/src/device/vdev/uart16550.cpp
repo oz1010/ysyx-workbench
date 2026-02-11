@@ -77,6 +77,7 @@ void uart16550_handler(void *item_arg, bool is_write, vaddr_t addr, int len, wor
 
 void init_uart16550()
 {
+    (void)uart_lcr_mode;
     uart_base = new_vmem(uart_size);
     add_vdev_item(VDEV_INNER, "uart16550", CONFIG_UART_BASE_ADDR, uart_base, uart_size,
                   (VDEV_ATTR_READ | VDEV_ATTR_WRITE), uart16550_handler);

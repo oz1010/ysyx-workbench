@@ -88,6 +88,43 @@ module execute #(
         .result(mdr_result)
     );
 
+    wire [INST_WIDTH-1:0] snpc = pc + 4;
+    wire [INST_WIDTH-1:0] pc_plus_imm = pc + imm;
+    wire [INST_WIDTH-1:0] inst_dnpc = 
+        (inst_code==`INST_JAL) ? pc_plus_imm :
+        (inst_code==`INST_JALR) ? ((src1 + imm)&~1) :
+        ((inst_code==`INST_BEQ)&(src1==src2)) ? pc_plus_imm :
+        ((inst_code==`INST_BNE)&(src1!=src2)) ? pc_plus_imm :
+        ((inst_code==`INST_BLT)&(s_src1<s_src2)) ? pc_plus_imm :
+        ((inst_code==`INST_BGE)&(s_src1>=s_src2)) ? pc_plus_imm :
+        ((inst_code==`INST_BLTU)&(src1<src2)) ? pc_plus_imm :
+        ((inst_code==`INST_BGEU)&(src1>=src2)) ? pc_plus_imm :
+        (inst_code==`INST_ECALL) ? func_read_raw_csr({{(32-`CSR_ADDR_W){1'b0}}, `CSR_MTVEC}) :
+        (inst_code==`INST_MRET) ? func_read_raw_csr({{(32-`CSR_ADDR_W){1'b0}}, `CSR_MEPC}) :
+        snpc;
+    wire inst_jump_en =
+        (inst_code==`INST_JAL) |
+        (inst_code==`INST_JALR) |
+        ((inst_code==`INST_BEQ)&(src1==src2)) |
+        ((inst_code==`INST_BNE)&(src1!=src2)) |
+        ((inst_code==`INST_BLT)&(s_src1<s_src2)) |
+        ((inst_code==`INST_BGE)&(s_src1>=s_src2)) |
+        ((inst_code==`INST_BLTU)&(src1<src2)) |
+        ((inst_code==`INST_BGEU)&(src1>=src2)) |
+        (inst_code==`INST_ECALL) |
+        (inst_code==`INST_MRET) |
+        0;
+    wire inst_keep_gpr =
+        (inst_code==`INST_BEQ) |
+        (inst_code==`INST_BNE) |
+        (inst_code==`INST_BLT) |
+        (inst_code==`INST_BGE) |
+        (inst_code==`INST_BLTU) |
+        (inst_code==`INST_BGEU) |
+        (inst_code==`INST_ECALL) |
+        (inst_code==`INST_MRET) |
+        0;
+
     always @(posedge clk) begin
         if (rst) begin
             r_jump_en <= 0;
@@ -101,10 +138,10 @@ module execute #(
 
             if (stage_in_done) begin
                 // 默认更新程序寄存器
-                r_jump_en <= 0;
-                r_dnpc <= pc + 4;
+                r_jump_en <= inst_jump_en;
+                r_dnpc <= inst_dnpc;
                 r_result <= 0;
-                r_result_update_gpr <= ex_enable;
+                r_result_update_gpr <= inst_keep_gpr ? 0 : ex_enable;
             end
 
             if (mdr_inst) begin
@@ -124,15 +161,15 @@ module execute #(
                     // $display("Step - update, alu_result:%x rd:%d inst_code:%x", alu_result, rd, inst_code);
                     case (inst_code)
                         `INST_LUI:          r_result <= imm;
-                        `INST_AUIPC:        r_result <= pc + imm;
-                        `INST_JAL:          begin r_result <= pc + 4; r_dnpc <= pc + imm; r_jump_en <= 1; end
-                        `INST_JALR:         begin r_result <= pc + 4; r_dnpc <= ((src1 + imm)&~1); r_jump_en <= 1; end
-                        `INST_BEQ:          begin if (src1==src2) begin r_jump_en <= 1; r_dnpc <= pc + imm; end r_result_update_gpr <= 0; end
-                        `INST_BNE:          begin if (src1!=src2) begin r_jump_en <= 1; r_dnpc <= pc + imm; end r_result_update_gpr <= 0; end
-                        `INST_BLT:          begin if (s_src1<s_src2) begin r_jump_en <= 1; r_dnpc <= pc + imm; end r_result_update_gpr <= 0; end
-                        `INST_BGE:          begin if (s_src1>=s_src2) begin r_jump_en <= 1; r_dnpc <= pc + imm; end r_result_update_gpr <= 0; end
-                        `INST_BLTU:         begin if (src1< src2) begin r_jump_en <= 1; r_dnpc <= pc + imm; end r_result_update_gpr <= 0; end
-                        `INST_BGEU:         begin if (src1>=src2) begin r_jump_en <= 1; r_dnpc <= pc + imm; end r_result_update_gpr <= 0; end
+                        `INST_AUIPC:        r_result <= pc_plus_imm;
+                        `INST_JAL:          r_result <= snpc;
+                        `INST_JALR:         r_result <= snpc;
+                        `INST_BEQ:          ;
+                        `INST_BNE:          ;
+                        `INST_BLT:          ;
+                        `INST_BGE:          ;
+                        `INST_BLTU:         ;
+                        `INST_BGEU:         ;
                         // `INST_LB:           r_result <= sext(read_raw_mem(src1 + imm, 1), 8);
                         // `INST_LH:           r_result <= sext(read_raw_mem(src1 + imm, 2), 16);
                         // `INST_LW:           r_result <= sext(read_raw_mem(src1 + imm, 4), 32);
@@ -166,7 +203,7 @@ module execute #(
                         `INST_AND:          r_result <= src1 & src2;
                         // `INST_FENCE:        func_invalid_inst(pc, inst);
                         // `INST_FENCE_I:      func_invalid_inst(pc, inst);
-                        `INST_ECALL:        begin r_dnpc <= func_raise_intr((0<<31|11<<0), pc); r_result_update_gpr <= 0; r_jump_en <= 1; end // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
+                        `INST_ECALL:        func_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
                         `INST_EBREAK:       func_exit_simu(a0);
                         `INST_CSRRW:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
                         `INST_CSRRS:        begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
@@ -182,7 +219,7 @@ module execute #(
                         // `INST_DIVU:         r_result <= src1 / src2;
                         // `INST_REM:          r_result <= s_src1 % s_src2;
                         // `INST_REMU:         r_result <= src1 % src2;
-                        `INST_MRET:         begin r_dnpc <= func_query_intr(); r_result_update_gpr <= 0; r_jump_en <= 1; end
+                        `INST_MRET:         func_query_intr(); // MEPC 0x341
                         `INST_INVALID:      func_invalid_inst(pc, inst);
                         default: ;
                     endcase
