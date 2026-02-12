@@ -324,20 +324,18 @@ assign valid = con_wb_valid;
 reg [INST_WIDTH-1:0] core_pc;
 reg [INST_WIDTH-1:0] core_dnpc;
 assign pc = core_pc;
-`ifndef IN_YOSYS_STA
 always @(posedge clk) begin
     if (rst) begin
-        core_pc <= con_if_pc;
-        core_dnpc <= con_if_pc + 4;
+        core_pc <= func_get_reset_pc();
+        core_dnpc <= func_get_reset_pc() + 4;
     end else begin
-        core_pc <= con_wb_valid ? con_if_pc :
+        core_pc <= con_wb_valid ? core_dnpc :
             core_pc;
         
-        core_dnpc <= con_ex_valid ? (con_ex_jump_en ? con_ex_jump_addr : (con_ex_pc + 4)) :
+        core_dnpc <= con_ex_valid ? con_ex_dnpc :
             core_dnpc;
     end
 end
-`endif
 
 /* 核心执行tick计数 */
 always @(posedge clk) begin
@@ -810,9 +808,6 @@ exter_dev #(
 );
 
 /* 流水线控制信号 */
-wire ctrl_jump_en = con_ex_valid & con_ex_jump_en;
-wire [ADDR_WIDTH-1:0] ctrl_jump_addr = con_ex_jump_addr;
-wire ctrl_match_jump_inst = |(con_id_inst_code&`INST_CODE_JUMP) & con_id_valid;
 reg r_core_valid;
 always @(posedge clk) begin
     if (rst) begin
@@ -831,6 +826,8 @@ assign con_core_valid = r_core_valid;
 assign con_core_ready = 1;
 
 /* 取指if */
+wire con_if_jump_en = con_ex_valid & con_ex_jump_en;
+wire [ADDR_WIDTH-1:0] con_if_dnpc = con_ex_dnpc;
 wire [IF_OUT_DATA_W-1:0] mod_con_if_bits;
 wire [IF_OUT_DATA_W-1:0] con_if_bits;
 wire [ADDR_WIDTH-1:0] con_if_pc;
@@ -875,8 +872,8 @@ inst_fetch #(
     .rlast(axi4_if_rlast),
     .rid(axi4_if_rid),
 
-    .jump_en(ctrl_jump_en),
-    .jump_addr(ctrl_jump_addr),
+    .jump_en(con_if_jump_en),
+    .dnpc(con_if_dnpc),
 
     .in_ready(mod_con_if_ready),
     .in_valid(con_core_valid),
@@ -947,7 +944,7 @@ wire fence_enable_trigger = fence_enable & !last_fence_enable;
 wire [EX_OUT_DATA_W-1:0] mod_con_ex_bits;
 wire [EX_OUT_DATA_W-1:0] con_ex_bits;
 wire con_ex_jump_en;
-wire [ADDR_WIDTH-1:0] con_ex_jump_addr;
+wire [ADDR_WIDTH-1:0] con_ex_dnpc;
 wire [DATA_WIDTH-1:0] con_ex_csr_rdata = csr_rdata;
 wire con_ex_csr_wen;
 wire [`CSR_ADDR_W-1:0] con_ex_csr_waddr;
@@ -960,7 +957,6 @@ wire [`INST_CODE_W-1:0] con_ex_inst_code;
 wire [INST_WIDTH-1:0] con_ex_src1;
 wire [INST_WIDTH-1:0] con_ex_src2;
 wire [INST_WIDTH-1:0] con_ex_a0;
-wire [INST_WIDTH-1:0] con_ex_dnpc;
 wire [INST_WIDTH-1:0] con_ex_result;
 wire con_ex_result_update_gpr;
 assign {
@@ -983,7 +979,7 @@ execute #(
     .rst(rst),
 
     .jump_en(con_ex_jump_en),
-    .jump_addr(con_ex_jump_addr),
+    .dnpc(con_ex_dnpc),
     .csr_rdata(con_ex_csr_rdata),
     .csr_wen(con_ex_csr_wen),
     .csr_waddr(con_ex_csr_waddr),

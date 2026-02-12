@@ -45,7 +45,7 @@ module inst_fetch #(
 
     /* 模块额外的接口输入 */
     input   wire                        jump_en,
-    input   wire [INST_WIDTH-1:0]       jump_addr,
+    input   wire [INST_WIDTH-1:0]       dnpc,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -98,7 +98,7 @@ module inst_fetch #(
             pc <= func_get_reset_pc();
         end else begin
             pc <= stage_out_done ? snpc : 
-                jump_en ? jump_addr :
+                jump_en ? dnpc :
                 pc;
         end
     end

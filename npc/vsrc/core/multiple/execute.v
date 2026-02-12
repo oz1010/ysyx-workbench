@@ -8,7 +8,7 @@ module execute #(
     input   wire                        rst,
 
     output  wire                        jump_en,
-    output  wire [INST_WIDTH-1:0]       jump_addr,
+    output  wire [INST_WIDTH-1:0]       dnpc,
     input   wire [DATA_WIDTH-1:0]       csr_rdata,
     output  wire                        csr_wen,
     output  wire [`CSR_ADDR_W-1:0]      csr_waddr,
@@ -65,7 +65,7 @@ module execute #(
     wire signed [31:0] s_src2 = src2;
 
     assign jump_en = r_jump_en;
-    assign jump_addr = r_dnpc;
+    assign dnpc = r_dnpc;
 
     wire mdr_inst = 
         inst_code==`INST_MUL |
