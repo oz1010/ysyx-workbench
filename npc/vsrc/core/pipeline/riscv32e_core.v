@@ -319,6 +319,8 @@ reg [63:0] execute_time;
 wire [INST_WIDTH-1:0] src1, src2, a0;
 
 assign valid = con_wb_valid;
+assign con_core_valid = 1;
+assign con_core_ready = 1;
 
 /* 当前正在处理的pc指示 */
 reg [INST_WIDTH-1:0] core_pc;
@@ -327,7 +329,7 @@ assign pc = core_pc;
 always @(posedge clk) begin
     if (rst) begin
         core_pc <= func_get_reset_pc();
-        core_dnpc <= func_get_reset_pc() + 4;
+        core_dnpc <= core_pc;
     end else begin
         core_pc <= con_wb_valid ? core_dnpc :
             core_pc;
@@ -808,26 +810,42 @@ exter_dev #(
 );
 
 /* 流水线控制信号 */
-reg r_core_valid;
-always @(posedge clk) begin
-    if (rst) begin
-        r_core_valid <= 0;
-    end else begin
-        if ((!|execute_time) | (con_wb_valid&con_core_ready)) begin
-            r_core_valid <= 1;
-        end
+wire core_idle = con_if_ready & con_id_ready & con_ex_ready & con_ls_ready & con_wb_ready;
+wire [INST_WIDTH-1:0] core_fetch_pc;
+wire [`STAGE_COUNT-1:0] core_stage_flush;
+wire [`FLUSH_TYPE_W-1:0] core_flush_type;
+/* 控制冒险 */
+risk_control #(
+    .INST_WIDTH(INST_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH)
+) m_risk_control (
+    .clk(clk),
+    .rst(rst),
+    .stage_valid({con_wb_valid, con_ls_valid, con_ex_valid, con_id_valid, con_if_valid}),
+    .stage_exception(0),
+    .fetch_pc(core_fetch_pc),
+    .dnpc(con_ex_dnpc),
+    .inst_code(con_id_inst_code),
+    .core_idle(core_idle),
+    .flush_type(core_flush_type),
+    .stage_flush(core_stage_flush)
+);
 
-        if (con_core_valid & con_if_ready) begin
-            r_core_valid <= 0;
-        end
-    end
-end
-assign con_core_valid = r_core_valid;
-assign con_core_ready = 1;
+/* 静态指令预测器 */
+static_predictor #(
+    .INST_WIDTH(INST_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH)
+) m_static_predictor (
+    .clk(clk),
+    .rst(rst),
+    .fetch_en(con_if_valid&con_id_ready),
+    .flush_type(core_flush_type),
+    .core_pc(core_pc),
+    .dnpc(con_ex_dnpc),
+    .fetch_pc(core_fetch_pc)
+);
 
 /* 取指if */
-wire con_if_jump_en = con_ex_valid & con_ex_jump_en;
-wire [ADDR_WIDTH-1:0] con_if_dnpc = con_ex_dnpc;
 wire [IF_OUT_DATA_W-1:0] mod_con_if_bits;
 wire [IF_OUT_DATA_W-1:0] con_if_bits;
 wire [ADDR_WIDTH-1:0] con_if_pc;
@@ -872,11 +890,10 @@ inst_fetch #(
     .rlast(axi4_if_rlast),
     .rid(axi4_if_rid),
 
-    .jump_en(con_if_jump_en),
-    .dnpc(con_if_dnpc),
+    .fetch_pc(core_fetch_pc),
 
     .in_ready(mod_con_if_ready),
-    .in_valid(con_core_valid),
+    .in_valid(con_core_valid & !core_stage_flush[`STAGE_INDEX_IFU]),
 
     .out_ready(con_id_ready),
     .out_valid(mod_con_if_valid),
@@ -917,7 +934,7 @@ inst_decode #(
     .rst(rst),
 
     .in_ready(mod_con_id_ready),
-    .in_valid(con_if_valid),
+    .in_valid(con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU]),
     .in_bits(con_if_bits),
 
     .out_ready(con_ex_ready),
@@ -986,7 +1003,7 @@ execute #(
     .csr_wdata(con_ex_csr_wdata),
 
     .in_ready(mod_con_ex_ready),
-    .in_valid(con_id_valid),
+    .in_valid(con_id_valid & !core_stage_flush[`STAGE_INDEX_EXU]),
     .in_bits({con_id_pc, con_id_inst, con_id_rd, con_id_imm, con_id_inst_code, con_id_src1, con_id_src2, con_id_a0}),
 
     .out_ready(con_ls_ready),
@@ -1057,7 +1074,7 @@ load_store #(
     .rid(axi4_ls_rid),
 
     .in_ready(mod_con_ls_ready),
-    .in_valid(con_ex_valid),
+    .in_valid(con_ex_valid & !core_stage_flush[`STAGE_INDEX_LSU]),
     .in_bits(con_ex_bits),
 
     .out_ready(con_wb_ready),
@@ -1093,7 +1110,7 @@ write_back #(
     .gpr_wdata(wb_gpr_wdata),
 
     .in_ready(mod_con_wb_ready),
-    .in_valid(con_ls_valid),
+    .in_valid(con_ls_valid & !core_stage_flush[`STAGE_INDEX_WBU]),
     .in_bits(con_ls_bits),
 
     .out_ready(con_core_ready),

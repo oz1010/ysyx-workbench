@@ -44,8 +44,7 @@ module inst_fetch #(
     input   wire [3:0]                  rid,
 
     /* 模块额外的接口输入 */
-    input   wire                        jump_en,
-    input   wire [INST_WIDTH-1:0]       dnpc,
+    input   wire [INST_WIDTH-1:0]       fetch_pc,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -56,7 +55,7 @@ module inst_fetch #(
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
 
-    reg [INST_WIDTH-1:0] fetch_pc; /* 记录当前取指令地址 */
+    // reg [INST_WIDTH-1:0] fetch_pc; /* 记录当前取指令地址 */
     wire [INST_WIDTH-1:0] snpc;
 
     assign awvalid = 0;
@@ -92,16 +91,6 @@ module inst_fetch #(
     assign stage_out_valid = rvalid && rready && rlast;
     assign out_bits = {araddr, read_inst};
     assign snpc = fetch_pc + 4;
-
-    always @(posedge clk) begin
-        if (rst) begin
-            fetch_pc <= func_get_reset_pc();
-        end else begin
-            fetch_pc <= stage_out_done ? snpc : 
-                jump_en ? dnpc :
-                fetch_pc;
-        end
-    end
 
     /* 触发式记录使能 */
     reg in_read_en;

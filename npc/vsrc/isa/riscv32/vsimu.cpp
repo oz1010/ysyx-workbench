@@ -127,7 +127,7 @@ int exec_vsimu(Decode *s)
             }
             if (top->rootp->TOP_S_CORE_ERROR[idx])
             {
-                printf(ANSI_FMT("Found error in core%d\n", ANSI_BG_RED), idx);
+                printf(ANSI_FMT("Found error in core%d", ANSI_BG_RED) "\n", idx);
                 set_npc_state(NPC_ABORT, get_vsimu_pc(), -4);
                 simu_continue = false;
                 break;
