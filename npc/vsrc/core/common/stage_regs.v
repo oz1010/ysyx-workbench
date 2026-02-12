@@ -17,7 +17,7 @@ module stage_regs #(
     generate
         if (DATA_STORAGE) begin : storage_mode
             reg [DATA_W-1:0] r_bits;
-            assign stage_bits = valid ? bits : r_bits;
+            assign stage_bits = stage_done ? bits : r_bits;
             always @(posedge clk) begin
                 if (rst) begin
                     r_bits <= 0;
