@@ -76,6 +76,17 @@
 `define INST_MRET           (`INST_CODE_W'h038|`INST_CODE_JUMP)
 `define INST_INVALID        (`INST_CODE_W'h0FF) // TODO 若定义为0，某些判断有问题
 
+`define STAGE_INDEX_IFU     0
+`define STAGE_INDEX_IDU     1
+`define STAGE_INDEX_EXU     2
+`define STAGE_INDEX_LSU     3
+`define STAGE_INDEX_WBU     4
+`define STAGE_COUNT         5
+
+`define FLUSH_TYPE_W        2
+`define FLUSH_EX_BIT        0
+`define FLUSH_JUMP_BIT      1
+
 `define CORE_STATUS_W       32
 `define CORE_STATUS_ERROR_BIT 31
 `define CORE_STATUS_ERROR   (`CORE_STATUS_W'h1<<`CORE_STATUS_ERROR_BIT) // 有异常由最高位指明
@@ -103,8 +114,8 @@
 
 `define AXI4_ID_IFU         4'h1
 `define AXI4_ID_IDU         4'h2
-`define AXI4_ID_LSU         4'h3
-`define AXI4_ID_EXU         4'h4
+`define AXI4_ID_EXU         4'h3
+`define AXI4_ID_LSU         4'h4
 `define AXI4_ID_WBU         4'h5
 `define AXI4_ID_ICACHE      4'h6
 `define AXI4_ID_DCACHE      4'h7
