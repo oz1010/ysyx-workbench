@@ -30,16 +30,19 @@ static void restart() {
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
 
+#if defined(CONFIG_ISA_RISCV_SINGLE)
+  // 这里仿真没有初始化，调用会造成异常
   /** https://ysyx.oscc.cc/docs/ics-pa/3.2.html#%E8%A7%A6%E5%8F%91%E8%87%AA%E9%99%B7%E6%93%8D%E4%BD%9C 让DiffTest支持异常响应机制
    * 针对riscv32, 你需要将mstatus初始化为0x1800.
    * 针对riscv64, 你需要将mstatus初始化为0xa00001800.
    */
-  cpu.csr[CSR_MSTATUS] = MUXDEF(CONFIG_RV64, 0xa00001800, 0x1800);
+  set_vsimu_csr(CSR_MSTATUS, MUXDEF(CONFIG_RV64, 0xa00001800, 0x1800));
   /** https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
    * 
    */
-  cpu.csr[CSR_MVENDORID] = 0x79737978;
-  cpu.csr[CSR_MARCHID] = 0x15FDF47;
+  set_vsimu_csr(CSR_MVENDORID, 0x79737978);
+  set_vsimu_csr(CSR_MARCHID, 0x15FDF47);
+#endif
 }
 
 void init_isa(int argc, char *argv[]) {
