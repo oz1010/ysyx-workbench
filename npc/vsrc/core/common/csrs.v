@@ -52,6 +52,18 @@ wire [DATA_WIDTH-1:0] csr_mcause = csrs[get_csr_index(`CSR_MCAUSE)];
 wire [DATA_WIDTH-1:0] csr_mvendorid = csrs[get_csr_index(`CSR_MVENDORID)];
 wire [DATA_WIDTH-1:0] csr_marchid = csrs[get_csr_index(`CSR_MARCHID)];
 
+/* 常量数据 */
+/**
+* https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
+* DATA_WIDTH'('h79737978)
+*/
+wire [DATA_WIDTH-1:0] csr_mvendorid_data = "ysyx";
+/**
+* DATA_WIDTH'('h15FDF47)
+*/
+wire [DATA_WIDTH-1:0] csr_marchid_data = DATA_WIDTH'('h15FDF47);
+
+
 /* 访问读取 */
 assign rdata = csrs[get_csr_index(raddr)];
 
@@ -68,22 +80,20 @@ wire [CSR_INDEX_COUNT-1:0] wen_onehot;
 assign wen_onehot = wen ? (1 << windex) : 0;
 initial begin
     `ifdef CONFIG_RV64
-    csrs[get_csr_index(`CSR_MSTATUS)] = DATA_WIDTH'('ha00001800);
+    func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MSTATUS}, DATA_WIDTH'('ha00001800));
     `else
-    csrs[get_csr_index(`CSR_MSTATUS)] = DATA_WIDTH'('h000001800);
+    func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MSTATUS}, DATA_WIDTH'('h000001800));
+    `endif
+    `ifdef CONFIG_DIFFTEST
+    // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
+    func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MVENDORID}, csr_mvendorid_data);
+    func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MARCHID}, csr_marchid_data);
     `endif
 end
 /* TODO 只读寄存器，这里仿真使用寄存器方便取值；实际推荐使用组合电路直接固定值 */
 assign csrs[0] = 0;
-/**
-* https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
-* DATA_WIDTH'('h79737978)
-*/
-assign csrs[get_csr_index(`CSR_MVENDORID)] = "ysyx";
-/**
-* DATA_WIDTH'('h15FDF47)
-*/
-assign csrs[get_csr_index(`CSR_MARCHID)] = DATA_WIDTH'('h15FDF47);
+assign csrs[get_csr_index(`CSR_MVENDORID)] = csr_mvendorid_data;
+assign csrs[get_csr_index(`CSR_MARCHID)] = csr_marchid_data;
 genvar i;
 for (i=1 ; i<CSR_INDEX_COUNT; ++i) begin
     always @(posedge clk) begin
@@ -93,6 +103,10 @@ for (i=1 ; i<CSR_INDEX_COUNT; ++i) begin
             i==`CSR_MARCHID
         )) begin
             csrs[i] <= wen_onehot[i] ? wdata : csrs[i];
+            `ifdef CONFIG_DIFFTEST
+            // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
+            if (wen_onehot[i]) func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), waddr}, wdata);
+            `endif
         end
     end
 end

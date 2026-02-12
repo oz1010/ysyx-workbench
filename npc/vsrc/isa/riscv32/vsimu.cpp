@@ -245,11 +245,12 @@ paddr_t get_vsimu_dnpc(void)
     return top->rootp->TOP_S_DNPC;
 }
 
+#ifndef CONFIG_ISA_RISCV_SINGLE
 static constexpr uint32_t csr_addrs[] = {
     0, CSR_MSTATUS, CSR_MTVEC, CSR_MEPC, CSR_MCAUSE, CSR_MVENDORID, CSR_MARCHID,
 };
-static const size_t csr_index_max = top->rootp->TOP_S_CSR.size();
 // 需要保持和vsrc/core/common/csrs.v get_csr_index一致的逻辑，否则容易出问题
+// static const size_t csr_index_max = top->rootp->TOP_S_CSR.size();
 // static_assert(csr_index_max == ARRAY_SIZE(csr_addrs), "csr count may be dismatched");
 uint32_t get_csr_index(paddr_t addr)
 {
@@ -264,12 +265,16 @@ uint32_t get_csr_index(paddr_t addr)
     }
     return csr_index;
 }
+#endif
 void set_vsimu_csr(paddr_t addr, uint32_t data)
 {
 #if CONFIG_ISA_RISCV_SINGLE
     cpu.csr[addr] = data;
 #else
+#if CONFIG_DIFFTEST
+    // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
     cpu.csr[addr] = data;
+#endif
     top->rootp->TOP_S_CSR[get_csr_index(addr)] = data;
 #endif
 }
