@@ -69,6 +69,7 @@ extern vdev_item_t vdev_items[NR_VDEV_ITEMS];
 extern paddr_t get_vsimu_pc(void);
 extern void set_vsimu_csr(paddr_t addr, uint32_t data);
 extern uint32_t get_vsimu_csr(paddr_t addr);
+extern uint32_t get_csr_index(paddr_t addr);
 
 void init_dpi()
 {
@@ -873,3 +874,8 @@ extern "C" void mrom_read(int32_t addr_idx, int32_t *data)
     // 临时返回固定的ebreak
     // *data = 0x00100073;
 }
+
+int dpi_get_csr_index(int addr) {
+    return get_csr_index(addr);
+}
+
