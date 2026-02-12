@@ -56,7 +56,7 @@ module inst_fetch #(
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
 
-    reg [INST_WIDTH-1:0] pc;
+    reg [INST_WIDTH-1:0] fetch_pc; /* 记录当前取指令地址 */
     wire [INST_WIDTH-1:0] snpc;
 
     assign awvalid = 0;
@@ -90,16 +90,16 @@ module inst_fetch #(
     );
 
     assign stage_out_valid = rvalid && rready && rlast;
-    assign out_bits = {pc, read_inst};
-    assign snpc = pc + 4;
+    assign out_bits = {araddr, read_inst};
+    assign snpc = fetch_pc + 4;
 
     always @(posedge clk) begin
         if (rst) begin
-            pc <= func_get_reset_pc();
+            fetch_pc <= func_get_reset_pc();
         end else begin
-            pc <= stage_out_done ? snpc : 
+            fetch_pc <= stage_out_done ? snpc : 
                 jump_en ? dnpc :
-                pc;
+                fetch_pc;
         end
     end
 
@@ -154,7 +154,7 @@ module inst_fetch #(
                 .rid(rid),
                 .enable(read_en),
                 .read_sign(0),
-                .read_addr(pc),
+                .read_addr(fetch_pc),
                 .read_data(read_inst),
                 .read_len(0), // 读取数据总burst数量，2^n
                 .read_size(2), // 单个burst读取大小，2^n字节
@@ -167,7 +167,7 @@ module inst_fetch #(
                     // read request
                     if (read_en) begin
                         if (arvalid) begin
-                            check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
+                            check_dev_addr(fetch_pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                         end
                     end
                 end
