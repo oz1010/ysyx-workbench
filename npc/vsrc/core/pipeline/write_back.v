@@ -25,7 +25,7 @@ module write_back #(
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
     assign {
-        pc, dnpc, rd, result, result_update_gpr,
+        pc, dnpc, rd, rs1, rs2, result, result_update_gpr,
         expt, expt_cause, expt_data
     } = in_bits;
     assign out_bits = {
@@ -35,6 +35,8 @@ module write_back #(
     wire [INST_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           dnpc;
     wire [4:0]                      rd;
+    wire [4:0]                      rs1;
+    wire [4:0]                      rs2;
     wire [INST_WIDTH-1:0]           result;
     wire                            result_update_gpr;
     wire [`STAGE_COUNT-1:0]         expt;

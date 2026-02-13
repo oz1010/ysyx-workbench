@@ -54,9 +54,9 @@ localparam IF_OUT_DATA_W = (ADDR_WIDTH + INST_WIDTH + `STAGE_COUNT + DATA_WIDTH*
 localparam ID_IN_DATA_W = IF_OUT_DATA_W;
 localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2);
 localparam EX_IN_DATA_W = ID_OUT_DATA_W + DATA_WIDTH*3;
-localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2);
+localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
-localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `STAGE_COUNT + DATA_WIDTH*2);
+localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
 localparam WB_IN_DATA_W = LS_OUT_DATA_W;
 localparam WB_OUT_DATA_W = INST_WIDTH*2;
 
@@ -1000,6 +1000,8 @@ wire [ADDR_WIDTH-1:0]           con_ex_pc;
 wire [ADDR_WIDTH-1:0]           con_ex_dnpc;
 wire [INST_WIDTH-1:0]           con_ex_inst;
 wire [4:0]                      con_ex_rd;
+wire [4:0]                      con_ex_rs1;
+wire [4:0]                      con_ex_rs2;
 wire [INST_WIDTH-1:0]           con_ex_imm;
 wire [`INST_CODE_W-1:0]         con_ex_inst_code;
 wire [INST_WIDTH-1:0]           con_ex_src1;
@@ -1015,6 +1017,8 @@ assign {
     con_ex_dnpc,
     con_ex_inst,
     con_ex_rd,
+    con_ex_rs1,
+    con_ex_rs2,
     con_ex_imm,
     con_ex_inst_code,
     con_ex_src1,
@@ -1071,6 +1075,8 @@ wire [LS_OUT_DATA_W-1:0]        con_ls_bits;
 wire [ADDR_WIDTH-1:0]           con_ls_pc;
 wire [ADDR_WIDTH-1:0]           con_ls_dnpc;
 wire [4:0]                      con_ls_rd;
+wire [4:0]                      con_ls_rs1;
+wire [4:0]                      con_ls_rs2;
 wire [INST_WIDTH-1:0]           con_ls_result;
 wire                            con_ls_result_update_gpr;
 wire [`STAGE_COUNT-1:0]         con_ls_expt;
@@ -1080,6 +1086,8 @@ assign {
     con_ls_pc,
     con_ls_dnpc,
     con_ls_rd,
+    con_ls_rs1,
+    con_ls_rs2,
     con_ls_result,
     con_ls_result_update_gpr,
     con_ls_expt,
