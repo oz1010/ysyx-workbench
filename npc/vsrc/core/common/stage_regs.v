@@ -5,8 +5,8 @@ module stage_regs #(
     input   wire                        clk,
     input   wire                        rst,
 
-    input   wire                        valid,
     input   wire                        ready,
+    input   wire                        valid,
     input   wire [DATA_W-1:0]           bits,
 
     output  wire [DATA_W-1:0]           stage_bits

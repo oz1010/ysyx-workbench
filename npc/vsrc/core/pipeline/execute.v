@@ -23,10 +23,40 @@ module execute #(
     output  wire                        out_valid,
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
+    assign {
+        pc, inst, rd, imm, inst_code, src1, src2, a0,
+        expt, expt_cause, expt_data
+    } = in_bits;
+    assign out_bits = {
+        pc, dnpc, inst, rd, imm, inst_code, src1, src2,
+        r_result, r_result_update_gpr,
+        prev_err ? expt : r_expt,
+        prev_err ? expt_cause : r_expt_cause,
+        prev_err ? expt_data : r_expt_data
+    };
+
+    wire [INST_WIDTH-1:0]           pc;
+    wire [INST_WIDTH-1:0]           inst;
+    wire [4:0]                      rd;
+    wire [DATA_WIDTH-1:0]           imm;
+    wire [`INST_CODE_W-1:0]         inst_code;
+    wire [DATA_WIDTH-1:0]           src1;
+    wire [DATA_WIDTH-1:0]           src2;
+    wire [DATA_WIDTH-1:0]           a0;
+    wire [`STAGE_COUNT-1:0]         expt;
+    wire [DATA_WIDTH-1:0]           expt_cause;
+    wire [DATA_WIDTH-1:0]           expt_data;
+
+    reg [DATA_WIDTH-1:0]            r_result;
+    reg                             r_result_update_gpr;
+    reg                             r_jump_en;
+    reg  [`STAGE_COUNT-1:0]         r_expt = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
-
     inner_con ex_con(
         .clk(clk),
         .rst(rst),
@@ -39,33 +69,13 @@ module execute #(
         .stage_out_done(stage_out_done)
     );
 
-    assign {pc, inst, rd, imm, inst_code, src1, src2, a0} = in_bits;
-    assign out_bits = {
-        pc, inst, rd, imm, inst_code, src1, src2,
-        r_result, r_result_update_gpr
-    };
-
+    wire prev_err = |expt;
     wire ex_enable = !(|(inst_code & `INST_CODE_MEM));
-
-    wire [INST_WIDTH-1:0]       pc;
-    wire [INST_WIDTH-1:0]       inst;
-    wire [4:0]                  rd;
-    wire [INST_WIDTH-1:0]       imm;
-    wire [`INST_CODE_W-1:0]     inst_code;
-    wire [INST_WIDTH-1:0]       src1;
-    wire [INST_WIDTH-1:0]       src2;
-    wire [INST_WIDTH-1:0]       a0;
-
-    reg [INST_WIDTH-1:0] r_dnpc;
-    reg [INST_WIDTH-1:0] r_result;
-    reg r_result_update_gpr;
-    reg r_jump_en;
-
     wire signed [31:0] s_src1 = src1;
     wire signed [31:0] s_src2 = src2;
 
     assign jump_en = r_jump_en;
-    assign dnpc = r_dnpc;
+    assign dnpc = inst_dnpc;
 
     wire mdr_inst = 
         inst_code==`INST_MUL |
@@ -142,18 +152,15 @@ module execute #(
     always @(posedge clk) begin
         if (rst) begin
             r_jump_en <= 0;
-            r_dnpc <= 0;
             r_result <= 0;
             r_result_update_gpr <= 0;
         end else begin
-            r_dnpc <= r_dnpc;
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;
 
             if (stage_in_done) begin
                 // 默认更新程序寄存器
                 r_jump_en <= inst_jump_en;
-                r_dnpc <= inst_dnpc;
                 r_result <= 0;
                 r_result_update_gpr <= inst_keep_gpr ? 0 : ex_enable;
             end

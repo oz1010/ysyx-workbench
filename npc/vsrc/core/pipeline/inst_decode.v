@@ -1,6 +1,7 @@
 module inst_decode #(
     parameter ADDR_WIDTH = 32,
     parameter INST_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
@@ -16,13 +17,38 @@ module inst_decode #(
     output  wire                        out_valid,
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
-    wire                            stage_in_done;
-    reg                             r_stage_out_valid;
-    wire                            stage_out_done;
+    assign {
+        pc, inst, 
+        expt, expt_cause, expt_data
+    } = in_bits;
+    assign out_bits = {pc, inst, rd, rs1, rs2, imm, inst_code,
+        prev_err ? expt : r_expt,
+        prev_err ? expt_cause : r_expt_cause,
+        prev_err ? expt_data : r_expt_data
+    };
 
     wire [ADDR_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           inst;
+    wire [`STAGE_COUNT-1:0]         expt;
+    wire [DATA_WIDTH-1:0]           expt_cause;
+    wire [DATA_WIDTH-1:0]           expt_data;
 
+    wire [6:0]                      opcode;
+    wire [4:0]                      rd;
+    wire [INST_WIDTH-1:0]           imm;
+    wire [2:0]                      funct3;
+    wire [4:0]                      rs1;
+    wire [4:0]                      rs2;
+    wire [6:0]                      funct7;
+    wire [2:0]                      inst_type;
+    reg [`INST_CODE_W-1:0]          inst_code;
+    reg  [`STAGE_COUNT-1:0]         r_expt = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+
+    wire                            stage_in_done;
+    reg                             r_stage_out_valid;
+    wire                            stage_out_done;
     inner_con id_con(
         .clk(clk),
         .rst(rst),
@@ -35,20 +61,6 @@ module inst_decode #(
         .stage_out_done(stage_out_done)
     );
 
-    assign {pc, inst} = in_bits;
-    assign out_bits = {pc, inst, rd, rs1, rs2, imm, inst_code};
-
-    // 定义内部信号
-    wire [6:0] opcode;
-    wire [4:0] rd;
-    wire [INST_WIDTH-1:0] imm;
-    wire [2:0] funct3;
-    wire [4:0] rs1;
-    wire [4:0] rs2;
-    wire [6:0] funct7;
-    wire [2:0] inst_type;
-    reg [`INST_CODE_W-1:0] inst_code;
-
     // 提取字段
     assign opcode = inst[6:0];
     assign rd = inst[11:7];
@@ -56,6 +68,8 @@ module inst_decode #(
     assign rs1 = inst[19:15];
     assign rs2 = inst[24:20];
     assign funct7 = inst[INST_WIDTH-1:25];
+
+    wire prev_err = |expt;
 
     // 根据操作码解析指令类型
     assign inst_type =   
