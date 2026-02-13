@@ -176,7 +176,11 @@ module execute #(
                     r_stage_out_valid <= 0;
                 end
             end else begin
-                r_stage_out_valid <= stage_in_done ? 1 : 0;
+                r_stage_out_valid <= 
+                    stage_in_done ? 1 : 
+                    stage_out_done ? 0 :
+                    r_stage_out_valid;
+                
                 if (stage_in_done) begin
                     // 更新寄存器或回写内存
                     // $display("Step - update, alu_result:%x rd:%d inst_code:%x", alu_result, rd, inst_code);
