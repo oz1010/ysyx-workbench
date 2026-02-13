@@ -331,10 +331,10 @@ always @(posedge clk) begin
         core_pc <= func_get_reset_pc();
         core_dnpc <= core_pc;
     end else begin
-        core_pc <= con_wb_valid ? core_dnpc :
+        core_pc <= con_wb_valid ? con_wb_dnpc :
             core_pc;
         
-        core_dnpc <= con_ex_valid ? ex_dnpc :
+        core_dnpc <= con_ls_valid ? con_ls_dnpc :
             core_dnpc;
     end
 end
@@ -356,9 +356,6 @@ wire [4:0] gpr_rs2 = con_id_rs2;
 wire [DATA_WIDTH-1:0] gpr_src1;
 wire [DATA_WIDTH-1:0] gpr_src2;
 wire [DATA_WIDTH-1:0] gpr_a0;
-wire gpr_wen = wb_gpr_wen;
-wire [4:0] gpr_windex = wb_gpr_windex;
-wire [DATA_WIDTH-1:0] gpr_wdata = wb_gpr_wdata;
 gprs #(
     .DATA_WIDTH(DATA_WIDTH),
     .REG_COUNT(`RISCV_GPR_COUNT)
@@ -1124,11 +1121,17 @@ stage_regs#(
 );
 
 /* 回写wb */
+wire                            wb_gpr_wen;
+wire [4:0]                      wb_gpr_windex;
+wire [DATA_WIDTH-1:0]           wb_gpr_wdata;
 wire [WB_OUT_DATA_W-1:0]        mod_con_wb_bits;
 wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
-wire wb_gpr_wen;
-wire [4:0] wb_gpr_windex;
-wire [DATA_WIDTH-1:0] wb_gpr_wdata;
+wire [ADDR_WIDTH-1:0]           con_wb_pc;
+wire [ADDR_WIDTH-1:0]           con_wb_dnpc;
+assign {
+    con_wb_pc,
+    con_wb_dnpc
+} = con_wb_bits;
 write_back #(
     .INST_WIDTH(INST_WIDTH),
     .IN_DATA_W(WB_IN_DATA_W),
