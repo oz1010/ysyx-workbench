@@ -50,15 +50,15 @@ module riscv32e_core #(
 
 /* 模块信号输出宽度 */
 localparam IF_IN_DATA_W = 0;
-localparam IF_OUT_DATA_W = (ADDR_WIDTH + INST_WIDTH);
+localparam IF_OUT_DATA_W = (ADDR_WIDTH + INST_WIDTH + `STAGE_COUNT + DATA_WIDTH*2);
 localparam ID_IN_DATA_W = IF_OUT_DATA_W;
-localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W);
-localparam EX_IN_DATA_W = (INST_WIDTH*6 + `INST_CODE_W + 5);
-localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*6 + 1);
+localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2);
+localparam EX_IN_DATA_W = (INST_WIDTH*6 + `INST_CODE_W + 5 + `STAGE_COUNT + DATA_WIDTH*2);
+localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
-localparam LS_OUT_DATA_W = (INST_WIDTH + 5 + INST_WIDTH + 1);
+localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `STAGE_COUNT + DATA_WIDTH*2);
 localparam WB_IN_DATA_W = LS_OUT_DATA_W;
-localparam WB_OUT_DATA_W = 0;
+localparam WB_OUT_DATA_W = INST_WIDTH*2;
 
 /* 模块之间的连接信号或数据 */
 wire                        con_core_ready;
@@ -85,14 +85,16 @@ wire                        mod_con_ls_valid;
 wire                        mod_con_wb_ready;
 wire                        mod_con_wb_valid;
 /* 将模块信号和控制信号关联后输出，默认直接输出 */
+assign con_core_ready = 1;
+assign con_core_valid = 1 & !core_stage_flush[`STAGE_INDEX_IFU];
 assign con_if_ready = mod_con_if_ready;
-assign con_if_valid = mod_con_if_valid;
+assign con_if_valid = mod_con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU];
 assign con_id_ready = mod_con_id_ready;
-assign con_id_valid = mod_con_id_valid;
+assign con_id_valid = mod_con_id_valid & !core_stage_flush[`STAGE_INDEX_EXU] ;
 assign con_ex_ready = mod_con_ex_ready;
-assign con_ex_valid = mod_con_ex_valid;
+assign con_ex_valid = mod_con_ex_valid & !core_stage_flush[`STAGE_INDEX_LSU];
 assign con_ls_ready = mod_con_ls_ready;
-assign con_ls_valid = mod_con_ls_valid;
+assign con_ls_valid = mod_con_ls_valid & !core_stage_flush[`STAGE_INDEX_WBU];
 assign con_wb_ready = mod_con_wb_ready;
 assign con_wb_valid = mod_con_wb_valid;
 
@@ -319,8 +321,6 @@ reg [63:0] execute_time;
 wire [INST_WIDTH-1:0] src1, src2, a0;
 
 assign valid = con_wb_valid;
-assign con_core_valid = 1;
-assign con_core_ready = 1;
 
 /* 当前正在处理的pc指示 */
 reg [INST_WIDTH-1:0] core_pc;
@@ -334,7 +334,7 @@ always @(posedge clk) begin
         core_pc <= con_wb_valid ? core_dnpc :
             core_pc;
         
-        core_dnpc <= con_ex_valid ? con_ex_dnpc :
+        core_dnpc <= con_ex_valid ? ex_dnpc :
             core_dnpc;
     end
 end
@@ -391,9 +391,9 @@ wire [`CSR_ADDR_W-1:0] csr_raddr =
     (csr_inst_code==`INST_MRET) ? `CSR_MEPC :
     0;
 wire [DATA_WIDTH-1:0] csr_rdata;
-wire csr_wen = con_ex_csr_wen;
-wire [`CSR_ADDR_W-1:0] csr_waddr = con_ex_csr_waddr;
-wire [DATA_WIDTH-1:0] csr_wdata = con_ex_csr_wdata;
+wire csr_wen;
+wire [`CSR_ADDR_W-1:0] csr_waddr;
+wire [DATA_WIDTH-1:0] csr_wdata;
 csrs #(
     .DATA_WIDTH(DATA_WIDTH)
 ) m_csrs (
@@ -821,10 +821,10 @@ risk_control #(
 ) m_risk_control (
     .clk(clk),
     .rst(rst),
-    .stage_valid({con_wb_valid, con_ls_valid, con_ex_valid, con_id_valid, con_if_valid}),
+    .stage_valid({mod_con_wb_valid, mod_con_ls_valid, mod_con_ex_valid, mod_con_id_valid, mod_con_if_valid}),
     .stage_exception(0),
     .fetch_pc(core_fetch_pc),
-    .dnpc(con_ex_dnpc),
+    .dnpc(ex_dnpc),
     .inst_code(con_id_inst_code),
     .core_idle(core_idle),
     .flush_type(core_flush_type),
@@ -838,19 +838,28 @@ static_predictor #(
 ) m_static_predictor (
     .clk(clk),
     .rst(rst),
-    .fetch_en(con_if_valid&con_id_ready),
+    .fetch_en(mod_con_if_valid&mod_con_id_ready),
     .flush_type(core_flush_type),
     .core_pc(core_pc),
-    .dnpc(con_ex_dnpc),
+    .dnpc(ex_dnpc),
     .fetch_pc(core_fetch_pc)
 );
 
 /* 取指if */
-wire [IF_OUT_DATA_W-1:0] mod_con_if_bits;
-wire [IF_OUT_DATA_W-1:0] con_if_bits;
-wire [ADDR_WIDTH-1:0] con_if_pc;
-wire [INST_WIDTH-1:0] con_if_inst;
-assign {con_if_pc, con_if_inst} = con_if_bits;
+wire [IF_OUT_DATA_W-1:0]        mod_con_if_bits;
+wire [IF_OUT_DATA_W-1:0]        con_if_bits;
+wire [ADDR_WIDTH-1:0]           con_if_pc;
+wire [INST_WIDTH-1:0]           con_if_inst;
+wire [`STAGE_COUNT-1:0]         con_if_expt;
+wire [DATA_WIDTH-1:0]           con_if_expt_cause;
+wire [DATA_WIDTH-1:0]           con_if_expt_data;
+assign {
+    con_if_pc, 
+    con_if_inst,
+    con_if_expt,
+    con_if_expt_cause,
+    con_if_expt_data
+} = con_if_bits;
 inst_fetch #(
     .SRAM_TYPE(`SRAM_TYPE_AXI4),
     .INST_WIDTH(INST_WIDTH),
@@ -893,7 +902,7 @@ inst_fetch #(
     .fetch_pc(core_fetch_pc),
 
     .in_ready(mod_con_if_ready),
-    .in_valid(con_core_valid & !core_stage_flush[`STAGE_INDEX_IFU]),
+    .in_valid(con_core_valid),
 
     .out_ready(con_id_ready),
     .out_valid(mod_con_if_valid),
@@ -905,28 +914,35 @@ stage_regs#(
 ) ifu_regs (
     .clk(clk),
     .rst(rst),
-    .valid(con_if_valid),
     .ready(con_id_ready),
+    .valid(mod_con_if_valid),
     .bits(mod_con_if_bits),
     .stage_bits(con_if_bits)
 );
 
 /* 译码id */
-wire [ID_OUT_DATA_W-1:0] mod_con_id_bits;
-wire [ID_OUT_DATA_W-1:0] con_id_bits;
-wire [ADDR_WIDTH-1:0] con_id_pc;
-wire [INST_WIDTH-1:0] con_id_inst;
-wire [4:0] con_id_rd;
-wire [4:0] con_id_rs1;
-wire [4:0] con_id_rs2;
-wire [INST_WIDTH-1:0] con_id_imm;
-wire [`INST_CODE_W-1:0] con_id_inst_code;
-wire [DATA_WIDTH-1:0] con_id_src1 = gpr_src1;
-wire [DATA_WIDTH-1:0] con_id_src2 = gpr_src2;
-wire [DATA_WIDTH-1:0] con_id_a0 = gpr_a0;
-assign {con_id_pc, con_id_inst, con_id_rd, con_id_rs1, con_id_rs2, con_id_imm, con_id_inst_code} = con_id_bits;
+wire [ID_OUT_DATA_W-1:0]        mod_con_id_bits;
+wire [ID_OUT_DATA_W-1:0]        con_id_bits;
+wire [ADDR_WIDTH-1:0]           con_id_pc;
+wire [INST_WIDTH-1:0]           con_id_inst;
+wire [4:0]                      con_id_rd;
+wire [4:0]                      con_id_rs1;
+wire [4:0]                      con_id_rs2;
+wire [INST_WIDTH-1:0]           con_id_imm;
+wire [`INST_CODE_W-1:0]         con_id_inst_code;
+wire [`STAGE_COUNT-1:0]         con_id_expt;
+wire [DATA_WIDTH-1:0]           con_id_expt_cause;
+wire [DATA_WIDTH-1:0]           con_id_expt_data;
+wire [DATA_WIDTH-1:0]           con_id_src1 = gpr_src1;
+wire [DATA_WIDTH-1:0]           con_id_src2 = gpr_src2;
+wire [DATA_WIDTH-1:0]           con_id_a0 = gpr_a0;
+assign {
+    con_id_pc, con_id_inst, con_id_rd, con_id_rs1, con_id_rs2, con_id_imm, con_id_inst_code,
+    con_id_expt, con_id_expt_cause, con_id_expt_data
+} = con_id_bits;
 inst_decode #(
     .INST_WIDTH(INST_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
     .IN_DATA_W(ID_IN_DATA_W),
     .OUT_DATA_W(ID_OUT_DATA_W)
 ) idu(
@@ -934,7 +950,7 @@ inst_decode #(
     .rst(rst),
 
     .in_ready(mod_con_id_ready),
-    .in_valid(con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU]),
+    .in_valid(con_if_valid),
     .in_bits(con_if_bits),
 
     .out_ready(con_ex_ready),
@@ -947,8 +963,8 @@ stage_regs#(
 ) idu_regs (
     .clk(clk),
     .rst(rst),
-    .valid(con_id_valid),
     .ready(con_ex_ready),
+    .valid(mod_con_id_valid),
     .bits(mod_con_id_bits),
     .stage_bits(con_id_bits)
 );
@@ -958,26 +974,26 @@ always @(posedge clk ) last_fence_enable <= fence_enable;
 wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
-wire [EX_OUT_DATA_W-1:0] mod_con_ex_bits;
-wire [EX_OUT_DATA_W-1:0] con_ex_bits;
-wire con_ex_jump_en;
-wire [ADDR_WIDTH-1:0] con_ex_dnpc;
-wire [DATA_WIDTH-1:0] con_ex_csr_rdata = csr_rdata;
-wire con_ex_csr_wen;
-wire [`CSR_ADDR_W-1:0] con_ex_csr_waddr;
-wire [DATA_WIDTH-1:0] con_ex_csr_wdata;
-wire [ADDR_WIDTH-1:0] con_ex_pc;
-wire [INST_WIDTH-1:0] con_ex_inst;
-wire [4:0] con_ex_rd;
-wire [INST_WIDTH-1:0] con_ex_imm;
-wire [`INST_CODE_W-1:0] con_ex_inst_code;
-wire [INST_WIDTH-1:0] con_ex_src1;
-wire [INST_WIDTH-1:0] con_ex_src2;
-wire [INST_WIDTH-1:0] con_ex_a0;
-wire [INST_WIDTH-1:0] con_ex_result;
-wire con_ex_result_update_gpr;
+wire [ADDR_WIDTH-1:0]           ex_dnpc;
+wire [EX_OUT_DATA_W-1:0]        mod_con_ex_bits;
+wire [EX_OUT_DATA_W-1:0]        con_ex_bits;
+wire [ADDR_WIDTH-1:0]           con_ex_pc;
+wire [ADDR_WIDTH-1:0]           con_ex_dnpc;
+wire [INST_WIDTH-1:0]           con_ex_inst;
+wire [4:0]                      con_ex_rd;
+wire [INST_WIDTH-1:0]           con_ex_imm;
+wire [`INST_CODE_W-1:0]         con_ex_inst_code;
+wire [INST_WIDTH-1:0]           con_ex_src1;
+wire [INST_WIDTH-1:0]           con_ex_src2;
+wire [INST_WIDTH-1:0]           con_ex_a0;
+wire [INST_WIDTH-1:0]           con_ex_result;
+wire                            con_ex_result_update_gpr;
+wire [`STAGE_COUNT-1:0]         con_ex_expt;
+wire [DATA_WIDTH-1:0]           con_ex_expt_cause;
+wire [DATA_WIDTH-1:0]           con_ex_expt_data;
 assign {
     con_ex_pc,
+    con_ex_dnpc,
     con_ex_inst,
     con_ex_rd,
     con_ex_imm,
@@ -985,7 +1001,10 @@ assign {
     con_ex_src1,
     con_ex_src2,
     con_ex_result,
-    con_ex_result_update_gpr
+    con_ex_result_update_gpr,
+    con_ex_expt,
+    con_ex_expt_cause,
+    con_ex_expt_data
 } = con_ex_bits;
 execute #(
     .INST_WIDTH(INST_WIDTH),
@@ -995,16 +1014,19 @@ execute #(
     .clk(clk),
     .rst(rst),
 
-    .jump_en(con_ex_jump_en),
-    .dnpc(con_ex_dnpc),
-    .csr_rdata(con_ex_csr_rdata),
-    .csr_wen(con_ex_csr_wen),
-    .csr_waddr(con_ex_csr_waddr),
-    .csr_wdata(con_ex_csr_wdata),
+    .jump_en(),
+    .dnpc(ex_dnpc),
+    .csr_rdata(csr_rdata),
+    .csr_wen(csr_wen),
+    .csr_waddr(csr_waddr),
+    .csr_wdata(csr_wdata),
 
     .in_ready(mod_con_ex_ready),
-    .in_valid(con_id_valid & !core_stage_flush[`STAGE_INDEX_EXU]),
-    .in_bits({con_id_pc, con_id_inst, con_id_rd, con_id_imm, con_id_inst_code, con_id_src1, con_id_src2, con_id_a0}),
+    .in_valid(con_id_valid),
+    .in_bits({
+        con_id_pc, con_id_inst, con_id_rd, con_id_imm, con_id_inst_code, con_id_src1, con_id_src2, con_id_a0,
+        con_id_expt, con_id_expt_cause, con_id_expt_data
+    }),
 
     .out_ready(con_ls_ready),
     .out_valid(mod_con_ex_valid),
@@ -1016,24 +1038,32 @@ stage_regs#(
 ) exu_regs (
     .clk(clk),
     .rst(rst),
-    .valid(con_ex_valid),
     .ready(con_ls_ready),
+    .valid(mod_con_ex_valid),
     .bits(mod_con_ex_bits),
     .stage_bits(con_ex_bits)
 );
 
 /* 读存储ls */
-wire [LS_OUT_DATA_W-1:0] mod_con_ls_bits;
-wire [LS_OUT_DATA_W-1:0] con_ls_bits;
-wire [ADDR_WIDTH-1:0] con_ls_pc;
-wire [4:0] con_ls_rd;
-wire [INST_WIDTH-1:0] con_ls_result;
-wire con_ls_result_update_gpr;
+wire [LS_OUT_DATA_W-1:0]        mod_con_ls_bits;
+wire [LS_OUT_DATA_W-1:0]        con_ls_bits;
+wire [ADDR_WIDTH-1:0]           con_ls_pc;
+wire [ADDR_WIDTH-1:0]           con_ls_dnpc;
+wire [4:0]                      con_ls_rd;
+wire [INST_WIDTH-1:0]           con_ls_result;
+wire                            con_ls_result_update_gpr;
+wire [`STAGE_COUNT-1:0]         con_ls_expt;
+wire [DATA_WIDTH-1:0]           con_ls_expt_cause;
+wire [DATA_WIDTH-1:0]           con_ls_expt_data;
 assign {
     con_ls_pc,
+    con_ls_dnpc,
     con_ls_rd,
     con_ls_result,
-    con_ls_result_update_gpr
+    con_ls_result_update_gpr,
+    con_ls_expt,
+    con_ls_expt_cause,
+    con_ls_expt_data
 } = con_ls_bits;
 load_store #(
     .INST_WIDTH(INST_WIDTH),
@@ -1074,7 +1104,7 @@ load_store #(
     .rid(axi4_ls_rid),
 
     .in_ready(mod_con_ls_ready),
-    .in_valid(con_ex_valid & !core_stage_flush[`STAGE_INDEX_LSU]),
+    .in_valid(con_ex_valid),
     .in_bits(con_ex_bits),
 
     .out_ready(con_wb_ready),
@@ -1087,13 +1117,15 @@ stage_regs#(
 ) lsu_regs (
     .clk(clk),
     .rst(rst),
-    .valid(con_ls_valid),
     .ready(con_wb_ready),
+    .valid(mod_con_ls_valid),
     .bits(mod_con_ls_bits),
     .stage_bits(con_ls_bits)
 );
 
 /* 回写wb */
+wire [WB_OUT_DATA_W-1:0]        mod_con_wb_bits;
+wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
 wire wb_gpr_wen;
 wire [4:0] wb_gpr_windex;
 wire [DATA_WIDTH-1:0] wb_gpr_wdata;
@@ -1110,11 +1142,23 @@ write_back #(
     .gpr_wdata(wb_gpr_wdata),
 
     .in_ready(mod_con_wb_ready),
-    .in_valid(con_ls_valid & !core_stage_flush[`STAGE_INDEX_WBU]),
+    .in_valid(con_ls_valid),
     .in_bits(con_ls_bits),
 
     .out_ready(con_core_ready),
-    .out_valid(mod_con_wb_valid)
+    .out_valid(mod_con_wb_valid),
+    .out_bits(mod_con_wb_bits)
+);
+stage_regs#(
+    .DATA_STORAGE(1),
+    .DATA_W(WB_OUT_DATA_W)
+) wbu_regs (
+    .clk(clk),
+    .rst(rst),
+    .ready(con_core_ready),
+    .valid(mod_con_wb_valid),
+    .bits(mod_con_wb_bits),
+    .stage_bits(con_wb_bits)
 );
 
 endmodule

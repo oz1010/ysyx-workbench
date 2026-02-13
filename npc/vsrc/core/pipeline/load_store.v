@@ -51,10 +51,45 @@ module load_store #(
     output  wire                        out_valid,
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
+    assign {
+        pc, dnpc, inst, rd, imm, inst_code, src1, src2,
+        result, result_update_gpr,
+        expt, expt_cause, expt_data
+    } = in_bits;
+    assign out_bits = {
+        pc,
+        dnpc,
+        rd,
+        ls_enable ? r_result : result,
+        ls_enable ? r_result_update_gpr : result_update_gpr,
+        prev_err ? expt : r_expt,
+        prev_err ? expt_cause : r_expt_cause,
+        prev_err ? expt_data : r_expt_data
+    };
+
+    wire [INST_WIDTH-1:0]           pc;
+    wire [INST_WIDTH-1:0]           dnpc;
+    wire [INST_WIDTH-1:0]           inst;
+    wire [4:0]                      rd;
+    wire [INST_WIDTH-1:0]           imm;
+    wire [`INST_CODE_W-1:0]         inst_code;
+    wire [INST_WIDTH-1:0]           src1;
+    wire [INST_WIDTH-1:0]           src2;
+    wire [INST_WIDTH-1:0]           result;
+    wire                            result_update_gpr;
+    wire [`STAGE_COUNT-1:0]         expt;
+    wire [DATA_WIDTH-1:0]           expt_cause;
+    wire [DATA_WIDTH-1:0]           expt_data;
+
+    reg [INST_WIDTH-1:0]            r_result;
+    reg                             r_result_update_gpr;
+    reg  [`STAGE_COUNT-1:0]         r_expt = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
-
     inner_con ls_con(
         .clk(clk),
         .rst(rst),
@@ -67,32 +102,8 @@ module load_store #(
         .stage_out_done(stage_out_done)
     );
 
-    assign {
-        pc, inst, rd, imm, inst_code, src1, src2,
-        result, result_update_gpr
-    } = in_bits;
-    assign out_bits = {
-        pc,
-        rd,
-        ls_enable ? r_result : result,
-        ls_enable ? r_result_update_gpr : result_update_gpr
-    };
-
+    wire prev_err = |expt;
     wire ls_enable = (|(inst_code & `INST_CODE_MEM));
-
-    wire [INST_WIDTH-1:0]       pc;
-    wire [INST_WIDTH-1:0]       inst;
-    wire [4:0]                  rd;
-    wire [INST_WIDTH-1:0]       imm;
-    wire [`INST_CODE_W-1:0]     inst_code;
-    wire [INST_WIDTH-1:0]       src1;
-    wire [INST_WIDTH-1:0]       src2;
-    wire [INST_WIDTH-1:0]       result;
-    wire                        result_update_gpr;
-
-    reg [INST_WIDTH-1:0] r_result;
-    reg r_result_update_gpr;
-
     wire access_enable = !in_ready;
     wire [INST_WIDTH-1:0]       access_addr = src1+imm;
     wire [2:0]                  access_size = 

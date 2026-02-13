@@ -21,12 +21,29 @@ module write_back #(
 
     /* 模块输出数据总线 */
     input   wire                        out_ready,
-    output  wire                        out_valid
+    output  wire                        out_valid,
+    output  wire [OUT_DATA_W-1:0]       out_bits
 );
+    assign {
+        pc, dnpc, rd, result, result_update_gpr,
+        expt, expt_cause, expt_data
+    } = in_bits;
+    assign out_bits = {
+        pc, dnpc
+    };
+
+    wire [INST_WIDTH-1:0]           pc;
+    wire [INST_WIDTH-1:0]           dnpc;
+    wire [4:0]                      rd;
+    wire [INST_WIDTH-1:0]           result;
+    wire                            result_update_gpr;
+    wire [`STAGE_COUNT-1:0]         expt;
+    wire [DATA_WIDTH-1:0]           expt_cause;
+    wire [DATA_WIDTH-1:0]           expt_data;
+
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
-
     inner_con wb_con(
         .clk(clk),
         .rst(rst),
@@ -38,13 +55,6 @@ module write_back #(
         .stage_out_valid(r_stage_out_valid),
         .stage_out_done(stage_out_done)
     );
-
-    wire [INST_WIDTH-1:0]       core_pc;
-    wire [4:0]                  rd;
-    wire [INST_WIDTH-1:0]       result;
-    wire                        result_update_gpr;
-
-    assign {core_pc, rd, result, result_update_gpr} = in_bits;
 
     /*
     * 组合逻辑，同步触发寄存器组更新

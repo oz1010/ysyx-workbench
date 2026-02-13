@@ -54,28 +54,19 @@ module inst_fetch #(
     output  wire                        out_valid,
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
-
-    // reg [INST_WIDTH-1:0] fetch_pc; /* 记录当前取指令地址 */
-    wire [INST_WIDTH-1:0] snpc;
-
-    assign awvalid = 0;
-    assign awaddr = 0;
-    assign awid = 0;
-    assign awlen = 0;
-    assign awsize = 0;
-    assign awburst = 0;
-    assign wvalid = 0;
-    assign wdata = 0;
-    assign wstrb = 0;
-    assign wlast = 0;
-    assign bready = 0;
+    assign out_bits = {
+        araddr, read_inst,
+        r_expt, r_expt_cause, r_expt_data
+    };
 
     wire [INST_WIDTH-1:0]           read_inst;
+    reg  [`STAGE_COUNT-1:0]         r_expt = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
 
     wire                            stage_in_done;
     wire                            stage_out_valid;
     wire                            stage_out_done;
-
     inner_con if_con(
         .clk(clk),
         .rst(rst),
@@ -89,8 +80,19 @@ module inst_fetch #(
     );
 
     assign stage_out_valid = rvalid && rready && rlast;
-    assign out_bits = {araddr, read_inst};
-    assign snpc = fetch_pc + 4;
+    wire [INST_WIDTH-1:0] snpc = fetch_pc + 4;
+
+    assign awvalid = 0;
+    assign awaddr = 0;
+    assign awid = 0;
+    assign awlen = 0;
+    assign awsize = 0;
+    assign awburst = 0;
+    assign wvalid = 0;
+    assign wdata = 0;
+    assign wstrb = 0;
+    assign wlast = 0;
+    assign bready = 0;
 
     /* 触发式记录使能 */
     reg in_read_en;
