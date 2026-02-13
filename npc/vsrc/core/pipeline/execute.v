@@ -29,7 +29,7 @@ module execute #(
         src1, src2, a0
     } = in_bits;
     assign out_bits = {
-        pc, dnpc, inst, rd, imm, inst_code, src1, src2,
+        pc, dnpc, inst, rd, rs1, rs2, imm, inst_code, src1, src2,
         r_result, r_result_update_gpr,
         prev_err ? expt : r_expt,
         prev_err ? expt_cause : r_expt_cause,
