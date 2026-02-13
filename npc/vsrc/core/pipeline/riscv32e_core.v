@@ -53,7 +53,7 @@ localparam IF_IN_DATA_W = 0;
 localparam IF_OUT_DATA_W = (ADDR_WIDTH + INST_WIDTH + `STAGE_COUNT + DATA_WIDTH*2);
 localparam ID_IN_DATA_W = IF_OUT_DATA_W;
 localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2);
-localparam EX_IN_DATA_W = (INST_WIDTH*6 + `INST_CODE_W + 5 + `STAGE_COUNT + DATA_WIDTH*2);
+localparam EX_IN_DATA_W = ID_OUT_DATA_W + DATA_WIDTH*3;
 localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
 localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `STAGE_COUNT + DATA_WIDTH*2);
@@ -351,8 +351,6 @@ always @(posedge clk) begin
 end
 
 /* gpr寄存器组 */
-wire [4:0] gpr_rs1 = con_id_rs1;
-wire [4:0] gpr_rs2 = con_id_rs2;
 wire [DATA_WIDTH-1:0] gpr_src1;
 wire [DATA_WIDTH-1:0] gpr_src2;
 wire [DATA_WIDTH-1:0] gpr_a0;
@@ -362,9 +360,9 @@ gprs #(
 ) m_gprs (
     .clk(clk),
     .rst(rst),
-    .rs1(gpr_rs1),
+    .rs1(con_id_rs1),
     .src1(gpr_src1),
-    .rs2(gpr_rs2),
+    .rs2(con_id_rs2),
     .src2(gpr_src2),
     .a0(gpr_a0),
     .wen(wb_gpr_wen),
@@ -931,9 +929,6 @@ wire [`INST_CODE_W-1:0]         con_id_inst_code;
 wire [`STAGE_COUNT-1:0]         con_id_expt;
 wire [DATA_WIDTH-1:0]           con_id_expt_cause;
 wire [DATA_WIDTH-1:0]           con_id_expt_data;
-wire [DATA_WIDTH-1:0]           con_id_src1 = gpr_src1;
-wire [DATA_WIDTH-1:0]           con_id_src2 = gpr_src2;
-wire [DATA_WIDTH-1:0]           con_id_a0 = gpr_a0;
 assign {
     con_id_pc, con_id_inst, con_id_rd, con_id_rs1, con_id_rs2, con_id_imm, con_id_inst_code,
     con_id_expt, con_id_expt_cause, con_id_expt_data
@@ -966,6 +961,32 @@ stage_regs#(
     .bits(mod_con_id_bits),
     .stage_bits(con_id_bits)
 );
+// idu需要存储gpr寄存器的值
+wire [DATA_WIDTH*3-1:0] con_id_gpr_bits;
+wire [DATA_WIDTH-1:0] con_id_gpr_src1;
+wire [DATA_WIDTH-1:0] con_id_gpr_src2;
+wire [DATA_WIDTH-1:0] con_id_gpr_a0;
+assign {
+    con_id_gpr_src1,
+    con_id_gpr_src2,
+    con_id_gpr_a0
+} = con_id_gpr_bits;
+stage_regs#(
+    .DATA_STORAGE(1),
+    .DATA_W(DATA_WIDTH*3)
+) idu_gpr_regs (
+    .clk(clk),
+    .rst(rst),
+    .ready(con_ex_ready),
+    .valid(mod_con_id_valid),
+    .bits({
+        gpr_src1,
+        gpr_src2,
+        gpr_a0
+    }),
+    .stage_bits(con_id_gpr_bits)
+);
+
 wire fence_enable = (con_id_inst_code == `INST_FENCE) || (con_id_inst_code == `INST_FENCE_I);
 reg last_fence_enable;
 always @(posedge clk ) last_fence_enable <= fence_enable;
@@ -1022,8 +1043,10 @@ execute #(
     .in_ready(mod_con_ex_ready),
     .in_valid(con_id_valid),
     .in_bits({
-        con_id_pc, con_id_inst, con_id_rd, con_id_imm, con_id_inst_code, con_id_src1, con_id_src2, con_id_a0,
-        con_id_expt, con_id_expt_cause, con_id_expt_data
+        con_id_bits,
+        con_id_gpr_src1, 
+        con_id_gpr_src2, 
+        con_id_gpr_a0
     }),
 
     .out_ready(con_ls_ready),

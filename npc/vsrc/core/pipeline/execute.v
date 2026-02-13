@@ -24,8 +24,9 @@ module execute #(
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
     assign {
-        pc, inst, rd, imm, inst_code, src1, src2, a0,
-        expt, expt_cause, expt_data
+        pc, inst, rd, rs1, rs2, imm, inst_code,
+        expt, expt_cause, expt_data,
+        src1, src2, a0
     } = in_bits;
     assign out_bits = {
         pc, dnpc, inst, rd, imm, inst_code, src1, src2,
@@ -38,14 +39,17 @@ module execute #(
     wire [INST_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           inst;
     wire [4:0]                      rd;
+    wire [4:0]                      rs1;
+    wire [4:0]                      rs2;
     wire [DATA_WIDTH-1:0]           imm;
     wire [`INST_CODE_W-1:0]         inst_code;
-    wire [DATA_WIDTH-1:0]           src1;
-    wire [DATA_WIDTH-1:0]           src2;
-    wire [DATA_WIDTH-1:0]           a0;
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
     wire [DATA_WIDTH-1:0]           expt_data;
+    // 扩展输入项
+    wire [DATA_WIDTH-1:0]           src1;
+    wire [DATA_WIDTH-1:0]           src2;
+    wire [DATA_WIDTH-1:0]           a0;
 
     reg [DATA_WIDTH-1:0]            r_result;
     reg                             r_result_update_gpr;
