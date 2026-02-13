@@ -166,7 +166,10 @@ module inst_decode #(
         if (rst) begin
             r_stage_out_valid <= 0;
         end else begin
-            r_stage_out_valid <= stage_in_done ? 1 : 0;
+            r_stage_out_valid <= 
+                stage_in_done ? 1 :
+                stage_out_done ? 0 :
+                r_stage_out_valid;
         end
     end
 

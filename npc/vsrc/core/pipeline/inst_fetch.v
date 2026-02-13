@@ -55,17 +55,17 @@ module inst_fetch #(
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
     assign out_bits = {
-        araddr, read_inst,
+        fetch_pc, r_read_inst,
         r_expt, r_expt_cause, r_expt_data
     };
 
-    wire [INST_WIDTH-1:0]           read_inst;
+    reg  [INST_WIDTH-1:0]           r_read_inst;
     reg  [`STAGE_COUNT-1:0]         r_expt = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
 
     wire                            stage_in_done;
-    wire                            stage_out_valid;
+    reg                             r_stage_out_valid;
     wire                            stage_out_done;
     inner_con if_con(
         .clk(clk),
@@ -75,11 +75,12 @@ module inst_fetch #(
         .out_valid(out_valid),
         .out_ready(out_ready),
         .stage_in_done(stage_in_done),
-        .stage_out_valid(stage_out_valid),
+        .stage_out_valid(r_stage_out_valid),
         .stage_out_done(stage_out_done)
     );
 
-    assign stage_out_valid = rvalid && rready && rlast;
+    wire [INST_WIDTH-1:0]           read_inst;
+    wire axi4_read_done = rvalid && rready && rlast;
     wire [INST_WIDTH-1:0] snpc = fetch_pc + 4;
 
     assign awvalid = 0;
@@ -95,26 +96,23 @@ module inst_fetch #(
     assign bready = 0;
 
     /* 触发式记录使能 */
-    reg in_read_en;
+    reg r_read_en;
     always @(posedge clk) begin
         if (rst) begin
-            in_read_en <= 0;
+            r_read_en <= 0;
         end else begin
-            if (in_read_en) begin
-                if (out_valid) begin
-                    in_read_en <= 0;
-                end
-            end
-
-            if (in_valid) begin
-                in_read_en <= 1;
-            end
+            r_read_en <= 
+                stage_in_done ? 1 :
+                axi4_read_done ? 0 :
+                r_read_en;
         end
     end
+    wire read_en;
 
     generate
         if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-            wire read_en = in_valid || in_read_en;
+            // TODO 在命中cache的情况下，回读数据也需要3周期，这里可以继续优化一下
+            assign read_en = stage_in_done | r_read_en;
 
             axi_master_reader #(
                 `ifndef IN_YOSYS_STA
@@ -154,6 +152,7 @@ module inst_fetch #(
 
             always @(posedge clk) begin
                 if (rst) begin
+                    r_stage_out_valid <= 0;
                 end else begin
                     // read request
                     if (read_en) begin
@@ -161,6 +160,12 @@ module inst_fetch #(
                             check_dev_addr(fetch_pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                         end
                     end
+
+                    r_stage_out_valid <= 
+                        axi4_read_done ? 1 :
+                        stage_out_done ? 0 :
+                        r_stage_out_valid;
+                    r_read_inst <= axi4_read_done ? read_inst : r_read_inst;
                 end
             end
 
