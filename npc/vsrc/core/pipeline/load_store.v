@@ -62,6 +62,7 @@ module load_store #(
         rd,
         rs1,
         rs2,
+        inst_code,
         ls_enable ? r_result : result,
         ls_enable ? r_result_update_gpr : result_update_gpr,
         prev_err ? expt : r_expt,
