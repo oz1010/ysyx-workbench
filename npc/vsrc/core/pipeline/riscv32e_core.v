@@ -56,9 +56,9 @@ localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COU
 localparam EX_IN_DATA_W = ID_OUT_DATA_W + DATA_WIDTH*3;
 localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
-localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
+localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
 localparam WB_IN_DATA_W = LS_OUT_DATA_W;
-localparam WB_OUT_DATA_W = INST_WIDTH*2;
+localparam WB_OUT_DATA_W = INST_WIDTH*2 + 5;
 
 /* 模块之间的连接信号或数据 */
 wire                        con_core_ready;
@@ -88,10 +88,10 @@ wire                        mod_con_wb_valid;
 assign con_core_ready = 1;
 assign con_core_valid = 1 & !core_stage_flush[`STAGE_INDEX_IFU];
 assign con_if_ready = mod_con_if_ready;
-assign con_if_valid = mod_con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU];
-assign con_id_ready = mod_con_id_ready;
-assign con_id_valid = mod_con_id_valid & !core_stage_flush[`STAGE_INDEX_EXU] ;
-assign con_ex_ready = mod_con_ex_ready;
+assign con_if_valid = mod_con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU] & !core_raw_wait;
+assign con_id_ready = mod_con_id_ready & !core_raw_wait;
+assign con_id_valid = mod_con_id_valid & !core_stage_flush[`STAGE_INDEX_EXU] & !core_raw_wait;
+assign con_ex_ready = mod_con_ex_ready & !core_raw_wait;
 assign con_ex_valid = mod_con_ex_valid & !core_stage_flush[`STAGE_INDEX_LSU];
 assign con_ls_ready = mod_con_ls_ready;
 assign con_ls_valid = mod_con_ls_valid & !core_stage_flush[`STAGE_INDEX_WBU];
@@ -805,10 +805,34 @@ exter_dev #(
 );
 
 /* 流水线控制信号 */
-wire core_idle = con_if_ready & con_id_ready & con_ex_ready & con_ls_ready & con_wb_ready;
-wire [INST_WIDTH-1:0] core_fetch_pc;
-wire [`STAGE_COUNT-1:0] core_stage_flush;
-wire [`FLUSH_TYPE_W-1:0] core_flush_type;
+wire                            core_idle = con_if_ready & con_id_ready & con_ex_ready & con_ls_ready & con_wb_ready;
+wire [INST_WIDTH-1:0]           core_fetch_pc;
+wire                            core_raw_wait;
+wire [`FLUSH_TYPE_W-1:0]        core_flush_type;
+wire [`STAGE_COUNT-1:0]         core_stage_flush;
+/* RAW冒险 */
+risk_raw #(
+    .INST_WIDTH(INST_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH)
+) m_risk_raw (
+    .clk(clk),
+    .rst(rst),
+    .flush_en(|core_stage_flush),
+    .stage_ready({mod_con_wb_ready, mod_con_ls_ready, mod_con_ex_ready, mod_con_id_ready, mod_con_if_ready}),
+    .stage_valid({mod_con_wb_valid, mod_con_ls_valid, mod_con_ex_valid, mod_con_id_valid, mod_con_if_valid}),
+    .id_imm_pc(con_if_pc),
+    .id_imm_inst_code(id_imm_inst_code),
+    .id_imm_rd(id_imm_rd),
+    .id_imm_rs1(id_imm_rs1),
+    .id_imm_rs2(id_imm_rs2),
+    .ex_rd(con_ex_rd),
+    .ls_rd(con_ls_rd),
+    .stage_pc({con_id_pc, con_ex_pc, con_ls_pc}),
+    .stage_rd({con_id_rd, con_ex_rd, con_ls_rd}),
+    .wb_pc(con_wb_pc),
+    .wb_rd(con_wb_rd),
+    .raw_wait(core_raw_wait)
+);
 /* 控制冒险 */
 risk_control #(
     .INST_WIDTH(INST_WIDTH),
@@ -917,6 +941,10 @@ stage_regs#(
 );
 
 /* 译码id */
+wire [4:0]                      id_imm_rd;
+wire [4:0]                      id_imm_rs1;
+wire [4:0]                      id_imm_rs2;
+wire [`INST_CODE_W-1:0]         id_imm_inst_code;
 wire [ID_OUT_DATA_W-1:0]        mod_con_id_bits;
 wire [ID_OUT_DATA_W-1:0]        con_id_bits;
 wire [ADDR_WIDTH-1:0]           con_id_pc;
@@ -941,6 +969,11 @@ inst_decode #(
 ) idu(
     .clk(clk),
     .rst(rst),
+
+    .imm_rd(id_imm_rd),
+    .imm_rs1(id_imm_rs1),
+    .imm_rs2(id_imm_rs2),
+    .imm_inst_code(id_imm_inst_code),
 
     .in_ready(mod_con_id_ready),
     .in_valid(con_if_valid),
@@ -1077,6 +1110,7 @@ wire [ADDR_WIDTH-1:0]           con_ls_dnpc;
 wire [4:0]                      con_ls_rd;
 wire [4:0]                      con_ls_rs1;
 wire [4:0]                      con_ls_rs2;
+wire [`INST_CODE_W-1:0]         con_ls_inst_code;
 wire [INST_WIDTH-1:0]           con_ls_result;
 wire                            con_ls_result_update_gpr;
 wire [`STAGE_COUNT-1:0]         con_ls_expt;
@@ -1088,6 +1122,7 @@ assign {
     con_ls_rd,
     con_ls_rs1,
     con_ls_rs2,
+    con_ls_inst_code,
     con_ls_result,
     con_ls_result_update_gpr,
     con_ls_expt,
@@ -1160,9 +1195,11 @@ wire [WB_OUT_DATA_W-1:0]        mod_con_wb_bits;
 wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
 wire [ADDR_WIDTH-1:0]           con_wb_pc;
 wire [ADDR_WIDTH-1:0]           con_wb_dnpc;
+wire [4:0]                      con_wb_rd;
 assign {
     con_wb_pc,
-    con_wb_dnpc
+    con_wb_dnpc,
+    con_wb_rd
 } = con_wb_bits;
 write_back #(
     .INST_WIDTH(INST_WIDTH),

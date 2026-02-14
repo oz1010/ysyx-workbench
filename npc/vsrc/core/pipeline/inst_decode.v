@@ -8,6 +8,11 @@ module inst_decode #(
     input wire                          clk,
     input wire                          rst,
 
+    output  wire [4:0]                  imm_rd,
+    output  wire [4:0]                  imm_rs1,
+    output  wire [4:0]                  imm_rs2,
+    output  wire [`INST_CODE_W-1:0]     imm_inst_code,
+
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
@@ -63,13 +68,52 @@ module inst_decode #(
 
     // 提取字段
     assign opcode = inst[6:0];
-    assign rd = inst[11:7];
-    assign funct3 = inst[14:12];
-    assign rs1 = inst[19:15];
-    assign rs2 = inst[24:20];
-    assign funct7 = inst[INST_WIDTH-1:25];
+    assign rd = 
+        (
+            (inst_type==`TYPE_R) |
+            (inst_type==`TYPE_I) |
+            (inst_type==`TYPE_U) |
+            (inst_type==`TYPE_J) |
+            0
+        ) ?
+        inst[11:7] : 0;
+    assign funct3 = 
+        (
+            (inst_type==`TYPE_R) |
+            (inst_type==`TYPE_I) |
+            (inst_type==`TYPE_S) |
+            (inst_type==`TYPE_B) |
+            0
+        ) ?
+        inst[14:12] : 0;
+    assign rs1 = 
+        (
+            (inst_type==`TYPE_R) |
+            (inst_type==`TYPE_I) |
+            (inst_type==`TYPE_S) |
+            (inst_type==`TYPE_B) |
+            0
+        ) ?
+        inst[19:15] : 0;
+    assign rs2 = 
+        (
+            (inst_type==`TYPE_R) |
+            (inst_type==`TYPE_S) |
+            (inst_type==`TYPE_B) |
+            0
+        ) ? inst[24:20] : 0;
+    assign funct7 = 
+        (
+            (inst_type==`TYPE_R) |
+            0
+        ) ?
+        inst[INST_WIDTH-1:25] : 0;
 
     wire prev_err = |expt;
+    assign imm_rd = rd;
+    assign imm_rs1 = rs1;
+    assign imm_rs2 = rs2;
+    assign imm_inst_code = inst_code;
 
     // 根据操作码解析指令类型
     assign inst_type =   
