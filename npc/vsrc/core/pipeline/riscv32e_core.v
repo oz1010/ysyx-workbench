@@ -933,7 +933,7 @@ stage_regs#(
     .DATA_W(IF_OUT_DATA_W)
 ) ifu_regs (
     .clk(clk),
-    .rst(rst),
+    .rst(rst | core_stage_flush[`STAGE_INDEX_IDU]),
     .ready(con_id_ready),
     .valid(mod_con_if_valid),
     .bits(mod_con_if_bits),
@@ -988,7 +988,7 @@ stage_regs#(
     .DATA_W(ID_OUT_DATA_W)
 ) idu_regs (
     .clk(clk),
-    .rst(rst),
+    .rst(rst | core_stage_flush[`STAGE_INDEX_EXU]),
     .ready(con_ex_ready),
     .valid(mod_con_id_valid),
     .bits(mod_con_id_bits),
@@ -1009,7 +1009,7 @@ stage_regs#(
     .DATA_W(DATA_WIDTH*3)
 ) idu_gpr_regs (
     .clk(clk),
-    .rst(rst),
+    .rst(rst | core_stage_flush[`STAGE_INDEX_EXU]),
     .ready(con_ex_ready),
     .valid(mod_con_id_valid),
     .bits({
@@ -1095,7 +1095,7 @@ stage_regs#(
     .DATA_W(EX_OUT_DATA_W)
 ) exu_regs (
     .clk(clk),
-    .rst(rst),
+    .rst(rst | core_stage_flush[`STAGE_INDEX_LSU]),
     .ready(con_ls_ready),
     .valid(mod_con_ex_valid),
     .bits(mod_con_ex_bits),
@@ -1180,7 +1180,7 @@ stage_regs#(
     .DATA_W(LS_OUT_DATA_W)
 ) lsu_regs (
     .clk(clk),
-    .rst(rst),
+    .rst(rst | core_stage_flush[`STAGE_INDEX_WBU]),
     .ready(con_wb_ready),
     .valid(mod_con_ls_valid),
     .bits(mod_con_ls_bits),
@@ -1226,7 +1226,7 @@ stage_regs#(
     .DATA_W(WB_OUT_DATA_W)
 ) wbu_regs (
     .clk(clk),
-    .rst(rst),
+    .rst(rst | core_stage_flush[`STAGE_INDEX_WBU]),
     .ready(con_core_ready),
     .valid(mod_con_wb_valid),
     .bits(mod_con_wb_bits),
