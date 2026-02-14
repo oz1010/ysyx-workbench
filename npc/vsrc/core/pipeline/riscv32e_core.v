@@ -861,7 +861,7 @@ static_predictor #(
     .fetch_en(mod_con_if_valid&mod_con_id_ready),
     .flush_type(core_flush_type),
     .core_pc(core_pc),
-    .dnpc(ex_dnpc),
+    .dnpc(con_wb_dnpc),
     .fetch_pc(core_fetch_pc)
 );
 
