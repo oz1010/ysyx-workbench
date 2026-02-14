@@ -32,6 +32,7 @@ module risk_raw #(
     
     wire is_raw = |stage_is_raw;
     wire is_raw_release = !(|stage_wait_pc);
+    wire match_raw = (!raw_wait & stage_valid[`STAGE_INDEX_IFU] & stage_ready[`STAGE_INDEX_IDU] & is_raw);
 
     wire [CHECK_COUNT-1:0] stage_is_raw;
     reg [INST_WIDTH*CHECK_COUNT-1:0] stage_wait_pc;
@@ -52,7 +53,7 @@ module risk_raw #(
                     stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 0;
                 end else begin
                     stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 
-                        (!raw_wait & stage_valid[`STAGE_INDEX_IFU] & stage_is_raw[idx]) ? stage_pc[INST_WIDTH*idx +: INST_WIDTH] :
+                        match_raw ? stage_pc[INST_WIDTH*idx +: INST_WIDTH] :
                         (raw_wait & stage_is_raw_release[idx]) ? 0 :
                         stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH];
                 end
@@ -65,7 +66,7 @@ module risk_raw #(
             raw_wait <= 0;
         end else begin
             raw_wait <= 
-                (!raw_wait & stage_valid[`STAGE_INDEX_IFU] & stage_ready[`STAGE_INDEX_IDU] & is_raw) ? 1:
+                match_raw ? 1:
                 (raw_wait & is_raw_release) ? 0 :
                 raw_wait;            
         end
