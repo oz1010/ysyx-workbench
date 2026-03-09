@@ -29,7 +29,7 @@ module execute #(
         src1, src2, a0
     } = in_bits;
     assign out_bits = {
-        pc, dnpc, inst, rd, rs1, rs2, imm, inst_code, src1, src2,
+        pc, r_dnpc, inst, rd, rs1, rs2, imm, inst_code, src1, src2,
         r_result, r_result_update_gpr,
         prev_err ? expt : r_expt,
         prev_err ? expt_cause : r_expt_cause,
@@ -77,6 +77,7 @@ module execute #(
     wire ex_enable = !(|(inst_code & `INST_CODE_MEM));
     wire signed [31:0] s_src1 = src1;
     wire signed [31:0] s_src2 = src2;
+    reg [INST_WIDTH-1:0] r_dnpc;
 
     assign jump_en = r_jump_en;
     assign dnpc = inst_dnpc;
@@ -167,6 +168,7 @@ module execute #(
                 r_jump_en <= inst_jump_en;
                 r_result <= 0;
                 r_result_update_gpr <= inst_keep_gpr ? 0 : ex_enable;
+                r_dnpc <= dnpc;
             end
 
             if (mdr_inst) begin
