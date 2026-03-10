@@ -27,7 +27,7 @@ module write_back #(
 );
     assign {
         pc, dnpc, rd, rs1, rs2, inst_code, result, result_update_gpr, csr_wch,
-        expt, expt_cause, expt_data
+        expt, expt_cause, expt_tval
     } = in_bits;
     assign out_bits = {
         pc, dnpc, rd
@@ -44,7 +44,7 @@ module write_back #(
     wire [`CSR_WCH_W-1:0]           csr_wch;
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
-    wire [DATA_WIDTH-1:0]           expt_data;
+    wire [DATA_WIDTH-1:0]           expt_tval;
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
@@ -80,6 +80,12 @@ module write_back #(
             r_stage_out_valid <= 0;
         end else begin
             r_stage_out_valid <= stage_in_done ? 1 : 0;
+            if (|expt) begin
+                case (expt_cause)
+                    `EXPT_CAUSE_ILL: func_invalid_inst(pc, expt_tval);
+                    default: ;
+                endcase
+            end
         end
     end
 

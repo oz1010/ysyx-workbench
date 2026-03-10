@@ -197,7 +197,7 @@ void invalid_inst(int thispc, int inst)
                         "* Every line of untested code is always wrong!\n\n",
                         ANSI_FG_RED),
                isa_logo);
-    set_npc_state(NPC_ABORT, thispc, -1);
+    set_npc_state(NPC_ABORT, thispc, inst ? inst : -1);
 }
 
 void dpi_cpu_stat_ctrl(int dtype, int delta)

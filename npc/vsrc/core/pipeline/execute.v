@@ -20,7 +20,7 @@ module execute #(
 );
     assign {
         pc, inst, rd, rs1, rs2, imm, inst_code,
-        expt, expt_cause, expt_data,
+        expt, expt_cause, expt_tval,
         src1, src2, a0
     } = in_bits;
     assign out_bits = {
@@ -28,7 +28,7 @@ module execute #(
         r_result, r_result_update_gpr, csr_wch,
         prev_err ? expt : r_expt,
         prev_err ? expt_cause : r_expt_cause,
-        prev_err ? expt_data : r_expt_data
+        prev_err ? expt_tval : r_expt_tval
     };
 
     wire [INST_WIDTH-1:0]           pc;
@@ -40,7 +40,7 @@ module execute #(
     wire [`INST_CODE_W-1:0]         inst_code;
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
-    wire [DATA_WIDTH-1:0]           expt_data;
+    wire [DATA_WIDTH-1:0]           expt_tval;
     // 扩展输入项
     wire [DATA_WIDTH-1:0]           src1;
     wire [DATA_WIDTH-1:0]           src2;
@@ -50,9 +50,10 @@ module execute #(
     reg                             r_result_update_gpr;
     wire [`CSR_WCH_W-1:0]           csr_wch;
     reg                             r_jump_en;
-    reg  [`STAGE_COUNT-1:0]         r_expt = 0;
-    reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
-    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+    reg  [`STAGE_COUNT-1:0]         r_expt;
+    reg  [DATA_WIDTH-1:0]           r_expt_cause;
+    reg  [DATA_WIDTH-1:0]           r_expt_tval;
+    wire [INST_WIDTH-1:0]           r_inst;
 
     wire                            csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
     wire  [`CSR_ADDR_W-1:0]         csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
@@ -186,6 +187,9 @@ module execute #(
             r_jump_en <= 0;
             r_result <= 0;
             r_result_update_gpr <= 0;
+            r_expt <= 0;
+            r_expt_cause <= 0;
+            r_expt_tval <= 0;
         end else begin
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;
@@ -215,6 +219,11 @@ module execute #(
                     r_stage_out_valid;
                 
                 if (stage_in_done) begin
+                    // 异常写回默认值
+                    r_expt <= 0;
+                    r_expt_cause <= 0;
+                    r_expt_tval <= 0;
+
                     // 更新寄存器或回写内存
                     // $display("Step - update, alu_result:%x rd:%d inst_code:%x", alu_result, rd, inst_code);
                     case (inst_code)
@@ -259,16 +268,16 @@ module execute #(
                         `INST_SRA:          r_result <= src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) );
                         `INST_OR:           r_result <= src1 | src2;
                         `INST_AND:          r_result <= src1 & src2;
-                        // `INST_FENCE:        func_invalid_inst(pc, inst);
-                        // `INST_FENCE_I:      func_invalid_inst(pc, inst);
+                        // `INST_FENCE:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+                        // `INST_FENCE_I:      `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         `INST_ECALL:        func_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
                         `INST_EBREAK:       func_exit_simu(a0);
                         `INST_CSRRW:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
                         `INST_CSRRS:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
-                        `INST_CSRRC:        func_invalid_inst(pc, inst);
-                        `INST_CSRRWI:       func_invalid_inst(pc, inst);
-                        `INST_CSRRSI:       func_invalid_inst(pc, inst);
-                        `INST_CSRRCI:       func_invalid_inst(pc, inst);
+                        `INST_CSRRC:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+                        `INST_CSRRWI:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+                        `INST_CSRRSI:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+                        `INST_CSRRCI:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         // `INST_MUL:          r_result <= src1 * src2;
                         // `INST_MULH:         r_result <= mulh_ret[31:0];
                         // `INST_MULHSU:       r_result <= mulhsu_ret[31:0];
@@ -278,7 +287,7 @@ module execute #(
                         // `INST_REM:          r_result <= s_src1 % s_src2;
                         // `INST_REMU:         r_result <= src1 % src2;
                         `INST_MRET:         func_query_intr(); // MEPC 0x341
-                        `INST_INVALID:      func_invalid_inst(pc, inst);
+                        `INST_INVALID:      `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         default: ;
                     endcase
                 end

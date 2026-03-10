@@ -56,13 +56,13 @@ module inst_fetch #(
 );
     assign out_bits = {
         fetch_pc, r_read_inst,
-        r_expt, r_expt_cause, r_expt_data
+        r_expt, r_expt_cause, r_expt_tval
     };
 
     reg  [INST_WIDTH-1:0]           r_read_inst;
     reg  [`STAGE_COUNT-1:0]         r_expt = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
-    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_tval = 0;
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
