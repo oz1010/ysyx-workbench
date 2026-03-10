@@ -97,6 +97,23 @@
 `define STAGE_INDEX_WBU     4
 `define STAGE_COUNT         5
 
+`define EXPT_CAUSE_IAM  0   // Instruction Address Misaligned , mtval赋值：触发异常的目标跳转地址
+`define EXPT_CAUSE_IAF  1   // Instruction Access Fault       , mtval赋值：触发异常的指令物理地址
+`define EXPT_CAUSE_ILL  2   // Illegal Instruction            , mtval赋值：触发异常的指令二进制码 (Opcode)
+`define EXPT_CAUSE_BRK  3   // Breakpoint                     , mtval赋值：触发异常的指令地址（或 0）
+`define EXPT_CAUSE_LAM  4   // Load Address Misaligned        , mtval赋值：尝试读取的非法访存地址
+`define EXPT_CAUSE_LAF  5   // Load Access Fault              , mtval赋值：尝试读取的非法物理地址
+`define EXPT_CAUSE_SAM  6   // Store/AMO Address Misaligned   , mtval赋值：尝试写入的非法访存地址
+`define EXPT_CAUSE_SAF  7   // Store/AMO Access Fault         , mtval赋值：尝试写入的非法物理地址
+`define EXPT_CAUSE_UEC  8   // Environment Call from U-mode   , mtval赋值：通常为0
+`define EXPT_CAUSE_SEC  9   // Environment Call from S-mode   , mtval赋值：通常为0
+`define EXPT_CAUSE_MEC  11  // Environment Call from M-mode   , mtval赋值：通常为0
+`define EXPT_CAUSE_IPF  12  // Instruction Page Fault         , mtval赋值：导致页缺失的虚拟地址
+`define EXPT_CAUSE_LPF  13  // Load Page Fault                , mtval赋值：导致页缺失的虚拟地址
+`define EXPT_CAUSE_SPF  15  // Store/AMO Page Fault           , mtval赋值：导致页缺失的虚拟地址
+`define EXPT_RISE(STAGE, CAUSE, TVAL) begin r_expt[STAGE]<=1; r_expt_cause<=CAUSE; r_expt_tval<=TVAL; end
+`define EXPT_EXU_ILL() `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+
 `define FLUSH_TYPE_W        2
 `define FLUSH_EX_BIT        0
 `define FLUSH_JUMP_BIT      1

@@ -24,19 +24,19 @@ module inst_decode #(
 );
     assign {
         pc, inst, 
-        expt, expt_cause, expt_data
+        expt, expt_cause, expt_tval
     } = in_bits;
     assign out_bits = {pc, inst, rd, rs1, rs2, imm, inst_code,
         prev_err ? expt : r_expt,
         prev_err ? expt_cause : r_expt_cause,
-        prev_err ? expt_data : r_expt_data
+        prev_err ? expt_tval : r_expt_tval
     };
 
     wire [ADDR_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           inst;
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
-    wire [DATA_WIDTH-1:0]           expt_data;
+    wire [DATA_WIDTH-1:0]           expt_tval;
 
     wire [6:0]                      opcode;
     wire [4:0]                      rd;
@@ -49,7 +49,7 @@ module inst_decode #(
     reg [`INST_CODE_W-1:0]          inst_code;
     reg  [`STAGE_COUNT-1:0]         r_expt = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
-    reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+    reg  [DATA_WIDTH-1:0]           r_expt_tval = 0;
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
