@@ -33,6 +33,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    * 从mtvec寄存器中取出异常入口地址
    * 跳转到异常入口地址
   */
+#ifndef CONFIG_ISA_RISCV_PIPELINE
   set_vsimu_csr(CSR_MEPC, epc);
   /**
    * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
@@ -40,7 +41,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    *   1 ≥16 Designated for platform use
   */
   set_vsimu_csr(CSR_MCAUSE, NO); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0)
-
+#endif
   ETRACE_LOG("mepc:0x%x mcause:0x%x mtvec:%x a5:0x%x", epc, NO, get_vsimu_csr(CSR_MTVEC), cpu.gpr[15]);
 
   Assert(get_vsimu_csr(CSR_MTVEC), "register mtvec is null, must call cte_init in AM.");

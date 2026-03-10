@@ -7,12 +7,7 @@ module execute #(
     input   wire                        clk,
     input   wire                        rst,
 
-    output  wire                        jump_en,
-    output  wire [INST_WIDTH-1:0]       dnpc,
     input   wire [DATA_WIDTH-1:0]       csr_rdata,
-    output  wire                        csr_wen,
-    output  wire [`CSR_ADDR_W-1:0]      csr_waddr,
-    output  wire [DATA_WIDTH-1:0]       csr_wdata,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -30,7 +25,7 @@ module execute #(
     } = in_bits;
     assign out_bits = {
         pc, r_dnpc, inst, rd, rs1, rs2, imm, inst_code, src1, src2,
-        r_result, r_result_update_gpr,
+        r_result, r_result_update_gpr, csr_wch,
         prev_err ? expt : r_expt,
         prev_err ? expt_cause : r_expt_cause,
         prev_err ? expt_data : r_expt_data
@@ -53,10 +48,20 @@ module execute #(
 
     reg [DATA_WIDTH-1:0]            r_result;
     reg                             r_result_update_gpr;
+    wire [`CSR_WCH_W-1:0]           csr_wch;
     reg                             r_jump_en;
     reg  [`STAGE_COUNT-1:0]         r_expt = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_data = 0;
+
+    wire                            csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
+    wire  [`CSR_ADDR_W-1:0]         csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
+    wire  [31:0]                    csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
+    assign                          csr_wch = {
+        csr_wen[1], csr_wen[0],
+        csr_waddr[1], csr_waddr[0],
+        csr_wdata[1], csr_wdata[0]
+    };
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
@@ -79,9 +84,6 @@ module execute #(
     wire signed [31:0] s_src2 = src2;
     reg [INST_WIDTH-1:0] r_dnpc;
 
-    assign jump_en = r_jump_en;
-    assign dnpc = inst_dnpc;
-
     wire mdr_inst = 
         inst_code==`INST_MUL |
         inst_code==`INST_MULH |
@@ -92,6 +94,13 @@ module execute #(
         inst_code==`INST_REM |
         inst_code==`INST_REMU
         ;
+    wire csr_inst = 
+        (inst_code==`INST_CSRRW) |
+        (inst_code==`INST_CSRRS) |
+        0;
+    wire ecall_inst = 
+        inst_code==`INST_ECALL |
+        0;
     reg r_mdr_enable;
     wire mdr_valid;
     wire [INST_WIDTH-1:0] mdr_result;
@@ -144,14 +153,32 @@ module execute #(
         (inst_code==`INST_ECALL) |
         (inst_code==`INST_MRET) |
         0;
-    assign csr_wen =
-        (inst_code==`INST_CSRRW) |
-        (inst_code==`INST_CSRRS) |
+    /**
+    * ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#riscv32
+    * riscv32触发异常后硬件的响应过程如下:
+    * 
+    * 将当前PC值保存到mepc寄存
+    * 在mcause寄存器中设置异常号
+    * 从mtvec寄存器中取出异常入口地址
+    * 跳转到异常入口地址
+    */
+    assign csr_wen[0] = csr_inst | ecall_inst;
+    assign csr_waddr[0] = 
+        csr_inst ? imm[0 +: `CSR_ADDR_W] :
+        ecall_inst ? `CSR_MEPC :
         0;
-    assign csr_waddr = imm[0 +: `CSR_ADDR_W];
-    assign csr_wdata = 
+    assign csr_wdata[0] =
         (inst_code==`INST_CSRRW) ? src1 :
         (inst_code==`INST_CSRRS) ? (csr_rdata|src1) :
+        (inst_code==`INST_ECALL) ? pc :
+        0;
+    assign csr_wen[1] = ecall_inst;
+    assign csr_waddr[1] = 
+        ecall_inst ? `CSR_MCAUSE :
+        0;
+    assign csr_wdata[1] =
+        // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
+        (inst_code==`INST_ECALL) ? (0<<31|11<<0) :
         0;
 
     always @(posedge clk) begin
@@ -168,7 +195,7 @@ module execute #(
                 r_jump_en <= inst_jump_en;
                 r_result <= 0;
                 r_result_update_gpr <= inst_keep_gpr ? 0 : ex_enable;
-                r_dnpc <= dnpc;
+                r_dnpc <= inst_dnpc;
             end
 
             if (mdr_inst) begin

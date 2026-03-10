@@ -53,7 +53,7 @@ module load_store #(
 );
     assign {
         pc, dnpc, inst, rd, rs1, rs2, imm, inst_code, src1, src2,
-        result, result_update_gpr,
+        result, result_update_gpr, csr_wch,
         expt, expt_cause, expt_data
     } = in_bits;
     assign out_bits = {
@@ -65,6 +65,7 @@ module load_store #(
         inst_code,
         ls_enable ? r_result : result,
         ls_enable ? r_result_update_gpr : result_update_gpr,
+        csr_wch,
         prev_err ? expt : r_expt,
         prev_err ? expt_cause : r_expt_cause,
         prev_err ? expt_data : r_expt_data
@@ -82,6 +83,7 @@ module load_store #(
     wire [INST_WIDTH-1:0]           src2;
     wire [INST_WIDTH-1:0]           result;
     wire                            result_update_gpr;
+    wire [`CSR_WCH_W-1:0]           csr_wch;
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
     wire [DATA_WIDTH-1:0]           expt_data;

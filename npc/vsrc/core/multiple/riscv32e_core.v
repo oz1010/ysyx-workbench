@@ -392,6 +392,11 @@ wire [DATA_WIDTH-1:0] csr_rdata;
 wire csr_wen = con_ex_csr_wen;
 wire [`CSR_ADDR_W-1:0] csr_waddr = con_ex_csr_waddr;
 wire [DATA_WIDTH-1:0] csr_wdata = con_ex_csr_wdata;
+wire [`CSR_WCH_W-1:0] csr_wch = {
+    1'b0, csr_wen,
+    `CSR_ADDR_W'b0, csr_waddr,
+    32'b0, csr_wdata
+};
 csrs #(
     .DATA_WIDTH(DATA_WIDTH)
 ) m_csrs (
@@ -399,9 +404,7 @@ csrs #(
     .rst(rst),
     .raddr(csr_raddr),
     .rdata(csr_rdata),
-    .wen(csr_wen),
-    .waddr(csr_waddr),
-    .wdata(csr_wdata),
+    .csr_wch(csr_wch),
     .cscode()
 );
 

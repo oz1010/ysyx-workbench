@@ -13,6 +13,7 @@ module write_back #(
     output  wire                        gpr_wen,
     output  wire [4:0]                  gpr_windex,
     output  wire [INST_WIDTH-1:0]       gpr_wdata,
+    output  wire [`CSR_WCH_W-1:0]       out_csr_wch,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -25,7 +26,7 @@ module write_back #(
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
     assign {
-        pc, dnpc, rd, rs1, rs2, inst_code, result, result_update_gpr,
+        pc, dnpc, rd, rs1, rs2, inst_code, result, result_update_gpr, csr_wch,
         expt, expt_cause, expt_data
     } = in_bits;
     assign out_bits = {
@@ -40,6 +41,7 @@ module write_back #(
     wire [`INST_CODE_W-1:0]         inst_code;
     wire [INST_WIDTH-1:0]           result;
     wire                            result_update_gpr;
+    wire [`CSR_WCH_W-1:0]           csr_wch;
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
     wire [DATA_WIDTH-1:0]           expt_data;
@@ -67,6 +69,11 @@ module write_back #(
     assign gpr_wen = stage_in_done&result_update_gpr;
     assign gpr_windex = rd;
     assign gpr_wdata = result;
+
+    /*
+    * 组合逻辑，同步触发csr寄存器组更新
+    */
+    assign out_csr_wch = stage_in_done ? csr_wch : 0;
 
     always @(posedge clk) begin
         if (rst) begin
