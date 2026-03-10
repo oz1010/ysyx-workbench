@@ -54,9 +54,9 @@ localparam IF_OUT_DATA_W = (ADDR_WIDTH + INST_WIDTH + `STAGE_COUNT + DATA_WIDTH*
 localparam ID_IN_DATA_W = IF_OUT_DATA_W;
 localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2);
 localparam EX_IN_DATA_W = ID_OUT_DATA_W + DATA_WIDTH*3;
-localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
+localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2 + `CSR_WCH_W);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
-localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2 + 5*2);
+localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2 + 5*2 + `CSR_WCH_W);
 localparam WB_IN_DATA_W = LS_OUT_DATA_W;
 localparam WB_OUT_DATA_W = INST_WIDTH*2 + 5;
 
@@ -386,9 +386,6 @@ wire [`CSR_ADDR_W-1:0] csr_raddr =
     (csr_inst_code==`INST_MRET) ? `CSR_MEPC :
     0;
 wire [DATA_WIDTH-1:0] csr_rdata;
-wire csr_wen;
-wire [`CSR_ADDR_W-1:0] csr_waddr;
-wire [DATA_WIDTH-1:0] csr_wdata;
 csrs #(
     .DATA_WIDTH(DATA_WIDTH)
 ) m_csrs (
@@ -396,9 +393,7 @@ csrs #(
     .rst(rst),
     .raddr(csr_raddr),
     .rdata(csr_rdata),
-    .wen(csr_wen),
-    .waddr(csr_waddr),
-    .wdata(csr_wdata),
+    .csr_wch(wb_csr_wch),
     .cscode()
 );
 
@@ -1027,7 +1022,6 @@ always @(posedge clk ) last_fence_enable <= fence_enable;
 wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
-wire [ADDR_WIDTH-1:0]           ex_dnpc;
 wire [EX_OUT_DATA_W-1:0]        mod_con_ex_bits;
 wire [EX_OUT_DATA_W-1:0]        con_ex_bits;
 wire [ADDR_WIDTH-1:0]           con_ex_pc;
@@ -1043,6 +1037,7 @@ wire [INST_WIDTH-1:0]           con_ex_src2;
 wire [INST_WIDTH-1:0]           con_ex_a0;
 wire [INST_WIDTH-1:0]           con_ex_result;
 wire                            con_ex_result_update_gpr;
+wire [`CSR_WCH_W-1:0]           con_ex_csr_wch;
 wire [`STAGE_COUNT-1:0]         con_ex_expt;
 wire [DATA_WIDTH-1:0]           con_ex_expt_cause;
 wire [DATA_WIDTH-1:0]           con_ex_expt_data;
@@ -1059,6 +1054,7 @@ assign {
     con_ex_src2,
     con_ex_result,
     con_ex_result_update_gpr,
+    con_ex_csr_wch,
     con_ex_expt,
     con_ex_expt_cause,
     con_ex_expt_data
@@ -1071,12 +1067,7 @@ execute #(
     .clk(clk),
     .rst(rst),
 
-    .jump_en(),
-    .dnpc(ex_dnpc),
     .csr_rdata(csr_rdata),
-    .csr_wen(csr_wen),
-    .csr_waddr(csr_waddr),
-    .csr_wdata(csr_wdata),
 
     .in_ready(mod_con_ex_ready),
     .in_valid(con_id_valid),
@@ -1114,6 +1105,7 @@ wire [4:0]                      con_ls_rs2;
 wire [`INST_CODE_W-1:0]         con_ls_inst_code;
 wire [INST_WIDTH-1:0]           con_ls_result;
 wire                            con_ls_result_update_gpr;
+wire [`CSR_WCH_W-1:0]           con_ls_csr_wch;
 wire [`STAGE_COUNT-1:0]         con_ls_expt;
 wire [DATA_WIDTH-1:0]           con_ls_expt_cause;
 wire [DATA_WIDTH-1:0]           con_ls_expt_data;
@@ -1126,6 +1118,7 @@ assign {
     con_ls_inst_code,
     con_ls_result,
     con_ls_result_update_gpr,
+    con_ls_csr_wch,
     con_ls_expt,
     con_ls_expt_cause,
     con_ls_expt_data
@@ -1192,6 +1185,7 @@ stage_regs#(
 wire                            wb_gpr_wen;
 wire [4:0]                      wb_gpr_windex;
 wire [DATA_WIDTH-1:0]           wb_gpr_wdata;
+wire [`CSR_WCH_W-1:0]           wb_csr_wch;
 wire [WB_OUT_DATA_W-1:0]        mod_con_wb_bits;
 wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
 wire [ADDR_WIDTH-1:0]           con_wb_pc;
@@ -1213,6 +1207,7 @@ write_back #(
     .gpr_wen(wb_gpr_wen),
     .gpr_windex(wb_gpr_windex),
     .gpr_wdata(wb_gpr_wdata),
+    .out_csr_wch(wb_csr_wch),
 
     .in_ready(mod_con_wb_ready),
     .in_valid(con_ls_valid),
