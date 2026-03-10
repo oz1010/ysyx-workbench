@@ -810,6 +810,7 @@ wire [INST_WIDTH-1:0]           core_fetch_pc;
 wire                            core_raw_wait;
 wire [`FLUSH_TYPE_W-1:0]        core_flush_type;
 wire [`STAGE_COUNT-1:0]         core_stage_flush;
+wire                            core_flush_done = |core_flush_type & core_idle; // flush后需要清理各阶段寄存器（除了wbu.dnpc）
 /* RAW冒险 */
 risk_raw #(
     .INST_WIDTH(INST_WIDTH),
@@ -933,7 +934,7 @@ stage_regs#(
     .DATA_W(IF_OUT_DATA_W)
 ) ifu_regs (
     .clk(clk),
-    .rst(rst | core_stage_flush[`STAGE_INDEX_IDU]),
+    .rst(rst | core_flush_done),
     .ready(con_id_ready),
     .valid(mod_con_if_valid),
     .bits(mod_con_if_bits),
@@ -988,7 +989,7 @@ stage_regs#(
     .DATA_W(ID_OUT_DATA_W)
 ) idu_regs (
     .clk(clk),
-    .rst(rst | core_stage_flush[`STAGE_INDEX_EXU]),
+    .rst(rst | core_flush_done),
     .ready(con_ex_ready),
     .valid(mod_con_id_valid),
     .bits(mod_con_id_bits),
@@ -1009,7 +1010,7 @@ stage_regs#(
     .DATA_W(DATA_WIDTH*3)
 ) idu_gpr_regs (
     .clk(clk),
-    .rst(rst | core_stage_flush[`STAGE_INDEX_EXU]),
+    .rst(rst | core_flush_done),
     .ready(con_ex_ready),
     .valid(mod_con_id_valid),
     .bits({
@@ -1095,7 +1096,7 @@ stage_regs#(
     .DATA_W(EX_OUT_DATA_W)
 ) exu_regs (
     .clk(clk),
-    .rst(rst | core_stage_flush[`STAGE_INDEX_LSU]),
+    .rst(rst | core_flush_done),
     .ready(con_ls_ready),
     .valid(mod_con_ex_valid),
     .bits(mod_con_ex_bits),
@@ -1180,7 +1181,7 @@ stage_regs#(
     .DATA_W(LS_OUT_DATA_W)
 ) lsu_regs (
     .clk(clk),
-    .rst(rst | core_stage_flush[`STAGE_INDEX_WBU]),
+    .rst(rst | core_flush_done),
     .ready(con_wb_ready),
     .valid(mod_con_ls_valid),
     .bits(mod_con_ls_bits),
@@ -1226,7 +1227,7 @@ stage_regs#(
     .DATA_W(WB_OUT_DATA_W)
 ) wbu_regs (
     .clk(clk),
-    .rst(rst | core_stage_flush[`STAGE_INDEX_WBU]),
+    .rst(rst),
     .ready(con_core_ready),
     .valid(mod_con_wb_valid),
     .bits(mod_con_wb_bits),
