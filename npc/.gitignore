@@ -17,6 +17,7 @@
 !.gitignore
 !README.md
 !Kconfig
+!*.md
 # 保留所有文件夹
 !*/
 # 禁用文件夹
@@ -31,3 +32,4 @@ include/generated/
 tools/nemu-diff/include/
 .config
 .config.old
+!docs/
