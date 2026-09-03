@@ -86,7 +86,9 @@ module axi_master_writer #(
             0: r_wdata<=write_data<<(8*s_write_shift_val); \
             1: r_wdata<=write_data>>(32-8*s_write_shift_val); \
             `ifndef IN_YOSYS_STA \
+            `ifndef FORMAL_VERIFY \
             default: $error("%s aw data unalign is error", NAME); \
+            `endif \
             `endif \
         endcase \
         if (s_write_idx == ((8'h1<<s_write_len)-1)) r_wlast <= 1;
@@ -178,16 +180,20 @@ module axi_master_writer #(
                         r_awsize <= 0;
 
                         `ifndef IN_YOSYS_STA
+                        `ifndef FORMAL_VERIFY
                         // check error response
                         if (bresp!=0 || bid!=ID) begin
                             $error("%s Write data error, addr:%x data:%x resp:%x id:%x\n", NAME, write_addr, write_data, bresp, bid);
                         end
                         `endif
+                        `endif
                     end
                 end
 
                 `ifndef IN_YOSYS_STA
+                `ifndef FORMAL_VERIFY
                 default: $error("%s found unknown write write_state(%d)", NAME, r_write_state);
+                `endif
                 `endif
             endcase
         end
@@ -278,7 +284,9 @@ module axi4_salve_writer #(
                 r_write_id <= awid;
                 
                 `ifndef IN_YOSYS_STA
+                `ifndef FORMAL_VERIFY
                 if (awsize!=2 || awlen!=0) $error("%s only support write 1 burst - 4bytes, addr:%x size:%x len:%x", NAME, awaddr, awsize, awlen);
+                `endif
                 `endif
             end
             if (awvalid && awready) begin
@@ -294,7 +302,9 @@ module axi4_salve_writer #(
             end
             if (wvalid && wready) begin
                 `ifndef IN_YOSYS_STA
+                `ifndef FORMAL_VERIFY
                 if (!wlast) $error("%s only support write 1-burst, addr:%x size:%x", NAME, awaddr, write_size);
+                `endif
                 `endif
             end
 
@@ -389,7 +399,18 @@ module axi_master_reader #(
         s_read_len = 0;
     end
 
-    `ifdef IN_YOSYS_STA
+    `ifdef FORMAL_VERIFY
+    /* 形式化验证：访存已被assume限制为对齐单拍访问，直接按偏移截取并符号扩展即可；
+       避免使用带输出参数的函数调用（yosys会产生伪组合环） */
+    wire [2*DATA_WIDTH-1:0] fv_read_window = s_multi_read_data >> (s_read_shift_val*8);
+    wire [DATA_WIDTH-1:0]   fv_read_masked = 
+        (read_size==0) ? (fv_read_window[DATA_WIDTH-1:0] & 32'hFF) :
+        (read_size==1) ? (fv_read_window[DATA_WIDTH-1:0] & 32'hFFFF) :
+        fv_read_window[DATA_WIDTH-1:0];
+    always @(*) begin
+        s_read_data = read_sign ? func_sext(fv_read_masked, 8*(32'h1<<read_size)) : fv_read_masked;
+    end
+    `elsif IN_YOSYS_STA
     always @(posedge clk) begin
         s_read_data <= s_multi_read_data[s_read_shift_val*8 +: DATA_WIDTH];
     end
@@ -482,9 +503,11 @@ module axi_master_reader #(
                         func_dev_skip(0, read_addr, {21'h0, r_record_arsize, r_record_arlen}, read_data);
                         // check error response
                         `ifndef IN_YOSYS_STA
+                        `ifndef FORMAL_VERIFY
                         if (rresp!=0 || rlast!=1 || rid!=ID) begin
                             $error("%s read data error, addr:%x resp:%x last:%x id:%x\n", NAME, read_addr, rresp, rlast, rid);
                         end
+                        `endif
                         `endif
 
                         // clear read request
@@ -500,7 +523,9 @@ module axi_master_reader #(
                 end
 
                 `ifndef IN_YOSYS_STA
+                `ifndef FORMAL_VERIFY
                 default: $error("%s found unknown read state(%d)", NAME, r_read_state);
+                `endif
                 `endif
             endcase
         end

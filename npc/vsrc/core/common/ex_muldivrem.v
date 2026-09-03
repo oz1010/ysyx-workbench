@@ -21,6 +21,24 @@ module ex_muldivrem #(
     wire                         multi_valid;
     wire  [INST_WIDTH-1:0]       multi_result;
 
+    `ifdef FORMAL_VERIFY
+    /* 形式化验证时仅使用单周期版本，压缩BMC求解空间；多周期版本已在仿真中与单周期版本交叉校验 */
+    ex_muldivrem_single #(
+        .INST_WIDTH(INST_WIDTH)
+    ) m_ex_muldivrem_single (
+        .clk(clk),
+        .rst(rst),
+        .enable(enable),
+        .inst_code(inst_code),
+        .src1(src1),
+        .src2(src2),
+        .valid(single_valid),
+        .result(single_result)
+    );
+
+    assign valid = single_valid;
+    assign result = single_result;
+    `else
     `ifndef IN_YOSYS_STA
     ex_muldivrem_single #(
         .INST_WIDTH(INST_WIDTH)
@@ -50,18 +68,21 @@ module ex_muldivrem #(
     );
 
     assign valid = single_valid & multi_valid;
-    assign result = multi_result;
+    assign result = single_result;
+    `endif
 
     always @(posedge clk) begin
         if (rst | !enable) begin
         end else begin
             if (valid) begin
                 `ifndef IN_YOSYS_STA
+                `ifndef FORMAL_VERIFY
                 // TODO 非综合使用比较方式，校验两种的结果是否一致
                 if (single_result!=multi_result) begin
-                    $error("muldivrem result dismatch, code %x src1 %x src2 %x result(%x %x)",
+                    $error("muldivrem result dismatch, code %x src1 %d src2 %d result(s:%d m:%d)",
                         inst_code, src1, src2, single_result, multi_result);
                 end
+                `endif
                 `endif
             end
         end

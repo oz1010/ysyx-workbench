@@ -80,6 +80,33 @@ module csrs #(
     genvar i, j;
     for (j=0; j<`CSR_WCH_ITEM_COUNT; ++j) begin
         assign wen_onehot[j] = csr_wen[j] ? (1 << func_get_csr_index(csr_waddr[j])) : 0;
+    end
+`ifdef FORMAL_VERIFY
+    /* 
+    * 形式化验证要求DUT与REF的CSR具有相同的初始状态，复位时初始化可写CSR。
+    * 索引约定与func_get_csr_index一致：1=mstatus 2=mtvec 3=mepc 4=mcause
+    * mvendorid(5)/marchid(6)为只读常量，不在此处驱动。
+    */
+    always @(posedge clk) begin
+        if (rst) begin
+            csrs[1] <= 32'h0000_1800;
+            csrs[2] <= 32'h0000_1000;
+            csrs[3] <= 32'h0000_1000;
+            csrs[4] <= 0;
+        end else begin
+            for (integer jj=0; jj<`CSR_WCH_ITEM_COUNT; ++jj) begin
+                for (integer ii=1; ii<CSR_INDEX_COUNT; ++ii) begin
+                    if (ii!=func_get_csr_index(`CSR_MVENDORID) &&
+                        ii!=func_get_csr_index(`CSR_MARCHID) &&
+                        wen_onehot[jj][ii]) begin
+                        csrs[ii] <= csr_wdata[jj];
+                    end
+                end
+            end
+        end
+    end
+`else
+    for (j=0; j<`CSR_WCH_ITEM_COUNT; ++j) begin
         for (i=1 ; i<CSR_INDEX_COUNT; ++i) begin
             always @(posedge clk) begin
                 if (!(
@@ -101,5 +128,6 @@ module csrs #(
             end
         end
     end
+`endif
 
 endmodule

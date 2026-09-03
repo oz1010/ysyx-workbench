@@ -25,6 +25,16 @@ module write_back #(
     output  wire                        out_valid,
     output  wire [OUT_DATA_W-1:0]       out_bits
 );
+`ifdef FORMAL_VERIFY
+    /* 形式化验证：将指令本身、写回结果及load原始数据透传到WBU输出 */
+    assign {
+        pc, dnpc, inst, rd, rs1, rs2, inst_code, result, result_update_gpr, csr_wch,
+        expt, expt_cause, expt_tval, fv_ld_data
+    } = in_bits;
+    assign out_bits = {
+        pc, dnpc, rd, inst, result, result_update_gpr, fv_ld_data
+    };
+`else
     assign {
         pc, dnpc, rd, rs1, rs2, inst_code, result, result_update_gpr, csr_wch,
         expt, expt_cause, expt_tval
@@ -32,6 +42,7 @@ module write_back #(
     assign out_bits = {
         pc, dnpc, rd
     };
+`endif
 
     wire [INST_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           dnpc;
@@ -45,6 +56,10 @@ module write_back #(
     wire [`STAGE_COUNT-1:0]         expt;
     wire [DATA_WIDTH-1:0]           expt_cause;
     wire [DATA_WIDTH-1:0]           expt_tval;
+`ifdef FORMAL_VERIFY
+    wire [INST_WIDTH-1:0]           inst;
+    wire [DATA_WIDTH-1:0]           fv_ld_data;
+`endif
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;

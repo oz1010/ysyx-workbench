@@ -46,7 +46,9 @@ always @(posedge clk) begin
 
             default: begin
                 `ifndef IN_YOSYS_STA
+                `ifndef FORMAL_VERIFY
                 $error("unknown stage_state %d", r_stage_state);
+                `endif
                 `endif
             end
 

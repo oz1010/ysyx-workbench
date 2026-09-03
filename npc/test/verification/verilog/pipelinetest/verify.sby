@@ -1,0 +1,48 @@
+# 流水线形式化验证配置，由Makefile从本模板生成verify.sby（替换@NPC_HOME@与@DEPTH@），请勿直接编辑verify.sby
+# 工程文件清单参考vsrc/filelist.mk：DUT取流水线核及其依赖（VDIRS_CORE-PIPELINE + common + device/arbiter），
+# REF取单周期核（VDIRS_CORE-SINGLE），形式化配置下缓存与外设不编入DUT以压缩BMC求解空间。
+
+[tasks]
+bmc
+cvr cover
+
+[options]
+bmc: mode bmc
+bmc: depth @DEPTH@
+cvr: mode cover
+cvr: depth @CVR_DEPTH@
+
+[engines]
+# 可选：yices, z3, boolector
+# smtbmc @SOLVER@
+smtbmc yices
+smtbmc boolector
+
+[script]
+# 由于 bmc 和 cvr 的读取文件完全相同，无需加 task 前缀，直接统一读取
+# bmc: xxx
+# cvr: xxx
+read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include \
+  @NPC_HOME@/vsrc/core/common/riscv32e_defines.v \
+  @NPC_HOME@/vsrc/core/common/gprs.v \
+  @NPC_HOME@/vsrc/core/common/csrs.v \
+  @NPC_HOME@/vsrc/core/common/stage_regs.v \
+  @NPC_HOME@/vsrc/core/common/inner_con.v \
+  @NPC_HOME@/vsrc/core/common/axi_master.v \
+  @NPC_HOME@/vsrc/core/common/ex_muldivrem.v \
+  @NPC_HOME@/vsrc/device/arbiter_axi4.v \
+  @NPC_HOME@/vsrc/core/pipeline/perf_monitor.v \
+  @NPC_HOME@/vsrc/core/pipeline/inst_fetch.v \
+  @NPC_HOME@/vsrc/core/pipeline/inst_decode.v \
+  @NPC_HOME@/vsrc/core/pipeline/execute.v \
+  @NPC_HOME@/vsrc/core/pipeline/load_store.v \
+  @NPC_HOME@/vsrc/core/pipeline/write_back.v \
+  @NPC_HOME@/vsrc/core/pipeline/riscv32e_core.v \
+  @NPC_HOME@/vsrc/core/pipeline/risk_raw.v \
+  @NPC_HOME@/vsrc/core/pipeline/risk_control.v \
+  @NPC_HOME@/vsrc/core/pipeline/static_predictor.v \
+  @NPC_HOME@/vsrc/core/single/decoder.v \
+  @NPC_HOME@/vsrc/core/single/write_back.v \
+  @NPC_HOME@/vsrc/core/single/riscv32e_core.v \
+  @NPC_HOME@/test/verification/verilog/pipelinetest/pipelinetest.sv
+prep -top pipelinetest

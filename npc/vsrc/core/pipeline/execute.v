@@ -190,6 +190,8 @@ module execute #(
             r_expt <= 0;
             r_expt_cause <= 0;
             r_expt_tval <= 0;
+            r_stage_out_valid <= 0;
+            r_mdr_enable <= 0;
         end else begin
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;

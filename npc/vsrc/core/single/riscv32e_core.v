@@ -1,3 +1,76 @@
+`ifdef FORMAL_VERIFY
+/*
+ * 形式化验证使用的单周期处理器核(REF)。
+ * 指令语义与仿真版riscv32e_core一致，区别仅在于：
+ *   - 不通过DPI取指，指令由外部提供（DUT的WBU完成指令后同步输入）
+ *   - load数据由外部提供（与DUT在总线上读到的数据相同）
+ *   - i_valid有效时执行一条指令
+ */
+module riscv32e_core_sc #(
+    parameter INST_WIDTH = 32
+) (
+    input  wire             clk,
+    input  wire             rst,
+
+    input  wire                  i_valid,
+    input  wire [INST_WIDTH-1:0] i_inst,
+    input  wire [INST_WIDTH-1:0] i_ld_data,
+
+    output wire [INST_WIDTH-1:0] o_pc,
+    output wire [INST_WIDTH-1:0] o_dnpc,
+    output wire [4:0]            o_rd,
+    output wire [INST_WIDTH-1:0] o_res,
+    output wire                  o_wen
+);
+
+/* 当前正在处理的pc指示：每执行完一条指令更新为dnpc */
+reg [INST_WIDTH-1:0] core_pc;
+assign o_pc = core_pc;
+always @(posedge clk) begin
+    if (rst) begin
+        core_pc <= func_get_reset_pc();
+    end else if (i_valid) begin
+        core_pc <= o_dnpc;
+    end
+end
+
+/* 译码 */
+wire [6:0] opcode;
+wire [4:0] rd;
+wire [2:0] funct3;
+wire [4:0] rs1;
+wire [4:0] rs2;
+wire [6:0] funct7;
+wire [31:0] imm;
+wire [2:0] inst_type;
+wire [`INST_CODE_W-1:0] inst_code;
+decoder risc32e_decoder(i_inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
+
+assign o_rd = rd;
+
+/* 执行并更新结果 */
+write_back_sc #(
+    .INST_WIDTH(INST_WIDTH)
+) wbu(
+    .clk(clk),
+    .rst(rst),
+
+    .i_valid(i_valid),
+    .pc(core_pc),
+    .i_ld_data(i_ld_data),
+    .rd(rd),
+    .rs1(rs1),
+    .rs2(rs2),
+    .imm(imm),
+    .inst_code(inst_code),
+
+    .o_res(o_res),
+    .o_wen(o_wen),
+    .dnpc(o_dnpc)
+);
+
+endmodule
+`else
 // 单周期处理器
 module riscv32e_core #(
     parameter INST_WIDTH = 32
@@ -131,3 +204,4 @@ write_back #(
 );
 
 endmodule
+`endif
