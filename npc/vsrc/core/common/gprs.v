@@ -76,6 +76,11 @@ assign x[0] = 0;
 genvar i;
 for (i=1 ; i<`RISCV_GPR_COUNT; ++i) begin
     always @(posedge clk) begin
+`ifdef FORMAL_VERIFY
+        // 形式化验证要求DUT与REF的GPR具有相同的初始状态
+        if (rst) x[i] <= 0;
+        else
+`endif
         x[i] <= wen_onehot[i] ? wdata : x[i];
     end
 end

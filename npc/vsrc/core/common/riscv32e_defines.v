@@ -241,6 +241,7 @@
 `endif
 
 `ifdef IN_YOSYS_STA
+`elsif FORMAL_VERIFY
 `else
 typedef struct {
     string name;
@@ -286,10 +287,12 @@ function void check_dev_addr;
     begin
 
 `ifndef IN_YOSYS_STA
+`ifndef FORMAL_VERIFY
         static int ret;
         ret = dpi_check_dev_addr(addr, {28'h0, attr});
         if (ret == 1) $error("Access Fault");
         else if (ret == 2) $error("Access Fault.");
+`endif
 `endif
     end
 
@@ -478,7 +481,8 @@ endfunction
 function void func_exit_simu;
     input [31:0]exit_code;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
         global_pc = global_pc + exit_code;
 `else
         exit_simu(exit_code);
@@ -490,7 +494,8 @@ function void func_invalid_inst;
     input [31:0] current_pc;
     input [31:0] current_inst;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
         global_pc = global_pc + current_pc + current_inst;
 `else
         invalid_inst(current_pc, current_inst);
@@ -504,7 +509,8 @@ function void func_raise_intr;
     input [31:0] current_pc;
     begin
         logic [31:0] ret_pc;
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
         global_ret_pc = current_pc;
 `else
         ret_pc = dpi_raise_intr(cause, current_pc);
@@ -515,7 +521,9 @@ endfunction
 function automatic [31:0] func_read_raw_csr;
     input [31:0] imm;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+        func_read_raw_csr = 0;
+`elsif IN_YOSYS_STA
         logic [2:0] csr_idx;
         case (imm[`CSR_ADDR_W-1:0])
             `CSR_MSTATUS: csr_idx = 1;
@@ -537,7 +545,8 @@ function void func_write_raw_csr;
     input [31:0] imm;
     input [31:0] src1;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
         logic [2:0] csr_idx;
         case (imm[`CSR_ADDR_W-1:0])
             `CSR_MSTATUS: csr_idx = 1;
@@ -560,7 +569,19 @@ endfunction
 function automatic [31:0] func_get_csr_index;
     input [`CSR_ADDR_W-1:0] addr;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+        logic [2:0] csr_idx;
+        case (addr)
+            `CSR_MSTATUS: csr_idx = 1;
+            `CSR_MTVEC: csr_idx = 2;
+            `CSR_MEPC: csr_idx = 3;
+            `CSR_MCAUSE: csr_idx = 4;
+            `CSR_MVENDORID: csr_idx = 5;
+            `CSR_MARCHID: csr_idx = 6;
+            default: csr_idx = 0; // Invalid
+        endcase
+        func_get_csr_index = csr_idx;
+`elsif IN_YOSYS_STA
         logic [2:0] csr_idx;
         case (addr)
             `CSR_MSTATUS: csr_idx = 1;
@@ -581,7 +602,8 @@ endfunction
 function void func_query_intr;
     begin
         logic [31:0] ret_pc;
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
 `else
         ret_pc = dpi_query_intr();
 `endif
@@ -592,7 +614,8 @@ function void func_cpu_stat_ctrl;
     input [31:0] dtype;
     input [31:0] delta;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
         global_pc = global_pc + delta;
 `else
         dpi_cpu_stat_ctrl(dtype, delta);
@@ -602,7 +625,9 @@ endfunction
 
 function automatic [31:0] func_get_reset_pc;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+        func_get_reset_pc = 32'h3000_0000;
+`elsif IN_YOSYS_STA
         func_get_reset_pc = global_pc + 4;
 `else
         func_get_reset_pc = get_reset_pc();
@@ -616,7 +641,9 @@ function automatic [31:0] func_test_intf;
     input [31:0] len;
     input [31:0] data;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+    func_test_intf = 0;
+`elsif IN_YOSYS_STA
 `else
     func_test_intf = dpi_test_intf(write, addr, len, data);
 `endif
@@ -629,7 +656,8 @@ function void func_dev_skip;
     input [31:0] req_info;
     input [31:0] data;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
 `else
     dpi_dev_skip(write, addr, req_info, data);
 `endif
@@ -640,7 +668,9 @@ function automatic [31:0] func_sext;
     input [31:0] x;
     input [31:0] len;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+    func_sext = (x & (32'h1 << (len-1))) ? (x | (32'hFFFFFFFF << len)) : (x & ((32'h1 << len)-1));
+`elsif IN_YOSYS_STA
     func_sext = x;
 `else
     func_sext = sext(x, len);
@@ -653,7 +683,8 @@ function void func_monitor_item;
     input [31:0] id;
     input [31:0] delta;
     begin
-`ifdef IN_YOSYS_STA
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
 `else
         dpi_monitor_item(item_idx, id, delta);
 `endif

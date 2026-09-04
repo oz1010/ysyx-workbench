@@ -174,7 +174,9 @@ module inst_fetch #(
             assign out_bits = 0;
 
             `ifndef IN_YOSYS_STA
+            `ifndef FORMAL_VERIFY
             $error("IFU only support axi4 interface");
+            `endif
             `endif
         end
     endgenerate

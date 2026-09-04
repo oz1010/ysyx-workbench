@@ -46,6 +46,16 @@ module riscv32e_core #(
     /* 用于调试和综合避免忽略掉信息 */
     output wire [INST_WIDTH-1:0] pc,
     output wire             valid
+`ifdef FORMAL_VERIFY
+    /* 形式化验证：WBU完成指令的信息输出 */
+    , output wire [INST_WIDTH-1:0] fv_wb_pc
+    , output wire [INST_WIDTH-1:0] fv_wb_dnpc
+    , output wire [INST_WIDTH-1:0] fv_wb_inst
+    , output wire [4:0]          fv_wb_rd
+    , output wire [DATA_WIDTH-1:0] fv_wb_result
+    , output wire                fv_wb_result_update_gpr
+    , output wire [DATA_WIDTH-1:0] fv_wb_ld_data
+`endif
 );
 
 /* 模块信号输出宽度 */
@@ -56,9 +66,19 @@ localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COU
 localparam EX_IN_DATA_W = ID_OUT_DATA_W + DATA_WIDTH*3;
 localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2 + `CSR_WCH_W);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
+`ifdef FORMAL_VERIFY
+/* 形式化验证时LSU额外透传inst与load原始数据 */
+localparam LS_OUT_DATA_W = (INST_WIDTH*4 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*3 + 5*2 + `CSR_WCH_W);
+`else
 localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2 + 5*2 + `CSR_WCH_W);
+`endif
 localparam WB_IN_DATA_W = LS_OUT_DATA_W;
+`ifdef FORMAL_VERIFY
+/* 形式化验证时WBU额外输出inst、写回结果及load原始数据 */
+localparam WB_OUT_DATA_W = INST_WIDTH*3 + 5 + 1 + DATA_WIDTH*2;
+`else
 localparam WB_OUT_DATA_W = INST_WIDTH*2 + 5;
+`endif
 
 /* 模块之间的连接信号或数据 */
 wire                        con_core_ready;
@@ -285,6 +305,7 @@ wire [31:0]                 axi4_s_rdata[AXI4_SLAVE_COUNT-1:0];
 wire                        axi4_s_rlast[AXI4_SLAVE_COUNT-1:0];
 wire [3:0]                  axi4_s_rid[AXI4_SLAVE_COUNT-1:0];
 /* io master直接与salve axi4最后一组相连 */
+`ifndef FORMAL_VERIFY
 assign axi4_s_awready[AXI4_SLAVE_COUNT-1]   = io_master_awready;
 assign io_master_awvalid                    = axi4_s_awvalid[AXI4_SLAVE_COUNT-1];
 assign io_master_awaddr                     = axi4_s_awaddr[AXI4_SLAVE_COUNT-1];
@@ -314,6 +335,38 @@ assign axi4_s_rresp[AXI4_SLAVE_COUNT-1]     = io_master_rresp;
 assign axi4_s_rdata[AXI4_SLAVE_COUNT-1]     = io_master_rdata;
 assign axi4_s_rlast[AXI4_SLAVE_COUNT-1]     = io_master_rlast;
 assign axi4_s_rid[AXI4_SLAVE_COUNT-1]       = io_master_rid;
+`else
+/* 形式化验证：DUT只包含流水线本身，仲裁器输出直连io_master，不含缓存和各种外设 */
+assign axi4_arbiter_awready = io_master_awready;
+assign io_master_awvalid    = axi4_arbiter_awvalid;
+assign io_master_awaddr     = axi4_arbiter_awaddr;
+assign io_master_awid       = axi4_arbiter_awid;
+assign io_master_awlen      = axi4_arbiter_awlen;
+assign io_master_awsize     = axi4_arbiter_awsize;
+assign io_master_awburst    = axi4_arbiter_awburst;
+assign axi4_arbiter_wready  = io_master_wready;
+assign io_master_wvalid     = axi4_arbiter_wvalid;
+assign io_master_wdata      = axi4_arbiter_wdata;
+assign io_master_wstrb      = axi4_arbiter_wstrb;
+assign io_master_wlast      = axi4_arbiter_wlast;
+assign io_master_bready     = axi4_arbiter_bready;
+assign axi4_arbiter_bvalid  = io_master_bvalid;
+assign axi4_arbiter_bresp   = io_master_bresp;
+assign axi4_arbiter_bid     = io_master_bid;
+assign axi4_arbiter_arready = io_master_arready;
+assign io_master_arvalid    = axi4_arbiter_arvalid;
+assign io_master_araddr     = axi4_arbiter_araddr;
+assign io_master_arid       = axi4_arbiter_arid;
+assign io_master_arlen      = axi4_arbiter_arlen;
+assign io_master_arsize     = axi4_arbiter_arsize;
+assign io_master_arburst    = axi4_arbiter_arburst;
+assign io_master_rready     = axi4_arbiter_rready;
+assign axi4_arbiter_rvalid  = io_master_rvalid;
+assign axi4_arbiter_rresp   = io_master_rresp;
+assign axi4_arbiter_rdata   = io_master_rdata;
+assign axi4_arbiter_rlast   = io_master_rlast;
+assign axi4_arbiter_rid     = io_master_rid;
+`endif
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] inst;
@@ -416,6 +469,7 @@ perf_monitor m_perf_monitor (
 );
 
 /* 指令缓存 */
+`ifndef FORMAL_VERIFY
 icache #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
@@ -491,8 +545,41 @@ icache #(
     .s_rlast(axi4_icache_rlast),
     .s_rid(axi4_icache_rid)
 );
+`else
+/* 形式化验证：IFU直连仲裁器（axi4_if_*桥接axi4_icache_*），不含指令缓存 */
+assign axi4_if_awready        = axi4_icache_awready;
+assign axi4_icache_awvalid    = axi4_if_awvalid;
+assign axi4_icache_awaddr     = axi4_if_awaddr;
+assign axi4_icache_awid       = axi4_if_awid;
+assign axi4_icache_awlen      = axi4_if_awlen;
+assign axi4_icache_awsize     = axi4_if_awsize;
+assign axi4_icache_awburst    = axi4_if_awburst;
+assign axi4_if_wready         = axi4_icache_wready;
+assign axi4_icache_wvalid     = axi4_if_wvalid;
+assign axi4_icache_wdata      = axi4_if_wdata;
+assign axi4_icache_wstrb      = axi4_if_wstrb;
+assign axi4_icache_wlast      = axi4_if_wlast;
+assign axi4_icache_bready     = axi4_if_bready;
+assign axi4_if_bvalid         = axi4_icache_bvalid;
+assign axi4_if_bresp          = axi4_icache_bresp;
+assign axi4_if_bid            = axi4_icache_bid;
+assign axi4_if_arready        = axi4_icache_arready;
+assign axi4_icache_arvalid    = axi4_if_arvalid;
+assign axi4_icache_araddr     = axi4_if_araddr;
+assign axi4_icache_arid       = axi4_if_arid;
+assign axi4_icache_arlen      = axi4_if_arlen;
+assign axi4_icache_arsize     = axi4_if_arsize;
+assign axi4_icache_arburst    = axi4_if_arburst;
+assign axi4_icache_rready     = axi4_if_rready;
+assign axi4_if_rvalid         = axi4_icache_rvalid;
+assign axi4_if_rresp          = axi4_icache_rresp;
+assign axi4_if_rdata          = axi4_icache_rdata;
+assign axi4_if_rlast          = axi4_icache_rlast;
+assign axi4_if_rid            = axi4_icache_rid;
+`endif
 
 /* 数据缓存 */
+`ifndef FORMAL_VERIFY
 dcache #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
@@ -568,6 +655,38 @@ dcache #(
     .s_rlast(axi4_dcache_rlast),
     .s_rid(axi4_dcache_rid)
 );
+`else
+/* 形式化验证：LSU直连仲裁器（axi4_ls_*桥接axi4_dcache_*），不含数据缓存 */
+assign axi4_ls_awready        = axi4_dcache_awready;
+assign axi4_dcache_awvalid    = axi4_ls_awvalid;
+assign axi4_dcache_awaddr     = axi4_ls_awaddr;
+assign axi4_dcache_awid       = axi4_ls_awid;
+assign axi4_dcache_awlen      = axi4_ls_awlen;
+assign axi4_dcache_awsize     = axi4_ls_awsize;
+assign axi4_dcache_awburst    = axi4_ls_awburst;
+assign axi4_ls_wready         = axi4_dcache_wready;
+assign axi4_dcache_wvalid     = axi4_ls_wvalid;
+assign axi4_dcache_wdata      = axi4_ls_wdata;
+assign axi4_dcache_wstrb      = axi4_ls_wstrb;
+assign axi4_dcache_wlast      = axi4_ls_wlast;
+assign axi4_dcache_bready     = axi4_ls_bready;
+assign axi4_ls_bvalid         = axi4_dcache_bvalid;
+assign axi4_ls_bresp          = axi4_dcache_bresp;
+assign axi4_ls_bid            = axi4_dcache_bid;
+assign axi4_ls_arready        = axi4_dcache_arready;
+assign axi4_dcache_arvalid    = axi4_ls_arvalid;
+assign axi4_dcache_araddr     = axi4_ls_araddr;
+assign axi4_dcache_arid       = axi4_ls_arid;
+assign axi4_dcache_arlen      = axi4_ls_arlen;
+assign axi4_dcache_arsize     = axi4_ls_arsize;
+assign axi4_dcache_arburst    = axi4_ls_arburst;
+assign axi4_dcache_rready     = axi4_ls_rready;
+assign axi4_ls_rvalid         = axi4_dcache_rvalid;
+assign axi4_ls_rresp          = axi4_dcache_rresp;
+assign axi4_ls_rdata          = axi4_dcache_rdata;
+assign axi4_ls_rlast          = axi4_dcache_rlast;
+assign axi4_ls_rid            = axi4_dcache_rid;
+`endif
 
 /* arbiter模块 */
 arbiter_axi4 #(
@@ -643,6 +762,7 @@ arbiter_axi4 #(
 );
 
 /* xbar模块 */
+`ifndef FORMAL_VERIFY
 xbar_axi4 #(
     .USER_S_COUNT(AXI4_SLAVE_COUNT),
     .ADDR_WIDTH(ADDR_WIDTH),
@@ -798,6 +918,7 @@ exter_dev #(
     .rlast(axi4_s_rlast[1]),
     .rid(axi4_s_rid[1])
 );
+`endif
 
 /* 流水线控制信号 */
 wire                            core_idle = con_if_ready & con_id_ready & con_ex_ready & con_ls_ready & con_wb_ready;
@@ -1109,6 +1230,26 @@ wire [`CSR_WCH_W-1:0]           con_ls_csr_wch;
 wire [`STAGE_COUNT-1:0]         con_ls_expt;
 wire [DATA_WIDTH-1:0]           con_ls_expt_cause;
 wire [DATA_WIDTH-1:0]           con_ls_expt_data;
+`ifdef FORMAL_VERIFY
+wire [INST_WIDTH-1:0]           con_ls_inst;
+wire [DATA_WIDTH-1:0]           con_ls_ld_data;
+assign {
+    con_ls_pc,
+    con_ls_dnpc,
+    con_ls_inst,
+    con_ls_rd,
+    con_ls_rs1,
+    con_ls_rs2,
+    con_ls_inst_code,
+    con_ls_result,
+    con_ls_result_update_gpr,
+    con_ls_csr_wch,
+    con_ls_expt,
+    con_ls_expt_cause,
+    con_ls_expt_data,
+    con_ls_ld_data
+} = con_ls_bits;
+`else
 assign {
     con_ls_pc,
     con_ls_dnpc,
@@ -1123,6 +1264,7 @@ assign {
     con_ls_expt_cause,
     con_ls_expt_data
 } = con_ls_bits;
+`endif
 load_store #(
     .INST_WIDTH(INST_WIDTH),
     .IN_DATA_W(LS_IN_DATA_W),
@@ -1191,11 +1333,35 @@ wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
 wire [ADDR_WIDTH-1:0]           con_wb_pc;
 wire [ADDR_WIDTH-1:0]           con_wb_dnpc;
 wire [4:0]                      con_wb_rd;
+`ifdef FORMAL_VERIFY
+wire [INST_WIDTH-1:0]           con_wb_inst;
+wire [DATA_WIDTH-1:0]           con_wb_result;
+wire                            con_wb_result_update_gpr;
+wire [DATA_WIDTH-1:0]           con_wb_ld_data;
+assign {
+    con_wb_pc,
+    con_wb_dnpc,
+    con_wb_rd,
+    con_wb_inst,
+    con_wb_result,
+    con_wb_result_update_gpr,
+    con_wb_ld_data
+} = con_wb_bits;
+
+assign fv_wb_pc                 = con_wb_pc;
+assign fv_wb_dnpc               = con_wb_dnpc;
+assign fv_wb_inst               = con_wb_inst;
+assign fv_wb_rd                 = con_wb_rd;
+assign fv_wb_result             = con_wb_result;
+assign fv_wb_result_update_gpr  = con_wb_result_update_gpr;
+assign fv_wb_ld_data            = con_wb_ld_data;
+`else
 assign {
     con_wb_pc,
     con_wb_dnpc,
     con_wb_rd
 } = con_wb_bits;
+`endif
 write_back #(
     .INST_WIDTH(INST_WIDTH),
     .IN_DATA_W(WB_IN_DATA_W),

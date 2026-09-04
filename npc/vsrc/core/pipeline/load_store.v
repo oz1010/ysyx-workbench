@@ -56,6 +56,25 @@ module load_store #(
         result, result_update_gpr, csr_wch,
         expt, expt_cause, expt_tval
     } = in_bits;
+`ifdef FORMAL_VERIFY
+    /* 形式化验证：透传inst与load使用的总线原始数据到WBU */
+    assign out_bits = {
+        pc,
+        dnpc,
+        inst,
+        rd,
+        rs1,
+        rs2,
+        inst_code,
+        ls_enable ? r_result : result,
+        ls_enable ? r_result_update_gpr : result_update_gpr,
+        csr_wch,
+        prev_err ? expt : r_expt,
+        prev_err ? expt_cause : r_expt_cause,
+        prev_err ? expt_tval : r_expt_tval,
+        r_fv_ld_data
+    };
+`else
     assign out_bits = {
         pc,
         dnpc,
@@ -70,6 +89,7 @@ module load_store #(
         prev_err ? expt_cause : r_expt_cause,
         prev_err ? expt_tval : r_expt_tval
     };
+`endif
 
     wire [INST_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           dnpc;
@@ -93,6 +113,18 @@ module load_store #(
     reg  [`STAGE_COUNT-1:0]         r_expt = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_tval = 0;
+
+`ifdef FORMAL_VERIFY
+    /* 形式化验证：记录load指令在总线上读到的原始数据 */
+    reg  [DATA_WIDTH-1:0]           r_fv_ld_data;
+    always @(posedge clk) begin
+        if (rst) begin
+            r_fv_ld_data <= 0;
+        end else begin
+            if (rvalid & rready & rlast) r_fv_ld_data <= rdata;
+        end
+    end
+`endif
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
@@ -238,11 +270,13 @@ module load_store #(
                 r_result <= 0;
                 r_result_update_gpr <= 0;
             `ifndef IN_YOSYS_STA
+            `ifndef FORMAL_VERIFY
             end else if (test_mode_enable) begin
                 r_stage_out_valid <= stage_in_done ? 1 : 0;
                 r_result <= func_test_intf({31'h0,write_inst}, access_addr, 4, src2);
                 r_result <= 0;
                 r_result_update_gpr <= 0;
+            `endif
             `endif
             end else if (access_enable) begin
                 /* 处理读写逻辑 */
