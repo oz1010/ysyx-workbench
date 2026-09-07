@@ -4,6 +4,7 @@
 
 NPC_HOME := $(abspath ../../../..)
 DEPTH  ?= 45
+FVW    ?= 8
 CPU_NUM ?= 2
 
 VERIFY_NAME := verify
@@ -19,6 +20,7 @@ $(GEN_VERIFY_SBY): verify.sby FORCE
 	mkdir -p $(dir $@)
 	sed -e 's|@NPC_HOME@|$(NPC_HOME)|g' \
 	    -e 's|@DEPTH@|$(DEPTH)|g' \
+	    -e 's|@FVW@|$(FVW)|g' \
 	    $< > $@
 
 FORCE:
