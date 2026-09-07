@@ -13,7 +13,7 @@ cover: depth @DEPTH@
 smtbmc boolector
 
 [script]
-read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include \
+read_verilog -formal -sv -DFORMAL_VERIFY -DFVW=@FVW@ -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include \
   @NPC_HOME@/vsrc/core/common/riscv32e_defines.v \
   @NPC_HOME@/vsrc/core/common/ex_muldivrem.v \
   muldivremtest.sv

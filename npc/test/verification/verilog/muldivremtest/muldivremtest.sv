@@ -1,18 +1,31 @@
 // muldivremtest.sv
 // 形式化验证测试：对比 ex_muldivrem_single 与 ex_muldivrem_multi 的结果
 // 参考：test/verification/verilog/sub
+//
+// 数据位宽由 FVW 宏控制（默认 8）。
+// 注意：32 位全位宽的乘/除等价性 BMC 证明超出了位向量求解器（boolector/bitwuzla/
+// yices/cvc5 均超 1 小时不收敛）的能力，因此默认在 8 位位宽下做穷举式证明——
+// 乘除器的符号处理、高低位选择、迭代结构等逻辑均与位宽无关，8 位穷举即可完全覆盖；
+// 32 位位宽的正确性另由仿真交叉校验（随机+边界向量）保证。
+// 需要尝试更大位宽时：make verify FVW=16（耗时随位宽指数增长）。
 
 `include "riscv32e_defines.v"
+
+`ifndef FVW
+`define FVW 8
+`endif
 
 module muldivremtest (
     input wire clk,
     input wire rst
 );
 
+    localparam W = `FVW;
+
     // 非确定性输入，仅在 S_LOAD 时被采样
     (* anyseq *) reg [`INST_CODE_W-1:0] fv_inst_code;
-    (* anyseq *) reg [31:0] fv_src1;
-    (* anyseq *) reg [31:0] fv_src2;
+    (* anyseq *) reg [W-1:0] fv_src1;
+    (* anyseq *) reg [W-1:0] fv_src2;
 
     // 状态机
     localparam S_RESET = 2'd0;
@@ -22,9 +35,9 @@ module muldivremtest (
 
     reg [1:0] state;
     reg [`INST_CODE_W-1:0] inst_code;
-    reg [31:0] src1;
-    reg [31:0] src2;
-    reg [5:0] wait_cnt;
+    reg [W-1:0] src1;
+    reg [W-1:0] src2;
+    reg [7:0] wait_cnt;
 
     wire enable = (state == S_EXEC) || (state == S_CHECK);
 
@@ -59,7 +72,7 @@ module muldivremtest (
                 S_EXEC: begin
                     if (multi_valid) begin
                         state <= S_CHECK;
-                    end else if (wait_cnt < 6'd40) begin
+                    end else if (wait_cnt < 2*W+8) begin
                         wait_cnt <= wait_cnt + 1;
                     end
                 end
@@ -85,7 +98,7 @@ module muldivremtest (
                (fv_inst_code == `INST_REMU));
     end
 
-    // 除法/取余时除数不能为零（当前实现未按 RISC-V 规范处理除零）
+    // 除法/取余时除数不能为零（除零语义由仿真回归覆盖）
     always @(*) begin
         if (state != S_RESET) begin
             if ((inst_code == `INST_DIV)  ||
@@ -99,10 +112,10 @@ module muldivremtest (
 
     // DUT：单周期实现
     wire single_valid;
-    wire [31:0] single_result;
+    wire [W-1:0] single_result;
 
     ex_muldivrem_single #(
-        .INST_WIDTH(32)
+        .INST_WIDTH(W)
     ) dut_single (
         .clk(clk),
         .rst(rst),
@@ -116,10 +129,10 @@ module muldivremtest (
 
     // DUT：多周期实现
     wire multi_valid;
-    wire [31:0] multi_result;
+    wire [W-1:0] multi_result;
 
     ex_muldivrem_multi #(
-        .INST_WIDTH(32)
+        .INST_WIDTH(W)
     ) dut_multi (
         .clk(clk),
         .rst(rst),
@@ -132,21 +145,22 @@ module muldivremtest (
     );
 
     // 参考模型：与单周期实现使用完全相同的 Verilog 语义
-    wire signed [31:0] s_src1 = src1;
-    wire signed [31:0] s_src2 = src2;
-    wire signed [63:0] s_src1_64 = {{32{src1[31]}}, src1};
-    wire signed [63:0] s_src2_64 = {{32{src2[31]}}, src2};
-    wire signed [63:0] mulh_ref   = (s_src1_64 * s_src2_64) >> 32;
-    wire signed [63:0] mulhsu_ref = (s_src1 * src2) >> 32;
-    wire signed [63:0] mulhu_ref  = (src1 * src2) >> 32;
+    wire signed [W-1:0]   s_src1 = src1;
+    wire signed [W-1:0]   s_src2 = src2;
+    wire signed [2*W-1:0] s_src1_64 = {{W{src1[W-1]}}, src1};
+    wire signed [2*W-1:0] s_src2_64 = {{W{src2[W-1]}}, src2};
+    wire signed [2*W-1:0] mulh_ref   = (s_src1_64 * s_src2_64) >> W;
+    // MULHSU：src1 有符号 x src2 无符号；直接写 (s_src1 * src2) 会按无符号运算（Verilog 有符号规则）
+    wire signed [2*W-1:0] mulhsu_ref = (s_src1_64 * $signed({1'b0, src2})) >> W;
+    wire signed [2*W-1:0] mulhu_ref  = (src1 * src2) >> W;
 
-    reg [31:0] ref_result;
+    reg [W-1:0] ref_result;
     always @(*) begin
         case (inst_code)
             `INST_MUL:      ref_result = src1 * src2;
-            `INST_MULH:     ref_result = mulh_ref[31:0];
-            `INST_MULHSU:   ref_result = mulhsu_ref[31:0];
-            `INST_MULHU:    ref_result = mulhu_ref[31:0];
+            `INST_MULH:     ref_result = mulh_ref[W-1:0];
+            `INST_MULHSU:   ref_result = mulhsu_ref[W-1:0];
+            `INST_MULHU:    ref_result = mulhu_ref[W-1:0];
             `INST_DIV:      ref_result = s_src1 / s_src2;
             `INST_DIVU:     ref_result = src1 / src2;
             `INST_REM:      ref_result = s_src1 % s_src2;

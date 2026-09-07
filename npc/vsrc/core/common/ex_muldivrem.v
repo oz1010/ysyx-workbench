@@ -105,15 +105,18 @@ module ex_muldivrem_single #(
     output  reg  [INST_WIDTH-1:0]       result
 );
 
-    wire signed [31:0] s_src1 = src1;
-    wire signed [31:0] s_src2 = src2;
-    wire [63:0] src1_64 = {32'h0, src1};
-    wire [63:0] src2_64 = {32'h0, src2};
-    wire signed [63:0] s_src1_64 = {{32{src1[31]}}, src1};
-    wire signed [63:0] s_src2_64 = {{32{src2[31]}}, src2};
-    wire signed [63:0] mulh_ret = (s_src1_64 * s_src2_64) >> 32;
-    wire signed [63:0] mulhsu_ret = (s_src1 * src2) >> 32;
-    wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
+    localparam W = INST_WIDTH;
+
+    wire signed [W-1:0]   s_src1 = src1;
+    wire signed [W-1:0]   s_src2 = src2;
+    wire signed [2*W-1:0] s_src1_64 = {{W{src1[W-1]}}, src1};
+    wire signed [2*W-1:0] s_src2_64 = {{W{src2[W-1]}}, src2};
+    wire signed [2*W-1:0] mulh_ret = (s_src1_64 * s_src2_64) >> W;
+    // 注意：MULHSU 要求 src1 有符号、src2 无符号；若直接写 (s_src1 * src2)，
+    // 按 Verilog 规则只要有任一操作数无符号，整个表达式都按无符号处理，src1 会被零扩展。
+    // 因此用 2W 位有符号的 s_src1_64 与 {1'b0, src2} 的 $signed 形式相乘。
+    wire signed [2*W-1:0] mulhsu_ret = (s_src1_64 * $signed({1'b0, src2})) >> W;
+    wire signed [2*W-1:0] mulhu_ret = (src1 * src2) >> W;
 
     always @(posedge clk) begin
         if (rst | !enable) begin
@@ -123,9 +126,9 @@ module ex_muldivrem_single #(
             if (!valid) begin
                 case (inst_code)
                     `INST_MUL:          result <= src1 * src2;
-                    `INST_MULH:         result <= mulh_ret[31:0];
-                    `INST_MULHSU:       result <= mulhsu_ret[31:0];
-                    `INST_MULHU:        result <= mulhu_ret[31:0];
+                    `INST_MULH:         result <= mulh_ret[W-1:0];
+                    `INST_MULHSU:       result <= mulhsu_ret[W-1:0];
+                    `INST_MULHU:        result <= mulhu_ret[W-1:0];
                     `INST_DIV:          result <= s_src1 / s_src2;
                     `INST_DIVU:         result <= src1 / src2;
                     `INST_REM:          result <= s_src1 % s_src2;
@@ -140,7 +143,10 @@ module ex_muldivrem_single #(
 
 endmodule
 
-// AI生成的多收起版本
+// 多周期版本：乘法用移位累加、除法用恢复余数法，每拍仅一级加法器，
+// 全程不使用 * / % 运算符，避免长组合路径拉低整体综合频率。
+// 有符号运算先取操作数绝对值做无符号迭代，最后按 RISC-V 规则修正符号：
+//   乘积/商取两操作数符号异或，余数与被除数同号。
 module ex_muldivrem_multi #(
     parameter INST_WIDTH = 32
 ) (
@@ -163,49 +169,84 @@ module ex_muldivrem_multi #(
     localparam S_DIV   = 2;
     localparam S_DONE  = 3;
 
+    localparam W = INST_WIDTH;
+
     reg [1:0] state;
-
-    //--------------------------------------------------
-    // registers
-    //--------------------------------------------------
-    reg [5:0]  cnt;
-    reg [63:0] mul_a, mul_b, mul_res;
-
-    reg [63:0] div_dividend;
-    reg [31:0] div_divisor;
-    reg [31:0] quotient;
-    reg [32:0] remainder;
-
-    reg signed_mode;
-    reg rem_mode;
-    reg [2:0] op_type;
-
-    // 临时变量（组合）
-    reg [32:0] remainder_next;
-    reg [31:0] quotient_next;
-    reg [63:0] dividend_next;
 
     //--------------------------------------------------
     // decode operation
     //--------------------------------------------------
+    reg is_div;         // 1: 除法/取余, 0: 乘法
+    reg rem_mode;       // 除法类: 1 取余数, 0 取商
+    reg mul_high;       // 乘法类: 1 取积高 32 位, 0 取低 32 位
+    reg src1_signed;    // src1 按有符号解释
+    reg src2_signed;    // src2 按有符号解释
+    reg op_valid;       // 是否合法的乘除取余指令
+
     always @(*) begin
-        signed_mode = 0;
+        is_div      = 0;
         rem_mode    = 0;
-        op_type     = 0;
+        mul_high    = 0;
+        src1_signed = 0;
+        src2_signed = 0;
+        op_valid    = 1;
 
         case(inst_code)
-            `INST_MUL:    op_type = 1;
-            `INST_MULH:   begin op_type=1; signed_mode=1; end
-            `INST_MULHSU: begin op_type=1; signed_mode=1; end
-            `INST_MULHU:  op_type=1;
+            `INST_MUL:    ;
+            `INST_MULH:   begin mul_high=1; src1_signed=1; src2_signed=1; end
+            `INST_MULHSU: begin mul_high=1; src1_signed=1; end
+            `INST_MULHU:  begin mul_high=1; end
 
-            `INST_DIV:  begin op_type=2; signed_mode=1; end
-            `INST_DIVU: op_type=2;
-            `INST_REM:  begin op_type=2; signed_mode=1; rem_mode=1; end
-            `INST_REMU: begin op_type=2; rem_mode=1; end
-            default: ;
+            `INST_DIV:    begin is_div=1; src1_signed=1; src2_signed=1; end
+            `INST_DIVU:   begin is_div=1; end
+            `INST_REM:    begin is_div=1; rem_mode=1; src1_signed=1; src2_signed=1; end
+            `INST_REMU:   begin is_div=1; rem_mode=1; end
+            default: op_valid = 0;
         endcase
     end
+
+    // 操作数绝对值；|-2^(W-1)| = 2^(W-1) 仍可用 W 位无符号数表示
+    wire [W-1:0] abs_src1 = (src1_signed && src1[W-1]) ? (~src1 + 1'b1) : src1;
+    wire [W-1:0] abs_src2 = (src2_signed && src2[W-1]) ? (~src2 + 1'b1) : src2;
+
+    // 结果符号：乘积/商为两操作数符号异或，余数与被除数同号
+    wire neg_mul  = (src1_signed && src1[W-1]) ^ (src2_signed && src2[W-1]);
+    wire neg_quot = src1_signed && (src1[W-1] ^ src2[W-1]);
+    wire neg_rem  = src1_signed && src1[W-1];
+
+    //--------------------------------------------------
+    // registers
+    //--------------------------------------------------
+    reg [7:0]      cnt;
+
+    reg [2*W-1:0]  mul_a, mul_b, mul_res;
+    reg            mul_neg_q;   // 乘积取补标志
+    reg            mul_high_q;  // 取积高 W 位标志
+
+    reg [2*W-1:0]  div_dividend;
+    reg [W-1:0]    div_divisor;
+    reg [W-1:0]    quotient;
+    reg [W:0]      remainder;
+    reg            quot_neg_q;  // 商取补标志
+    reg            rem_neg_q;   // 余数取补标志
+    reg            rem_mode_q;
+
+    //--------------------------------------------------
+    // 每拍迭代逻辑（纯组合，无 * / %）
+    //--------------------------------------------------
+    // 乘法：依 mul_b 最低位决定是否累加 mul_a
+    wire [2*W-1:0] mul_res_next = mul_b[0] ? (mul_res + mul_a) : mul_res;
+
+    // 除法：恢复余数法，每拍移入被除数最高位；invariant: remainder[W] == 0
+    wire [W:0] rem_shift  = {remainder[W-1:0], div_dividend[2*W-1]};
+    wire       rem_sub_en = (rem_shift >= {1'b0, div_divisor});
+    wire [W:0] rem_next   = rem_sub_en ? (rem_shift - {1'b0, div_divisor}) : rem_shift;
+
+    // 结果符号修正与高低位选择
+    wire [2*W-1:0] mul_prod_fix = mul_neg_q ? (~mul_res + 1'b1) : mul_res;
+    wire [W-1:0]   mul_result   = mul_high_q ? mul_prod_fix[2*W-1:W] : mul_prod_fix[W-1:0];
+    wire [W-1:0]   quot_fix     = quot_neg_q ? (~quotient + 1'b1) : quotient;
+    wire [W-1:0]   rem_fix      = rem_neg_q  ? (~remainder[W-1:0] + 1'b1) : remainder[W-1:0];
 
     //--------------------------------------------------
     // main FSM
@@ -224,23 +265,28 @@ module ex_muldivrem_multi #(
             S_IDLE: begin
                 valid <= 0;
 
-                if(enable) begin
+                if(enable && op_valid) begin
                     cnt <= 0;
 
                     // MUL start
-                    if(op_type == 1) begin
-                        mul_a   <= {32'b0, src1};
-                        mul_b   <= {32'b0, src2};
-                        mul_res <= 0;
-                        state   <= S_MUL;
+                    if(!is_div) begin
+                        mul_a      <= {{W{1'b0}}, abs_src1};
+                        mul_b      <= {{W{1'b0}}, abs_src2};
+                        mul_res    <= 0;
+                        mul_neg_q  <= neg_mul;
+                        mul_high_q <= mul_high;
+                        state      <= S_MUL;
                     end
 
-                    // DIV start
-                    else if(op_type == 2) begin
-                        div_dividend <= {32'b0, src1};
-                        div_divisor  <= src2;
+                    // DIV start：被除数放高 W 位，每拍左移把最高位送入余数
+                    else begin
+                        div_dividend <= {abs_src1, {W{1'b0}}};
+                        div_divisor  <= abs_src2;
                         quotient     <= 0;
                         remainder    <= 0;
+                        quot_neg_q   <= neg_quot;
+                        rem_neg_q    <= neg_rem;
+                        rem_mode_q   <= rem_mode;
                         state        <= S_DIV;
                     end
                 end
@@ -250,15 +296,13 @@ module ex_muldivrem_multi #(
             // MULTIPLY (shift-add)
             //--------------------------------------------------
             S_MUL: begin
-                if(cnt < 32) begin
-                    if(mul_b[0])
-                        mul_res <= mul_res + mul_a;
-
-                    mul_a <= mul_a << 1;
-                    mul_b <= mul_b >> 1;
-                    cnt   <= cnt + 1;
+                if(cnt < W) begin
+                    mul_res <= mul_res_next;
+                    mul_a   <= mul_a << 1;
+                    mul_b   <= mul_b >> 1;
+                    cnt     <= cnt + 1;
                 end else begin
-                    result <= mul_res[31:0];
+                    result <= mul_result;
                     state  <= S_DONE;
                 end
             end
@@ -267,25 +311,17 @@ module ex_muldivrem_multi #(
             // DIVIDE (restoring division)
             //--------------------------------------------------
             S_DIV: begin
-                if (cnt < 32) begin
-                    // ===== 组合计算 =====
-                    remainder_next = {remainder[31:0], div_dividend[63]};
-                    dividend_next  = div_dividend << 1;
-                    quotient_next  = quotient << 1;
-
-                    if (remainder_next >= {1'b0, div_divisor}) begin
-                        remainder_next = remainder_next - div_divisor;
-                        quotient_next[0] = 1'b1;
-                    end
-
-                    // ===== 时序回写（只用 <=）=====
-                    remainder    <= remainder_next;
-                    div_dividend <= dividend_next;
-                    quotient     <= quotient_next;
+                if (cnt < W) begin
+                    remainder    <= rem_next;
+                    div_dividend <= div_dividend << 1;
+                    quotient     <= {quotient[W-2:0], rem_sub_en};
                     cnt          <= cnt + 1;
                 end else begin
-                    result <= rem_mode ? remainder[31:0]
-                                    : quotient;
+                    // 除数为零时按 RISC-V 规范：商为 -1，余数为被除数
+                    if (div_divisor == 0)
+                        result <= rem_mode_q ? rem_fix : {W{1'b1}};
+                    else
+                        result <= rem_mode_q ? rem_fix : quot_fix;
                     state  <= S_DONE;
                 end
             end
@@ -294,10 +330,15 @@ module ex_muldivrem_multi #(
             // DONE
             //--------------------------------------------------
             S_DONE: begin
-                valid <= 1;
-                if(!enable)
+                if(!enable) begin
                     state <= S_IDLE;
+                    valid <= 0;
+                end else begin
+                    valid <= 1;
+                end
             end
+
+            default: state <= S_IDLE;
 
             endcase
         end
