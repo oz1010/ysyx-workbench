@@ -1,0 +1,23 @@
+[tasks]
+bmc
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth @DEPTH@
+cover: mode cover
+cover: depth @DEPTH@
+
+[engines]
+# smtbmc yices
+smtbmc boolector
+
+[script]
+read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include \
+  @NPC_HOME@/vsrc/core/common/riscv32e_defines.v \
+  @NPC_HOME@/vsrc/core/common/ex_muldivrem.v \
+  muldivremtest.sv
+prep -top muldivremtest
+
+[files]
+muldivremtest.sv
