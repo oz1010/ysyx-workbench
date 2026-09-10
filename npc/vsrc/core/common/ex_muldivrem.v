@@ -21,25 +21,8 @@ module ex_muldivrem #(
     wire                         multi_valid;
     wire  [INST_WIDTH-1:0]       multi_result;
 
-    `ifdef FORMAL_VERIFY
-    /* 形式化验证时仅使用单周期版本，压缩BMC求解空间；多周期版本已在仿真中与单周期版本交叉校验 */
-    ex_muldivrem_single #(
-        .INST_WIDTH(INST_WIDTH)
-    ) m_ex_muldivrem_single (
-        .clk(clk),
-        .rst(rst),
-        .enable(enable),
-        .inst_code(inst_code),
-        .src1(src1),
-        .src2(src2),
-        .valid(single_valid),
-        .result(single_result)
-    );
-
-    assign valid = single_valid;
-    assign result = single_result;
-    `else
     `ifndef IN_YOSYS_STA
+    // 非综合版本
     ex_muldivrem_single #(
         .INST_WIDTH(INST_WIDTH)
     ) m_ex_muldivrem_single (
@@ -52,6 +35,9 @@ module ex_muldivrem #(
         .valid(single_valid),
         .result(single_result)
     );
+    `else
+    // 综合版本，不需要单周期版本
+    assign single_valid = 1;
     `endif
 
     ex_muldivrem_multi #(
@@ -68,8 +54,7 @@ module ex_muldivrem #(
     );
 
     assign valid = single_valid & multi_valid;
-    assign result = single_result;
-    `endif
+    assign result = multi_result;
 
     always @(posedge clk) begin
         if (rst | !enable) begin
