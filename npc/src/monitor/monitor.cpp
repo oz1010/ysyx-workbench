@@ -109,6 +109,7 @@ std::string cfg_output = "";
 std::string cfg_perf_name = "";
 std::string cfg_icbin_name = "";
 std::string cfg_dcbin_name = "";
+char g_image_file_path[1024] = {0};
 static char *cfg_img_file = NULL;
 int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
 static char *cfg_difftest_so_file = NULL;
@@ -155,6 +156,10 @@ static size_t load_img()
     fseek(fd, 0, SEEK_END);
     size_t readsize = ftell(fd);
 
+    size_t path_len = strlen(file_path);
+    path_len =
+        path_len > (sizeof(g_image_file_path) - 1) ? (sizeof(g_image_file_path) - 1) : path_len;
+    memcpy(g_image_file_path, file_path, path_len);
     Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
 
     /* 加载bin文件头部信息 */

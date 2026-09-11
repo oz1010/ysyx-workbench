@@ -94,7 +94,7 @@ void dpi_vdev_write(int addr, int data, int len)
 {
     CALL_EMPTY_FUNC(-1);
 }
-void dpi_monitor_item(int item_idx, int id, int delta)
+void dpi_add_monitor_item(int mid, int pc, int arg)
 {
     CALL_EMPTY_FUNC(-1);
 }

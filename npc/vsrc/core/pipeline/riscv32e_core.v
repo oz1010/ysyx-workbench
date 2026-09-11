@@ -104,9 +104,20 @@ wire                        mod_con_ls_ready;
 wire                        mod_con_ls_valid;
 wire                        mod_con_wb_ready;
 wire                        mod_con_wb_valid;
+/* 监控各阶段握手信号 */
+wire                        monitor_if_in_done;
+wire                        monitor_if_out_done;
+wire                        monitor_id_in_done;
+wire                        monitor_id_out_done;
+wire                        monitor_ex_in_done;
+wire                        monitor_ex_out_done;
+wire                        monitor_ls_in_done;
+wire                        monitor_ls_out_done;
+wire                        monitor_wb_in_done;
+wire                        monitor_wb_out_done;
 /* 将模块信号和控制信号关联后输出，默认直接输出 */
-assign con_core_ready = 1;
-assign con_core_valid = 1 & !core_stage_flush[`STAGE_INDEX_IFU];
+assign con_core_ready = !rst;
+assign con_core_valid = !rst & !core_stage_flush[`STAGE_INDEX_IFU];
 assign con_if_ready = mod_con_if_ready;
 assign con_if_valid = mod_con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU] & !core_raw_wait;
 assign con_id_ready = mod_con_id_ready & !core_raw_wait;
@@ -454,17 +465,23 @@ csrs #(
 perf_monitor m_perf_monitor (
     .clk(clk),
     .rst(rst),
-    .pc(pc),
-    .inst(inst),
-    .if_valid(con_if_valid),
-    .id_ready(con_id_ready),
-    .id_valid(con_id_valid),
-    .ex_ready(con_ex_ready),
-    .ex_valid(con_ex_valid),
-    .ls_ready(con_ls_ready),
-    .ls_valid(con_ls_valid),
-    .wb_ready(con_wb_ready),
+    .if_in_done(monitor_if_in_done),
+    .if_out_done(monitor_if_out_done),
+    .id_in_done(monitor_id_in_done),
+    .id_out_done(monitor_id_out_done),
+    .ex_in_done(monitor_ex_in_done),
+    .ex_out_done(monitor_ex_out_done),
+    .ls_in_done(monitor_ls_in_done),
+    .ls_out_done(monitor_ls_out_done),
+    .wb_in_done(monitor_wb_in_done),
+    .wb_out_done(monitor_wb_out_done),
+    .in_if_pc(core_fetch_pc),
+    .in_id_pc(con_if_pc),
+    .in_ex_pc(con_id_pc),
+    .in_ls_pc(con_ex_pc),
+    .in_wb_pc(con_ls_pc),
     .inst_code(con_id_inst_code),
+    .dnpc(con_wb_dnpc),
     .done()
 );
 
@@ -1045,6 +1062,8 @@ inst_fetch #(
     .out_valid(mod_con_if_valid),
     .out_bits(mod_con_if_bits)
 );
+assign monitor_if_in_done = mod_con_if_ready & con_core_valid;
+assign monitor_if_out_done = con_id_ready & mod_con_if_valid;
 stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(IF_OUT_DATA_W)
@@ -1100,6 +1119,8 @@ inst_decode #(
     .out_valid(mod_con_id_valid),
     .out_bits(mod_con_id_bits)
 );
+assign monitor_id_in_done = mod_con_id_ready & con_if_valid;
+assign monitor_id_out_done = con_ex_ready & mod_con_id_valid;
 stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(ID_OUT_DATA_W)
@@ -1203,6 +1224,8 @@ execute #(
     .out_valid(mod_con_ex_valid),
     .out_bits(mod_con_ex_bits)
 );
+assign monitor_ex_in_done = mod_con_ex_ready & con_id_valid;
+assign monitor_ex_out_done = con_ls_ready & mod_con_ex_valid;
 stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(EX_OUT_DATA_W)
@@ -1311,6 +1334,8 @@ load_store #(
     .out_valid(mod_con_ls_valid),
     .out_bits(mod_con_ls_bits)
 );
+assign monitor_ls_in_done = mod_con_ls_ready & con_ex_valid;
+assign monitor_ls_out_done = con_wb_ready & mod_con_ls_valid;
 stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(LS_OUT_DATA_W)
@@ -1383,6 +1408,8 @@ write_back #(
     .out_valid(mod_con_wb_valid),
     .out_bits(mod_con_wb_bits)
 );
+assign monitor_wb_in_done = mod_con_wb_ready & con_ls_valid;
+assign monitor_wb_out_done = con_core_ready & mod_con_wb_valid;
 stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(WB_OUT_DATA_W)

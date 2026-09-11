@@ -2,6 +2,7 @@
 #define __PERF_MONITOR_H__
 
 #include <stdint.h>
+#include "common.h"
 
 enum
 {

@@ -26,7 +26,7 @@ reg last_ex_valid;
 
 always @(posedge clk) begin
     if (rst) begin
-        func_monitor_item(0, 0, 0);
+        func_add_monitor_item(0, 0, 0);
         last_if_valid <= 0;
         last_id_valid <= 0;
         last_ls_valid <= 0;
@@ -39,25 +39,25 @@ always @(posedge clk) begin
 
         // IFU取到指令
         if (!last_if_valid && if_valid) begin
-            func_monitor_item(1, {28'h0,`AXI4_ID_IFU}, 1);
+            func_add_monitor_item(1, {28'h0,`AXI4_ID_IFU}, 1);
             func_cpu_stat_ctrl(`HW_CPU_STAT_INST, pc);
         end
         // 译码出各种类别的指令, 如计算类指令, 访存指令, CSR指令等
         if (!last_id_valid && id_valid) begin
-            func_monitor_item(1, {28'h0,`AXI4_ID_IDU}, 1);
+            func_add_monitor_item(1, {28'h0,`AXI4_ID_IDU}, 1);
         end
         // LSU取到数据
         if (!last_ls_valid && ls_valid) begin
-            func_monitor_item(1, {28'h0,`AXI4_ID_LSU}, 1);
+            func_add_monitor_item(1, {28'h0,`AXI4_ID_LSU}, 1);
         end
         // EXU完成计算
         if (!last_ex_valid && ex_valid) begin
-            func_monitor_item(1, {28'h0,`AXI4_ID_EXU}, 1);
+            func_add_monitor_item(1, {28'h0,`AXI4_ID_EXU}, 1);
         end
         // WBU完成回写，移到仿真中去统计
 
         if (!last_id_valid && id_valid) begin
-            func_monitor_item(2, {{32-`INST_CODE_W{1'b0}}, inst_code}, 1);
+            func_add_monitor_item(2, {{32-`INST_CODE_W{1'b0}}, inst_code}, 1);
         end
     end
 end
