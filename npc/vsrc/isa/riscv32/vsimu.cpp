@@ -24,6 +24,7 @@
 #include "generated/autoconf.h"
 #include "dm/dtm.h"
 #include "macro.h"
+#include "trace.h"
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
@@ -50,6 +51,19 @@ static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
 #else
 #define RECORD_TRACE_VCD()
 #endif
+
+#define TOP_RUN_TICK(T)               \
+    do                             \
+    {                              \
+        T->clock = !T->clock;      \
+        T->contextp()->timeInc(1); \
+        T->eval();                 \
+        RECORD_TRACE_VCD();        \
+        T->clock = !T->clock;      \
+        T->contextp()->timeInc(1); \
+        T->eval();                 \
+        RECORD_TRACE_VCD();        \
+    } while (0)
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
 extern paddr_t get_vsimu_pc(void);
@@ -96,19 +110,9 @@ int exec_vsimu(Decode *s)
 
     do
     {
-        IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
-
         // 电路仿真
-        // top->inst = s->isa.inst.val;
-        top->clock = !top->clock;
-        top->contextp()->timeInc(1);
-        top->eval();
-        RECORD_TRACE_VCD();
-
-        top->clock = !top->clock;
-        top->contextp()->timeInc(1);
-        top->eval();
-        RECORD_TRACE_VCD();
+        IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
+        TOP_RUN_TICK(top);
 
         // if (top->contextp()->time() >= 1000000) {
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
@@ -122,6 +126,9 @@ int exec_vsimu(Decode *s)
         {
             if (top->rootp->TOP_S_CORE_INST_DONE[idx])
             {
+                // 此时done命令刚触发，需要再运行一个周期采集完整的数据
+                IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
+                TOP_RUN_TICK(top);
                 simu_continue = false;
                 break;
             }
@@ -146,14 +153,6 @@ int exec_vsimu(Decode *s)
         printf(ANSI_FMT("Found finish in verilog\n", ANSI_BG_RED));
         set_npc_state(NPC_ABORT, get_vsimu_pc(), -5);
     }
-
-#if CONFIG_PERF_MONITOR
-    if (top->rootp->TOP_S_CORE_INST_DONE[0])
-    {
-        extern void add_monitor_item(int item_idx, int id, int delta);
-        add_monitor_item(1, 5, 1);
-    }
-#endif
 
     return 0;
 }
@@ -187,12 +186,9 @@ void init_vsimu(int argc, char *argv[])
     // 上电复位
     top->clock = 1;
     top->reset = 1;
-    for (int i = 0; i < 28; ++i)
+    for (int i = 0; i < 14; ++i)
     {
-        top->clock = !top->clock;
-        top->contextp()->timeInc(1);
-        top->eval();
-        RECORD_TRACE_VCD();
+        TOP_RUN_TICK(top);
     }
     top->reset = 0;
 

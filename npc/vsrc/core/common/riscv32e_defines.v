@@ -678,15 +678,15 @@ function automatic [31:0] func_sext;
     end
 endfunction
 
-function void func_monitor_item;
-    input [31:0] item_idx;
-    input [31:0] id;
-    input [31:0] delta;
+function void func_add_monitor_item;
+    input [31:0] mid;
+    input [31:0] pc;
+    input [31:0] arg;
     begin
 `ifdef FORMAL_VERIFY
 `elsif IN_YOSYS_STA
 `else
-        dpi_monitor_item(item_idx, id, delta);
+        dpi_add_monitor_item(mid, pc, arg);
 `endif
     end
 endfunction

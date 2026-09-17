@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
-#include "perf_monitor.h"
+#include "recorder.h"
 
 using namespace std;
 
@@ -52,8 +52,6 @@ struct Instruction
     uint64_t start_tick;
     uint64_t end_tick;
     unordered_map<uint8_t, uint64_t> stages;
-    bool has_exu = false;
-    bool has_lsu = false;
 };
 
 struct Stat
@@ -116,116 +114,76 @@ void analyze_instructions(vector<Instruction> &instructions)
     instructions.clear();
 }
 
+/**
+ * 16位硬件指令码映射为统计使用的紧凑索引(与CODE_STRS对应)
+ * 低字节0x01-0x37对应LUI..REMU，0x41对应MRET，其余为无效
+ */
+static uint8_t to_code_index(uint16_t code)
+{
+    if (code == recorder::INST_INVALID_CODE) return 255;
+    uint8_t low = code & 0xFF;
+    if (low >= 0x01 && low <= 0x37) return low - 1;
+    if (low == 0x41) return 55;
+    return 255;
+}
+
 void parse_binary_log(const char *filepath)
 {
-    ifstream file(filepath, ios::binary | ios::ate);
-    if (!file)
+    recorder::Recorder re;
+    if (re.init(filepath) != 0)
     {
-        cerr << "无法打开文件: " << filepath << endl;
+        cerr << "初始化失败: " << re.error() << endl;
         exit(1);
     }
-
-    streamsize size = file.tellg();
-    file.seekg(0, ios::beg);
-    vector<unsigned char> buffer(size);
-    file.read(reinterpret_cast<char *>(buffer.data()), size);
+    cout << "\n镜像文件: " << re.desc().image_path << "\nELF文件:  " << re.elf_path() << endl;
 
     vector<Instruction> instructions;
-    Instruction current_inst;
-    uint64_t current_tick = 0, start_tick = 0;
-    size_t pos = 0, last_idx = 0, show_mix_size = 1024 * 1024;
+    uint64_t last_idx = 0;
+    const uint64_t show_mix_size = 1 << 20;
 
-    show_progress(pos, size);
+    show_progress(0, re.file_size());
 
-    try
+    recorder::rc_decode_item_t item;
+    for (;;)
     {
-        while (pos < buffer.size())
+        int ret = re.next(&item);
+        if (ret == 0) break;
+        if (ret < 0)
         {
-            if (pos - last_idx >= show_mix_size)
-            {
-                show_progress(pos, size);
-                last_idx = pos;
-                analyze_instructions(instructions);
-            }
-
-            unsigned char first_byte = buffer[pos++];
-            int entry_type = first_byte & 0x3F;
-            int time_len_shift = (first_byte >> 6) & 0x03;
-            int time_len = 1 << time_len_shift;
-
-            if (entry_type == PERF_MONITOR_TYPE_EVENT)
-            {
-                if (pos >= buffer.size())
-                    throw runtime_error("缺少阶段类型");
-                uint8_t event_type = buffer[pos++];
-                if (pos + time_len > buffer.size())
-                    throw runtime_error("缺少时间差值");
-                uint64_t time_diff = 0;
-                memcpy(&time_diff, &buffer[pos], time_len);
-                pos += time_len;
-                current_tick += time_diff;
-
-                if (event_type == EVENT_IFU)
-                {
-                    if (current_inst.inst_code != 255)
-                        instructions.push_back(current_inst);
-                    current_inst = {};
-                    current_inst.start_tick = start_tick;
-                    current_inst.end_tick = current_tick;
-                    current_inst.stages[event_type] = time_diff;
-                }
-                else
-                {
-                    if (event_type == EVENT_EXU)
-                    {
-                        if (current_inst.has_lsu)
-                            throw runtime_error("指令同时包含EXU和LSU");
-                        current_inst.has_exu = true;
-                    }
-                    else if (event_type == EVENT_LSU)
-                    {
-                        if (current_inst.has_exu)
-                            throw runtime_error("指令同时包含EXU和LSU");
-                        current_inst.has_lsu = true;
-                    }
-                    current_inst.stages[event_type] = time_diff;
-                    current_inst.end_tick = current_tick;
-                    start_tick = current_tick;
-                }
-            }
-            else if (entry_type == PERF_MONITOR_TYPE_ICACHE)
-            {
-                if (pos >= buffer.size())
-                    throw runtime_error("缺少icache数据");
-                perf_monitor_icache_data_t data;
-                data.raw_val = buffer[pos++];
-                current_inst.mem_index = data.mem_index;
-                current_inst.icache_hit = data.hit_count;
-                current_inst.icache_miss = data.miss_count;
-            }
-            else if (entry_type == PERF_MONITOR_TYPE_CODE)
-            {
-                if (pos >= buffer.size())
-                    throw runtime_error("缺少指令编码");
-                uint8_t inst_code = buffer[pos++];
-                current_inst.inst_code = inst_code;
-            }
-            else
-            {
-                throw runtime_error("未知条目类型: " + to_string(entry_type));
-            }
+            show_progress(re.bytes_consumed(), re.file_size());
+            cerr << "\n解析错误: " << re.error() << endl;
+            exit(1);
         }
-    }
-    catch (const exception &e)
-    {
-        show_progress(pos, size);
-        cerr << "\n解析错误位置 pos=" << pos << ": " << e.what() << endl;
-        exit(1);
+
+        if (item.index - last_idx >= show_mix_size)
+        {
+            show_progress(re.bytes_consumed(), re.file_size());
+            last_idx = item.index;
+            analyze_instructions(instructions);
+        }
+
+        Instruction inst;
+        inst.inst_code  = to_code_index(item.inst_code);
+        inst.mem_index  = 0;
+        inst.icache_hit = item.icache_miss ? 0 : 1;
+        inst.icache_miss = item.icache_miss ? 1 : 0;
+        // 指令周期为IF阶段结束到WB阶段结束，与原EVENT统计口径一致
+        inst.start_tick = item.stage_ticks[recorder::STAGE_INDEX_IFU][1];
+        uint64_t end_tick = inst.start_tick;
+        for (int i = recorder::STAGE_INDEX_IDU; i < recorder::STAGE_COUNT; ++i)
+        {
+            end_tick += item.durations[i];
+        }
+        inst.end_tick  = end_tick;
+        inst.stages[EVENT_IFU] = item.durations[recorder::STAGE_INDEX_IFU];
+        inst.stages[EVENT_IDU] = item.durations[recorder::STAGE_INDEX_IDU];
+        inst.stages[EVENT_EXU] = item.durations[recorder::STAGE_INDEX_EXU];
+        inst.stages[EVENT_LSU] = item.durations[recorder::STAGE_INDEX_LSU];
+        inst.stages[EVENT_WBU] = item.durations[recorder::STAGE_INDEX_WBU];
+        instructions.push_back(inst);
     }
 
-    show_progress(pos, size);
-    if (current_inst.inst_code != 255)
-        instructions.push_back(current_inst);
+    show_progress(re.file_size(), re.file_size());
     analyze_instructions(instructions);
 }
 

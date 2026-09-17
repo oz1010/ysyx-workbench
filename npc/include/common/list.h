@@ -32,19 +32,25 @@ typedef struct list_head list_head_t;
 
 #define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
 
+static inline void INIT_LIST_HEAD(struct list_head *list)
+{
+    list->next = list;
+    list->prev = list;
+}
+
 /**
  * list_entry - get the struct for this entry
- * @ptr:	the &struct list_head pointer.
- * @type:	the type of the struct this is embedded in.
- * @member:	the name of the list_head within the struct.
+ * @ptr:    the &struct list_head pointer.
+ * @type:   the type of the struct this is embedded in.
+ * @member: the name of the list_head within the struct.
  */
 #define list_entry(ptr, type, member) container_of(ptr, type, member)
 
 /**
- * list_for_each_entry	-	iterate over list of given type
- * @pos:	the type * to use as a loop cursor.
- * @head:	the head for your list.
- * @member:	the name of the list_head within the struct.
+ * list_for_each_entry  -   iterate over list of given type
+ * @pos:    the type * to use as a loop cursor.
+ * @head:   the head for your list.
+ * @member: the name of the list_head within the struct.
  */
 #define list_for_each_entry(pos, head, member)                                         \
     for (pos = list_entry((head)->next, typeof(*pos), member); &pos->member != (head); \
@@ -52,10 +58,10 @@ typedef struct list_head list_head_t;
 
 /**
  * list_for_each_entry_safe - iterate over list of given type safe against removal of list entry
- * @pos:	the type * to use as a loop cursor.
- * @n:		another type * to use as temporary storage
- * @head:	the head for your list.
- * @member:	the name of the list_head within the struct.
+ * @pos:    the type * to use as a loop cursor.
+ * @n:      another type * to use as temporary storage
+ * @head:   the head for your list.
+ * @member: the name of the list_head within the struct.
  */
 #define list_for_each_entry_safe(pos, n, head, member)          \
     for (pos = list_entry((head)->next, typeof(*pos), member),  \
@@ -69,6 +75,15 @@ typedef struct list_head list_head_t;
 static inline int list_empty(const struct list_head *head)
 {
     return head->next == head;
+}
+
+/**
+ * list_is_singular - tests whether a list has just one entry.
+ * @head: the list to test.
+ */
+static inline int list_is_singular(const struct list_head *head)
+{
+    return !list_empty(head) && (head->next == head->prev);
 }
 
 /*
@@ -126,4 +141,73 @@ static inline void list_del(struct list_head *entry)
     entry->next = (struct list_head *)LIST_POISON1;
     entry->prev = (struct list_head *)LIST_POISON2;
 }
+
+static inline void __list_cut_position(struct list_head *list,
+                                       struct list_head *head,
+                                       struct list_head *entry)
+{
+    struct list_head *new_first = entry->next;
+    list->next = head->next;
+    list->next->prev = list;
+    list->prev = entry;
+    entry->next = list;
+    head->next = new_first;
+    new_first->prev = head;
+}
+
+/**
+ * list_cut_position - cut a list into two
+ * @list: a new list to add all removed entries
+ * @head: a list with entries
+ * @entry: an entry within head, could be the head itself
+ *
+ * This helper moves the initial part of @head, up to and
+ * including @entry, from @head to @list. You should pass
+ * an empty list in @list.
+ */
+static inline void list_cut_position(struct list_head *list,
+                                     struct list_head *head,
+                                     struct list_head *entry)
+{
+    if (list_empty(head))
+        return;
+    if (list_is_singular(head) &&
+        (head->next != entry && head != entry))
+        return;
+    if (entry == head)
+        INIT_LIST_HEAD(list);
+    else
+        __list_cut_position(list, head, entry);
+}
+
+static inline void __list_splice(const struct list_head *list,
+                                 struct list_head *prev,
+                                 struct list_head *next)
+{
+    struct list_head *first = list->next;
+    struct list_head *last = list->prev;
+
+    first->prev = prev;
+    prev->next = first;
+
+    last->next = next;
+    next->prev = last;
+}
+
+/**
+ * list_splice_tail_init - join two lists and reinitialise the emptied list
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ *
+ * Each of the lists is queue. The list at @list is reinitialised.
+ */
+static inline void list_splice_tail_init(struct list_head *list,
+                                         struct list_head *head)
+{
+    if (!list_empty(list)) {
+        __list_splice(list, head->prev, head);
+        INIT_LIST_HEAD(list);
+    }
+}
+
 #endif
