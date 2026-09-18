@@ -46,13 +46,18 @@ module inst_fetch #(
     /* 模块额外的接口输入 */
     input   wire [INST_WIDTH-1:0]       fetch_pc,
 
+    /* icache读命中状态（2bit）：NONE/HIT/MISS，读请求被接受后保持到下一次读 */
+    input   wire [1:0]                  cache_stat,
+
     /* 模块输入数据总线 */
     output  wire                        in_ready,
     input   wire                        in_valid,
     /* 模块输出数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [OUT_DATA_W-1:0]       out_bits
+    output  wire [OUT_DATA_W-1:0]       out_bits,
+    /* 取指对应的icache命中状态，out_valid期间有效 */
+    output  wire [1:0]                  out_cache_stat
 );
     assign out_bits = {
         fetch_pc, r_read_inst,
@@ -63,6 +68,7 @@ module inst_fetch #(
     reg  [`STAGE_COUNT-1:0]         r_expt = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_tval = 0;
+    reg  [1:0]                      r_cache_stat = `CACHE_STAT_NONE;
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
@@ -82,6 +88,7 @@ module inst_fetch #(
     wire [INST_WIDTH-1:0]           read_inst;
     wire axi4_read_done = rvalid && rready && rlast;
     wire [INST_WIDTH-1:0] snpc = fetch_pc + 4;
+    assign out_cache_stat = r_cache_stat;
 
     assign awvalid = 0;
     assign awaddr = 0;
@@ -153,6 +160,7 @@ module inst_fetch #(
             always @(posedge clk) begin
                 if (rst) begin
                     r_stage_out_valid <= 0;
+                    r_cache_stat <= `CACHE_STAT_NONE;
                 end else begin
                     // read request
                     if (read_en) begin
@@ -161,11 +169,13 @@ module inst_fetch #(
                         end
                     end
 
-                    r_stage_out_valid <= 
+                    r_stage_out_valid <=
                         axi4_read_done ? 1 :
                         stage_out_done ? 0 :
                         r_stage_out_valid;
                     r_read_inst <= axi4_read_done ? read_inst : r_read_inst;
+                    // 读数据返回时锁存icache命中状态（读请求被接受后cache_stat已稳定）
+                    r_cache_stat <= axi4_read_done ? cache_stat : r_cache_stat;
                 end
             end
 

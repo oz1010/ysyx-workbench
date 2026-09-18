@@ -21,6 +21,14 @@ module perf_monitor (
     input  wire [`INST_CODE_W-1:0]  inst_code,
     input  wire [31:0]  dnpc,
 
+    input  wire         wb_gpr_wen,    // WBU进入时的GPR写使能
+    input  wire [4:0]   wb_gpr_windex, // WBU进入时的GPR写索引
+    input  wire [31:0]  wb_gpr_wdata,  // WBU进入时的GPR写数据
+    input  wire [`CSR_WCH_W-1:0] wb_csr_wch, // WBU进入时的CSR写通道（2组{en,addr,data}）
+
+    input  wire [1:0]   if_cache_stat, // IFU取指对应的icache命中状态（NONE/HIT/MISS）
+    input  wire [1:0]   ls_cache_stat, // LSU访存对应的dcache命中状态（NONE/HIT/MISS，写为NONE）
+
     output wire         done
 );
 
@@ -53,6 +61,22 @@ wire [31:0] wb_pc = wb_in_done ? in_wb_pc : in_done_wb_pc;
 
 wire core_valid = !rst;
 reg last_core_valid;
+
+/* WBU进入时的CSR写通道拆分：2组{en(1), addr(CSR_ADDR_W), data(32)} */
+wire                        mon_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
+wire [`CSR_ADDR_W-1:0]      mon_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
+wire [31:0]                 mon_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
+assign {
+    mon_csr_wen[1], mon_csr_wen[0],
+    mon_csr_waddr[1], mon_csr_waddr[0],
+    mon_csr_wdata[1], mon_csr_wdata[0]
+} = wb_csr_wch;
+
+/* 寄存器写监控项的mid扩展：{保留11bit, 写地址13bit, 写使能, 数据类型2bit, is_end, 阶段4bit} */
+wire [12:0] mon_gpr_waddr = {8'h0, wb_gpr_windex};
+wire [12:0] mon_csr_waddr_ext[0:`CSR_WCH_ITEM_COUNT-1];
+assign mon_csr_waddr_ext[0] = {1'b0, mon_csr_waddr[0]};
+assign mon_csr_waddr_ext[1] = {1'b0, mon_csr_waddr[1]};
 
 always @(posedge clk) begin
     if (rst) begin
@@ -94,7 +118,7 @@ always @(posedge clk) begin
 
         // IFU
         if (!last_if_in_done & if_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IFU}, if_pc, 0);
-        if (!last_if_out_done & if_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IFU}, if_pc, 0);
+        if (!last_if_out_done & if_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IFU}, if_pc, {30'h0, if_cache_stat});
         // IDU
         if (!last_id_in_done & id_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IDU}, id_pc, 0);
         if (!last_id_out_done & id_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IDU}, id_pc, {16'h0, inst_code});
@@ -103,9 +127,17 @@ always @(posedge clk) begin
         if (!last_ex_out_done & ex_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_EXU}, ex_pc, 0);
         // LSU
         if (!last_ls_in_done & ls_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_LSU}, ls_pc, 0);
-        if (!last_ls_out_done & ls_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_LSU}, ls_pc, 0);
+        if (!last_ls_out_done & ls_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_LSU}, ls_pc, {30'h0, ls_cache_stat});
         // WBU
-        if (!last_wb_in_done & wb_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
+        if (!last_wb_in_done & wb_in_done) begin
+            func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
+            // 寄存器写数据：mid扩展数据类型/使能/地址，arg携带写数据
+            // kind编码：1=CSR写（两个写通道共用），2=GPR写；寄存器记录不需要携带pc，
+            // 处理时取最近进入WBU且未完成的指令记录即可
+            if (wb_gpr_wen) func_add_monitor_item({11'h0, mon_gpr_waddr, wb_gpr_wen, 2'h2, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, wb_gpr_wdata);
+            if (mon_csr_wen[0]) func_add_monitor_item({11'h0, mon_csr_waddr_ext[0], mon_csr_wen[0], 2'h1, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, mon_csr_wdata[0]);
+            if (mon_csr_wen[1]) func_add_monitor_item({11'h0, mon_csr_waddr_ext[1], mon_csr_wen[1], 2'h1, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, mon_csr_wdata[1]);
+        end
         if (!last_wb_out_done & wb_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_WBU}, wb_pc, dnpc);
 
         // 硬件统计

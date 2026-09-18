@@ -104,6 +104,32 @@ public:
         return true;
     }
 
+    /**
+     * 读取\0结尾的字符串（不含\0）
+     */
+    bool read_cstr(std::string* out)
+    {
+        out->clear();
+        while (true)
+        {
+            if (!require(1)) return false;
+            char c = static_cast<char>(buf_[pos_++]);
+            base_++;
+            if (c == '\0') return true;
+            out->push_back(c);
+        }
+    }
+
+    /**
+     * 预览下一字节（不消费）
+     */
+    bool peek_u8(uint8_t* out)
+    {
+        if (!require(1)) return false;
+        *out = buf_[pos_];
+        return true;
+    }
+
     uint64_t tell() const { return base_; }
     bool     uleb_overflow() const { return err_overflow_; }
 

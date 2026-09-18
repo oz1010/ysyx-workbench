@@ -30,6 +30,7 @@ override ARGS += -b
 
 ifeq ($(CONFIG_PERF_MONITOR), y)
 ANALYZER += analyzer
+RECORDER += recorder
 ifeq ($(CONFIG_PERF_MONITOR_BIN_DATA), y)
 override PERF_NAME ?= npc-monitor.bin
 PERF_MONITOR_SH=$(NPC_HOME)/tools/monitor_analyzer/build/mon_analyzer $(RESULT_DIR)/$(PERF_NAME)
@@ -43,7 +44,7 @@ override ARGS += --perf=$(PERF_NAME)
 # Command to execute NPC
 NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
 
-run-env: $(BINARY) $(IMG) $(DIFF_REF_SO) $(ANALYZER)
+run-env: $(BINARY) $(IMG) $(DIFF_REF_SO) $(ANALYZER) $(RECORDER)
 
 run: run-env
 	$(call git_commit, "run NPC")
@@ -61,6 +62,9 @@ test:
 analyzer:
 	@make -C tools/monitor_analyzer
 
+recorder:
+	@make -C tools/recorder
+
 cachesim:
 	@make -C tools/cachesim
 
@@ -73,4 +77,4 @@ $(clean-tools):
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer cachesim
+.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer cachesim recorder

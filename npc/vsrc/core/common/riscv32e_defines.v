@@ -190,6 +190,12 @@
 `define HW_CPU_STAT_DCACHE_HIT          6
 `define HW_CPU_STAT_DCACHE_MISS         7
 
+/* Cache访问状态（2bit），由icache/dcache产生，随IFU/LSU流水传递记录到perf monitor */
+/* 统计数据只针对读：写或无读访问时为NONE */
+`define CACHE_STAT_NONE                 2'h0
+`define CACHE_STAT_HIT                  2'h1
+`define CACHE_STAT_MISS                 2'h2
+
 `define TRIGGER_EDGE_NEG                0 // 下降沿
 `define TRIGGER_EDGE_POS                1 // 上升沿
 `define TRIGGER_LEVEL_LOW               2 // 低水平  
