@@ -58,19 +58,29 @@ extern FILE* trace_fd;
  *   - pc作为各阶段的key
  *   - 每阶段需要采集起止tick值
  * 额外记录值
- *   - IFU结束记录icache_miss
- *   - LSU结束记录dcache_miss
+ *   - IFU结束记录icache_stat（2bit缓存状态：0无 1命中 2未命中）
+ *   - LSU结束记录dcache_stat（2bit缓存状态：0无 1命中 2未命中，写为0）
  *   - IDU结束记录inst_code
  *   - EXU结束记录dnpc
+ *   - WBU进入记录1组GPR写(wen/index/data)和2组CSR写(wen/addr/data)
  */
 typedef struct
 {
     uint64_t tick;                            // 取指tick
     uint32_t pc;                              // 取指的PC值
-    uint32_t icache_miss;                     // 指令缓存miss标识
-    uint32_t dcache_miss;                     // 数据缓存miss标识
+    uint32_t icache_stat;                     // 指令缓存访问状态：0无 1命中 2未命中
+    uint32_t dcache_stat;                     // 数据缓存访问状态：0无 1命中 2未命中（写为0）
+    uint32_t mem_index;                       // 存储索引：低bit位为指令存储索引（IFU结束时更新），
+                                              // 高bit位为数据存储索引；无存储数据时默认为全1，解析显示为none
+    uint32_t inst_valid;                      // 指令有效标识，WBU完成时pos==record为有效
     uint32_t inst_code;                       // 指令码
     uint32_t dnpc;                            // 目标跳转的PC值
+    uint32_t gpr_wen;                         // GPR写使能，WBU进入时采集
+    uint32_t gpr_windex;                      // GPR写索引
+    uint32_t gpr_wdata;                       // GPR写数据
+    uint32_t csr_wen[2];                      // CSR写使能（2组写通道）
+    uint32_t csr_waddr[2];                    // CSR写地址
+    uint32_t csr_wdata[2];                    // CSR写数据
     uint64_t stage_ticks[STAGE_COUNT][2];     // 各阶段执行tick值，每个阶段两个值0--begin 1--end
     list_head_t node;                         // 列表节点
 } hw_monitor_rc_raw_data_t;
@@ -108,6 +118,7 @@ typedef struct
     hw_monitor_item_t codes[HW_MONITOR_CODE_COUNT];
     rc_bin_descript_t bin_descript;
     list_head_t record_head;
+    int storage_cnt;  // 存储体列表数量（STORAGE），决定存储索引占用的bit位数
 } hw_monitor_ctx_t;
 
 extern FILE* trace_fd;

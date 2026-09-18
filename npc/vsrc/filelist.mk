@@ -100,7 +100,7 @@ VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
 
 VERILATOR_CFLAGS += $(INCLUDES)
 
-$(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS)
+$(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS) $(WORK_DIR)/include/generated/autoconf.vh
 	@echo + CV $@
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) $(VERILATOR_CFLAGS) \

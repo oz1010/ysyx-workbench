@@ -132,7 +132,7 @@ wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
 wire core_inst_done[`RISCV_CORE_NUM-1:0];
 `ifndef IN_YOSYS_STA
 reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
-reg core_error[`RISCV_CORE_NUM-1:0];
+reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
 generate
     for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
         always @(posedge clk) begin

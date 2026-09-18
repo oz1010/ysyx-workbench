@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "recorder_types.h"
 
@@ -29,15 +30,21 @@ constexpr uint32_t DESCRIPT_VERSION       = RC_BIN_DESCRIPT_VERSION;
 constexpr uint32_t DESCRIPT_VERSION_MAJOR = RC_BIN_DESCRIPT_VERSION_MAJOR;
 
 /**
- * record 文件描述部分，对应 rc_bin_descript_t + 镜像路径字符串
+ * record 文件描述部分，对应 rc_bin_descript_t + 描述后的行式字符串数据
+ * 每行格式为'KEY\0VALUE0\0...VALUEn\0\n'，用\n标识一行结束：
+ *   - 'IMG\0<image_path>\0\n'     仿真镜像路径
+ *   - 'STORAGE\0<name>\0...\0\n'  存储体名称列表，Storage Index低bit位指令存储索引
+ *                                即为该列表的索引
  */
 struct file_desc_t
 {
     uint32_t    magic;
     uint32_t    version;
     uint32_t    config;        // bit0: icache_enable, bit1: dcache_enable
-    uint64_t    max_tick;      // 最大tick值（指令执行完时的tick值），v1.0.2起有效，旧版本为0
+    uint64_t    max_tick;      // 最大tick值（指令执行完时的tick值）
+    uint64_t    max_duration;  // 各流水阶段持续时间的最大值
     std::string image_path;    // 描述信息中的仿真镜像路径
+    std::vector<std::string> storages;  // 描述信息中的存储体名称列表
 };
 
 /**
@@ -93,7 +100,6 @@ private:
     // 增量解码上下文，与 rc_encode_ctx_t 对应
     uint64_t last_pc_        = 0;
     uint64_t last_if_begin_  = 0;
-    uint32_t last_durations_[STAGE_COUNT] = {0};
 };
 
 }  // namespace recorder

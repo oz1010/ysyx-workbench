@@ -41,7 +41,6 @@ const vector<string> CODE_STRS = {
     "SLT",    "SLTU",  "XOR",   "SRL",   "SRA",    "OR",     "AND",    "FENCE", "FENCE_I", "ECALL",
     "EBREAK", "CSRRW", "CSRRS", "CSRRC", "CSRRWI", "CSRRSI", "CSRRCI", "MUL",   "MULH",    "MULHSU",
     "MULHU",  "DIV",   "DIVU",  "REM",   "REMU",   "MRET"};
-const vector<string> MEM_STRS = {"sram", "mrom", "flash", "psram", "sdram"};
 
 struct Instruction
 {
@@ -70,6 +69,7 @@ struct Stat
 };
 
 Stat stats;
+vector<string> g_storages;  // 描述信息中的存储体名称列表，索引即Storage Index的指令存储索引
 
 void analyze_instructions(vector<Instruction> &instructions)
 {
@@ -136,6 +136,7 @@ void parse_binary_log(const char *filepath)
         exit(1);
     }
     cout << "\n镜像文件: " << re.desc().image_path << "\nELF文件:  " << re.elf_path() << endl;
+    g_storages = re.desc().storages;
 
     vector<Instruction> instructions;
     uint64_t last_idx = 0;
@@ -155,6 +156,9 @@ void parse_binary_log(const char *filepath)
             exit(1);
         }
 
+        // 寄存器写记录不参与指令统计
+        if (item.rec_type == RC_BIN_TYPE_REG) continue;
+
         if (item.index - last_idx >= show_mix_size)
         {
             show_progress(re.bytes_consumed(), re.file_size());
@@ -162,11 +166,15 @@ void parse_binary_log(const char *filepath)
             analyze_instructions(instructions);
         }
 
+        // 无效记录（被flush的指令，各阶段数据不完整）不参与统计
+        if (!item.valid) continue;
+
         Instruction inst;
         inst.inst_code  = to_code_index(item.inst_code);
-        inst.mem_index  = 0;
-        inst.icache_hit = item.icache_miss ? 0 : 1;
-        inst.icache_miss = item.icache_miss ? 1 : 0;
+        inst.mem_index  = item.storage_index;
+        // 缓存状态：0无 1命中 2未命中；每条取指指令都有icache统计数据
+        inst.icache_hit  = item.icache_stat == RC_BIN_CACHE_STAT_HIT ? 1 : 0;
+        inst.icache_miss = item.icache_stat == RC_BIN_CACHE_STAT_MISS ? 1 : 0;
         // 指令周期为IF阶段结束到WB阶段结束，与原EVENT统计口径一致
         inst.start_tick = item.stage_ticks[recorder::STAGE_INDEX_IFU][1];
         uint64_t end_tick = inst.start_tick;
@@ -285,7 +293,10 @@ void print_stats(const char *filepath)
             double miss_penalty = miss_atime * 1.0 / miss_count - access_time;
             double p = hit_count * 1.0 / (hit_count + miss_count);
             double amat = access_time + (1 - p) * miss_penalty;
-            cout << setw(8) << MEM_STRS[mem_idx] << ": " << fixed << setprecision(1) << p * 100
+            string name = (mem_idx < g_storages.size())
+                              ? g_storages[mem_idx]
+                              : "UNKNOWN_" + to_string(mem_idx);
+            cout << setw(8) << name << ": " << fixed << setprecision(1) << p * 100
                  << "% (" << hit_count << " " << (hit_count + miss_count) << ")" << std::endl;
             cout << setw(8) << ""
                  << "  " << fixed << setprecision(1) << amat << " (" << access_time << " "

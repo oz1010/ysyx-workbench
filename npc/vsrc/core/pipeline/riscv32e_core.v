@@ -462,6 +462,11 @@ csrs #(
 );
 
 /* 性能监控 */
+/* cache命中状态（2bit：NONE/HIT/MISS）传递：icache/dcache → IFU/LSU → perf monitor */
+wire [1:0] icache_stat;
+wire [1:0] dcache_stat;
+wire [1:0] if_cache_stat;
+wire [1:0] ls_cache_stat;
 perf_monitor m_perf_monitor (
     .clk(clk),
     .rst(rst),
@@ -482,6 +487,12 @@ perf_monitor m_perf_monitor (
     .in_wb_pc(con_ls_pc),
     .inst_code(con_id_inst_code),
     .dnpc(con_wb_dnpc),
+    .wb_gpr_wen(wb_gpr_wen),
+    .wb_gpr_windex(wb_gpr_windex),
+    .wb_gpr_wdata(wb_gpr_wdata),
+    .wb_csr_wch(wb_csr_wch),
+    .if_cache_stat(if_cache_stat),
+    .ls_cache_stat(ls_cache_stat),
     .done()
 );
 
@@ -560,10 +571,12 @@ icache #(
     .s_rresp(axi4_icache_rresp),
     .s_rdata(axi4_icache_rdata),
     .s_rlast(axi4_icache_rlast),
-    .s_rid(axi4_icache_rid)
+    .s_rid(axi4_icache_rid),
+    .cache_stat(icache_stat)
 );
 `else
 /* 形式化验证：IFU直连仲裁器（axi4_if_*桥接axi4_icache_*），不含指令缓存 */
+assign icache_stat = `CACHE_STAT_NONE;
 assign axi4_if_awready        = axi4_icache_awready;
 assign axi4_icache_awvalid    = axi4_if_awvalid;
 assign axi4_icache_awaddr     = axi4_if_awaddr;
@@ -670,10 +683,12 @@ dcache #(
     .s_rresp(axi4_dcache_rresp),
     .s_rdata(axi4_dcache_rdata),
     .s_rlast(axi4_dcache_rlast),
-    .s_rid(axi4_dcache_rid)
+    .s_rid(axi4_dcache_rid),
+    .cache_stat(dcache_stat)
 );
 `else
 /* 形式化验证：LSU直连仲裁器（axi4_ls_*桥接axi4_dcache_*），不含数据缓存 */
+assign dcache_stat = `CACHE_STAT_NONE;
 assign axi4_ls_awready        = axi4_dcache_awready;
 assign axi4_dcache_awvalid    = axi4_ls_awvalid;
 assign axi4_dcache_awaddr     = axi4_ls_awaddr;
@@ -1054,13 +1069,15 @@ inst_fetch #(
     .rid(axi4_if_rid),
 
     .fetch_pc(core_fetch_pc),
+    .cache_stat(icache_stat),
 
     .in_ready(mod_con_if_ready),
     .in_valid(con_core_valid),
 
     .out_ready(con_id_ready),
     .out_valid(mod_con_if_valid),
-    .out_bits(mod_con_if_bits)
+    .out_bits(mod_con_if_bits),
+    .out_cache_stat(if_cache_stat)
 );
 assign monitor_if_in_done = mod_con_if_ready & con_core_valid;
 assign monitor_if_out_done = con_id_ready & mod_con_if_valid;
@@ -1332,7 +1349,9 @@ load_store #(
 
     .out_ready(con_wb_ready),
     .out_valid(mod_con_ls_valid),
-    .out_bits(mod_con_ls_bits)
+    .out_bits(mod_con_ls_bits),
+    .cache_stat(dcache_stat),
+    .out_cache_stat(ls_cache_stat)
 );
 assign monitor_ls_in_done = mod_con_ls_ready & con_ex_valid;
 assign monitor_ls_out_done = con_wb_ready & mod_con_ls_valid;

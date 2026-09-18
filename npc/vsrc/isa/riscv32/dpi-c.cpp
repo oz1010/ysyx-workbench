@@ -229,8 +229,6 @@ void dpi_cpu_stat_ctrl(int dtype, int delta)
         flush_file = true;
     }
 
-    // TODO 直接更新trace数据的
-
     switch (dtype)
     {
         case HW_CPU_STAT_TICK:
@@ -743,20 +741,58 @@ void init_hw_monitor_record()
         hw_monitor_rc_raw_data_t* r = (hw_monitor_rc_raw_data_t*)malloc(sizeof(hw_monitor_rc_raw_data_t));
         assert(r);
         memset(r, 0, sizeof(hw_monitor_rc_raw_data_t));
+        r->mem_index = UINT32_MAX;  // 存储索引默认全1：无存储数据时解析显示为none
         list_add_tail(&r->node, &hw_monitor_ctx.record_head);
     }
 
     /**
-     * 写入文件描述数据
+     * 写入文件描述数据（v2.0.0）
+     *   描述结构后紧跟行式字符串数据，每行格式为'KEY\0VALUE0\0...VALUEn\0\n'，
+     *   一行内KEY后跟多个\0结尾的VALUE（列表形式），用\n标识一行结束：
+     *     'IMG\0<image_path>\0\n'         仿真镜像绝对路径
+     *     'STORAGE\0<name>\0...\0\n'     存储体名称列表，顺序固定（与vdev存储体注册顺序一致），
+     *                                    Storage Index的低bit位指令存储索引即为该列表的索引
+     *   record_offset记录字符串数据之后记录数据的文件偏移
      */
     rc_bin_descript_t *desc = &hw_monitor_ctx.bin_descript;
     desc->magic = RC_BIN_DESCRIPT_MAGIC;
     desc->version = RC_BIN_DESCRIPT_VERSION;
-    desc->image_path_len = strlen(g_image_file_path) + 1;
     IFDEF(CONFIG_ICACHE, desc->config.icache_enable = 1);
     IFDEF(CONFIG_DCACHE, desc->config.dcache_enable = 1);
+
+    static const char img_key[] = "IMG";
+    static const char storage_key[] = "STORAGE";
+    const char *storage_names[NR_VDEV_ITEMS];
+    int storage_cnt = 0;
+    for (int i = 0; i < NR_VDEV_ITEMS; ++i)
+    {
+        if (vdev_items[i].name && vdev_items[i].type == VDEV_MEM)
+        {
+            storage_names[storage_cnt++] = vdev_items[i].name;
+        }
+    }
+
+    uint64_t record_offset = sizeof(rc_bin_descript_t);
+    record_offset += sizeof(img_key) + strlen(g_image_file_path) + 1 + 1;
+    record_offset += sizeof(storage_key);
+    for (int i = 0; i < storage_cnt; ++i)
+    {
+        record_offset += strlen(storage_names[i]) + 1;
+    }
+    record_offset += 1;
+    desc->record_offset = record_offset;
+    hw_monitor_ctx.storage_cnt = storage_cnt;
+
     fwrite(desc, 1, sizeof(rc_bin_descript_t), perf_fp);
-    fwrite(g_image_file_path, 1, desc->image_path_len, perf_fp);
+    fwrite(img_key, 1, sizeof(img_key), perf_fp);
+    fwrite(g_image_file_path, 1, strlen(g_image_file_path) + 1, perf_fp);
+    fputc('\n', perf_fp);
+    fwrite(storage_key, 1, sizeof(storage_key), perf_fp);
+    for (int i = 0; i < storage_cnt; ++i)
+    {
+        fwrite(storage_names[i], 1, strlen(storage_names[i]) + 1, perf_fp);
+    }
+    fputc('\n', perf_fp);
     fflush(perf_fp);
 }
 
@@ -785,48 +821,50 @@ static inline void hw_monitor_bin_write_uleb128(uint64_t val, FILE* fp)
 }
 
 /**
- * @brief 将硬件 Trace 记录压缩编码并写入二进制文件 (HW_MONITOR_BIN 格式)
- *
- * @details
- * 单条记录仅保留 4 类核心数据: PC、Cache Miss 标志、指令开始时间 (IF_begin)、
- * 各流水阶段持续时间。采用 Bitmask Header + 变长 Payload 编码，顺序执行且
- * 流水线 Timing 不变时，单条记录仅占 1 字节。
- *
- * ====================================================================================
- *                         HW_MONITOR_BIN 数据二进制格式说明 (v1.0.1)
- * ====================================================================================
- *
- * 1. Header (1 Byte):
- *    +-------------------------------+-------+-------+---------------+--------------+
- *    | Bit [7:4]                     | Bit 3 | Bit 2 | Bit 1         | Bit 0        |
- *    +-------------------------------+-------+-------+---------------+--------------+
- *    | IF_DELTA_TINY                 | D_MISS| I_MISS| SAME_DURATION | DISCONT_PC   |
- *    +-------------------------------+-------+-------+---------------+--------------+
- *    - Bit 0 (DISCONT_PC)    : 1 表示 PC 不连续 (PC != last_pc + 4)，Payload 中存在 PC Delta。
- *    - Bit 1 (SAME_DURATION) : 1 表示各流水阶段持续时间与上一条指令完全一致，省略 Stage
- * Durations 写入。
- *    - Bit 2 (I_MISS)        : 1 表示该指令发生 I-Cache Miss。
- *    - Bit 3 (D_MISS)        : 1 表示该指令发生 D-Cache Miss。
- *    - Bit [7:4] (TINY)      : 若 ΔIF_begin < 15，直接存在此处；若为 15，表示 Payload 中有
- * ΔIF_begin。
- *
- * 2. Payload (可选字段，按以下顺序出现):
- *    - [PC Delta]          : (ZigZag + ULEB128)仅在 Bit 0 (DISCONT_PC) == 1 时存在。
- *    - [ΔIF_begin]         : (ULEB128)         仅在 Bit [7:4] == 15 时存在。
- *    - [Stage Durations]   : (ULEB128 数组)    仅在 Bit 1 (SAME_DURATION) == 0 时存在。
- *                            共 5 个值，依次为 IF、ID、EX、LS、WB 各阶段的持续时间
- * (stage_end - stage_begin)。
- * ====================================================================================
- *
- * @param r 指向原始硬件 Monitor 记录结构体的指针
+ * 写入一条寄存器写记录 (v2.1.0新增，v2.2.0起不再携带PC，v2.3.0起Header调整)
+ *   Header: 高2位记录类型RC_BIN_TYPE_REG；bit0: 0=GPR 1=CSR；bits[5:1]: 保留
+ *   Payload: 写索引index(ULEB128，GPR为寄存器索引/CSR为地址) + 写数据data(ULEB128)
+ *   本记录紧随所属指令记录之后写入，对应的pc即前一条指令记录的pc
  */
+static void write_reg_record(uint8_t reg_flag, uint32_t index, uint32_t data)
+{
+    uint8_t header = (RC_BIN_TYPE_REG << RC_BIN_TYPE_SHIFT) | (reg_flag & ((1 << RC_BIN_TYPE_SHIFT) - 1));
+    fputc(header, perf_fp);
+    hw_monitor_bin_write_uleb128(index, perf_fp);
+    hw_monitor_bin_write_uleb128(data, perf_fp);
+}
+
+/**
+ * WBU进入时采集的寄存器写数据：1组GPR写和2组CSR写，
+ * 在所属指令记录之后写入文件
+ */
+static void write_reg_records(hw_monitor_rc_raw_data_t* r)
+{
+    if (r->gpr_wen)
+    {
+        write_reg_record(RC_BIN_REG_GPR, r->gpr_windex, r->gpr_wdata);
+    }
+    for (int i = 0; i < 2; i++)
+    {
+        if (r->csr_wen[i])
+        {
+            write_reg_record(RC_BIN_REG_CSR, r->csr_waddr[i], r->csr_wdata[i]);
+        }
+    }
+}
+
 // static uint64_t to_simutime(uint64_t t) {
 //     return t*2+48;
 // }
-void write_record_to_file(hw_monitor_rc_raw_data_t* r)
-{
+
+/**
+ * @brief 将硬件 Trace 记录压缩编码并写入二进制文件 (HW_MONITOR_BIN 格式)
+ * @param r 指向原始硬件 Monitor 记录结构体的指针
+ */
+static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
     static rc_encode_ctx_t g_hw_mon_ctx = {0};
-    // static uint32_t inst_count = 0;
+
+        // static uint32_t inst_count = 0;
     // raw_stdout(
     //     "=== %02u 0x%08x if|%04lu,%04lu id|%04lu,%04lu ex|%04lu,%04lu ls|%04lu,%04lu wb|%04lu,%04lu "
     //     "%c\n",
@@ -851,22 +889,29 @@ void write_record_to_file(hw_monitor_rc_raw_data_t* r)
     }
 
     // 1. 提取当前指令各流水阶段的持续时间 (stage_end - stage_begin)
+    //    被flush的指令存在阶段数据不完整（缺失阶段的tick为0），不完整阶段的持续时间记0；
+    //    记录有效性由Header的INST_VALID位标识，完整阶段仍更新描述信息中的最大持续时间
     uint32_t current_durations[STAGE_COUNT];
     for (int i = 0; i < STAGE_COUNT; i++)
     {
-        current_durations[i] = (uint32_t)(r->stage_ticks[i][1] - r->stage_ticks[i][0]);
+        uint64_t begin_tick = r->stage_ticks[i][0];
+        uint64_t end_tick   = r->stage_ticks[i][1];
+        uint64_t duration   = 0;
+        if (begin_tick != 0 && end_tick >= begin_tick)
+        {
+            duration = end_tick - begin_tick;
+            if (duration > hw_monitor_ctx.bin_descript.max_duration)
+            {
+                hw_monitor_ctx.bin_descript.max_duration = duration;
+            }
+        }
+        current_durations[i] = (uint32_t)duration;
     }
 
-    // 2. 判断各阶段持续时间是否与上条指令一致
-    int timing_identical = 0;
-    if (!g_hw_mon_ctx.is_first_record)
+    // 2. 记录有效性标识（WBU完成时为有效指令，同批次其余为被flush的无效指令）
+    if (r->inst_valid)
     {
-        timing_identical =
-            (memcmp(current_durations, g_hw_mon_ctx.last_durations, sizeof(current_durations)) == 0);
-    }
-    if (timing_identical)
-    {
-        header |= RC_BIN_FLAG_SAME_DURATION;
+        header |= RC_BIN_FLAG_INST_VALID;
     }
 
     // 3. 判断 PC 是否连续
@@ -876,23 +921,15 @@ void write_record_to_file(hw_monitor_rc_raw_data_t* r)
         header |= RC_BIN_FLAG_DISCONT_PC;
     }
 
-    // 4. Cache Miss 标志
-    if (r->icache_miss)
-        header |= RC_BIN_FLAG_ICACHE_MISS;
-    if (r->dcache_miss)
-        header |= RC_BIN_FLAG_DCACHE_MISS;
+    // 4. Cache统计数据：bit[1:0]为icache状态，bit[3:2]为dcache状态；
+    //    缓存统计只针对读，写为无；任一缓存存在统计数据时Header置CACHE_DATA
+    uint8_t cache_data = (r->icache_stat & 0x3) | ((r->dcache_stat & 0x3) << 2);
+    if (cache_data != 0)
+        header |= RC_BIN_FLAG_CACHE_DATA;
 
-    // 5. ΔIF_begin 嵌入 Header 优化
+    // 5. ΔIF_begin 必然写入Payload
     uint64_t delta_if_begin =
         g_hw_mon_ctx.is_first_record ? 0 : (base_tick - g_hw_mon_ctx.last_if_begin);
-    if (delta_if_begin < 15)
-    {
-        header |= ((uint8_t)delta_if_begin << RC_BIN_IF_DELTA_SHIFT);
-    }
-    else
-    {
-        header |= (15 << RC_BIN_IF_DELTA_SHIFT);
-    }
 
     // --- 写入数据 ---
     // 写入 Header Byte
@@ -906,21 +943,23 @@ void write_record_to_file(hw_monitor_rc_raw_data_t* r)
         hw_monitor_bin_write_uleb128(zigzag_pc, perf_fp);
     }
 
-    // 按需写入 ΔIF_begin (当 Delta >= 15 时)
-    if (delta_if_begin >= 15)
+    // 写入 ΔIF_begin
+    hw_monitor_bin_write_uleb128(delta_if_begin, perf_fp);
+
+    // 写入 Storage Index：低bit位为指令存储索引，高bit位为数据存储索引；
+    // 无存储数据时对应bit位默认为全1，解析时显示为none
+    hw_monitor_bin_write_uleb128(r->mem_index, perf_fp);
+
+    // 写入各阶段持续时间
+    for (int i = 0; i < STAGE_COUNT; i++)
     {
-        hw_monitor_bin_write_uleb128(delta_if_begin, perf_fp);
+        hw_monitor_bin_write_uleb128(current_durations[i], perf_fp);
     }
 
-    // 按需写入各阶段持续时间 (仅当与上条指令不一致时)
-    if (!timing_identical)
+    // 写入缓存统计数据（1 Byte）：bit[1:0]为icache状态，bit[3:2]为dcache状态
+    if (cache_data != 0)
     {
-        for (int i = 0; i < STAGE_COUNT; i++)
-        {
-            hw_monitor_bin_write_uleb128(current_durations[i], perf_fp);
-        }
-        // 更新 timing 缓存
-        memcpy(g_hw_mon_ctx.last_durations, current_durations, sizeof(current_durations));
+        fputc(cache_data, perf_fp);
     }
 
     // 6. 更新上下文状态
@@ -936,6 +975,15 @@ void write_record_to_file(hw_monitor_rc_raw_data_t* r)
     }
 }
 
+void write_record_to_file(hw_monitor_rc_raw_data_t* r)
+{
+    // 写入指令记录
+    write_inst_record(r);
+
+    // 寄存器写记录紧跟所属指令记录之后写入
+    write_reg_records(r);
+}
+
 /**
  * 是否为空记录（正在记录数据，tick和pc不会同时为0）
  */
@@ -947,16 +995,17 @@ static inline bool is_empty_record(hw_monitor_rc_raw_data_t* r)
 /**
  * 添加监控点数据
  *   id: -1表示初始化监控数据；类型hw_monitor_mid_t
- *   pc: 当前阶段的pc值
- *   arg: IFU记录cache miss；IDU记录inst_code；EXU记录dnpc
+ *   pc: 当前阶段的pc值（寄存器写数据项不需要pc）
+ *   arg: IFU结束记录icache访问状态（2bit：0无 1命中 2未命中）；IDU记录inst_code；
+ *        EXU记录dnpc；LSU结束记录dcache访问状态（2bit：0无 1命中 2未命中，写为0）；
+ *        WBU进入时(mid.kind非0)记录寄存器写数据：1组GPR写和2组CSR写，
+ *        kind编码：1=CSR写（两个写通道共用） 2=GPR写
  */
 // void dpi_monitor_item(int item_type, int id, int delta)
 void dpi_add_monitor_item(int mid, int pc, int arg)
 {
 #if CONFIG_PERF_MONITOR
     static bool init_monitor_en = true;
-    static uint64_t last_icache_miss_count = 0;
-    static uint64_t last_dcache_miss_count = 0;
 
     // 初始化监控数据
     if (mid == -1)
@@ -964,8 +1013,6 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
         if (init_monitor_en)
         {
             init_monitor_en = false;
-            last_icache_miss_count = 0;
-            last_dcache_miss_count = 0;
             init_hw_monitor_record();
         }
         return;
@@ -988,6 +1035,55 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     list_head_t* head = &hw_monitor_ctx.record_head;
     hw_monitor_rc_raw_data_t* record = NULL;
     hw_monitor_rc_raw_data_t *pos, *n;
+
+    // WBU进入时的寄存器写数据项（mid扩展kind/wen/waddr，arg为写数据）：
+    // tick项已先行记录WBU起始tick，这里取最近一条已进入WBU且未完成的记录保存写数据；
+    // 寄存器项不携带pc，该记录即上次处理（进入WBU）的指令记录
+    if (hw_mid.kind != 0)
+    {
+        list_for_each_entry(pos, head, node)
+        {
+            if (is_empty_record(pos))
+            {
+                break;
+            }
+            // WBU已开始且未结束：同一时间至多一条，即上次处理的指令记录
+            if (pos->stage_ticks[STAGE_INDEX_WBU][0] != 0 && pos->stage_ticks[STAGE_INDEX_WBU][1] == 0)
+            {
+                record = pos;
+            }
+        }
+        if (!record)
+        {
+            return;
+        }
+        switch (hw_mid.kind)
+        {
+            case 1:  // CSR写（两个写通道共用，依次存入空闲写通道）
+                if (!record->csr_wen[0])
+                {
+                    record->csr_wen[0]   = hw_mid.wen;
+                    record->csr_waddr[0] = hw_mid.waddr;
+                    record->csr_wdata[0] = arg;
+                }
+                else
+                {
+                    record->csr_wen[1]   = hw_mid.wen;
+                    record->csr_waddr[1] = hw_mid.waddr;
+                    record->csr_wdata[1] = arg;
+                }
+                break;
+            case 2:  // GPR写
+                record->gpr_wen    = hw_mid.wen;
+                record->gpr_windex = hw_mid.waddr;
+                record->gpr_wdata  = arg;
+                break;
+            default:
+                break;
+        }
+        return;
+    }
+
     list_for_each_entry(pos, head, node)
     {
         if (stage == STAGE_INDEX_IFU && is_begin)  // IFU第一次记录找一个record即可
@@ -1027,18 +1123,22 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     // 记录各阶段tick值
     record->stage_ticks[stage][is_end] = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
 
-    // IFU结束记录cache_miss
+    // IFU结束记录icache访问状态（arg低2bit）和指令存储索引（低bit位），
+    // 高bit位数据存储索引保持默认全1
     if (stage == STAGE_INDEX_IFU && is_end)
     {
-        record->icache_miss = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS] - last_icache_miss_count;
-        last_icache_miss_count = hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MISS];
+        const int storage_bits = rc_storage_index_bits(hw_monitor_ctx.storage_cnt);
+        const uint32_t storage_mask =
+            storage_bits >= 32 ? UINT32_MAX : ((1u << storage_bits) - 1);
+        record->icache_stat = arg & 0x3;
+        record->mem_index = (record->mem_index & ~storage_mask) |
+                            (hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX] & storage_mask);
     }
 
-    // LSU结束记录dcache_miss
+    // LSU结束记录dcache访问状态（arg低2bit，写为0无）
     if (stage == STAGE_INDEX_LSU && is_end)
     {
-        record->dcache_miss = hw_cpu_stat.counts[HW_CPU_STAT_DCACHE_MISS] - last_dcache_miss_count;
-        last_dcache_miss_count = hw_cpu_stat.counts[HW_CPU_STAT_DCACHE_MISS];
+        record->dcache_stat = arg & 0x3;
     }
 
     // IDU结束记录inst_code
@@ -1052,20 +1152,25 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     // WBU结束，先记录信息，再清理之前未完成的数据
     if (stage == STAGE_INDEX_WBU && is_end)
     {
-        // 记录写入文件
-        write_record_to_file(record);
-
         // 清理之前未完成的数据
         list_head_t tmp;
         INIT_LIST_HEAD(&tmp);
         list_cut_position(&tmp, head, &record->node);
+        // 按时间顺序记录完成指令及之前被flush的未完成指令；
+        // pos==record为完成WBU的指令记为有效，其余为被flush的无效指令（部分阶段数据缺失），
+        // 有效性写入Header的INST_VALID位，无效记录可用于计算flush流水线占用的时间，正常打印时屏蔽
         list_for_each_entry(pos, &tmp, node)
         {
-            // if (pos != record)
-            //     raw_stdout("----- flush 0x%08x\n", pos->pc);
+            if (!is_empty_record(pos))
+            {
+                pos->inst_valid = (pos == record);
+                write_record_to_file(pos);
+            }
             list_head_t node = pos->node;
             memset(pos, 0, sizeof(*pos));
             pos->node = node;
+            // 存储索引恢复默认全1：数据存储索引无来源数据，清零会被误解析为存储体0
+            pos->mem_index = UINT32_MAX;
         }
         list_splice_tail_init(&tmp, head);
     }
