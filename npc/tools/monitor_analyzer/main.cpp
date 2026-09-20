@@ -48,6 +48,7 @@ struct Instruction
     uint8_t mem_index;
     uint8_t icache_hit;
     uint8_t icache_miss;
+    bool valid;
     uint64_t start_tick;
     uint64_t end_tick;
     unordered_map<uint8_t, uint64_t> stages;
@@ -78,23 +79,10 @@ void analyze_instructions(vector<Instruction> &instructions)
         if (inst.inst_code == 255)
             continue;
 
-        stats.total_instructions++;
-        stats.inst_counts[inst.inst_code]++;
-        int cycles = inst.end_tick - inst.start_tick;
-        stats.inst_cycles_avg_total[inst.inst_code] += cycles;
-        stats.inst_cycles_avg_count[inst.inst_code] += 1;
-        stats.total_cycles += cycles;
-
         const auto &s = inst.stages;
-        for (uint8_t event_type = EVENT_IFU; event_type < EVENT_COUNT; ++event_type)
-        {
-            if (s.count(event_type))
-            {
-                stats.stage_delays_avg_total[event_type] += s.at(event_type);
-                stats.stage_delays_avg_count[event_type] += 1;
-            }
-        }
 
+        // 缓存统计包含无效记录（被flush的指令）：其取指缓存访问真实发生，
+        // 与硬件计数器统计口径一致
         if (inst.icache_hit > 0 || inst.icache_miss > 0)
         {
             uint8_t mem_index = inst.mem_index;
@@ -107,6 +95,28 @@ void analyze_instructions(vector<Instruction> &instructions)
             else
             {
                 stats.mem_icache_hit_atime[mem_index] += s.at(EVENT_IFU);
+            }
+        }
+
+        // 无效记录（被flush的指令，各阶段数据不完整）不参与指令与阶段统计
+        if (!inst.valid)
+            continue;
+
+        stats.total_instructions++;
+        stats.inst_counts[inst.inst_code]++;
+        int cycles = inst.end_tick - inst.start_tick;
+        stats.inst_cycles_avg_total[inst.inst_code] += cycles;
+        stats.inst_cycles_avg_count[inst.inst_code] += 1;
+        // 指令总周期为最后一条指令完成时的tick值，即所有指令结束tick的最大值
+        if (inst.end_tick > stats.total_cycles)
+            stats.total_cycles = inst.end_tick;
+
+        for (uint8_t event_type = EVENT_IFU; event_type < EVENT_COUNT; ++event_type)
+        {
+            if (s.count(event_type))
+            {
+                stats.stage_delays_avg_total[event_type] += s.at(event_type);
+                stats.stage_delays_avg_count[event_type] += 1;
             }
         }
     }
@@ -166,23 +176,18 @@ void parse_binary_log(const char *filepath)
             analyze_instructions(instructions);
         }
 
-        // 无效记录（被flush的指令，各阶段数据不完整）不参与统计
-        if (!item.valid) continue;
-
+        // 无效记录（被flush的指令，各阶段数据不完整）不参与指令与阶段统计，
+        // 但其取指缓存访问真实发生，缓存统计仍纳入（见analyze_instructions）
         Instruction inst;
+        inst.valid      = item.valid;
         inst.inst_code  = to_code_index(item.inst_code);
         inst.mem_index  = item.storage_index;
         // 缓存状态：0无 1命中 2未命中；每条取指指令都有icache统计数据
         inst.icache_hit  = item.icache_stat == RC_BIN_CACHE_STAT_HIT ? 1 : 0;
         inst.icache_miss = item.icache_stat == RC_BIN_CACHE_STAT_MISS ? 1 : 0;
-        // 指令周期为IF阶段结束到WB阶段结束，与原EVENT统计口径一致
-        inst.start_tick = item.stage_ticks[recorder::STAGE_INDEX_IFU][1];
-        uint64_t end_tick = inst.start_tick;
-        for (int i = recorder::STAGE_INDEX_IDU; i < recorder::STAGE_COUNT; ++i)
-        {
-            end_tick += item.durations[i];
-        }
-        inst.end_tick  = end_tick;
+        // 指令周期为IF阶段起始到WB阶段结束，即各阶段持续时间之和
+        inst.start_tick = item.stage_ticks[recorder::STAGE_INDEX_IFU][0];
+        inst.end_tick   = item.stage_ticks[recorder::STAGE_INDEX_WBU][1];
         inst.stages[EVENT_IFU] = item.durations[recorder::STAGE_INDEX_IFU];
         inst.stages[EVENT_IDU] = item.durations[recorder::STAGE_INDEX_IDU];
         inst.stages[EVENT_EXU] = item.durations[recorder::STAGE_INDEX_EXU];
