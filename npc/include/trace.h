@@ -60,6 +60,8 @@ extern FILE* trace_fd;
  * 额外记录值
  *   - IFU结束记录icache_stat（2bit缓存状态：0无 1命中 2未命中）
  *   - LSU结束记录dcache_stat（2bit缓存状态：0无 1命中 2未命中，写为0）
+ *   - IFU结束按pc获取指令存储索引icache_mem_index
+ *   - LSU结束按访存目标地址获取数据存储索引dcache_mem_index
  *   - IDU结束记录inst_code
  *   - EXU结束记录dnpc
  *   - WBU进入记录1组GPR写(wen/index/data)和2组CSR写(wen/addr/data)
@@ -70,8 +72,9 @@ typedef struct
     uint32_t pc;                              // 取指的PC值
     uint32_t icache_stat;                     // 指令缓存访问状态：0无 1命中 2未命中
     uint32_t dcache_stat;                     // 数据缓存访问状态：0无 1命中 2未命中（写为0）
-    uint32_t mem_index;                       // 存储索引：低bit位为指令存储索引（IFU结束时更新），
-                                              // 高bit位为数据存储索引；无存储数据时默认为全1，解析显示为none
+    uint32_t icache_mem_index;                // 指令存储索引：IFU结束时按pc在STORAGE列表中查找的索引
+    uint32_t dcache_mem_index;                // 数据存储索引：LSU结束时按访存目标地址在STORAGE列表中查找的索引
+                                              // 两者无存储数据时默认为全1，解析显示为none
     uint32_t inst_valid;                      // 指令有效标识，WBU完成时pos==record为有效
     uint32_t inst_code;                       // 指令码
     uint32_t dnpc;                            // 目标跳转的PC值

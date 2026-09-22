@@ -184,11 +184,10 @@
 `define HW_CPU_STAT_TICK                0
 `define HW_CPU_STAT_ICACHE_HIT          1
 `define HW_CPU_STAT_ICACHE_MISS         2
-`define HW_CPU_STAT_ICACHE_MEM_INDEX    3
-`define HW_CPU_STAT_INST                4
-`define HW_CPU_STAT_DATA                5
-`define HW_CPU_STAT_DCACHE_HIT          6
-`define HW_CPU_STAT_DCACHE_MISS         7
+`define HW_CPU_STAT_INST                3
+`define HW_CPU_STAT_DATA                4
+`define HW_CPU_STAT_DCACHE_HIT          5
+`define HW_CPU_STAT_DCACHE_MISS         6
 
 /* Cache访问状态（2bit），由icache/dcache产生，随IFU/LSU流水传递记录到perf monitor */
 /* 统计数据只针对读：写或无读访问时为NONE */

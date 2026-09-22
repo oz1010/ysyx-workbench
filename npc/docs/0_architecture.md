@@ -454,11 +454,10 @@ struct vdev_item_t {
 | `HW_CPU_STAT_TICK` (0)             | 总时钟周期数      |
 | `HW_CPU_STAT_ICACHE_HIT` (1)       | ICache 命中次数   |
 | `HW_CPU_STAT_ICACHE_MISS` (2)      | ICache 未命中次数 |
-| `HW_CPU_STAT_ICACHE_MEM_INDEX` (3) | ICache 内存索引   |
-| `HW_CPU_STAT_INST` (4)             | 执行指令数        |
-| `HW_CPU_STAT_DATA` (5)             | 数据访问次数      |
-| `HW_CPU_STAT_DCACHE_HIT` (6)       | DCache 命中次数   |
-| `HW_CPU_STAT_DCACHE_MISS` (7)      | DCache 未命中次数 |
+| `HW_CPU_STAT_INST` (3)             | 执行指令数        |
+| `HW_CPU_STAT_DATA` (4)             | 数据访问次数      |
+| `HW_CPU_STAT_DCACHE_HIT` (5)       | DCache 命中次数   |
+| `HW_CPU_STAT_DCACHE_MISS` (6)      | DCache 未命中次数 |
 
 通过 DPI-C 接口 `dpi_cpu_stat_ctrl(dtype, delta)` 上报到仿真器软件端。
 
