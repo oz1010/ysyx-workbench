@@ -125,6 +125,28 @@ uint16_t decode_inst_code(uint32_t inst)
     return INST_INVALID_CODE;
 }
 
+int decode_inst(uint32_t inst, inst_dec_t* out)
+{
+    if (!out) return -1;
+    out->inst_code = decode_inst_code(inst);
+    out->rs1 = out->rs2 = out->rd = 0;
+    if (out->inst_code == INST_INVALID_CODE) return 0;
+    const uint16_t type = out->inst_code & 0x0F00;  // INST_TYPE_xxx位
+    if (type == INST_TYPE_R || type == INST_TYPE_I || type == INST_TYPE_U ||
+        type == INST_TYPE_J)
+        out->rd = (inst >> 7) & 0x1F;
+    if (type == INST_TYPE_R || type == INST_TYPE_I || type == INST_TYPE_S ||
+        type == INST_TYPE_B)
+        out->rs1 = (inst >> 15) & 0x1F;
+    if (type == INST_TYPE_R || type == INST_TYPE_S || type == INST_TYPE_B)
+        out->rs2 = (inst >> 20) & 0x1F;
+    return 0;
+}
+
+bool inst_is_load(uint16_t inst_code)  { return inst_code >= INST_LB && inst_code <= INST_LHU; }
+bool inst_is_store(uint16_t inst_code) { return inst_code >= INST_SB && inst_code <= INST_SW; }
+bool inst_is_mdr(uint16_t inst_code)   { return inst_code >= INST_MUL && inst_code <= INST_REMU; }
+
 const char* inst_code_name(uint16_t inst_code)
 {
     switch (inst_code)

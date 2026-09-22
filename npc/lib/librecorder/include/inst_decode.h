@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "recorder_types.h"
+
 namespace recorder
 {
 
@@ -80,7 +82,33 @@ namespace recorder
 {
 
 /**
- * 由指令码返回指令缩写（如 "addi"），无法识别时返回 "?"
+ * 指令解码结果：指令码与rd/rs1/rs2字段，
+ * 指令码与inst_decode.v的casez解码表一致，字段提取规则与inst_decode.v的
+ * inst_type一致（类型取自指令码中的INST_TYPE_xxx位，无法识别的指令码字段全0）
+ */
+struct inst_dec_t
+{
+    uint16_t inst_code = INST_INVALID_CODE;  // 指令码，枚举INST_xxx
+    uint8_t  rs1 = 0;  // 源寄存器1：类型为R/I/S/B时取inst[19:15]
+    uint8_t  rs2 = 0;  // 源寄存器2：类型为R/S/B时取inst[24:20]
+    uint8_t  rd  = 0;  // 目的寄存器：类型为R/I/U/J时取inst[11:7]
+};
+
+/**
+ * 将指令字解码为inst_dec_t结构体
+ * @return 0成功，-1失败（out为空指针）
+ */
+int decode_inst(uint32_t inst, inst_dec_t* out);
+
+/**
+ * 指令分类判断：编码值按定义顺序连续，用范围判断
+ */
+bool inst_is_load(uint16_t inst_code);   // LB..LHU
+bool inst_is_store(uint16_t inst_code);  // SB..SW
+bool inst_is_mdr(uint16_t inst_code);    // 乘除 MUL..REMU
+
+/**
+ * 由指令码返回指令缩写（大写字母，如 "ADDI"），无法识别时返回 "?"
  */
 const char* inst_code_name(uint16_t inst_code);
 
