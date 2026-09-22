@@ -49,7 +49,12 @@ module load_store #(
     /* 模块输入数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [OUT_DATA_W-1:0]       out_bits
+    output  wire [OUT_DATA_W-1:0]       out_bits,
+
+    /* dcache读命中状态（2bit）：NONE/HIT/MISS，统计数据只针对读，写为NONE */
+    input   wire [1:0]                  cache_stat,
+    /* 访存对应的dcache命中状态，out_valid期间有效 */
+    output  wire [1:0]                  out_cache_stat
 );
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
@@ -92,6 +97,8 @@ module load_store #(
 
     reg [INST_WIDTH-1:0] r_result;
     reg r_result_update_gpr;
+    reg [1:0] r_cache_stat = `CACHE_STAT_NONE;
+    assign out_cache_stat = r_cache_stat;
 
     wire access_enable = !in_ready;
     wire [INST_WIDTH-1:0]       access_addr = src1+imm;
@@ -203,6 +210,7 @@ module load_store #(
             r_stage_out_valid <= 0;
             r_read_enable <= 0;
             r_write_enable <= 0;
+            r_cache_stat <= `CACHE_STAT_NONE;
         end else begin
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;
@@ -210,6 +218,8 @@ module load_store #(
             if (ls_enable && stage_in_done) begin
                 r_read_enable <= read_inst ? 1 : 0;
                 r_write_enable <= write_inst ? 1 : 0;
+                // 进入时默认无缓存统计（写指令保持NONE），读完成时再更新
+                r_cache_stat <= `CACHE_STAT_NONE;
             end
 
             if (!ls_enable) begin
@@ -254,6 +264,8 @@ module load_store #(
                         r_result_update_gpr <= 1;
                         r_stage_out_valid <= 1;
                         r_read_enable <= 0;
+                        // 读数据返回时锁存dcache命中状态（读请求被接受后cache_stat已稳定）
+                        r_cache_stat <= cache_stat;
                     end
                 end else begin
                     // `ifndef IN_YOSYS_STA
@@ -261,7 +273,12 @@ module load_store #(
                     // `endif
                 end
 
-                if (stage_out_done) r_stage_out_valid <= 0;
+                if (stage_out_done) begin
+                    r_stage_out_valid <= 0;
+                    /* 输出完成后清除dcache命中状态，避免下一条非访存指令
+                       流出时采样到上一条load残留的HIT/MISS */
+                    r_cache_stat <= `CACHE_STAT_NONE;
+                end
             end else begin
                 r_stage_out_valid <= 0;
             end
