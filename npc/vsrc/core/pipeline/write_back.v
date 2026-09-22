@@ -40,7 +40,7 @@ module write_back #(
         expt, expt_cause, expt_tval
     } = in_bits;
     assign out_bits = {
-        pc, dnpc, rd
+        pc, dnpc, rd, result, result_update_gpr
     };
 `endif
 
