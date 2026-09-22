@@ -280,15 +280,15 @@ int Recorder::decode_record(rc_decode_item_t* item)
         item->pc = static_cast<uint32_t>(last_pc_ + 4);
     }
 
-    // IF起始tick增量（必然存在，ULEB128编码）
-    uint64_t delta_if_begin = 0;
-    if (!reader_->read_uleb128(&delta_if_begin))
+    // 指令起始tick增量（必然存在，ULEB128编码）
+    uint64_t delta_inst_begin = 0;
+    if (!reader_->read_uleb128(&delta_inst_begin))
     {
-        error_ = "IF起始tick增量缺失或数据不完整(offset=" +
+        error_ = "指令起始tick增量缺失或数据不完整(offset=" +
                  std::to_string(record_offset) + ")";
         return -1;
     }
-    item->if_begin = last_if_begin_ + delta_if_begin;
+    item->inst_begin = last_inst_begin_ + delta_inst_begin;
 
     // Storage Index（必然存在，ULEB128编码）：低bit位为指令存储索引，
     // 高bit位为数据存储索引，bit位数由存储体列表数决定
@@ -333,15 +333,15 @@ int Recorder::decode_record(rc_decode_item_t* item)
     }
 
     // 更新增量解码上下文
-    last_pc_       = item->pc;
-    last_if_begin_ = item->if_begin;
+    last_pc_         = item->pc;
+    last_inst_begin_ = item->inst_begin;
 
     // 记录有效性由Header的INST_VALID位标识：被flush的指令存在缺失阶段，
     // 为无效记录，可用于计算flush流水线占用的时间
     item->valid = inst_valid;
 
     // 展开各阶段起止tick
-    uint64_t tick = item->if_begin;
+    uint64_t tick = item->inst_begin;
     for (int i = 0; i < STAGE_COUNT; ++i)
     {
         item->stage_ticks[i][0] = tick;

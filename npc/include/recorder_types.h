@@ -33,7 +33,9 @@
  *
  * Payload (字段按以下顺序出现):
  *    - [PC Delta]          : (ZigZag + ULEB128)仅在 Bit 0 (DISCONT_PC) == 1 时存在。
- *    - <ΔIF_begin>         : (ULEB128)         固定存在，IF阶段起始tick相对上一条指令记录的增量。
+ *    - <Δinst_begin>       : (ULEB128)         固定存在，指令起始tick(inst_begin)相对上一条指令记录的增量。
+ *                                              该tick为整条指令的起始时刻，当前为取指IFU阶段的起始tick；
+ *                                              后续加入取指流水线后IFU阶段名称可能修改，故按指令起始时刻命名为inst_begin。
  *    - <Storage Index>     : (ULEB128)         固定存在，存储索引值，具体格式见后面；
  *    - <Stage Durations>   : (ULEB128 ARRAY)   固定存在，依次为IF ID EX LS WB各阶段的持续时间。
  *    - [Cache Data]        : (1 Byte)          仅在 Bit 2 (CACHE_DATA) == 1 时存在，
@@ -235,7 +237,7 @@ static inline int rc_storage_index_bits(int storage_count)
 typedef struct
 {
     uint64_t last_pc;
-    uint64_t last_if_begin;
+    uint64_t last_inst_begin;
     uint64_t last_update_tick;
     int is_first_record;
 } rc_encode_ctx_t;
@@ -263,7 +265,7 @@ typedef struct
     uint32_t dcache_stat; // 访存D-Cache访问状态：0无 1命中 2未命中（写为0）
     uint32_t storage_index;      // 指令存储索引（Storage Index低bit位，即STORAGE列表索引；全1表示无存储数据）
     uint32_t data_storage_index; // 数据存储索引（Storage Index高bit位；全1表示无存储数据）
-    uint64_t if_begin;   // IF阶段起始tick
+    uint64_t inst_begin;   // 指令起始tick(inst_begin)，整条指令的起始时刻，当前为IFU阶段起始tick
     uint32_t durations[STAGE_COUNT];       // 各阶段持续时间(end - begin)
     uint64_t stage_ticks[STAGE_COUNT][2];  // 各阶段起始/结束tick
     bool valid;  // 记录是否有效，取自Header的INST_VALID位；被flush的指令为无效记录
