@@ -467,6 +467,7 @@ wire [1:0] icache_stat;
 wire [1:0] dcache_stat;
 wire [1:0] if_cache_stat;
 wire [1:0] ls_cache_stat;
+wire ls_mem_access;
 wire [31:0] ls_mem_addr;
 perf_monitor m_perf_monitor (
     .clk(clk),
@@ -494,6 +495,7 @@ perf_monitor m_perf_monitor (
     .wb_csr_wch(wb_csr_wch),
     .if_cache_stat(if_cache_stat),
     .ls_cache_stat(ls_cache_stat),
+    .ls_mem_access(ls_mem_access),
     .ls_mem_addr(ls_mem_addr),
     .done()
 );
@@ -1354,6 +1356,7 @@ load_store #(
     .out_bits(mod_con_ls_bits),
     .cache_stat(dcache_stat),
     .out_cache_stat(ls_cache_stat),
+    .out_mem_access(ls_mem_access),
     .out_mem_addr(ls_mem_addr)
 );
 assign monitor_ls_in_done = mod_con_ls_ready & con_ex_valid;

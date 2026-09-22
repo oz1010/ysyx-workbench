@@ -28,7 +28,8 @@ module perf_monitor (
 
     input  wire [1:0]   if_cache_stat, // IFU取指对应的icache命中状态（NONE/HIT/MISS）
     input  wire [1:0]   ls_cache_stat, // LSU访存对应的dcache命中状态（NONE/HIT/MISS，写为NONE）
-    input  wire [31:0]  ls_mem_addr,   // LSU访存目标地址，dcache读HIT/MISS期间有效
+    input  wire         ls_mem_access, // LSU访存标识：访存指令（读或写）out_valid期间为1
+    input  wire [31:0]  ls_mem_addr,   // LSU访存目标地址，访存指令out_valid期间有效
 
     output wire         done
 );
@@ -128,9 +129,9 @@ always @(posedge clk) begin
         if (!last_ex_out_done & ex_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_EXU}, ex_pc, 0);
         // LSU
         if (!last_ls_in_done & ls_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_LSU}, ls_pc, 0);
-        // LSU结束：mid.kind携带dcache访问状态（0无 1命中 2未命中），状态非NONE时为
-        // dcache读访问，arg为访存目标地址，据此获取数据存储索引
-        if (!last_ls_out_done & ls_out_done) func_add_monitor_item({24'h0, 1'b0, ls_cache_stat, 1'b1, 4'h`STAGE_INDEX_LSU}, ls_pc, ls_mem_addr);
+        // LSU结束：mid.kind携带dcache访问状态（0无 1命中 2未命中，写为0），mid.wen为访存标识，
+        // wen为1（有访存，含写）时arg为访存目标地址，据此获取数据存储索引
+        if (!last_ls_out_done & ls_out_done) func_add_monitor_item({11'h0, 13'h0, ls_mem_access, ls_cache_stat, 1'b1, 4'h`STAGE_INDEX_LSU}, ls_pc, ls_mem_addr);
         // WBU
         if (!last_wb_in_done & wb_in_done) begin
             func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
