@@ -43,6 +43,7 @@ struct file_desc_t
     uint32_t    config;        // bit0: icache_enable, bit1: dcache_enable
     uint64_t    max_tick;      // 最大tick值（指令执行完时的tick值）
     uint64_t    max_duration;  // 各流水阶段持续时间的最大值
+    uint64_t    total_inst;    // 总取指数
     std::string image_path;    // 描述信息中的仿真镜像路径
     std::vector<std::string> storages;  // 描述信息中的存储体名称列表
 };

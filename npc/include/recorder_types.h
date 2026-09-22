@@ -4,7 +4,7 @@
  * ====================================================================================
  *
  * 1. 文件格式
- * 
+ *
  * 记录文件整体格式为：
  *   - 描述头部 rc_bin_descript_t，固定长度
  *   - 字符串列表项 'KEY\0VALUE0\0...VALUEn\0\n'，record_offset-描述头部大小
@@ -98,7 +98,7 @@ enum
  *     用于检测数据格式是否兼容，前两位版本一致数据格式必须兼容
  */
 #define RC_BIN_DESCRIPT_MAGIC 0x504D5244u
-#define RC_BIN_DESCRIPT_VERSION 0x00020400u
+#define RC_BIN_DESCRIPT_VERSION 0x00020500u
 #define RC_BIN_DESCRIPT_VERSION_MAJOR (RC_BIN_DESCRIPT_VERSION >> 16)
 
 /**
@@ -154,6 +154,12 @@ typedef struct
      * 记录每条指令各阶段持续时间时更新
      */
     uint64_t max_duration;
+
+    /**
+     * 总取指数
+     * 记录仿真时取指单元所有指令数，退出前强制回写更新
+     */
+    uint64_t total_inst;
 } rc_bin_descript_t;
 
 typedef union

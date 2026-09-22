@@ -888,6 +888,9 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
         }
     }
 
+    // 更新描述信息中的总取指数
+    hw_monitor_ctx.bin_descript.total_inst++;
+
     // 1. 提取当前指令各流水阶段的持续时间 (stage_end - stage_begin)
     //    被flush的指令存在阶段数据不完整（缺失阶段的tick为0），不完整阶段的持续时间记0；
     //    记录有效性由Header的INST_VALID位标识，完整阶段仍更新描述信息中的最大持续时间
