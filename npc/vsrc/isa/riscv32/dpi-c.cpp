@@ -931,9 +931,9 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
     if (cache_data != 0)
         header |= RC_BIN_FLAG_CACHE_DATA;
 
-    // 5. ΔIF_begin 必然写入Payload
-    uint64_t delta_if_begin =
-        g_hw_mon_ctx.is_first_record ? 0 : (base_tick - g_hw_mon_ctx.last_if_begin);
+    // 5. Δinst_begin(指令起始tick) 必然写入Payload
+    uint64_t delta_inst_begin =
+        g_hw_mon_ctx.is_first_record ? 0 : (base_tick - g_hw_mon_ctx.last_inst_begin);
 
     // --- 写入数据 ---
     // 写入 Header Byte
@@ -947,8 +947,8 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
         hw_monitor_bin_write_uleb128(zigzag_pc, perf_fp);
     }
 
-    // 写入 ΔIF_begin
-    hw_monitor_bin_write_uleb128(delta_if_begin, perf_fp);
+    // 写入 Δinst_begin(指令起始tick)
+    hw_monitor_bin_write_uleb128(delta_inst_begin, perf_fp);
 
     // 写入 Storage Index：低bit位为指令存储索引，高bit位为数据存储索引；
     // 无存储数据时对应bit位默认为全1，解析时显示为none
@@ -973,7 +973,7 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
 
     // 6. 更新上下文状态
     g_hw_mon_ctx.last_pc = r->pc;
-    g_hw_mon_ctx.last_if_begin = base_tick;
+    g_hw_mon_ctx.last_inst_begin = base_tick;
     g_hw_mon_ctx.is_first_record = 0;
 
     // 7. 定时刷盘

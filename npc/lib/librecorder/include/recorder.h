@@ -100,7 +100,7 @@ private:
     uint64_t      record_cnt_ = 0;
     // 增量解码上下文，与 rc_encode_ctx_t 对应
     uint64_t last_pc_        = 0;
-    uint64_t last_if_begin_  = 0;
+    uint64_t last_inst_begin_ = 0;
 };
 
 }  // namespace recorder
