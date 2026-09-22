@@ -412,17 +412,29 @@ csrs #(
 perf_monitor m_perf_monitor (
     .clk(clk),
     .rst(rst),
-    .pc(pc),
-    .inst(inst),
-    .if_valid(con_if_valid),
-    .id_ready(con_id_ready),
-    .id_valid(con_id_valid),
-    .ex_ready(con_ex_ready),
-    .ex_valid(con_ex_valid),
-    .ls_ready(con_ls_ready),
-    .ls_valid(con_ls_valid),
-    .wb_ready(con_wb_ready),
+    .if_in_done(monitor_if_in_done),
+    .if_out_done(monitor_if_out_done),
+    .id_in_done(monitor_id_in_done),
+    .id_out_done(monitor_id_out_done),
+    .ex_in_done(monitor_ex_in_done),
+    .ex_out_done(monitor_ex_out_done),
+    .ls_in_done(monitor_ls_in_done),
+    .ls_out_done(monitor_ls_out_done),
+    .wb_in_done(monitor_wb_in_done),
+    .wb_out_done(monitor_wb_out_done),
+    .in_if_pc(pc),       // 单发射下IFU进入时的取指地址即core_pc
+    .in_id_pc(con_if_pc),
+    .in_ex_pc(con_id_pc),
+    .in_ls_pc(con_ex_pc),
+    .in_wb_pc(con_ls_pc),
     .inst_code(con_id_inst_code),
+    .dnpc(core_dnpc),    // WBU离开时的下一条指令地址
+    .wb_gpr_wen(wb_gpr_wen),
+    .wb_gpr_windex(wb_gpr_windex),
+    .wb_gpr_wdata(wb_gpr_wdata),
+    .wb_csr_wch(wb_csr_wch),
+    .if_cache_stat(if_cache_stat),
+    .ls_cache_stat(ls_cache_stat),
     .done()
 );
 
@@ -500,7 +512,8 @@ icache #(
     .s_rresp(axi4_icache_rresp),
     .s_rdata(axi4_icache_rdata),
     .s_rlast(axi4_icache_rlast),
-    .s_rid(axi4_icache_rid)
+    .s_rid(axi4_icache_rid),
+    .cache_stat(icache_stat)
 );
 
 /* 数据缓存 */
@@ -577,7 +590,8 @@ dcache #(
     .s_rresp(axi4_dcache_rresp),
     .s_rdata(axi4_dcache_rdata),
     .s_rlast(axi4_dcache_rlast),
-    .s_rid(axi4_dcache_rid)
+    .s_rid(axi4_dcache_rid),
+    .cache_stat(dcache_stat)
 );
 
 /* arbiter模块 */
@@ -883,7 +897,10 @@ inst_fetch #(
 
     .out_ready(con_id_ready),
     .out_valid(mod_con_if_valid),
-    .out_bits(mod_con_if_bits)
+    .out_bits(mod_con_if_bits),
+
+    .cache_stat(icache_stat),
+    .out_cache_stat(if_cache_stat)
 );
 stage_regs#(
     .DATA_STORAGE(1),
@@ -1065,7 +1082,10 @@ load_store #(
 
     .out_ready(con_wb_ready),
     .out_valid(mod_con_ls_valid),
-    .out_bits(mod_con_ls_bits)
+    .out_bits(mod_con_ls_bits),
+
+    .cache_stat(dcache_stat),
+    .out_cache_stat(ls_cache_stat)
 );
 stage_regs#(
     .DATA_STORAGE(1),
@@ -1102,5 +1122,44 @@ write_back #(
     .out_ready(con_core_ready),
     .out_valid(mod_con_wb_valid)
 );
+
+/* 性能监控 */
+/* 阶段进入/离开完成脉冲：模块完成信号与前后级握手信号的组合（与pipeline核一致） */
+wire                        monitor_if_in_done;
+wire                        monitor_if_out_done;
+wire                        monitor_id_in_done;
+wire                        monitor_id_out_done;
+wire                        monitor_ex_in_done;
+wire                        monitor_ex_out_done;
+wire                        monitor_ls_in_done;
+wire                        monitor_ls_out_done;
+wire                        monitor_wb_in_done;
+wire                        monitor_wb_out_done;
+assign monitor_if_in_done  = mod_con_if_ready & con_core_valid;
+assign monitor_if_out_done = con_id_ready & mod_con_if_valid;
+assign monitor_id_in_done  = mod_con_id_ready & con_if_valid;
+assign monitor_id_out_done = con_ex_ready & mod_con_id_valid;
+assign monitor_ex_in_done  = mod_con_ex_ready & con_id_valid;
+assign monitor_ex_out_done = con_ls_ready & mod_con_ex_valid;
+assign monitor_ls_in_done  = mod_con_ls_ready & con_ex_valid;
+assign monitor_ls_out_done = con_wb_ready & mod_con_ls_valid;
+assign monitor_wb_in_done  = mod_con_wb_ready & con_ls_valid;
+assign monitor_wb_out_done = con_core_ready & mod_con_wb_valid;
+/* WBU进入时的CSR写通道：多周期核在EX阶段提交CSR写，
+   单发射顺序执行下EX离开时的写通道即WBU进入指令的写通道，锁存后随WBU进入上报 */
+reg  [`CSR_WCH_W-1:0]       wb_csr_wch;
+always @(posedge clk) begin
+    if (rst) begin
+        wb_csr_wch <= 0;
+    end else if (monitor_ex_out_done) begin
+        wb_csr_wch <= csr_wch;
+    end
+end
+/* cache命中状态：icache/dcache读命中状态（NONE/HIT/MISS），
+   经IFU/LSU锁存后随流水线流出上报perf_monitor */
+wire [1:0]                  icache_stat;
+wire [1:0]                  dcache_stat;
+wire [1:0]                  if_cache_stat;
+wire [1:0]                  ls_cache_stat;
 
 endmodule

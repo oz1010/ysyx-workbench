@@ -53,7 +53,12 @@ module inst_fetch #(
     /* 模块输出数据总线 */
     input   wire                        out_ready,
     output  wire                        out_valid,
-    output  wire [OUT_DATA_W-1:0]       out_bits
+    output  wire [OUT_DATA_W-1:0]       out_bits,
+
+    /* icache读命中状态（2bit）：NONE/HIT/MISS */
+    input   wire [1:0]                  cache_stat,
+    /* 取指对应的icache命中状态，out_valid期间有效 */
+    output  wire [1:0]                  out_cache_stat
 );
 
     reg [INST_WIDTH-1:0] pc;
@@ -92,6 +97,9 @@ module inst_fetch #(
     assign stage_out_valid = rvalid && rready && rlast;
     assign out_bits = {pc, read_inst};
     assign snpc = pc + 4;
+
+    reg [1:0] r_cache_stat = `CACHE_STAT_NONE;
+    assign out_cache_stat = r_cache_stat;
 
     always @(posedge clk) begin
         if (rst) begin
@@ -163,12 +171,18 @@ module inst_fetch #(
 
             always @(posedge clk) begin
                 if (rst) begin
+                    r_cache_stat <= `CACHE_STAT_NONE;
                 end else begin
                     // read request
                     if (read_en) begin
                         if (arvalid) begin
                             check_dev_addr(pc, `DEV_ATTR_READ|`DEV_ATTR_EXEC);
                         end
+                    end
+
+                    // 读数据返回时锁存icache命中状态（读请求被接受后cache_stat已稳定）
+                    if (rvalid && rready && rlast) begin
+                        r_cache_stat <= cache_stat;
                     end
                 end
             end

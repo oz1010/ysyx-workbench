@@ -275,7 +275,7 @@ void print_stats(const char *filepath)
         }
     }
 
-    cout << "\n缓存统计:\n";
+    cout << "\n指令缓存统计:\n";
     if (stats.mem_icache_hit.empty())
     {
         cout << "  无有效的指令缓存数据\n";
