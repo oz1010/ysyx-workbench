@@ -39,6 +39,7 @@ void vdev_write(vdev_item_t* vdev, paddr_t addr, int len, word_t data);
 word_t vdev_read_with_trace(vdev_item_t* vdev, paddr_t addr, int len, bool trace_en);
 void vdev_write_with_trace(vdev_item_t* vdev, paddr_t addr, int len, word_t data, bool trace_en);
 vdev_item_t *find_vdev_item(paddr_t addr);
+int find_vdev_storage_index(paddr_t addr);
 void show_vdev(void);
 const char* vdev_type_str(vdev_type_t type);
 

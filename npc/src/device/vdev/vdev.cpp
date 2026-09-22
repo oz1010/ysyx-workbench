@@ -10,7 +10,6 @@
 #include "trace.h"
 #include "device/alarm.h"
 
-extern hw_cpu_stat_t hw_cpu_stat;
 static int vdev_items_cnt = 0;
 vdev_item_t vdev_items[NR_VDEV_ITEMS] = {};
 
@@ -202,9 +201,8 @@ vdev_item_t* add_vdev_item(vdev_type_t type, const char* name, paddr_t addr, uin
 vdev_item_t* find_vdev_item(paddr_t addr)
 {
     vdev_item_t* matched_vdev = NULL;
-    int idx;
 
-    for (idx = 0; idx < ARRLEN(vdev_items); ++idx)
+    for (int idx = 0; idx < ARRLEN(vdev_items); ++idx)
     {
         vdev_item_t* vdev = &vdev_items[idx];
         if (!vdev->name)
@@ -217,15 +215,32 @@ vdev_item_t* find_vdev_item(paddr_t addr)
         }
     }
 
-    if (matched_vdev)
+    return matched_vdev;
+}
+
+/**
+ * 查找地址所属存储体在STORAGE列表（记录文件中存储体名称列表）中的索引
+ *   - 仅匹配VDEV_MEM类型的设备，索引按注册顺序从0开始编号
+ *   - 地址不属于任何存储体时返回-1
+ */
+int find_vdev_storage_index(paddr_t addr)
+{
+    int storage_idx = 0;
+
+    for (int idx = 0; idx < ARRLEN(vdev_items); ++idx)
     {
-        if (matched_vdev->type == VDEV_MEM)
+        vdev_item_t* vdev = &vdev_items[idx];
+        if (!vdev->name || vdev->type != VDEV_MEM)
+            continue;
+
+        if (addr < vdev->endaddr && addr >= vdev->startaddr)
         {
-            hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX] = idx;
+            return storage_idx;
         }
+        storage_idx++;
     }
 
-    return matched_vdev;
+    return -1;
 }
 
 void show_vdev(void)

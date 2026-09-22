@@ -741,7 +741,8 @@ void init_hw_monitor_record()
         hw_monitor_rc_raw_data_t* r = (hw_monitor_rc_raw_data_t*)malloc(sizeof(hw_monitor_rc_raw_data_t));
         assert(r);
         memset(r, 0, sizeof(hw_monitor_rc_raw_data_t));
-        r->mem_index = UINT32_MAX;  // 存储索引默认全1：无存储数据时解析显示为none
+        r->icache_mem_index = UINT32_MAX;  // 存储索引默认全1：无存储数据时解析显示为none
+        r->dcache_mem_index = UINT32_MAX;
         list_add_tail(&r->node, &hw_monitor_ctx.record_head);
     }
 
@@ -951,7 +952,12 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
 
     // 写入 Storage Index：低bit位为指令存储索引，高bit位为数据存储索引；
     // 无存储数据时对应bit位默认为全1，解析时显示为none
-    hw_monitor_bin_write_uleb128(r->mem_index, perf_fp);
+    const int storage_bits = rc_storage_index_bits(hw_monitor_ctx.storage_cnt);
+    const uint32_t storage_mask =
+        storage_bits >= 32 ? UINT32_MAX : ((1u << storage_bits) - 1);
+    uint32_t mem_index = (r->icache_mem_index & storage_mask) |
+                         ((uint32_t)((r->dcache_mem_index & storage_mask) << storage_bits));
+    hw_monitor_bin_write_uleb128(mem_index, perf_fp);
 
     // 写入各阶段持续时间
     for (int i = 0; i < STAGE_COUNT; i++)
@@ -996,11 +1002,18 @@ static inline bool is_empty_record(hw_monitor_rc_raw_data_t* r)
 }
 
 /**
+ * LSU访存目标地址，LSU结束监控项（arg）在有访存时更新，
+ * 用于查找数据存储索引（dcache_mem_index）
+ */
+static uint32_t dcache_mem_addr = 0;
+
+/**
  * 添加监控点数据
  *   id: -1表示初始化监控数据；类型hw_monitor_mid_t
  *   pc: 当前阶段的pc值（寄存器写数据项不需要pc）
- *   arg: IFU结束记录icache访问状态（2bit：0无 1命中 2未命中）；IDU记录inst_code；
- *        EXU记录dnpc；LSU结束记录dcache访问状态（2bit：0无 1命中 2未命中，写为0）；
+ *   mid: IFU/LSU结束项扩展含义——IFU结束arg为icache访问状态（2bit：0无 1命中 2未命中）；
+ *        LSU结束kind为dcache访问状态（0无 1命中 2未命中，写为0），状态非NONE（dcache读访问）时
+ *        arg为访存目标地址；IDU记录inst_code；EXU记录dnpc；
  *        WBU进入时(mid.kind非0)记录寄存器写数据：1组GPR写和2组CSR写，
  *        kind编码：1=CSR写（两个写通道共用） 2=GPR写
  */
@@ -1042,7 +1055,8 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     // WBU进入时的寄存器写数据项（mid扩展kind/wen/waddr，arg为写数据）：
     // tick项已先行记录WBU起始tick，这里取最近一条已进入WBU且未完成的记录保存写数据；
     // 寄存器项不携带pc，该记录即上次处理（进入WBU）的指令记录
-    if (hw_mid.kind != 0)
+    // 注意kind仅在WBU阶段表示寄存器写类型，LSU结束项的kind为dcache访问状态
+    if (stage == STAGE_INDEX_WBU && hw_mid.kind != 0)
     {
         list_for_each_entry(pos, head, node)
         {
@@ -1126,22 +1140,32 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     // 记录各阶段tick值
     record->stage_ticks[stage][is_end] = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
 
-    // IFU结束记录icache访问状态（arg低2bit）和指令存储索引（低bit位），
-    // 高bit位数据存储索引保持默认全1
+    // IFU结束记录icache访问状态（arg低2bit）；
+    // 指令存储索引按pc在存储体列表中查找，不属于任何存储体时保持默认全1
     if (stage == STAGE_INDEX_IFU && is_end)
     {
-        const int storage_bits = rc_storage_index_bits(hw_monitor_ctx.storage_cnt);
-        const uint32_t storage_mask =
-            storage_bits >= 32 ? UINT32_MAX : ((1u << storage_bits) - 1);
         record->icache_stat = arg & 0x3;
-        record->mem_index = (record->mem_index & ~storage_mask) |
-                            (hw_cpu_stat.counts[HW_CPU_STAT_ICACHE_MEM_INDEX] & storage_mask);
+        int storage_idx = find_vdev_storage_index(record->pc);
+        if (storage_idx >= 0)
+        {
+            record->icache_mem_index = (uint32_t)storage_idx;
+        }
     }
 
-    // LSU结束记录dcache访问状态（arg低2bit，写为0无）
+    // LSU结束记录dcache访问状态（mid.kind：0无 1命中 2未命中，写为0无）；
+    // 状态非NONE时为dcache读访问，arg为访存目标地址，数据存储索引按该地址在存储体列表中查找
     if (stage == STAGE_INDEX_LSU && is_end)
     {
-        record->dcache_stat = arg & 0x3;
+        record->dcache_stat = hw_mid.kind;
+        if (hw_mid.kind != 0)
+        {
+            dcache_mem_addr = (uint32_t)arg;
+            int storage_idx = find_vdev_storage_index(dcache_mem_addr);
+            if (storage_idx >= 0)
+            {
+                record->dcache_mem_index = (uint32_t)storage_idx;
+            }
+        }
     }
 
     // IDU结束记录inst_code
@@ -1172,8 +1196,9 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
             list_head_t node = pos->node;
             memset(pos, 0, sizeof(*pos));
             pos->node = node;
-            // 存储索引恢复默认全1：数据存储索引无来源数据，清零会被误解析为存储体0
-            pos->mem_index = UINT32_MAX;
+            // 存储索引恢复默认全1：无对应存储数据时保持全1，清零会被误解析为存储体0
+            pos->icache_mem_index = UINT32_MAX;
+            pos->dcache_mem_index = UINT32_MAX;
         }
         list_splice_tail_init(&tmp, head);
     }

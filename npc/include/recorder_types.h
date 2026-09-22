@@ -41,8 +41,9 @@
  *                                              取值0=无 1=命中 2=未命中；缓存统计只针对读，写为0（无）。
  * 
  * 存储索引值：低bit位为指令存储索引，高bit位为数据存储索引，各占用的bit位数由
- * 存储体列表数决定（3个存储体占2bit，9个存储体占4bit），索引值取自HW_CPU_STAT_ICACHE_MEM_INDEX，
- * 即描述信息中STORAGE列表的索引；无存储数据时对应bit位默认为全1，解析时显示为none。
+ * 存储体列表数决定（3个存储体占2bit，9个存储体占4bit）。指令存储索引按指令pc、
+ * 数据存储索引按访存目标地址在STORAGE列表中查找；无存储数据时对应bit位默认为全1，
+ * 解析时显示为none。
  * 
  * 无效记录（由指令记录Header INST_VALID位标识）:
  *    指令完成WBU阶段时，同批次被flush的未完成指令也会按时间顺序写入文件。
@@ -168,7 +169,8 @@ typedef union
     {
         uint32_t stage : 4;    // 阶段编号，枚举STAGE_INDEX_xxx
         uint32_t is_end : 1;   // 阶段结束标识
-        uint32_t kind : 2;     // WBU进入时的寄存器写数据类型：0无 1=CSR写 2=GPR写（CSR两个写通道共用1）
+        uint32_t kind : 2;     // WBU进入时的寄存器写数据类型：0无 1=CSR写 2=GPR写（CSR两个写通道共用1）；
+                               // LSU结束项时为dcache访问状态：0无 1命中 2未命中
         uint32_t wen : 1;      // 寄存器写使能
         uint32_t waddr : 13;   // 寄存器写地址：GPR为5位索引，CSR为12位地址（高位补0）
         uint32_t reserve : 11; // 保留

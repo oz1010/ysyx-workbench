@@ -53,7 +53,9 @@ module load_store #(
     /* dcache读命中状态（2bit）：NONE/HIT/MISS，统计数据只针对读，写为NONE */
     input   wire [1:0]                  cache_stat,
     /* 访存对应的dcache命中状态，out_valid期间有效 */
-    output  wire [1:0]                  out_cache_stat
+    output  wire [1:0]                  out_cache_stat,
+    /* 访存目标地址，out_valid期间有效（dcache读HIT/MISS时消费） */
+    output  wire [ADDR_WIDTH-1:0]       out_mem_addr
 );
     assign {
         pc, dnpc, inst, rd, rs1, rs2, imm, inst_code, src1, src2,
@@ -118,6 +120,7 @@ module load_store #(
     reg  [DATA_WIDTH-1:0]           r_expt_cause = 0;
     reg  [DATA_WIDTH-1:0]           r_expt_tval = 0;
     reg  [1:0]                      r_cache_stat = `CACHE_STAT_NONE;
+    reg  [ADDR_WIDTH-1:0]           r_mem_addr = 0;
 
 `ifdef FORMAL_VERIFY
     /* 形式化验证：记录load指令在总线上读到的原始数据 */
@@ -150,6 +153,7 @@ module load_store #(
     wire ls_enable = (|(inst_code & `INST_CODE_MEM));
     wire access_enable = !in_ready;
     assign out_cache_stat = r_cache_stat;
+    assign out_mem_addr = r_mem_addr;
     wire [INST_WIDTH-1:0]       access_addr = src1+imm;
     wire [2:0]                  access_size = 
         inst_code == `INST_SB ? 0
@@ -260,6 +264,7 @@ module load_store #(
             r_read_enable <= 0;
             r_write_enable <= 0;
             r_cache_stat <= `CACHE_STAT_NONE;
+            r_mem_addr <= 0;
         end else begin
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;
@@ -269,6 +274,8 @@ module load_store #(
                 r_write_enable <= write_inst ? 1 : 0;
                 // 进入时默认无缓存统计（写指令保持NONE），读完成时再更新
                 r_cache_stat <= `CACHE_STAT_NONE;
+                // 访存指令锁存访存目标地址，供perf monitor获取数据存储索引
+                r_mem_addr <= access_addr;
             end
 
             if (!ls_enable) begin
@@ -332,6 +339,12 @@ module load_store #(
                 end
             end else begin
                 r_stage_out_valid <= 0;
+            end
+
+            /* 输出完成后清除访存目标地址，避免下一条非访存指令
+               流出时采样到上一条访存指令残留的数据 */
+            if (stage_out_done) begin
+                r_mem_addr <= 0;
             end
 
         end
