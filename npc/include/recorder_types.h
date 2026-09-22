@@ -171,7 +171,7 @@ typedef union
         uint32_t is_end : 1;   // 阶段结束标识
         uint32_t kind : 2;     // WBU进入时的寄存器写数据类型：0无 1=CSR写 2=GPR写（CSR两个写通道共用1）；
                                // LSU结束项时为dcache访问状态：0无 1命中 2未命中
-        uint32_t wen : 1;      // 寄存器写使能
+        uint32_t wen : 1;      // 寄存器写使能；LSU结束项时为访存标识（1表示有访存，含写，arg为访存目标地址）
         uint32_t waddr : 13;   // 寄存器写地址：GPR为5位索引，CSR为12位地址（高位补0）
         uint32_t reserve : 11; // 保留
     };

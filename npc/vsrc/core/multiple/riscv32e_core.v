@@ -435,6 +435,7 @@ perf_monitor m_perf_monitor (
     .wb_csr_wch(wb_csr_wch),
     .if_cache_stat(if_cache_stat),
     .ls_cache_stat(ls_cache_stat),
+    .ls_mem_access(ls_mem_access),
     .ls_mem_addr(ls_mem_addr),
     .done()
 );
@@ -1087,6 +1088,7 @@ load_store #(
 
     .cache_stat(dcache_stat),
     .out_cache_stat(ls_cache_stat),
+    .out_mem_access(ls_mem_access),
     .out_mem_addr(ls_mem_addr)
 );
 stage_regs#(
@@ -1163,7 +1165,8 @@ wire [1:0]                  icache_stat;
 wire [1:0]                  dcache_stat;
 wire [1:0]                  if_cache_stat;
 wire [1:0]                  ls_cache_stat;
-/* LSU访存目标地址，随流水线流出上报perf_monitor */
+/* LSU访存标识及访存目标地址，随流水线流出上报perf_monitor */
+wire                        ls_mem_access;
 wire [31:0]                 ls_mem_addr;
 
 endmodule

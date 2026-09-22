@@ -1012,8 +1012,8 @@ static uint32_t dcache_mem_addr = 0;
  *   id: -1表示初始化监控数据；类型hw_monitor_mid_t
  *   pc: 当前阶段的pc值（寄存器写数据项不需要pc）
  *   mid: IFU/LSU结束项扩展含义——IFU结束arg为icache访问状态（2bit：0无 1命中 2未命中）；
- *        LSU结束kind为dcache访问状态（0无 1命中 2未命中，写为0），状态非NONE（dcache读访问）时
- *        arg为访存目标地址；IDU记录inst_code；EXU记录dnpc；
+ *        LSU结束kind为dcache访问状态（0无 1命中 2未命中，写为0），wen为访存标识（读或写），
+ *        wen为1时arg为访存目标地址；IDU记录inst_code；EXU记录dnpc；
  *        WBU进入时(mid.kind非0)记录寄存器写数据：1组GPR写和2组CSR写，
  *        kind编码：1=CSR写（两个写通道共用） 2=GPR写
  */
@@ -1153,11 +1153,11 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     }
 
     // LSU结束记录dcache访问状态（mid.kind：0无 1命中 2未命中，写为0无）；
-    // 状态非NONE时为dcache读访问，arg为访存目标地址，数据存储索引按该地址在存储体列表中查找
+    // mid.wen为访存标识（读或写），有访存时arg为访存目标地址，数据存储索引按该地址在存储体列表中查找
     if (stage == STAGE_INDEX_LSU && is_end)
     {
         record->dcache_stat = hw_mid.kind;
-        if (hw_mid.kind != 0)
+        if (hw_mid.wen)
         {
             dcache_mem_addr = (uint32_t)arg;
             int storage_idx = find_vdev_storage_index(dcache_mem_addr);
