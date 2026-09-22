@@ -94,8 +94,16 @@ module inst_fetch #(
         .stage_out_done(stage_out_done)
     );
 
-    assign stage_out_valid = rvalid && rready && rlast;
-    assign out_bits = {pc, read_inst};
+    /* AXI读数据返回（读完成） */
+    wire axi4_read_done = rvalid && rready && rlast;
+
+    /* 输出侧寄存：读返回时锁存指令数据与icache状态，下一拍拉起out_valid并保持到
+       out_done，保证out_valid期间out_bits/out_cache_stat稳定，且perf monitor在
+       out_done时刻采样到的是当前取指的状态（与pipeline IFU、multiple LSU一致） */
+    reg                             r_stage_out_valid = 0;
+    reg  [INST_WIDTH-1:0]           r_read_inst = 0;
+    assign stage_out_valid = r_stage_out_valid;
+    assign out_bits = {pc, r_read_inst};
     assign snpc = pc + 4;
 
     reg [1:0] r_cache_stat = `CACHE_STAT_NONE;
@@ -112,26 +120,21 @@ module inst_fetch #(
     end
 
     /* 触发式记录使能 */
-    reg in_read_en;
+    reg r_read_en;
     always @(posedge clk) begin
         if (rst) begin
-            in_read_en <= 0;
+            r_read_en <= 0;
         end else begin
-            if (in_read_en) begin
-                if (out_valid) begin
-                    in_read_en <= 0;
-                end
-            end
-
-            if (in_valid) begin
-                in_read_en <= 1;
-            end
+            r_read_en <=
+                stage_in_done ? 1 :
+                axi4_read_done ? 0 :
+                r_read_en;
         end
     end
 
     generate
         if (SRAM_TYPE == `SRAM_TYPE_AXI4) begin : sram_axi4
-            wire read_en = in_valid || in_read_en;
+            wire read_en = stage_in_done | r_read_en;
 
             axi_master_reader #(
                 `ifndef IN_YOSYS_STA
@@ -171,6 +174,8 @@ module inst_fetch #(
 
             always @(posedge clk) begin
                 if (rst) begin
+                    r_stage_out_valid <= 0;
+                    r_read_inst <= 0;
                     r_cache_stat <= `CACHE_STAT_NONE;
                 end else begin
                     // read request
@@ -180,9 +185,13 @@ module inst_fetch #(
                         end
                     end
 
-                    // 读数据返回时锁存icache命中状态（读请求被接受后cache_stat已稳定）
-                    if (rvalid && rready && rlast) begin
+                    // 读数据返回时锁存取指数据与icache命中状态（读请求被接受后cache_stat已稳定）
+                    if (axi4_read_done) begin
+                        r_read_inst <= read_inst;
                         r_cache_stat <= cache_stat;
+                        r_stage_out_valid <= 1;
+                    end else if (stage_out_done) begin
+                        r_stage_out_valid <= 0;
                     end
                 end
             end
