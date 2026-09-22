@@ -12,6 +12,7 @@
 #include <getopt.h>
 #include "cache.h"
 #include "util.h"
+#include "recorder.h"
 
 using namespace std;
 
@@ -25,44 +26,51 @@ using namespace std;
 
 ICache *cache;
 
+/**
+ * 使用librecorder流式解析record二进制文件（格式见include/recorder_types.h），
+ * 对每条指令记录的PC进行一次取指访问的cache命中仿真；
+ * 被flush的无效指令同样经过IF阶段取指，因此无需判断指令是否完成
+ */
 int parse_binary_file(std::string filepath)
 {
-    ifstream file(filepath, ios::binary | ios::ate);
-    if (!file)
+    recorder::Recorder rec;
+    if (rec.init(filepath) != 0)
     {
-        cerr << "无法打开文件: " << filepath << endl;
-        exit(1);
-    }
-
-    streamsize size = file.tellg();
-    file.seekg(0, ios::beg);
-    vector<unsigned char> buffer(size);
-    file.read(reinterpret_cast<char *>(buffer.data()), size);
-    size_t pos = 0, last_idx = 0, show_mix_size = 1024 * 1024;
-
-    show_progress(pos, size);
-
-    try
-    {
-        while (pos <= (buffer.size() - 4))
-        {
-            if (pos - last_idx >= show_mix_size)
-            {
-                show_progress(pos, size);
-                last_idx = pos;
-            }
-            uint32_t pc = *reinterpret_cast<uint32_t *>(&buffer[pos]);
-            cache->find_data(pc);
-            pos += 4;
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << e.what() << '\n';
+        cerr << "解析文件失败: " << rec.error() << endl;
         return -1;
     }
 
-    show_progress(pos, size);
+    const uint64_t size        = rec.file_size();
+    const size_t   show_mix_size = 1024 * 1024;
+    uint64_t       last_idx    = 0;
+
+    show_progress(0, size);
+
+    rc_decode_item_t item;
+    while (true)
+    {
+        int ret = rec.next(&item);
+        if (ret == 0) break;  // 全部解析完毕
+        if (ret < 0)
+        {
+            cerr << "解析记录失败: " << rec.error() << endl;
+            return -1;
+        }
+
+        uint64_t pos = rec.bytes_consumed();
+        if (pos - last_idx >= show_mix_size)
+        {
+            show_progress(pos, size);
+            last_idx = pos;
+        }
+
+        if (item.rec_type == RC_BIN_TYPE_INST)
+        {
+            cache->find_data(item.pc);
+        }
+    }
+
+    show_progress(size, size);
 
     return 0;
 }
