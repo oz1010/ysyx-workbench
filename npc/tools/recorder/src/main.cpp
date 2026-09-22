@@ -139,6 +139,7 @@ void print_desc(std::ostream& os, const recorder::file_desc_t& desc,
         os << "最大时间: " << desc.max_tick << "\n";
         os << "最大阶段时间: " << desc.max_duration << "\n";
     }
+    os << "总取指数: " << desc.total_inst << "\n";
     os << '\n';
 }
 
@@ -164,8 +165,13 @@ void print_records(std::ostream& os, recorder::Recorder* re, bool has_offset, ui
     int w_dur = 1;
     for (uint64_t t = max_dur; t >= 10; t /= 10) ++w_dur;
 
+    // No.列：宽度取总指令数最大值的十进制位数
+    uint64_t max_no = re->desc().total_inst;
+    int w_index = 0;
+    for (uint64_t t = max_no; t != 0; t /= 10) ++w_index;
+
     const int SEP = 3;
-    const int W_INDEX = 3 + SEP, W_PC = 10 + SEP, W_INST = 7 + SEP;
+    const int W_INDEX = w_index + SEP, W_PC = 10 + SEP, W_INST = 7 + SEP;
     const int W_STAGE = 2 * w_time + 1 + SEP;
     const int W_DUR = recorder::STAGE_COUNT * w_dur + (recorder::STAGE_COUNT - 1) + SEP;
 

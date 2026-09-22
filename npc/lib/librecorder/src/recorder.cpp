@@ -105,6 +105,7 @@ int Recorder::parse_descript()
         uint64_t record_offset;
         uint64_t max_tick;
         uint64_t max_duration;
+        uint64_t total_inst;
     } raw;
 
     if (!reader_->read_bytes(&raw, sizeof(raw)))
@@ -132,6 +133,7 @@ int Recorder::parse_descript()
     desc_.config       = raw.config;
     desc_.max_tick     = raw.max_tick;
     desc_.max_duration = raw.max_duration;
+    desc_.total_inst   = raw.total_inst;
     desc_.image_path.clear();
     desc_.storages.clear();
 
