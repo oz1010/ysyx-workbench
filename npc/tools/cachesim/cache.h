@@ -148,7 +148,7 @@ class ICache
     {
         uint64_t total_hit_count = 0;
         uint64_t total_miss_count = 0;
-        std::cout << "\n缓存统计:\n";
+        std::cout << "\n指令缓存统计:\n";
         for (auto& [mem_idx, hit_count] : hit_counts)
         {
             auto miss_count = miss_counts[mem_idx];
