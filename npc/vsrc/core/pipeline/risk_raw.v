@@ -13,49 +13,67 @@ module risk_raw #(
     input   wire                        flush_en,
     input   wire [`STAGE_COUNT-1:0]     stage_ready,
     input   wire [`STAGE_COUNT-1:0]     stage_valid,
-    input   wire [INST_WIDTH-1:0]       id_imm_pc,
-    input   wire [4:0]                  id_imm_rd,
     input   wire [4:0]                  id_imm_rs1,
     input   wire [4:0]                  id_imm_rs2,
-    input   wire [`INST_CODE_W-1:0]     id_imm_inst_code,
-    input   wire [4:0]                  ex_rd,
-    input   wire [4:0]                  ls_rd,
-    input   wire [INST_WIDTH*CHECK_COUNT-1:0] stage_pc,
-    input   wire [5*CHECK_COUNT-1:0]    stage_rd,
+    
+    /* 组合逻辑需要捕获阶段输入（例如EX的输入是con_id） */
+    // TODO STAGE_COUNT
+    input   wire [INST_WIDTH*CHECK_COUNT-1:0] stage_in_pc,
+    input   wire [5*CHECK_COUNT-1:0]    stage_in_rd,
     input   wire [INST_WIDTH-1:0]       wb_pc,
-    input   wire [4:0]                  wb_rd,
 
-    output  reg                         raw_wait
+    output  wire                        raw_wait
 );
     localparam CHECK_COUNT = 3;
     localparam CHECK_INDEX_W = log2up(CHECK_COUNT);
-    
-    wire is_raw = |stage_is_raw;
-    wire is_raw_release = !(|stage_wait_pc);
-    wire match_raw = (!raw_wait & stage_valid[`STAGE_INDEX_IFU] & stage_ready[`STAGE_INDEX_IDU] & is_raw);
 
-    wire [CHECK_COUNT-1:0] stage_is_raw;
-    reg [INST_WIDTH*CHECK_COUNT-1:0] stage_wait_pc;
+    assign raw_wait = r_raw_wait;
+    
+    wire id_in_done = stage_valid[`STAGE_INDEX_IFU] & stage_ready[`STAGE_INDEX_IDU];
+    wire is_raw = (|stage_is_raw1)|(|stage_is_raw2); // 是否存在RAW冒险
+    wire is_raw_end = !(|r_stage_wait_pc);
+    wire is_raw_begin = (!r_raw_wait & id_in_done & is_raw); // RAW冒险开始等待标识
+    reg  r_raw_wait;
+
+    wire [CHECK_COUNT-1:0] stage_is_raw1;
+    wire [CHECK_COUNT-1:0] stage_is_raw2;
     wire [CHECK_COUNT-1:0] stage_is_raw_release;
+    reg [INST_WIDTH*CHECK_COUNT-1:0]    r_stage_wait_pc;
 
     generate
         genvar idx;
-        for (idx=0; idx<CHECK_COUNT; ++idx) begin : wait_block
-            assign stage_is_raw_release[idx] = stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH]==wb_pc;
-            assign stage_is_raw[idx] =
-                (
-                    ((|id_imm_rs1) & ((id_imm_rs1==stage_rd[5*idx +: 5]))) | 
-                    ((|id_imm_rs2) & ((id_imm_rs2==stage_rd[5*idx +: 5]))) |
-                    0
-                );
+        for (idx=0; idx<CHECK_COUNT; ++idx) begin : raw_block
+            /**
+             * 阻塞流水线时，标识某阶段是否可以释放阻塞（等待WBU完成后pc与wait_pc一致）
+             */
+            assign stage_is_raw_release[idx] = r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH]==wb_pc;
+            /**
+             * stage_is_raw标识某个阶段是否发生RAW冒险
+             * 排除x0，EXU/LSU/WBU将要写入的rd与rsx相同，则存在RAW冒险
+             * 1或2用于转发时区分需要分发结果目的地rs1或rs2，可以同时存在
+             */
+            assign stage_is_raw1[idx] = id_in_done & (
+                ((|id_imm_rs1) & ((id_imm_rs1==stage_in_rd[5*idx +: 5]))) |
+                0
+            );
+            assign stage_is_raw2[idx] = id_in_done & (
+                ((|id_imm_rs2) & ((id_imm_rs2==stage_in_rd[5*idx +: 5]))) |
+                0
+            );
+            /**
+             * 重置和flush时，阶段wait_pc为0
+             * 发现RAW冒险，阶段wait_pc为对应的阶段pc值
+             * 等待RAW冒险结束，阶段wait_pc重置为0
+             * 其他场景保持不变
+             */
             always @(posedge clk) begin
                 if (rst | flush_en) begin
-                    stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 0;
+                    r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 0;
                 end else begin
-                    stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 
-                        match_raw ? stage_pc[INST_WIDTH*idx +: INST_WIDTH] :
-                        (raw_wait & stage_is_raw_release[idx]) ? 0 :
-                        stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH];
+                    r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 
+                        is_raw_begin ? stage_in_pc[INST_WIDTH*idx +: INST_WIDTH] :
+                        (r_raw_wait & stage_is_raw_release[idx]) ? 0 :
+                        r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH];
                 end
             end
         end
@@ -63,12 +81,12 @@ module risk_raw #(
 
     always @(posedge clk) begin
         if (rst | flush_en) begin
-            raw_wait <= 0;
+            r_raw_wait <= 0;
         end else begin
-            raw_wait <= 
-                match_raw ? 1:
-                (raw_wait & is_raw_release) ? 0 :
-                raw_wait;            
+            r_raw_wait <= 
+                is_raw_begin ? 1:
+                (r_raw_wait & is_raw_end) ? 0 :
+                r_raw_wait;            
         end
     end
 

@@ -77,7 +77,7 @@ localparam WB_IN_DATA_W = LS_OUT_DATA_W;
 /* 形式化验证时WBU额外输出inst、写回结果及load原始数据 */
 localparam WB_OUT_DATA_W = INST_WIDTH*3 + 5 + 1 + DATA_WIDTH*2;
 `else
-localparam WB_OUT_DATA_W = INST_WIDTH*2 + 5;
+localparam WB_OUT_DATA_W = INST_WIDTH*3 + 6;
 `endif
 
 /* 模块之间的连接信号或数据 */
@@ -973,17 +973,11 @@ risk_raw #(
     .flush_en(|core_stage_flush),
     .stage_ready({mod_con_wb_ready, mod_con_ls_ready, mod_con_ex_ready, mod_con_id_ready, mod_con_if_ready}),
     .stage_valid({mod_con_wb_valid, mod_con_ls_valid, mod_con_ex_valid, mod_con_id_valid, mod_con_if_valid}),
-    .id_imm_pc(con_if_pc),
-    .id_imm_inst_code(id_imm_inst_code),
-    .id_imm_rd(id_imm_rd),
     .id_imm_rs1(id_imm_rs1),
     .id_imm_rs2(id_imm_rs2),
-    .ex_rd(con_ex_rd),
-    .ls_rd(con_ls_rd),
-    .stage_pc({con_id_pc, con_ex_pc, con_ls_pc}),
-    .stage_rd({con_id_rd, con_ex_rd, con_ls_rd}),
+    .stage_in_pc({con_ls_pc, con_ex_pc, con_id_pc}),
+    .stage_in_rd({con_ls_rd, con_ex_rd, con_id_rd}),
     .wb_pc(con_wb_pc),
-    .wb_rd(con_wb_rd),
     .raw_wait(core_raw_wait)
 );
 /* 控制冒险 */
@@ -1383,6 +1377,8 @@ wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
 wire [ADDR_WIDTH-1:0]           con_wb_pc;
 wire [ADDR_WIDTH-1:0]           con_wb_dnpc;
 wire [4:0]                      con_wb_rd;
+wire [INST_WIDTH-1:0]           con_wb_result;
+wire                            con_wb_result_update_gpr;
 `ifdef FORMAL_VERIFY
 wire [INST_WIDTH-1:0]           con_wb_inst;
 wire [DATA_WIDTH-1:0]           con_wb_result;
@@ -1409,7 +1405,9 @@ assign fv_wb_ld_data            = con_wb_ld_data;
 assign {
     con_wb_pc,
     con_wb_dnpc,
-    con_wb_rd
+    con_wb_rd,
+    con_wb_result,
+    con_wb_result_update_gpr
 } = con_wb_bits;
 `endif
 write_back #(
