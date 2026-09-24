@@ -973,10 +973,11 @@ risk_raw #(
     .flush_en(|core_stage_flush),
     .stage_ready({mod_con_wb_ready, mod_con_ls_ready, mod_con_ex_ready, mod_con_id_ready, mod_con_if_ready}),
     .stage_valid({mod_con_wb_valid, mod_con_ls_valid, mod_con_ex_valid, mod_con_id_valid, mod_con_if_valid}),
+    .id_imm_pc(con_if_pc),
     .id_imm_rs1(id_imm_rs1),
     .id_imm_rs2(id_imm_rs2),
-    .stage_in_pc({con_ls_pc, con_ex_pc, con_id_pc}),
-    .stage_in_rd({con_ls_rd, con_ex_rd, con_id_rd}),
+    .stage_in_pc({con_wb_pc, con_ls_pc, con_ex_pc, con_id_pc, con_if_pc}),
+    .stage_in_rd({con_wb_rd, con_ls_rd, con_ex_rd, con_id_rd, 5'h0}),
     .wb_pc(con_wb_pc),
     .raw_wait(core_raw_wait)
 );
