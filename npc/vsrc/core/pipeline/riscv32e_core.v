@@ -963,6 +963,9 @@ wire                            core_raw_wait;
 wire [`FLUSH_TYPE_W-1:0]        core_flush_type;
 wire [`STAGE_COUNT-1:0]         core_stage_flush;
 wire                            core_flush_done = |core_flush_type & core_idle; // flush后需要清理各阶段寄存器（除了wbu.dnpc）
+wire                            core_forward_result1_en;
+wire                            core_forward_result2_en;
+wire [DATA_WIDTH-1:0]           core_forward_result;
 /* RAW冒险 */
 risk_raw #(
     .INST_WIDTH(INST_WIDTH),
@@ -976,10 +979,16 @@ risk_raw #(
     .id_imm_pc(con_if_pc),
     .id_imm_rs1(id_imm_rs1),
     .id_imm_rs2(id_imm_rs2),
+    .id_imm_inst_code(id_imm_inst_code),
     .stage_in_pc({con_wb_pc, con_ls_pc, con_ex_pc, con_id_pc, con_if_pc}),
     .stage_in_rd({con_wb_rd, con_ls_rd, con_ex_rd, con_id_rd, 5'h0}),
+    .stage_in_result({con_wb_result, con_ls_result,  con_ex_result,  32'h0, 32'h0}),
+    .if_last_pc(con_if_last_pc),
     .wb_pc(con_wb_pc),
-    .raw_wait(core_raw_wait)
+    .raw_wait(core_raw_wait),
+    .forward_result1_en(core_forward_result1_en),
+    .forward_result2_en(core_forward_result2_en),
+    .forward_result(core_forward_result)
 );
 /* 控制冒险 */
 risk_control #(
@@ -1091,6 +1100,12 @@ stage_regs#(
     .bits(mod_con_if_bits),
     .stage_bits(con_if_bits)
 );
+// 记录上次取指地址
+reg  [ADDR_WIDTH-1:0]           con_if_last_pc;
+always @(posedge clk or posedge rst) con_if_last_pc <= 
+    (rst) ? 0 :
+    (mod_con_if_valid & con_id_ready) ? con_if_pc :
+    con_if_last_pc;
 
 /* 译码id */
 wire [4:0]                      id_imm_rd;
@@ -1231,8 +1246,8 @@ execute #(
     .in_valid(con_id_valid),
     .in_bits({
         con_id_bits,
-        con_id_gpr_src1, 
-        con_id_gpr_src2, 
+        core_forward_result1_en ? core_forward_result : con_id_gpr_src1, 
+        core_forward_result2_en ? core_forward_result : con_id_gpr_src2, 
         con_id_gpr_a0
     }),
 
