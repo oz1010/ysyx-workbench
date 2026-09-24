@@ -62,6 +62,9 @@ test:
 analyzer:
 	@make -C tools/monitor_analyzer
 
+branchsim:
+	@make -C tools/branchsim
+
 recorder:
 	@make -C tools/recorder
 
@@ -77,4 +80,4 @@ $(clean-tools):
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer cachesim recorder
+.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer branchsim cachesim recorder
