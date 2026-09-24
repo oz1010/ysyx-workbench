@@ -146,6 +146,11 @@ int decode_inst(uint32_t inst, inst_dec_t* out)
 bool inst_is_load(uint16_t inst_code)  { return inst_code >= INST_LB && inst_code <= INST_LHU; }
 bool inst_is_store(uint16_t inst_code) { return inst_code >= INST_SB && inst_code <= INST_SW; }
 bool inst_is_mdr(uint16_t inst_code)   { return inst_code >= INST_MUL && inst_code <= INST_REMU; }
+bool inst_is_branch(uint16_t inst_code) { return inst_code >= INST_BEQ && inst_code <= INST_BGEU; }
+bool inst_is_jump(uint16_t inst_code)
+{
+    return inst_code == INST_JAL || inst_code == INST_JALR;
+}
 
 const char* inst_code_name(uint16_t inst_code)
 {

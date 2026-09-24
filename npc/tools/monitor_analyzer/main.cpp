@@ -878,6 +878,42 @@ int analysis(const char* filepath)
     hline();
     cout << "九、控制冒险明细（flush / 静态预测恒不跳）\n";
     hline();
+    // ---- 分支指令占比：静态预测恒不跳，触发flush的条件分支即跳转成功 ----
+    size_t branch_cnt = 0, branch_taken = 0, jump_cnt = 0;
+    std::map<std::string, std::pair<int, int>> branch_ops;  // 名称 -> {总数, 成功}
+    for (size_t i = 0; i < N; ++i)
+    {
+        const uint16_t code = V[i]->dec.inst_code;
+        if (recorder::inst_is_branch(code))
+        {
+            branch_cnt++;
+            const bool taken = is_trigger[i];
+            branch_taken += taken;
+            auto &p = branch_ops[recorder::inst_code_name(code)];
+            p.first++;
+            p.second += taken;
+        }
+        else if (recorder::inst_is_jump(code))
+        {
+            jump_cnt++;
+        }
+    }
+    cout << fixed << setprecision(2);
+    cout << "  分支指令     : " << branch_cnt << " 条 (" << pct_str(branch_cnt, N)
+         << " 的指令), 其中跳转成功 " << branch_taken << " 条 (成功率 "
+         << (branch_cnt ? 100.0 * branch_taken / branch_cnt : 0.0) << "%)\n";
+    cout << "  分支类型     : {";
+    {
+        bool first = true;
+        for (const auto& [t, p] : branch_ops)
+        {
+            cout << (first ? "" : ", ") << t << ": " << p.first << "/" << p.second;
+            first = false;
+        }
+        cout << "}  (总数/跳转成功)\n";
+    }
+    cout << "  无条件跳转   : " << jump_cnt << " 条 ("
+         << (N ? 100.0 * jump_cnt / N : 0.0) << "%)\n";
     std::map<size_t, int> slot_dist;
     for (size_t s : flush_slots) slot_dist[s]++;
     cout << "  flush 事件   : " << flush_cnt << " 次\n";

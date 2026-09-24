@@ -106,6 +106,8 @@ int decode_inst(uint32_t inst, inst_dec_t* out);
 bool inst_is_load(uint16_t inst_code);   // LB..LHU
 bool inst_is_store(uint16_t inst_code);  // SB..SW
 bool inst_is_mdr(uint16_t inst_code);    // 乘除 MUL..REMU
+bool inst_is_branch(uint16_t inst_code); // 条件分支 BEQ..BGEU
+bool inst_is_jump(uint16_t inst_code);   // 无条件跳转 JAL/JALR
 
 /**
  * 由指令码返回指令缩写（大写字母，如 "ADDI"），无法识别时返回 "?"
