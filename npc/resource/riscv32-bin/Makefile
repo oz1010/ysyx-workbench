@@ -57,9 +57,16 @@ OBJS		= $(addprefix $(BUILD_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
 INCS 		= $(addprefix -I, $(INC_FILES))
 
 
-ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e
+# GCC 13.3.0 中 fence.i 需显式声明 zifencei 扩展, 旧版本不支持该写法
+ifeq ($(shell $(CC) -dumpfullversion),13.3.0)
+RISCV_MARCH	:= rv32em_zicsr_zifencei
+else
+RISCV_MARCH	:= rv32em_zicsr
+endif
 
-CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
+ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e
+
+CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
 ifeq ($(CONFIG_FAST_LOAD), y)
     CFLAGS	+= -DCONFIG_FAST_LOAD=1
 endif

@@ -57,9 +57,16 @@ OBJS		= $(addprefix $(BUILD_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
 INCS 		= $(addprefix -I, $(INC_FILES))
 
 
-ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e
+# GCC 13.3.0 中 fence.i 需显式声明 zifencei 扩展, 旧版本不支持该写法
+ifeq ($(shell $(CC) -dumpfullversion),13.3.0)
+RISCV_MARCH	:= rv32em_zicsr_zifencei
+else
+RISCV_MARCH	:= rv32em_zicsr
+endif
 
-CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=rv32em_zicsr -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
+ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e
+
+CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
 
 LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections
 
