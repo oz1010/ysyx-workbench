@@ -15,9 +15,10 @@
 !*.sv
 !*.sby
 !.gitignore
-!README.md
+!Read.md
 !Kconfig
-!*.md
+!docs/
+!docs/*.md
 # 保留所有文件夹
 !*/
 # 禁用文件夹

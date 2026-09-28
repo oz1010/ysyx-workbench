@@ -1,0 +1,15 @@
+# 禁用所有文件，适用于所有路径
+*.*
+*
+
+# 保留文件，适用于所有路径
+!Makefile
+!.gitignore
+
+# chisel相关
+!.mill-version
+!build.sc
+!build.mill
+!src/
+!src/**/
+!src/**/*.scala

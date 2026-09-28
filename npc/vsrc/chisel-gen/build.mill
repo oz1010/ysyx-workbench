@@ -1,0 +1,18 @@
+import mill._
+import mill.scalalib._
+
+/** Compile all Chisel sources in this directory tree. */
+object chisel extends ScalaModule {
+  def scalaVersion = "2.13.18"
+
+  def mvnDeps = Seq(
+    mvn"org.chipsalliance::chisel:7.15.0"
+  )
+
+  def scalacPluginMvnDeps = Seq(mvn"org.chipsalliance:::chisel-plugin:7.15.0")
+
+  def sources = Task.Sources(
+    (os.walk(moduleDir / os.up / "src"))
+      .filter(_.ext == "scala")*
+  )
+}
