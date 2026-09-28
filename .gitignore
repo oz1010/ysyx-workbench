@@ -10,6 +10,8 @@
 !/npc/*
 !/nvboard/*
 !/build_container/*
+!/build_container/**/
+!/build_container/**/*
 !Makefile
 !README.md
 !.gitignore
