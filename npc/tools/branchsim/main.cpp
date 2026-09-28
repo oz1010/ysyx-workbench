@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <map>
 #include "recorder.h"
 #include "inst_decode.h"
 #include "predict.h"
@@ -36,6 +37,8 @@ struct SimStats
     uint64_t pred_cnt     = 0;  // 预测跳转数
     uint64_t correct_cnt  = 0;  // 预测成功数
     uint64_t jump_cnt     = 0;  // 无条件跳转数(仅展示，不参与预测统计)
+    // 分支类型 -> {总数, 预测正确数}
+    std::map<std::string, std::pair<uint64_t, uint64_t>> branch_types;
 };
 
 // =============================================================================
@@ -80,6 +83,8 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
             stats.taken_cnt += taken;
             stats.pred_cnt += pred;
             stats.correct_cnt += (pred == taken);
+            auto& type_stat = stats.branch_types[recorder::inst_code_name(pending.dec.inst_code)];
+            type_stat.second += (pred == taken);
             has_pending = false;
         }
 
@@ -92,6 +97,7 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
             recorder::decode_inst(item.inst, &pending.dec);
             has_pending  = true;
             stats.branch_cnt++;
+            stats.branch_types[recorder::inst_code_name(item.inst_code)].first++;
         }
         else if (recorder::inst_is_jump(item.inst_code))
         {
@@ -104,6 +110,8 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
         const bool pred = predict(pending);
         stats.pred_cnt += pred;
         stats.correct_cnt += (pred == false);
+        auto& type_stat = stats.branch_types[recorder::inst_code_name(pending.dec.inst_code)];
+        type_stat.second += (pred == false);
     }
 }
 
@@ -138,6 +146,16 @@ static void print_report(const char* filepath, const SimConfig& cfg, const SimSt
          << fixed << setprecision(2)
          << (stats.total_inst ? 100.0 * stats.branch_cnt / stats.total_inst : 0.0)
          << "%), 其中跳转 " << stats.taken_cnt << " 条\n";
+    cout << "  分支类型统计  : {";
+    {
+        bool first = true;
+        for (const auto& [type, counts] : stats.branch_types)
+        {
+            cout << (first ? "" : ", ") << type << ": " << counts.second << "/" << counts.first;
+            first = false;
+        }
+        cout << "} (预测正确/总数)\n";
+    }
     cout << "  无条件跳转    : " << stats.jump_cnt << " 条 (不参与预测统计)\n";
     cout << "  分支预测成功率: " << setprecision(2)
          << (stats.branch_cnt ? 100.0 * stats.correct_cnt / stats.branch_cnt : 0.0)

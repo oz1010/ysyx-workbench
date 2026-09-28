@@ -24,12 +24,12 @@
  *    +-------------------------------+-------+-------+---------------+--------------+
  *    | Bit [7:6]        |  Bit [5:4] | Bit 3 | Bit 2 | Bit 1         | Bit 0        |
  *    +-------------------------------+-------+-------+---------------+--------------+
- *    | RC_BIN_TYPE_INST |  RESERVE   | RESERVE|CACHE_DATA| INST_VALID | DISCONT_PC  |
+ *    | RC_BIN_TYPE_INST |  RESERVE   | DISCONT_DNPC|CACHE_DATA| INST_VALID | DISCONT_PC  |
  *    +-------------------------------+-------+-------+---------------+--------------+
  *    - Bit 0 (DISCONT_PC)    : 1 表示 PC 不连续 (PC != last_pc + 4)，Payload 中存在 PC Delta。
  *    - Bit 1 (INST_VALID)    : 1 表示有效指令；0 表示同批次被flush的未完成指令。
  *    - Bit 2 (CACHE_DATA)    : 1 表示 Payload 中存在缓存统计数据。
- *    - Bit 3                 : 保留，未使用（v2.4.0起原D_MISS标识删除）。
+ *    - Bit 3 (DISCONT_DNPC) : 1 表示预测下一地址相对顺序地址不连续，Payload 中存在 DNPC Delta。
  *
  * Payload (字段按以下顺序出现):
  *    - [PC Delta]          : (ZigZag + ULEB128)仅在 Bit 0 (DISCONT_PC) == 1 时存在。
@@ -41,6 +41,7 @@
  *    - [Cache Data]        : (1 Byte)          仅在 Bit 2 (CACHE_DATA) == 1 时存在，
  *                                              缓存统计数据：Bit[1:0]为icache状态，Bit[3:2]为dcache状态，
  *                                              取值0=无 1=命中 2=未命中；缓存统计只针对读，写为0（无）。
+ *    - [DNPC Delta]          : (ZigZag + ULEB128)仅在 Bit 3 (DISCONT_DNPC) == 1 时存在，表示 dnpc - (pc + 4)。
  * 
  * 存储索引值：低bit位为指令存储索引，高bit位为数据存储索引，各占用的bit位数由
  * 存储体列表数决定（3个存储体占2bit，9个存储体占4bit）。指令存储索引按指令pc、
@@ -101,7 +102,7 @@ enum
  *     用于检测数据格式是否兼容，前两位版本一致数据格式必须兼容
  */
 #define RC_BIN_DESCRIPT_MAGIC 0x504D5244u
-#define RC_BIN_DESCRIPT_VERSION 0x00020500u
+#define RC_BIN_DESCRIPT_VERSION 0x00020600u
 #define RC_BIN_DESCRIPT_VERSION_MAJOR (RC_BIN_DESCRIPT_VERSION >> 16)
 
 /**
@@ -171,7 +172,8 @@ typedef union
     {
         uint32_t stage : 4;    // 阶段编号，枚举STAGE_INDEX_xxx
         uint32_t is_end : 1;   // 阶段结束标识
-        uint32_t kind : 2;     // WBU进入时的寄存器写数据类型：0无 1=CSR写 2=GPR写（CSR两个写通道共用1）；
+        uint32_t kind : 2;     // IFU结束时为icache访问状态：0无 1命中 2未命中
+                               // WBU进入时的寄存器写数据类型：0无 1=CSR写 2=GPR写（CSR两个写通道共用1）；
                                // LSU结束项时为dcache访问状态：0无 1命中 2未命中
         uint32_t wen : 1;      // 寄存器写使能；LSU结束项时为访存标识（1表示有访存，含写，arg为访存目标地址）
         uint32_t waddr : 13;   // 寄存器写地址：GPR为5位索引，CSR为12位地址（高位补0）
@@ -206,7 +208,7 @@ typedef union
 #define RC_BIN_FLAG_DISCONT_PC (1 << 0)
 #define RC_BIN_FLAG_INST_VALID (1 << 1)
 #define RC_BIN_FLAG_CACHE_DATA (1 << 2)  // bit2: 1表示Payload中存在缓存统计数据
-                                         // bit3: 保留未使用（v2.4.0起原D_MISS标识删除）
+#define RC_BIN_FLAG_DISCONT_DNPC (1 << 3) // bit3: 1表示Payload中存在DNPC Delta
 
 /**
  * 缓存访问状态编码（2bit），Cache Data字节中Bit[1:0]为icache，Bit[3:2]为dcache
@@ -258,6 +260,7 @@ typedef struct
     uint8_t  rec_type;   // 记录类型，枚举RC_BIN_TYPE_xxx：0=指令记录 1=寄存器写记录
     uint64_t index;      // 记录序号，从0开始
     uint32_t pc;         // 指令PC
+    uint32_t dnpc;       // 预测的下一指令地址
     uint32_t inst;       // ELF中pc处的指令字，未找到时为0
     uint16_t inst_code;  // inst 对应的指令码，未找到时为INST_INVALID_CODE
     bool inst_found;     // ELF中是否找到pc对应的指令

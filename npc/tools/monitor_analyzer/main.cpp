@@ -560,6 +560,16 @@ int analysis(const char* filepath)
     }
     const size_t flush_cnt = flush_slots.size();
 
+    // 分支是否实际跳转统一按退休序中下一条有效指令的 PC 判定。
+    // flush 记录只表示存在被取消的取指，不一定意味着条件分支成功；
+    // 例如异常/其它控制事件也可能产生无效记录。该口径与 branchsim 一致。
+    std::vector<bool> branch_taken_by_pc(N, false);
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!recorder::inst_is_branch(V[i]->dec.inst_code)) continue;
+        branch_taken_by_pc[i] = (i + 1 < N) && (V[i + 1]->pc != V[i]->pc + 4);
+    }
+
     // ---- 周期占用深度直方图（差分数组对账=总周期） ----
     std::vector<uint64_t> depth_hist(6, 0);  // 多少拍流水线有k级在忙
     {
@@ -878,20 +888,22 @@ int analysis(const char* filepath)
     hline();
     cout << "九、控制冒险明细（flush / 静态预测恒不跳）\n";
     hline();
-    // ---- 分支指令占比：静态预测恒不跳，触发flush的条件分支即跳转成功 ----
-    size_t branch_cnt = 0, branch_taken = 0, jump_cnt = 0;
-    std::map<std::string, std::pair<int, int>> branch_ops;  // 名称 -> {总数, 成功}
+    // ---- 分支预测统计：以前一条有效分支和下一条有效指令 PC 判定结果 ----
+    size_t branch_cnt = 0, branch_correct = 0, jump_cnt = 0;
+    std::map<std::string, std::pair<int, int>> branch_ops;  // 名称 -> {总数, 预测正确}
     for (size_t i = 0; i < N; ++i)
     {
         const uint16_t code = V[i]->dec.inst_code;
         if (recorder::inst_is_branch(code))
         {
             branch_cnt++;
-            const bool taken = is_trigger[i];
-            branch_taken += taken;
+            const bool taken = branch_taken_by_pc[i];
+            // 当前口径是静态不跳转预测：实际不跳转即预测正确。
+            const bool correct = !taken;
+            branch_correct += correct;
             auto &p = branch_ops[recorder::inst_code_name(code)];
             p.first++;
-            p.second += taken;
+            p.second += correct;
         }
         else if (recorder::inst_is_jump(code))
         {
@@ -900,17 +912,17 @@ int analysis(const char* filepath)
     }
     cout << fixed << setprecision(2);
     cout << "  分支指令     : " << branch_cnt << " 条 (" << pct_str(branch_cnt, N)
-         << " 的指令), 其中跳转成功 " << branch_taken << " 条 (成功率 "
-         << (branch_cnt ? 100.0 * branch_taken / branch_cnt : 0.0) << "%)\n";
+         << " 的指令), 预测正确 " << branch_correct << " 条 (预测准确率 "
+         << (branch_cnt ? 100.0 * branch_correct / branch_cnt : 0.0) << "%)\n";
     cout << "  分支类型     : {";
     {
         bool first = true;
         for (const auto& [t, p] : branch_ops)
         {
-            cout << (first ? "" : ", ") << t << ": " << p.first << "/" << p.second;
+            cout << (first ? "" : ", ") << t << ": " << p.second << "/" << p.first;
             first = false;
         }
-        cout << "}  (总数/跳转成功)\n";
+        cout << "}  (预测正确/总数)\n";
     }
     cout << "  无条件跳转   : " << jump_cnt << " 条 ("
          << (N ? 100.0 * jump_cnt / N : 0.0) << "%)\n";
