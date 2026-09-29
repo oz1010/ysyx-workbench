@@ -334,6 +334,7 @@ static const char* ATTR_NAMES[ATTR_COUNT] = {"RAW",      "flush回填", "flush�
 struct Rec
 {
     uint32_t pc    = 0;
+    uint32_t dnpc  = 0;
     bool     valid = false;
     uint64_t if_b  = 0;
     uint32_t dur[STAGE_COUNT] = {};
@@ -410,6 +411,7 @@ int analysis(const char* filepath)
         }
         Rec r;
         r.pc          = item.pc;
+        r.dnpc        = item.dnpc;
         r.valid       = item.valid;
         r.if_b        = item.inst_begin;
         r.icache_stat = item.icache_stat;
@@ -559,16 +561,6 @@ int analysis(const char* filepath)
         }
     }
     const size_t flush_cnt = flush_slots.size();
-
-    // 分支是否实际跳转统一按退休序中下一条有效指令的 PC 判定。
-    // flush 记录只表示存在被取消的取指，不一定意味着条件分支成功；
-    // 例如异常/其它控制事件也可能产生无效记录。该口径与 branchsim 一致。
-    std::vector<bool> branch_taken_by_pc(N, false);
-    for (size_t i = 0; i < N; ++i)
-    {
-        if (!recorder::inst_is_branch(V[i]->dec.inst_code)) continue;
-        branch_taken_by_pc[i] = (i + 1 < N) && (V[i + 1]->pc != V[i]->pc + 4);
-    }
 
     // ---- 周期占用深度直方图（差分数组对账=总周期） ----
     std::vector<uint64_t> depth_hist(6, 0);  // 多少拍流水线有k级在忙
@@ -886,10 +878,10 @@ int analysis(const char* filepath)
 
     cout << "\n";
     hline();
-    cout << "九、控制冒险明细（flush / 静态预测恒不跳）\n";
+    cout << "九、控制冒险明细（flush / 预测目标）\n";
     hline();
-    // ---- 分支预测统计：以前一条有效分支和下一条有效指令 PC 判定结果 ----
-    size_t branch_cnt = 0, branch_correct = 0, jump_cnt = 0;
+    // ---- 分支预测统计：比较记录的预测目标与下一条退休指令 PC ----
+    size_t branch_cnt = 0, branch_checked = 0, branch_correct = 0, jump_cnt = 0;
     std::map<std::string, std::pair<int, int>> branch_ops;  // 名称 -> {总数, 预测正确}
     for (size_t i = 0; i < N; ++i)
     {
@@ -897,12 +889,13 @@ int analysis(const char* filepath)
         if (recorder::inst_is_branch(code))
         {
             branch_cnt++;
-            const bool taken = branch_taken_by_pc[i];
-            // 当前口径是静态不跳转预测：实际不跳转即预测正确。
-            const bool correct = !taken;
-            branch_correct += correct;
             auto &p = branch_ops[recorder::inst_code_name(code)];
             p.first++;
+            // 最后一条退休指令没有后继，无法判断实际控制流目标。
+            if (i + 1 == N) continue;
+            branch_checked++;
+            const bool correct = V[i]->dnpc == V[i + 1]->pc;
+            branch_correct += correct;
             p.second += correct;
         }
         else if (recorder::inst_is_jump(code))
@@ -912,8 +905,9 @@ int analysis(const char* filepath)
     }
     cout << fixed << setprecision(2);
     cout << "  分支指令     : " << branch_cnt << " 条 (" << pct_str(branch_cnt, N)
-         << " 的指令), 预测正确 " << branch_correct << " 条 (预测准确率 "
-         << (branch_cnt ? 100.0 * branch_correct / branch_cnt : 0.0) << "%)\n";
+         << " 的指令), 可判定 " << branch_checked << " 条, 预测正确 " << branch_correct
+         << " 条 (预测准确率 "
+         << (branch_checked ? 100.0 * branch_correct / branch_checked : 0.0) << "%)\n";
     cout << "  分支类型     : {";
     {
         bool first = true;
