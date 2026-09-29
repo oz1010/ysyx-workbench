@@ -18,8 +18,8 @@ module perf_monitor (
     input  wire [31:0]  in_ex_pc, // 阶段in_done有效时需要存储下来
     input  wire [31:0]  in_ls_pc, // 阶段in_done有效时需要存储下来
     input  wire [31:0]  in_wb_pc, // 阶段in_done有效时需要存储下来
+    input  wire [31:0]  predict_pc,
     input  wire [`INST_CODE_W-1:0]  inst_code,
-    input  wire [31:0]  dnpc,
 
     input  wire         wb_gpr_wen,    // WBU进入时的GPR写使能
     input  wire [4:0]   wb_gpr_windex, // WBU进入时的GPR写索引
@@ -120,7 +120,7 @@ always @(posedge clk) begin
 
         // IFU
         if (!last_if_in_done & if_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IFU}, if_pc, 0);
-        if (!last_if_out_done & if_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IFU}, if_pc, {30'h0, if_cache_stat});
+        if (!last_if_out_done & if_out_done) func_add_monitor_item({24'h0, 1'b0, if_cache_stat, 1'b1, 4'h`STAGE_INDEX_IFU}, in_done_if_pc, predict_pc);
         // IDU
         if (!last_id_in_done & id_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IDU}, id_pc, 0);
         if (!last_id_out_done & id_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IDU}, id_pc, {16'h0, inst_code});
@@ -142,7 +142,7 @@ always @(posedge clk) begin
             if (mon_csr_wen[0]) func_add_monitor_item({11'h0, mon_csr_waddr_ext[0], mon_csr_wen[0], 2'h1, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, mon_csr_wdata[0]);
             if (mon_csr_wen[1]) func_add_monitor_item({11'h0, mon_csr_waddr_ext[1], mon_csr_wen[1], 2'h1, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, mon_csr_wdata[1]);
         end
-        if (!last_wb_out_done & wb_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_WBU}, wb_pc, dnpc);
+        if (!last_wb_out_done & wb_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
 
         // 硬件统计
         if (!last_wb_out_done & wb_out_done) func_cpu_stat_ctrl(`HW_CPU_STAT_INST, if_pc);

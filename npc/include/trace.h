@@ -63,7 +63,7 @@ extern FILE* trace_fd;
  *   - IFU结束按pc获取指令存储索引icache_mem_index
  *   - LSU结束按访存目标地址获取数据存储索引dcache_mem_index
  *   - IDU结束记录inst_code
- *   - EXU结束记录dnpc
+ *   - IFU结束记录预测的下一指令地址dnpc
  *   - WBU进入记录1组GPR写(wen/index/data)和2组CSR写(wen/addr/data)
  */
 typedef struct
@@ -77,7 +77,7 @@ typedef struct
                                               // 两者无存储数据时默认为全1，解析显示为none
     uint32_t inst_valid;                      // 指令有效标识，WBU完成时pos==record为有效
     uint32_t inst_code;                       // 指令码
-    uint32_t dnpc;                            // 目标跳转的PC值
+    uint32_t dnpc;                            // 预测的下一指令地址
     uint32_t gpr_wen;                         // GPR写使能，WBU进入时采集
     uint32_t gpr_windex;                      // GPR写索引
     uint32_t gpr_wdata;                       // GPR写数据

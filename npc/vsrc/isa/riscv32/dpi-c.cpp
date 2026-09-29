@@ -931,6 +931,12 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
     if (cache_data != 0)
         header |= RC_BIN_FLAG_CACHE_DATA;
 
+    // 预测下一地址以 pc+4 为基准；被flush且IFU未完成时按顺序地址处理
+    const uint32_t predicted_dnpc = r->stage_ticks[STAGE_INDEX_IFU][1] ? r->dnpc : r->pc + 4;
+    const int32_t dnpc_delta = (int32_t)(predicted_dnpc - (r->pc + 4u));
+    if (dnpc_delta != 0)
+        header |= RC_BIN_FLAG_DISCONT_DNPC;
+
     // 5. Δinst_begin(指令起始tick) 必然写入Payload
     uint64_t delta_inst_begin =
         g_hw_mon_ctx.is_first_record ? 0 : (base_tick - g_hw_mon_ctx.last_inst_begin);
@@ -969,6 +975,13 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
     if (cache_data != 0)
     {
         fputc(cache_data, perf_fp);
+    }
+
+    // 按需写入 DNPC Delta (ZigZag + ULEB128)
+    if (dnpc_delta != 0)
+    {
+        uint32_t zigzag_dnpc = ((uint32_t)dnpc_delta << 1) ^ (uint32_t)(dnpc_delta >> 31);
+        hw_monitor_bin_write_uleb128(zigzag_dnpc, perf_fp);
     }
 
     // 6. 更新上下文状态
@@ -1011,9 +1024,9 @@ static uint32_t dcache_mem_addr = 0;
  * 添加监控点数据
  *   id: -1表示初始化监控数据；类型hw_monitor_mid_t
  *   pc: 当前阶段的pc值（寄存器写数据项不需要pc）
- *   mid: IFU/LSU结束项扩展含义——IFU结束arg为icache访问状态（2bit：0无 1命中 2未命中）；
+ *   mid: IFU/LSU结束项扩展含义——IFU结束arg为预测的下一指令地址；
  *        LSU结束kind为dcache访问状态（0无 1命中 2未命中，写为0），wen为访存标识（读或写），
- *        wen为1时arg为访存目标地址；IDU记录inst_code；EXU记录dnpc；
+ *        wen为1时arg为访存目标地址；IDU记录inst_code；
  *        WBU进入时(mid.kind非0)记录寄存器写数据：1组GPR写和2组CSR写，
  *        kind编码：1=CSR写（两个写通道共用） 2=GPR写
  */
@@ -1140,11 +1153,12 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     // 记录各阶段tick值
     record->stage_ticks[stage][is_end] = hw_cpu_stat.counts[HW_CPU_STAT_TICK];
 
-    // IFU结束记录icache访问状态（arg低2bit）；
+    // IFU结束记录预测的下一指令地址；
     // 指令存储索引按pc在存储体列表中查找，不属于任何存储体时保持默认全1
     if (stage == STAGE_INDEX_IFU && is_end)
     {
-        record->icache_stat = arg & 0x3;
+        record->icache_stat = hw_mid.kind;
+        record->dnpc = (uint32_t)arg;
         int storage_idx = find_vdev_storage_index(record->pc);
         if (storage_idx >= 0)
         {
@@ -1171,10 +1185,6 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
     // IDU结束记录inst_code
     if (stage == STAGE_INDEX_IDU && is_end)
         record->inst_code = arg;
-
-    // EXU结束记录dnpc
-    if (stage == STAGE_INDEX_EXU && is_end)
-        record->dnpc = arg;
 
     // WBU结束，先记录信息，再清理之前未完成的数据
     if (stage == STAGE_INDEX_WBU && is_end)

@@ -237,6 +237,7 @@ int Recorder::decode_record(rc_decode_item_t* item)
             return -1;
         }
         item->rec_type   = RC_BIN_TYPE_REG;
+        item->dnpc       = 0;
         item->reg_pc     = static_cast<uint32_t>(last_pc_);
         item->reg_is_csr = (header & RC_BIN_REG_CSR) != 0;
         item->reg_index  = static_cast<uint32_t>(reg_index);
@@ -261,6 +262,7 @@ int Recorder::decode_record(rc_decode_item_t* item)
     const bool discont_pc    = header & RC_BIN_FLAG_DISCONT_PC;
     const bool inst_valid    = header & RC_BIN_FLAG_INST_VALID;
     const bool cache_data    = header & RC_BIN_FLAG_CACHE_DATA;
+    const bool discont_dnpc  = header & RC_BIN_FLAG_DISCONT_DNPC;
 
     // PC（不连续时从Payload读取ZigZag+ULEB128编码的Delta）
     if (discont_pc)
@@ -279,6 +281,7 @@ int Recorder::decode_record(rc_decode_item_t* item)
     {
         item->pc = static_cast<uint32_t>(last_pc_ + 4);
     }
+    item->dnpc = item->pc + 4;
 
     // 指令起始tick增量（必然存在，ULEB128编码）
     uint64_t delta_inst_begin = 0;
@@ -330,6 +333,19 @@ int Recorder::decode_record(rc_decode_item_t* item)
         const uint8_t stat = reader_->read_u8();
         item->icache_stat = stat & 0x3;
         item->dcache_stat = (stat >> 2) & 0x3;
+    }
+
+    if (discont_dnpc)
+    {
+        uint64_t zigzag = 0;
+        if (!reader_->read_uleb128(&zigzag))
+        {
+            error_ = "DNPC Delta缺失或数据不完整(offset=" + std::to_string(record_offset) + ")";
+            return -1;
+        }
+        const int32_t delta = static_cast<int32_t>(static_cast<uint32_t>(zigzag >> 1) ^
+                                                   -static_cast<uint32_t>(zigzag & 1));
+        item->dnpc = item->pc + 4u + static_cast<uint32_t>(delta);
     }
 
     // 更新增量解码上下文

@@ -427,8 +427,8 @@ perf_monitor m_perf_monitor (
     .in_ex_pc(con_id_pc),
     .in_ls_pc(con_ex_pc),
     .in_wb_pc(con_ls_pc),
+    .predict_pc(pc), // 预测pc值与实际取指一致
     .inst_code(con_id_inst_code),
-    .dnpc(core_dnpc),    // WBU离开时的下一条指令地址
     .wb_gpr_wen(wb_gpr_wen),
     .wb_gpr_windex(wb_gpr_windex),
     .wb_gpr_wdata(wb_gpr_wdata),

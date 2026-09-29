@@ -487,8 +487,9 @@ perf_monitor m_perf_monitor (
     .in_ex_pc(con_id_pc),
     .in_ls_pc(con_ex_pc),
     .in_wb_pc(con_ls_pc),
+    .predict_pc(core_predict_pc),
     .inst_code(con_id_inst_code),
-    .dnpc(con_wb_dnpc),
+    // .dnpc(con_wb_dnpc),
     .wb_gpr_wen(wb_gpr_wen),
     .wb_gpr_windex(wb_gpr_windex),
     .wb_gpr_wdata(wb_gpr_wdata),
@@ -959,6 +960,7 @@ exter_dev #(
 /* 流水线控制信号 */
 wire                            core_idle = con_if_ready & con_id_ready & con_ex_ready & con_ls_ready & con_wb_ready;
 wire [INST_WIDTH-1:0]           core_fetch_pc;
+wire [INST_WIDTH-1:0]           core_predict_pc;
 wire                            core_raw_wait;
 wire [`FLUSH_TYPE_W-1:0]        core_flush_type;
 wire [`STAGE_COUNT-1:0]         core_stage_flush;
@@ -1015,10 +1017,12 @@ static_predictor #(
 ) m_static_predictor (
     .clk(clk),
     .rst(rst),
+    .predict_en(con_core_valid&mod_con_if_ready),
     .fetch_en(mod_con_if_valid&mod_con_id_ready),
     .flush_type(core_flush_type),
     .core_pc(core_pc),
     .dnpc(con_wb_dnpc),
+    .predict_pc(core_predict_pc),
     .fetch_pc(core_fetch_pc)
 );
 
