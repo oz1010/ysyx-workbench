@@ -69,10 +69,17 @@ INC_PATH    += $(WORK_DIR)/./vsrc/ysyxSoC/perip/uart16550/rtl
 INC_PATH    += $(WORK_DIR)/./vsrc/ysyxSoC/perip/spi/rtl
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic
 
-# TRACE=1 make run -j , code define VM_TRACE_VCD
-ifdef TRACE
-VERILATOR_CFLAGS += --trace
+# TRACE=1 make run -j, enable Verilator waveform tracing (FST preferred)
+ifeq ($(TRACE),1)
+NPC_ARGS += --trace_hw=true
 endif
+
+VERILATOR_CFLAGS += --trace
+# 自动开启VM_TRACE_FST
+VERILATOR_CFLAGS += --trace-fst
+# FST tracing uses zlib for compression and gzip-backed sections.
+# Keep this in LIBS so -lz is placed after static Verilator archives.
+LIBS += -lz
 
 # 多个目标会触发多次构建规则，这里选择其中一个即可
 # VOBJS += $(VGEN_DIR)/libV$(VMOD_NAME).a

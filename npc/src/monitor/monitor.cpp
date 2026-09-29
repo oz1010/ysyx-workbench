@@ -109,6 +109,7 @@ std::string cfg_output = "";
 std::string cfg_perf_name = "";
 std::string cfg_icbin_name = "";
 std::string cfg_dcbin_name = "";
+bool cfg_hw_trace = false;
 char g_image_file_path[1024] = {0};
 static char *cfg_img_file = NULL;
 int cfg_dm_port = MUXDEF(CONFIG_DEBUG_MODULE, CONFIG_DM_PORT, 0);
@@ -226,15 +227,17 @@ static size_t load_img()
 
 static int parse_args(int argc, char *argv[])
 {
+    std::string input_str;
     const struct option table[] = {
         {"batch", no_argument, NULL, 'b'},     {"port", required_argument, NULL, 'p'},
         {"log", required_argument, NULL, 'l'}, {"diff", required_argument, NULL, 'd'},
         {"help", no_argument, NULL, 'h'},      {"perf", required_argument, NULL, 'f'},
         {"output", required_argument, NULL, 'o'},
+        {"trace_hw", required_argument, NULL, 't'},
         {0, 0, NULL, 0},
     };
     int o;
-    while ((o = getopt_long(argc, argv, "-hbl:d:p:o:f:", table, NULL)) != -1)
+    while ((o = getopt_long(argc, argv, "-hbl:d:p:o:f:t:", table, NULL)) != -1)
     {
         switch (o)
         {
@@ -256,6 +259,10 @@ static int parse_args(int argc, char *argv[])
             case 'o':
                 cfg_output = optarg;
                 break;
+            case 't':
+                input_str = optarg;
+                cfg_hw_trace = (input_str=="true"||input_str=="TRUE");
+                break;
             case 1:
                 cfg_img_file = optarg;
                 return 0;
@@ -267,6 +274,7 @@ static int parse_args(int argc, char *argv[])
                 raw_stdout("\t-o,--output=PATH        specify the output directory\n");
                 raw_stdout("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
                 raw_stdout("\t-p,--port=PORT          run DiffTest with port PORT\n");
+                raw_stdout("\t-t,--trace_hw=BOOL      enable or disable hardware tracing\n");
                 raw_stdout("\n");
                 exit(0);
         }

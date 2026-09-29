@@ -27,6 +27,7 @@ RESULT_DIR ?= $(BUILD_DIR)
 override ARGS ?= --output=$(RESULT_DIR) --log=npc-log.txt
 override ARGS += $(ARGS_DIFF)
 override ARGS += -b
+override ARGS += $(NPC_ARGS)
 
 ifeq ($(CONFIG_PERF_MONITOR), y)
 ANALYZER += analyzer
