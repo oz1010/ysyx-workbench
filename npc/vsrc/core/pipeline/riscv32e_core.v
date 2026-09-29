@@ -498,6 +498,9 @@ perf_monitor m_perf_monitor (
     .ls_cache_stat(ls_cache_stat),
     .ls_mem_access(ls_mem_access),
     .ls_mem_addr(ls_mem_addr),
+    .core_flush_type(core_flush_type),
+    .core_stage_flush(core_stage_flush),
+    .core_flush_done(core_flush_done),
     .done()
 );
 
