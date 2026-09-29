@@ -12,6 +12,7 @@ struct branch_ctx_t
 {
     uint64_t             seq;   // 有效指令序号(退休序，从0开始)
     uint32_t             pc;    // 分支指令PC
+    uint32_t             dnpc;  // 记录的预测下一地址
     uint32_t             inst;  // 指令字
     recorder::inst_dec_t dec;   // 解码值(指令码+rd/rs1/rs2)，由recorder::decode_inst填充
 };
