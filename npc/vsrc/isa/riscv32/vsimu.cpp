@@ -27,12 +27,16 @@
 #include "trace.h"
 
 #include "verilated.h"
+#if VM_TRACE_FST
+#include "verilated_fst_c.h"
+#elif VM_TRACE_VCD
 #include "verilated_vcd_c.h"
+#endif
 #include "top_define.h"
 
 #if CONFIG_HAS_NVBOARD
 #include "nvboard.h"
-void nvboard_bind_all_pins(TOP_ROOT_CLASS *_simu);
+void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
 #endif
 
 /* The assembly code of instructions executed is only output to the screen
@@ -42,27 +46,48 @@ void nvboard_bind_all_pins(TOP_ROOT_CLASS *_simu);
  */
 #define MAX_INST_TO_PRINT 10
 
-#if VM_TRACE_VCD
-static void record_trace_vcd(VerilatedVcdC *tfp, VerilatedContext *contextp)
+extern std::string cfg_output;
+extern bool cfg_hw_trace;
+
+#if VM_TRACE_FST
+#define VERILATED_TRACE_C VerilatedFstC
+#define VERILATED_TRACE_FILE_EXT ".fst"
+#elif VM_TRACE_VCD
+#define VERILATED_TRACE_C VerilatedVcdC
+#define VERILATED_TRACE_FILE_EXT ".vcd"
+#else
+#define VERILATED_TRACE_C void
+#define VERILATED_TRACE_FILE_EXT ".bin"
+#endif
+
+#if VM_TRACE
+static void record_trace(VERILATED_TRACE_C* tfp, VerilatedContext* contextp)
 {
     tfp->dump(contextp->time());
 }
-#define RECORD_TRACE_VCD() record_trace_vcd(tfp.get(), contextp.get())
+#define RECORD_TRACE()                               \
+    do                                               \
+    {                                                \
+        if (cfg_hw_trace)                            \
+        {                                            \
+            record_trace(tfp.get(), contextp.get()); \
+        }                                            \
+    } while (0)
 #else
-#define RECORD_TRACE_VCD()
+#define RECORD_TRACE()
 #endif
 
-#define TOP_RUN_TICK(T)               \
+#define TOP_RUN_TICK(T)            \
     do                             \
     {                              \
         T->clock = !T->clock;      \
         T->contextp()->timeInc(1); \
         T->eval();                 \
-        RECORD_TRACE_VCD();        \
+        RECORD_TRACE();            \
         T->clock = !T->clock;      \
         T->contextp()->timeInc(1); \
         T->eval();                 \
-        RECORD_TRACE_VCD();        \
+        RECORD_TRACE();            \
     } while (0)
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
@@ -71,10 +96,12 @@ extern paddr_t get_vsimu_dnpc(void);
 
 void init_dpi();
 void exit_dpi();
-uint8_t *get_vsimu_sram_addr();
+uint8_t* get_vsimu_sram_addr();
 std::shared_ptr<VerilatedContext> contextp;
 std::shared_ptr<TOP_ROOT_CLASS> top;
-std::shared_ptr<VerilatedVcdC> tfp;
+std::shared_ptr<VERILATED_TRACE_C> tfp;
+VERILATED_TRACE_C* g_trace_tfp = nullptr;
+VerilatedContext* g_trace_contextp = nullptr;
 
 typedef enum
 {
@@ -82,7 +109,7 @@ typedef enum
     SYNC_TO_CPU
 } sync_type_t;
 
-static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t type)
+static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t type)
 {
     // TOP_S_X
     // _simu->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060295_CORE0__DOT__m_reg_group__DOT__x
@@ -100,7 +127,7 @@ static int sync_simu_cpu(TOP_ROOT_CLASS *_simu, CPU_state *_cpu, sync_type_t typ
     return 0;
 }
 
-int exec_vsimu(Decode *s)
+int exec_vsimu(Decode* s)
 {
     bool simu_continue;
     s->dnpc = s->snpc;
@@ -157,7 +184,7 @@ int exec_vsimu(Decode *s)
     return 0;
 }
 
-void init_vsimu(int argc, char *argv[])
+void init_vsimu(int argc, char* argv[])
 {
     Verilated::commandArgs(argc, argv);
     contextp = std::make_shared<VerilatedContext>();
@@ -167,14 +194,22 @@ void init_vsimu(int argc, char *argv[])
 
     top = std::make_shared<TOP_ROOT_CLASS>(contextp.get(), TOP_STR);
 
-#if VM_TRACE_VCD
-    Verilated::mkdir("build/logs");
-    top->contextp()->traceEverOn(true);  // Verilator must compute traced signals
-    tfp = std::make_shared<VerilatedVcdC>();
-    top->trace(tfp.get(), 99);  // Trace 99 levels of hierarchy (or see below)
-    tfp->open("build/logs/simu_top.vcd");
-    LOG_INFO("Start trace ...\n");
-#endif
+    std::string trace_path = cfg_output + "/trace";
+    std::string trace_file;
+    if (cfg_hw_trace)
+    {
+        Verilated::mkdir(trace_path.c_str());
+        top->contextp()->traceEverOn(true);  // Verilator must compute traced signals
+        tfp = std::make_shared<VERILATED_TRACE_C>();
+        trace_file = trace_path + "/";
+        trace_file += "simu_top";
+        trace_file += VERILATED_TRACE_FILE_EXT;
+        g_trace_tfp = tfp.get();
+        g_trace_contextp = contextp.get();
+        top->trace(tfp.get(), 99);  // Trace 99 levels of hierarchy (or see below)
+        tfp->open(trace_file.c_str());
+        LOG_INFO("Trace is written to %s\n", trace_file.c_str());
+    }
 
     // 初始化NVBoard
     IFDEF(CONFIG_HAS_NVBOARD, nvboard_bind_all_pins(top.get()));
@@ -202,27 +237,30 @@ void exit_vsimu()
     // Final model cleanup
     top->final();
 
-    tfp.reset();
+    if (cfg_hw_trace)
+    {
+        tfp.reset();
+    }
     top.reset();
     contextp.reset();
 
     exit_dpi();
 }
 
-uint8_t *get_vsimu_sram_addr()
+uint8_t* get_vsimu_sram_addr()
 {
-    return (uint8_t *)&top->rootp->TOP_ASIC_AXI4RAM_MEMORY[0];
+    return (uint8_t*)&top->rootp->TOP_ASIC_AXI4RAM_MEMORY[0];
 }
 
-uint32_t *get_vsimu_vga_fb_addr()
+uint32_t* get_vsimu_vga_fb_addr()
 {
-    return (uint32_t *)&top->rootp
+    return (uint32_t*)&top->rootp
         ->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__fram_buffer[0];
 }
 
-uint32_t *get_vsimu_vga_ctrl_regs_addr()
+uint32_t* get_vsimu_vga_ctrl_regs_addr()
 {
-    return (uint32_t *)&top->rootp
+    return (uint32_t*)&top->rootp
         ->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__ctrl_regs[0];
 }
 
