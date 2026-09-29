@@ -1,6 +1,7 @@
-// 分支预测模拟器：输入npc perf monitor二进制记录文件，统计分支预测成功率，
-// 并在参数化流水线模型(N级/W发射/第B级解析分支)下估算预期周期数与IPC。
-// 分支策略由函数接口实现(BranchPredictFn)，当前仅实现静态不跳转策略。
+// 分支预测模拟器：输入npc perf monitor二进制记录文件，统计分支预测成功率与
+// 无条件跳转(JAL/JALR)的记录预测准确率，并在参数化流水线模型(N级/W发射/第B级解析分支)
+// 下估算预期周期数与IPC。
+// 分支策略由函数接口实现(BranchPredictFn)。
 //
 // 编译参考: make -C tools/branchsim (依赖 $(NPC_HOME)/build/lib/librecorder.a)
 
@@ -39,11 +40,14 @@ struct SimStats
     uint64_t correct_cnt = 0;     // 预测成功数
     uint64_t hw_checked_cnt = 0;  // 记录中有后继指令的分支数
     uint64_t hw_correct_cnt = 0;  // 记录dnpc与实际后继PC一致数
-    uint64_t jump_cnt = 0;        // 无条件跳转数(仅展示，不参与预测统计)
+    uint64_t hw_jump_checked_cnt = 0;  // 记录中有后继指令、可判定记录预测的跳转数
+    uint64_t hw_jump_correct_cnt = 0;  // 记录dnpc与实际后继PC一致的跳转数
     // 选定策略的分支类型 -> {总数, 预测正确数}
     std::map<std::string, std::pair<uint64_t, uint64_t>> branch_types;
     // 记录的分支类型 -> {总数, 预测正确数}
     std::map<std::string, std::pair<uint64_t, uint64_t>> hw_branch_types;
+    // 记录的跳转类型(JAL/JALR) -> {总数, 预测正确数}
+    std::map<std::string, std::pair<uint64_t, uint64_t>> hw_jump_types;
 };
 
 // =============================================================================
@@ -64,6 +68,7 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
 
     // 待裁决分支：下一条有效指令PC用于确定实际目标；流末尾分支无后继，不参与准确率。
     bool has_pending = false;
+    bool pending_is_jump = false;  // 待决项为无条件跳转(恒跳转，仅统计记录预测)
     branch_ctx_t pending{};
 
     recorder::rc_decode_item_t item;
@@ -86,19 +91,32 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
         // 同时使用记录中的dnpc统计硬件实际预测是否正确。
         if (has_pending)
         {
-            const bool taken = (item.pc != pending.pc + 4);
-            const bool pred = predict(pending);
-            stats.checked_cnt++;
-            stats.taken_cnt += taken;
-            stats.pred_cnt += pred;
-            stats.correct_cnt += (pred == taken);
-            stats.hw_checked_cnt++;
-            stats.hw_correct_cnt += (pending.dnpc == item.pc);
-            auto& type_stat = stats.branch_types[recorder::inst_code_name(pending.dec.inst_code)];
-            type_stat.second += (pred == taken);
-            auto& hw_type_stat =
-                stats.hw_branch_types[recorder::inst_code_name(pending.dec.inst_code)];
-            hw_type_stat.second += (pending.dnpc == item.pc);
+            if (pending_is_jump)
+            {
+                // 无条件跳转必跳转，仅需对照记录dnpc与实际后继PC统计记录预测准确率
+                const bool hw_correct = (pending.dnpc == item.pc);
+                stats.hw_jump_checked_cnt++;
+                stats.hw_jump_correct_cnt += hw_correct;
+                stats.hw_jump_types[recorder::inst_code_name(pending.dec.inst_code)]
+                    .second += hw_correct;
+            }
+            else
+            {
+                const bool taken = (item.pc != pending.pc + 4);
+                const bool pred = predict(pending);
+                stats.checked_cnt++;
+                stats.taken_cnt += taken;
+                stats.pred_cnt += pred;
+                stats.correct_cnt += (pred == taken);
+                stats.hw_checked_cnt++;
+                stats.hw_correct_cnt += (pending.dnpc == item.pc);
+                auto& type_stat =
+                    stats.branch_types[recorder::inst_code_name(pending.dec.inst_code)];
+                type_stat.second += (pred == taken);
+                auto& hw_type_stat =
+                    stats.hw_branch_types[recorder::inst_code_name(pending.dec.inst_code)];
+                hw_type_stat.second += (pending.dnpc == item.pc);
+            }
             has_pending = false;
         }
 
@@ -110,6 +128,7 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
             pending.dnpc = item.dnpc;
             pending.inst = item.inst;
             recorder::decode_inst(item.inst, &pending.dec);
+            pending_is_jump = false;
             has_pending = true;
             stats.branch_cnt++;
             stats.branch_types[recorder::inst_code_name(item.inst_code)].first++;
@@ -117,7 +136,15 @@ static void parse_and_simulate(const char* filepath, const SimConfig& cfg, SimSt
         }
         else if (recorder::inst_is_jump(item.inst_code))
         {
-            stats.jump_cnt++;
+            // 无条件跳转同样挂起，待下一条有效指令到来后按记录dnpc判定记录预测
+            pending.seq = stats.total_inst - 1;
+            pending.pc = item.pc;
+            pending.dnpc = item.dnpc;
+            pending.inst = item.inst;
+            recorder::decode_inst(item.inst, &pending.dec);
+            pending_is_jump = true;
+            has_pending = true;
+            stats.hw_jump_types[recorder::inst_code_name(item.inst_code)].first++;
         }
     }
 }
@@ -150,7 +177,7 @@ static void print_report(const char* filepath, const SimConfig& cfg, const SimSt
     cout << "  总指令数      : " << stats.total_inst << "\n";
     cout << "  分支指令数    : " << stats.branch_cnt << " (" << fixed << setprecision(2)
          << (stats.total_inst ? 100.0 * stats.branch_cnt / stats.total_inst : 0.0)
-         << "%), 其中跳转 " << stats.taken_cnt << " 条\n";
+         << "%)\n";
     cout << "  分支预测      : "  << setprecision(2)
              << (stats.checked_cnt ? 100.0 * stats.correct_cnt / stats.checked_cnt : 0.0) << "% ("
              << stats.correct_cnt << "/" << stats.checked_cnt << ")";
@@ -164,7 +191,7 @@ static void print_report(const char* filepath, const SimConfig& cfg, const SimSt
         }
         cout << "}\n";
     }
-    cout << "  记录预测      : "  << setprecision(2)
+    cout << "  分支记录预测  : "  << setprecision(2)
              << (stats.hw_checked_cnt ? 100.0 * stats.hw_correct_cnt / stats.hw_checked_cnt : 0.0)
              << "% (" << stats.hw_correct_cnt << "/" << stats.hw_checked_cnt << ")";
     cout << " {";
@@ -177,7 +204,24 @@ static void print_report(const char* filepath, const SimConfig& cfg, const SimSt
         }
         cout << "}\n";
     }
-    cout << "  无条件跳转    : " << stats.jump_cnt << " 条 (不参与预测统计)\n";
+    cout << "  跳转指令数    : " << stats.hw_jump_checked_cnt << " (" << fixed << setprecision(2)
+         << (stats.total_inst ? 100.0 * stats.hw_jump_checked_cnt / stats.total_inst : 0.0)
+         << "%)\n";
+    cout << "  跳转记录预测  : "  << setprecision(2)
+             << (stats.hw_jump_checked_cnt
+                     ? 100.0 * stats.hw_jump_correct_cnt / stats.hw_jump_checked_cnt
+                     : 0.0)
+             << "% (" << stats.hw_jump_correct_cnt << "/" << stats.hw_jump_checked_cnt << ")";
+    cout << " {";
+    {
+        bool first = true;
+        for (const auto& [type, counts] : stats.hw_jump_types)
+        {
+            cout << (first ? "" : ", ") << type << ": " << counts.second << "/" << counts.first;
+            first = false;
+        }
+        cout << "}\n";
+    }
     cout << "------------------------------------------------\n";
     cout << "  预期周期数    : " << cycles << " = 理想 " << ideal_cycles << " + 分支惩罚 "
          << branch_penalty << " (误预测 " << mispredict_cnt << " × (B-1)=" << penalty << ")\n";
