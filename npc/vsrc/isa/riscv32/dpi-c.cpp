@@ -738,7 +738,8 @@ void init_hw_monitor_record()
     int count = 0;
     for (size_t i = 0; i < (STAGE_COUNT * 2); ++i)
     {
-        hw_monitor_rc_raw_data_t* r = (hw_monitor_rc_raw_data_t*)malloc(sizeof(hw_monitor_rc_raw_data_t));
+        hw_monitor_rc_raw_data_t* r =
+            (hw_monitor_rc_raw_data_t*)malloc(sizeof(hw_monitor_rc_raw_data_t));
         assert(r);
         memset(r, 0, sizeof(hw_monitor_rc_raw_data_t));
         r->icache_mem_index = UINT32_MAX;  // 存储索引默认全1：无存储数据时解析显示为none
@@ -755,7 +756,7 @@ void init_hw_monitor_record()
      *                                    Storage Index的低bit位指令存储索引即为该列表的索引
      *   record_offset记录字符串数据之后记录数据的文件偏移
      */
-    rc_bin_descript_t *desc = &hw_monitor_ctx.bin_descript;
+    rc_bin_descript_t* desc = &hw_monitor_ctx.bin_descript;
     desc->magic = RC_BIN_DESCRIPT_MAGIC;
     desc->version = RC_BIN_DESCRIPT_VERSION;
     IFDEF(CONFIG_ICACHE, desc->config.icache_enable = 1);
@@ -763,7 +764,7 @@ void init_hw_monitor_record()
 
     static const char img_key[] = "IMG";
     static const char storage_key[] = "STORAGE";
-    const char *storage_names[NR_VDEV_ITEMS];
+    const char* storage_names[NR_VDEV_ITEMS];
     int storage_cnt = 0;
     for (int i = 0; i < NR_VDEV_ITEMS; ++i)
     {
@@ -829,7 +830,8 @@ static inline void hw_monitor_bin_write_uleb128(uint64_t val, FILE* fp)
  */
 static void write_reg_record(uint8_t reg_flag, uint32_t index, uint32_t data)
 {
-    uint8_t header = (RC_BIN_TYPE_REG << RC_BIN_TYPE_SHIFT) | (reg_flag & ((1 << RC_BIN_TYPE_SHIFT) - 1));
+    uint8_t header =
+        (RC_BIN_TYPE_REG << RC_BIN_TYPE_SHIFT) | (reg_flag & ((1 << RC_BIN_TYPE_SHIFT) - 1));
     fputc(header, perf_fp);
     hw_monitor_bin_write_uleb128(index, perf_fp);
     hw_monitor_bin_write_uleb128(data, perf_fp);
@@ -862,19 +864,26 @@ static void write_reg_records(hw_monitor_rc_raw_data_t* r)
  * @brief 将硬件 Trace 记录压缩编码并写入二进制文件 (HW_MONITOR_BIN 格式)
  * @param r 指向原始硬件 Monitor 记录结构体的指针
  */
-static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
+static void write_inst_record(hw_monitor_rc_raw_data_t* r)
+{
     static rc_encode_ctx_t g_hw_mon_ctx = {0};
 
-        // static uint32_t inst_count = 0;
+    // static uint32_t inst_count = 0;
     // raw_stdout(
-    //     "=== %02u 0x%08x if|%04lu,%04lu id|%04lu,%04lu ex|%04lu,%04lu ls|%04lu,%04lu wb|%04lu,%04lu "
+    //     "=== %02u 0x%08x if|%04lu,%04lu id|%04lu,%04lu ex|%04lu,%04lu ls|%04lu,%04lu
+    //     wb|%04lu,%04lu "
     //     "%c\n",
-    //     inst_count, r->pc, 
-    //     to_simutime(r->stage_ticks[STAGE_INDEX_IFU][0]), to_simutime(r->stage_ticks[STAGE_INDEX_IFU][1]),
-    //     to_simutime(r->stage_ticks[STAGE_INDEX_IDU][0]), to_simutime(r->stage_ticks[STAGE_INDEX_IDU][1]),
-    //     to_simutime(r->stage_ticks[STAGE_INDEX_EXU][0]), to_simutime(r->stage_ticks[STAGE_INDEX_EXU][1]),
-    //     to_simutime(r->stage_ticks[STAGE_INDEX_LSU][0]), to_simutime(r->stage_ticks[STAGE_INDEX_LSU][1]),
-    //     to_simutime(r->stage_ticks[STAGE_INDEX_WBU][0]), to_simutime(r->stage_ticks[STAGE_INDEX_WBU][1]), ' ');
+    //     inst_count, r->pc,
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_IFU][0]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_IFU][1]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_IDU][0]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_IDU][1]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_EXU][0]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_EXU][1]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_LSU][0]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_LSU][1]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_WBU][0]),
+    //     to_simutime(r->stage_ticks[STAGE_INDEX_WBU][1]), ' ');
     // ++inst_count;
 
     uint8_t header = 0;
@@ -899,8 +908,8 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
     for (int i = 0; i < STAGE_COUNT; i++)
     {
         uint64_t begin_tick = r->stage_ticks[i][0];
-        uint64_t end_tick   = r->stage_ticks[i][1];
-        uint64_t duration   = 0;
+        uint64_t end_tick = r->stage_ticks[i][1];
+        uint64_t duration = 0;
         if (begin_tick != 0 && end_tick >= begin_tick)
         {
             duration = end_tick - begin_tick;
@@ -959,8 +968,7 @@ static void write_inst_record(hw_monitor_rc_raw_data_t* r) {
     // 写入 Storage Index：低bit位为指令存储索引，高bit位为数据存储索引；
     // 无存储数据时对应bit位默认为全1，解析时显示为none
     const int storage_bits = rc_storage_index_bits(hw_monitor_ctx.storage_cnt);
-    const uint32_t storage_mask =
-        storage_bits >= 32 ? UINT32_MAX : ((1u << storage_bits) - 1);
+    const uint32_t storage_mask = storage_bits >= 32 ? UINT32_MAX : ((1u << storage_bits) - 1);
     uint32_t mem_index = (r->icache_mem_index & storage_mask) |
                          ((uint32_t)((r->dcache_mem_index & storage_mask) << storage_bits));
     hw_monitor_bin_write_uleb128(mem_index, perf_fp);
@@ -1014,6 +1022,17 @@ static inline bool is_empty_record(hw_monitor_rc_raw_data_t* r)
     return (r->tick == 0 && r->pc == 0);
 }
 
+// 清除记录数据，会自动保存节点信息
+void reset_record(hw_monitor_rc_raw_data_t* d)
+{
+    list_head_t node = d->node;
+    memset(d, 0, sizeof(*d));
+    d->node = node;
+    // 存储索引恢复默认全1：无对应存储数据时保持全1，清零会被误解析为存储体0
+    d->icache_mem_index = UINT32_MAX;
+    d->dcache_mem_index = UINT32_MAX;
+}
+
 /**
  * LSU访存目标地址，LSU结束监控项（arg）在有访存时更新，
  * 用于查找数据存储索引（dcache_mem_index）
@@ -1047,12 +1066,68 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
         return;
     }
 
-    // 添加监控数据
+    // 解析关键数据
     rc_mid_t hw_mid;
     memcpy(&hw_mid, &mid, sizeof(rc_mid_t));
     uint32_t is_end = hw_mid.is_end;
     uint32_t is_begin = !is_end;
     uint32_t stage = hw_mid.stage;
+    list_head_t* head = &hw_monitor_ctx.record_head;
+    hw_monitor_rc_raw_data_t *pos, *n;
+
+    // 遇到flush流程，强制将列表数据标注为invalid
+    if (stage == 0xf)
+    {
+        hw_monitor_rc_raw_data_t* first_empty = NULL;
+        list_for_each_entry(pos, head, node)
+        {
+            if (is_empty_record(pos))
+            {
+                first_empty = pos;
+                break;
+            }
+        }
+        // 未找到需要清理的节点
+        if (!first_empty)
+            return;
+
+        // 清理之前未完成的数据
+        list_head_t tmp;
+        INIT_LIST_HEAD(&tmp);
+        list_cut_position(&tmp, head, &first_empty->node);
+        // 按时间顺序记录完成指令及之前被flush的未完成指令；
+        // pos==record为完成WBU的指令记为有效，其余为被flush的无效指令（部分阶段数据缺失），
+        // 有效性写入Header的INST_VALID位，无效记录可用于计算flush流水线占用的时间，正常打印时屏蔽
+        list_for_each_entry(pos, &tmp, node)
+        {
+            if (!is_empty_record(pos))
+            {
+                pos->inst_valid = false;
+                write_record_to_file(pos);
+
+                // // 打印清理的指令信息
+                // if (pos->pc == 0xa0004cac || pos->pc == 0xa0004ca8)
+                // {
+                //     int has_tick = 0;
+                //     for (int stageidx = 0; stageidx < 5; ++stageidx)
+                //     {
+                //         uint64_t t = pos->stage_ticks[stageidx][1] - pos->stage_ticks[stageidx][0];
+                //         has_tick |= ((t > 0) << stageidx);
+                //     }
+                //     printf(
+                //         "--- clear item tick %lu pc %#08x predict %#08x begin %lu valid %d "
+                //         "has_tick %x\n",
+                //         (2 * hw_cpu_stat.counts[HW_CPU_STAT_TICK] + 48), pos->pc, pos->dnpc,
+                //         (2 * pos->tick + 48), pos->inst_valid, has_tick);
+                // }
+            }
+            reset_record(pos);
+        }
+        list_splice_tail_init(&tmp, head);
+        return;
+    }
+
+    // 添加监控数据
     if (stage >= STAGE_COUNT)
     {
         raw_stdout("Unknown stage: %d\n", stage);
@@ -1060,15 +1135,11 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
         return;
     }
 
-    // 获取当前阶段记录值
-    list_head_t* head = &hw_monitor_ctx.record_head;
-    hw_monitor_rc_raw_data_t* record = NULL;
-    hw_monitor_rc_raw_data_t *pos, *n;
-
     // WBU进入时的寄存器写数据项（mid扩展kind/wen/waddr，arg为写数据）：
     // tick项已先行记录WBU起始tick，这里取最近一条已进入WBU且未完成的记录保存写数据；
     // 寄存器项不携带pc，该记录即上次处理（进入WBU）的指令记录
     // 注意kind仅在WBU阶段表示寄存器写类型，LSU结束项的kind为dcache访问状态
+    hw_monitor_rc_raw_data_t* record = NULL;
     if (stage == STAGE_INDEX_WBU && hw_mid.kind != 0)
     {
         list_for_each_entry(pos, head, node)
@@ -1078,7 +1149,8 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
                 break;
             }
             // WBU已开始且未结束：同一时间至多一条，即上次处理的指令记录
-            if (pos->stage_ticks[STAGE_INDEX_WBU][0] != 0 && pos->stage_ticks[STAGE_INDEX_WBU][1] == 0)
+            if (pos->stage_ticks[STAGE_INDEX_WBU][0] != 0 &&
+                pos->stage_ticks[STAGE_INDEX_WBU][1] == 0)
             {
                 record = pos;
             }
@@ -1092,21 +1164,21 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
             case 1:  // CSR写（两个写通道共用，依次存入空闲写通道）
                 if (!record->csr_wen[0])
                 {
-                    record->csr_wen[0]   = hw_mid.wen;
+                    record->csr_wen[0] = hw_mid.wen;
                     record->csr_waddr[0] = hw_mid.waddr;
                     record->csr_wdata[0] = arg;
                 }
                 else
                 {
-                    record->csr_wen[1]   = hw_mid.wen;
+                    record->csr_wen[1] = hw_mid.wen;
                     record->csr_waddr[1] = hw_mid.waddr;
                     record->csr_wdata[1] = arg;
                 }
                 break;
             case 2:  // GPR写
-                record->gpr_wen    = hw_mid.wen;
+                record->gpr_wen = hw_mid.wen;
                 record->gpr_windex = hw_mid.waddr;
-                record->gpr_wdata  = arg;
+                record->gpr_wdata = arg;
                 break;
             default:
                 break;
@@ -1203,12 +1275,7 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
                 pos->inst_valid = (pos == record);
                 write_record_to_file(pos);
             }
-            list_head_t node = pos->node;
-            memset(pos, 0, sizeof(*pos));
-            pos->node = node;
-            // 存储索引恢复默认全1：无对应存储数据时保持全1，清零会被误解析为存储体0
-            pos->icache_mem_index = UINT32_MAX;
-            pos->dcache_mem_index = UINT32_MAX;
+            reset_record(pos);
         }
         list_splice_tail_init(&tmp, head);
     }

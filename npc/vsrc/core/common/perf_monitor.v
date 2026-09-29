@@ -31,6 +31,10 @@ module perf_monitor (
     input  wire         ls_mem_access, // LSU访存标识：访存指令（读或写）out_valid期间为1
     input  wire [31:0]  ls_mem_addr,   // LSU访存目标地址，访存指令out_valid期间有效
 
+    input  wire [`FLUSH_TYPE_W-1:0] core_flush_type,
+    input  wire [`STAGE_COUNT-1:0] core_stage_flush,
+    input  wire         core_flush_done,
+
     output wire         done
 );
 
@@ -63,6 +67,7 @@ wire [31:0] wb_pc = wb_in_done ? in_wb_pc : in_done_wb_pc;
 
 wire core_valid = !rst;
 reg last_core_valid;
+reg last_core_flush_done;
 
 /* WBU进入时的CSR写通道拆分：2组{en(1), addr(CSR_ADDR_W), data(32)} */
 wire                        mon_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
@@ -98,6 +103,7 @@ always @(posedge clk) begin
         in_done_ls_pc <= 0;
         in_done_wb_pc <= 0;
         last_core_valid <= 0;
+        last_core_flush_done <= 0;
     end else begin
         last_if_in_done <= if_in_done;
         last_if_out_done <= if_out_done;
@@ -110,6 +116,7 @@ always @(posedge clk) begin
         last_wb_in_done <= wb_in_done;
         last_wb_out_done <= wb_out_done;
         last_core_valid <= core_valid;
+        last_core_flush_done <= core_flush_done;
         in_done_if_pc <= if_in_done ? in_if_pc : in_done_if_pc;
         in_done_id_pc <= id_in_done ? in_id_pc : in_done_id_pc;
         in_done_ex_pc <= ex_in_done ? in_ex_pc : in_done_ex_pc;
@@ -118,9 +125,12 @@ always @(posedge clk) begin
 
         if (!last_core_valid & core_valid) func_add_monitor_item(-1, 0, 0);
 
+        // 刷新完成，清理记录数据
+        if (!last_core_flush_done & core_flush_done) func_add_monitor_item({28'h0, 4'hF}, if_pc, {25'h0, core_stage_flush, core_flush_type});
+
         // IFU
         if (!last_if_in_done & if_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IFU}, if_pc, 0);
-        if (!last_if_out_done & if_out_done) func_add_monitor_item({24'h0, 1'b0, if_cache_stat, 1'b1, 4'h`STAGE_INDEX_IFU}, in_done_if_pc, predict_pc);
+        if (!last_if_out_done & if_out_done) func_add_monitor_item({24'h0, 1'b0, if_cache_stat, 1'b1, 4'h`STAGE_INDEX_IFU}, if_pc, predict_pc);
         // IDU
         if (!last_id_in_done & id_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IDU}, id_pc, 0);
         if (!last_id_out_done & id_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IDU}, id_pc, {16'h0, inst_code});
