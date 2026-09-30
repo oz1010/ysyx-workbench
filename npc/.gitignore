@@ -3,6 +3,7 @@
 *.*
 *
 # 保留文件，适用于所有路径
+!scripts/*.tcl
 !Makefile
 !*.mk
 !*.ld
