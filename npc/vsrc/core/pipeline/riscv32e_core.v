@@ -1109,7 +1109,7 @@ stage_regs#(
 );
 // 记录上次取指地址
 reg  [ADDR_WIDTH-1:0]           con_if_last_pc;
-always @(posedge clk or posedge rst) con_if_last_pc <= 
+always @(posedge clk) con_if_last_pc <= 
     (rst) ? 0 :
     (mod_con_if_valid & con_id_ready) ? con_if_pc :
     con_if_last_pc;
