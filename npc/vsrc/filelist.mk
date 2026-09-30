@@ -135,4 +135,19 @@ sta: $(STA_FILES)
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
 		RTL_FILES="$^"
 
-.PHONY: sta convert2v
+# 层级化面积统计: 不 flatten, stat 按模块分别报告面积, 用于定位流水线各模块占比
+YOSYS_PDK		?= nangate45
+YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/$(YOSYS_PDK)/lib/Nangate45_typ.lib
+
+sta-area: $(STA_FILES) | $(WORK_DIR)/scripts/yosys_area_hier.tcl
+	@echo start yosys-area-hier
+	@mkdir -p $(STA_OUTPUT_DIR)/area-hier
+	@yosys -l $(STA_OUTPUT_DIR)/area-hier/yosys.log -p \
+		"tcl $(WORK_DIR)/scripts/yosys_area_hier.tcl $(VMOD_NAME) $(YOSYS_STA_LIB) \
+			\"$(abspath $(STA_FILES))\" $(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
+			\"$(abspath $(STA_INCLUDE_DIR))\""
+	@python3 $(WORK_DIR)/scripts/area_hier_report.py \
+		$(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
+		--csv $(STA_OUTPUT_DIR)/area-hier/area_hier.csv
+
+.PHONY: sta sta-area convert2v
