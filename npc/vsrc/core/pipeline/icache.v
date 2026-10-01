@@ -158,7 +158,6 @@ reg  [1:0]                  c_s_arburst;
 reg                         c_s_rready;
 
 `ifdef CONFIG_ICACHE
-`ifndef IN_YOSYS_STA
 wire icache_wen = 0;
 wire icache_ren = m_arid==`AXI4_ID_IFU &&
     ( 
@@ -167,10 +166,6 @@ wire icache_ren = m_arid==`AXI4_ID_IFU &&
         || ( m_araddr>=`CONFIG_PSRAM_BASE && m_araddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
         || ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
     );
-`else
-wire icache_wen = 0;
-wire icache_ren = 0;
-`endif // IN_YOSYS_STA
 `else
 wire icache_wen = 0;
 wire icache_ren = 0;
