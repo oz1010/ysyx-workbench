@@ -58,10 +58,11 @@ INCS 		= $(addprefix -I, $(INC_FILES))
 
 
 # GCC 13.3.0 中 fence.i 需显式声明 zifencei 扩展, 旧版本不支持该写法
+# NPC面积限制，只支持RV32E
 ifeq ($(shell $(CC) -dumpfullversion),13.3.0)
-RISCV_MARCH	:= rv32em_zicsr_zifencei
+RISCV_MARCH	:= rv32e_zicsr_zifencei
 else
-RISCV_MARCH	:= rv32em_zicsr
+RISCV_MARCH	:= rv32e_zicsr
 endif
 
 ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e

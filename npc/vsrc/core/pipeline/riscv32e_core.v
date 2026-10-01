@@ -424,13 +424,13 @@ gprs #(
 ) m_gprs (
     .clk(clk),
     .rst(rst),
-    .rs1(con_id_rs1),
+    .rs1(con_id_rs1[3:0]),
     .src1(gpr_src1),
-    .rs2(con_id_rs2),
+    .rs2(con_id_rs2[3:0]),
     .src2(gpr_src2),
     .a0(gpr_a0),
     .wen(wb_gpr_wen),
-    .windex(wb_gpr_windex),
+    .windex(wb_gpr_windex[3:0]),
     .wdata(wb_gpr_wdata)
 );
 

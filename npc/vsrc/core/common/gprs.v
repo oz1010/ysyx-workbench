@@ -23,6 +23,7 @@ localparam REG_INDEX_W = log2(REG_COUNT);
 
 /* 寄存器组 */
 // 通用寄存器
+// RV32E GPR数量为16
 reg [DATA_WIDTH-1:0] x[0:REG_COUNT-1];
 // 寄存器别名，register alias, ch2.3
 wire [DATA_WIDTH-1:0] zero = x[0];
@@ -36,24 +37,29 @@ wire [DATA_WIDTH-1:0] t2 = x[7];
 wire [DATA_WIDTH-1:0] s0 = x[8];
 wire [DATA_WIDTH-1:0] fp = x[8];
 wire [DATA_WIDTH-1:0] s1 = x[9];
-wire [DATA_WIDTH-1:0] a[0:7];
-wire [DATA_WIDTH-1:0] s2 = x[18];
-wire [DATA_WIDTH-1:0] s3 = x[19];
-wire [DATA_WIDTH-1:0] s4 = x[20];
-wire [DATA_WIDTH-1:0] s5 = x[21];
-wire [DATA_WIDTH-1:0] s6 = x[22];
-wire [DATA_WIDTH-1:0] s7 = x[23];
-wire [DATA_WIDTH-1:0] s8 = x[24];
-wire [DATA_WIDTH-1:0] s9 = x[25];
-wire [DATA_WIDTH-1:0] s10 = x[26];
-wire [DATA_WIDTH-1:0] s11 = x[27];
-wire [DATA_WIDTH-1:0] t3 = x[28];
-wire [DATA_WIDTH-1:0] t4 = x[29];
-wire [DATA_WIDTH-1:0] t5 = x[30];
-wire [DATA_WIDTH-1:0] t6 = x[31];
+wire [DATA_WIDTH-1:0] a[0:5];
+// wire [DATA_WIDTH-1:0] a[0:7];
+// wire [DATA_WIDTH-1:0] s2 = x[18];
+// wire [DATA_WIDTH-1:0] s3 = x[19];
+// wire [DATA_WIDTH-1:0] s4 = x[20];
+// wire [DATA_WIDTH-1:0] s5 = x[21];
+// wire [DATA_WIDTH-1:0] s6 = x[22];
+// wire [DATA_WIDTH-1:0] s7 = x[23];
+// wire [DATA_WIDTH-1:0] s8 = x[24];
+// wire [DATA_WIDTH-1:0] s9 = x[25];
+// wire [DATA_WIDTH-1:0] s10 = x[26];
+// wire [DATA_WIDTH-1:0] s11 = x[27];
+// wire [DATA_WIDTH-1:0] t3 = x[28];
+// wire [DATA_WIDTH-1:0] t4 = x[29];
+// wire [DATA_WIDTH-1:0] t5 = x[30];
+// wire [DATA_WIDTH-1:0] t6 = x[31];
 generate
-    // a0-7 = xs10-17
-    for (genvar i = 0; i<8; ++i) begin
+    // // a0-7 = xs10-17
+    // for (genvar i = 0; i<8; ++i) begin
+    //     assign a[i] = x[i+10];
+    // end
+    // a0-5 = xs10-15
+    for (genvar i = 0; i<6; ++i) begin
         assign a[i] = x[i+10];
     end
 endgenerate
