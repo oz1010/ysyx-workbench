@@ -190,14 +190,16 @@ module inst_decode #(
             // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRWI;
             // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRSI;
             // 32'bzzzzzzz_zzzzz_zzzzz_000_zzzzz_00100_11: inst_code = `INST_CSRRCI;
-            32'b0000001_zzzzz_zzzzz_000_zzzzz_01100_11: inst_code = `INST_MUL;
-            32'b0000001_zzzzz_zzzzz_001_zzzzz_01100_11: inst_code = `INST_MULH;
-            32'b0000001_zzzzz_zzzzz_010_zzzzz_01100_11: inst_code = `INST_MULHSU;
-            32'b0000001_zzzzz_zzzzz_011_zzzzz_01100_11: inst_code = `INST_MULHU;
-            32'b0000001_zzzzz_zzzzz_100_zzzzz_01100_11: inst_code = `INST_DIV;
-            32'b0000001_zzzzz_zzzzz_101_zzzzz_01100_11: inst_code = `INST_DIVU;
-            32'b0000001_zzzzz_zzzzz_110_zzzzz_01100_11: inst_code = `INST_REM;
-            32'b0000001_zzzzz_zzzzz_111_zzzzz_01100_11: inst_code = `INST_REMU;
+
+            // // RV32M扩展，NPC暂时不用支持
+            // 32'b0000001_zzzzz_zzzzz_000_zzzzz_01100_11: inst_code = `INST_MUL;
+            // 32'b0000001_zzzzz_zzzzz_001_zzzzz_01100_11: inst_code = `INST_MULH;
+            // 32'b0000001_zzzzz_zzzzz_010_zzzzz_01100_11: inst_code = `INST_MULHSU;
+            // 32'b0000001_zzzzz_zzzzz_011_zzzzz_01100_11: inst_code = `INST_MULHU;
+            // 32'b0000001_zzzzz_zzzzz_100_zzzzz_01100_11: inst_code = `INST_DIV;
+            // 32'b0000001_zzzzz_zzzzz_101_zzzzz_01100_11: inst_code = `INST_DIVU;
+            // 32'b0000001_zzzzz_zzzzz_110_zzzzz_01100_11: inst_code = `INST_REM;
+            // 32'b0000001_zzzzz_zzzzz_111_zzzzz_01100_11: inst_code = `INST_REMU;
             
             // Privileged Instructions ref. RISC-V开放架构设计之道-V1.0.0 p101
             32'b0011000_00010_00000_000_00000_11100_11: inst_code = `INST_MRET;

@@ -111,16 +111,18 @@ typedef enum
 
 static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t type)
 {
+    // RV32E GPR只有16个
+    static size_t gpr_bytes = 16 * sizeof(_cpu->gpr[0]);
     // TOP_S_X
     // _simu->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060295_CORE0__DOT__m_reg_group__DOT__x
     if (type == SYNC_TO_SIMU)
     {
-        memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], sizeof(_cpu->gpr));
+        memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], gpr_bytes);
         _simu->rootp->TOP_S_PC = _cpu->pc;
     }
     else
     {
-        memcpy(&_cpu->gpr[0], &_simu->rootp->TOP_S_X.m_storage[0], sizeof(_cpu->gpr));
+        memcpy(&_cpu->gpr[0], &_simu->rootp->TOP_S_X.m_storage[0], gpr_bytes);
         _cpu->pc = _simu->rootp->TOP_S_PC;
     }
 
