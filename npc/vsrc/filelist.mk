@@ -26,6 +26,7 @@ VDIRS_CORE-y							+= ./vsrc/device
 VDIRS_CORE-$(CONFIG_ISA_RISCV_SINGLE)	+= ./vsrc/core/single
 VDIRS_CORE-$(CONFIG_ISA_RISCV_MULTIPLE)	+= ./vsrc/core/multiple
 VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE)	+= ./vsrc/core/pipeline
+VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL)	+= ./vsrc/core/pipeline-chisel
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/amba
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/bitrev
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/flash
