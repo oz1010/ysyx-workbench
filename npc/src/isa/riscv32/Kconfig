@@ -47,6 +47,8 @@ choice
         bool "multiple"
     config ISA_RISCV_PIPELINE
         bool "pipeline"
+    config ISA_RISCV_PIPELINE_CHISEL
+        bool "pipeline-chisel"
 endchoice
 
 config ISA

@@ -35,3 +35,4 @@ tools/nemu-diff/include/
 .config
 .config.old
 !docs/
+vsrc/core/pipeline-chisel
