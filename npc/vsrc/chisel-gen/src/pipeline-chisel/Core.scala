@@ -22,7 +22,8 @@ class Rv32eCore(p: CoreParams) extends Module {
   val exu  = Module(new Exu(p))
   val lsu  = Module(new Lsu(p))
   val wbu  = Module(new Wbu(p))
-  val icache = Module(new Cache(p, p.ICACHE_LINES, readOnly = true))
+  val icache = Module(new Cache(p, readOnly = true,
+    W = p.CACHE_WAYS, N = p.CACHE_SET_BITS, M = p.CACHE_BLOCK_BITS))
   val arbiter = Module(new BusArbiter(p))
   val sbuffer = Module(new StoreBuffer(p))
 
