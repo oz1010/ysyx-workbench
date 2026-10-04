@@ -13,6 +13,12 @@ import chisel3.util._
  *     然后重新查表返回数据
  *   - 写策略：写直通（write-through）+ 写缓冲（Store Buffer），Store miss 不分配行
  *   - SRAM_READ_DELAY：模拟 tag/data SRAM 读延迟（0 = 组合读）
+ * 
+ * 缓存基本单元结构：
+ *    31    m+n m+n-1   m m-1    0
+ *   +---------+---------+--------+
+ *   |   tag   |  index  | offset |
+ *   +---------+---------+--------+
  */
 class Cache(
     p: CoreParams,

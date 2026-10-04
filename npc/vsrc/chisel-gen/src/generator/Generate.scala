@@ -14,8 +14,9 @@ import scala.util.matching.Regex
  *     保证 yosys (make sta-area) 读入全部 *.v 时不报 "Re-definition of module"；
  *   - 按模块名把每个 module 拆到对应类的输出文件（Cache_1 这类参数化变体
  *     归入基类文件），匿名辅助模块并入顶层文件；
- *   - tagMem、dataMem、ram 等存储阵列模块改写到 srams.v，面积综合
- *     （IN_YOSYS_STA）下只生成 (* blackbox *) 空壳，作为外设存储器处理；
+ *   - flash/sram/rom/sdram/psram 等外设存储器阵列改写到 srams.v，面积综合
+ *     （IN_YOSYS_STA）下只生成 (* blackbox *) 空壳，不计入芯片面积；
+ *     cache 内部的 tagMem/dataMem 等核内存储阵列随核逻辑正常综合，计入芯片面积；
  *   - 不在顶层层级中的其余类仍按原来的逐类独立编译输出。
  */
 object Generate {
@@ -124,12 +125,12 @@ object Generate {
   private val paramSuffix: Regex = "_\\d+$".r
 
   /**
-   * 存储阵列模块（Cache 的 tagMem/dataMem、Queue 内部的 ram 等）：
-   * 面积上属于经 AXI4 总线访问的外部存储器外设，不在核内展开为触发器阵列。
-   * make sta-area 的 tcl 定义了 IN_YOSYS_STA，此时只保留端口、生成 (* blackbox *)
-   * 空壳交给 yosys；其余流程（仿真等）仍使用原始行为级实现。
+   * 外设存储器阵列模块（flash/sram/rom/sdram/psram）：经总线访问的片外存储，
+   * 不计入芯片面积。make sta-area 的 tcl 定义了 IN_YOSYS_STA，此时只保留端口、
+   * 生成 (* blackbox *) 空壳交给 yosys；其余流程（仿真等）仍使用原始行为级实现。
+   * cache 内部的 tagMem/dataMem 等核内存储不在这里匹配，随核逻辑综合并计入面积。
    */
-  private val sramModule: Regex = "^(?:tagMem|dataMem|ram)_".r
+  private val sramModule: Regex = "(?i)^(flash|sram|rom|sdram|psram)(?:_|$)".r
 
   private def isSramModule(name: String): Boolean = sramModule.findFirstIn(name).nonEmpty
 
