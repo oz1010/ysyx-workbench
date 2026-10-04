@@ -6,9 +6,10 @@ package rv32e
  * 例：
  * {{{
  *   val core = Module(new Rv32eCore(CoreParams(
- *     SRAM_READ_DELAY = 1,
- *     ICACHE_LINES    = 128,
- *     DCACHE_LINES    = 128
+ *     SRAM_READ_DELAY  = 1,
+ *     CACHE_WAYS       = 16,
+ *     CACHE_SET_BITS   = 4,
+ *     CACHE_BLOCK_BITS = 4
  *   )))
  * }}}
  */
@@ -22,9 +23,9 @@ case class CoreParams(
     val RRESP_WIDTH: Int = 2,     // AXI4 RRESP 宽度
     /* ---- 其余关键参数（同样通过本配置统一调整） ---- */
     val RESET_VEC: Long = 0x00000000L, // 复位取指地址
-    val ICACHE_LINES: Int = 64,        // ICache 行数（直接映射）
-    val DCACHE_LINES: Int = 64,        // DCache 行数（直接映射）
-    val LINE_BYTES: Int = 16,          // Cache 行字节数
+    val CACHE_WAYS: Int = 8,           // Cache 路数 W（每组 cache 块数，组相联）
+    val CACHE_SET_BITS: Int = 4,       // Cache 组索引位数 N（组数 = 2^N）
+    val CACHE_BLOCK_BITS: Int = 4,     // Cache 块内偏移位数 M（块字节数 = 2^M）
     val STORE_BUF_DEPTH: Int = 8,      // 写直通 Store Buffer 深度
     val MVENDORID: Long = 0x00000000L, // CSR mvendorid 只读值
     val MARCHID: Long = 0x00000000L,   // CSR marchid 只读值
@@ -33,13 +34,13 @@ case class CoreParams(
   require(INST_WIDTH == 32, "RV32E 指令宽度固定为 32")
   require(DATA_WIDTH == 32, "当前实现 AXI4 数据宽度为 32")
   require(ADDR_WIDTH == 32)
-  require(LINE_BYTES >= 4 && LINE_BYTES % 4 == 0, "Cache 行需为 4 字节整数倍")
+  require(CACHE_WAYS >= 2, "组相联路数 W 至少为 2")
+  require(CACHE_SET_BITS >= 0 && CACHE_BLOCK_BITS >= 2)
+  require(ADDR_WIDTH > CACHE_SET_BITS + CACHE_BLOCK_BITS, "tag 位宽需为正")
   require(SRAM_READ_DELAY >= 0)
-  require(isPow2(LINE_BYTES) && isPow2(ICACHE_LINES) && isPow2(DCACHE_LINES))
 
-  val LINE_WORDS: Int = LINE_BYTES / 4 // 每行 32bit 字数
+  val LINE_BYTES: Int = 1 << CACHE_BLOCK_BITS // Cache 行字节数（2^M）
+  val LINE_WORDS: Int = LINE_BYTES / 4        // 每行 32bit 字数
   val XLEN: Int = 32
   val REG_NUM: Int = 16 // RV32E：仅 x0~x15
-
-  private def isPow2(n: Int): Boolean = n > 0 && (n & (n - 1)) == 0
 }

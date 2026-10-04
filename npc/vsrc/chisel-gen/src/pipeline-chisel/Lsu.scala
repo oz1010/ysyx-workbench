@@ -24,7 +24,8 @@ class Lsu(p: CoreParams) extends Module {
     val refill = new RefillMasterIO(p) // DCache 行读请求，接总线仲裁器
   })
 
-  val dcache = Module(new Cache(p, p.DCACHE_LINES, readOnly = false))
+  val dcache = Module(new Cache(p, readOnly = false,
+    W = p.CACHE_WAYS, N = p.CACHE_SET_BITS, M = p.CACHE_BLOCK_BITS))
   io.storeEnq <> dcache.store.get
   // refill 透传（请求：dcache 输出 -> LSU 输出；授权/数据：LSU 输入 -> dcache 输入）
   io.refill.req         := dcache.io.refill.req
