@@ -4,11 +4,11 @@ import chisel3._
 import chisel3.util._
 
 /**
- * RV32E 五级流水线核顶层。
+ * RV32E 五级流水线核（内部顶层，Chisel 隐式 clock/reset）。
  *   IFU --(IF/ID)--> IDU --(ID/EX)--> EXU --(EX/MEM)--> LSU --(MEM/WB)--> WBU
  *   ICache/DCache 经仲裁器共用 AXI4 读通道；store 经 StoreBuffer 走写通道。
  */
-class riscv32e_core(p: CoreParams) extends Module {
+class Rv32eCore(p: CoreParams) extends Module {
   val io = IO(new Bundle {
     val interrupt = Input(Bool())
     val master    = new Axi4MasterIO(p)
@@ -33,6 +33,7 @@ class riscv32e_core(p: CoreParams) extends Module {
   lsu.io.storeEnq  <> sbuffer.io.enq
 
   io.master.araddr  := arbiter.io.araddr
+  io.master.arid    := 0.U // 单一主设备，ID 恒为 0
   io.master.arlen   := arbiter.io.arlen
   io.master.arsize  := arbiter.io.arsize
   io.master.arburst := arbiter.io.arburst
@@ -44,6 +45,7 @@ class riscv32e_core(p: CoreParams) extends Module {
   io.master.rready   := arbiter.io.rready
 
   io.master.awaddr  := sbuffer.io.awaddr
+  io.master.awid    := 0.U // 单一主设备，ID 恒为 0
   io.master.awlen   := sbuffer.io.awlen
   io.master.awsize  := sbuffer.io.awsize
   io.master.awburst := sbuffer.io.awburst
@@ -119,21 +121,23 @@ class riscv32e_core(p: CoreParams) extends Module {
 }
 
 /**
- * 对外封装：显式 clk / rst（同步高有效复位）端口。
+ * 对外顶层（drop-in 替代 npc 手写 riscv32e_core）：
+ *   - RawModule，显式 clk / rst（同步高有效复位）端口；
+ *   - 端口名与 vsrc/core/ysyx_23060295.v 的例化完全一致
+ *     （io_interrupt / io_master_* / pc / valid）；
+ *   - Verilog parameter INST_WIDTH 由 Generate.scala 在生成后注入。
  */
-class Rv32eTop(p: CoreParams) extends RawModule {
-  val io = IO(new Bundle {
-    val clk       = Input(Clock())
-    val rst       = Input(Bool()) // 同步复位，高有效
-    val interrupt = Input(Bool())
-    val master    = new Axi4MasterIO(p)
-    val pc        = Output(UInt(p.ADDR_WIDTH.W))
-    val valid     = Output(Bool()) // 完成一条指令（单周期脉冲）
-  })
+class riscv32e_core(p: CoreParams) extends RawModule {
+  val clk          = IO(Input(Clock()))
+  val rst          = IO(Input(Bool())) // 同步复位，高有效
+  val io_interrupt = IO(Input(Bool()))
+  val io_master    = IO(new Axi4MasterIO(p))
+  val pc           = IO(Output(UInt(p.INST_WIDTH.W)))
+  val valid        = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
 
-  val core = withClockAndReset(io.clk, io.rst) { Module(new riscv32e_core(p)) }
-  core.io.interrupt := io.interrupt
-  core.io.master    <> io.master
-  io.pc             := core.io.pc
-  io.valid          := core.io.valid
+  val core = withClockAndReset(clk, rst) { Module(new Rv32eCore(p)) }
+  core.io.interrupt := io_interrupt
+  io_master         <> core.io.master
+  pc                := core.io.pc
+  valid             := core.io.valid
 }

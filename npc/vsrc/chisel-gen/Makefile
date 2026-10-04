@@ -12,6 +12,7 @@ verilog:
 	@$(MILL) -i chisel.runMain Generate $(OUT)
 
 copy_to_npc: verilog
+	@-rm -rf $(NPC_HOME)/vsrc/core/pipeline-chisel
 	@cp -r $(OUT)/pipeline-chisel $(NPC_HOME)/vsrc/core/
 
 clean:

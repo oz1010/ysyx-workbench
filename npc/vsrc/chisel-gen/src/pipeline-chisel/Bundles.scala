@@ -13,6 +13,7 @@ class Redirect(p: CoreParams) extends Bundle {
 class Axi4MasterIO(p: CoreParams) extends Bundle {
   // 写地址通道
   val awaddr  = Output(UInt(p.ADDR_WIDTH.W))
+  val awid    = Output(UInt(4.W)) // 单一主设备，ID 恒为 0
   val awlen   = Output(UInt(8.W))
   val awsize  = Output(UInt(3.W))
   val awburst = Output(UInt(2.W))
@@ -27,9 +28,11 @@ class Axi4MasterIO(p: CoreParams) extends Bundle {
   // 写响应通道
   val bresp   = Input(UInt(p.BRESP_WIDTH.W))
   val bvalid  = Input(Bool())
+  val bid     = Input(UInt(4.W))
   val bready  = Output(Bool())
   // 读地址通道
   val araddr  = Output(UInt(p.ADDR_WIDTH.W))
+  val arid    = Output(UInt(4.W)) // 单一主设备，ID 恒为 0
   val arlen   = Output(UInt(8.W))
   val arsize  = Output(UInt(3.W))
   val arburst = Output(UInt(2.W))
@@ -40,6 +43,7 @@ class Axi4MasterIO(p: CoreParams) extends Bundle {
   val rresp   = Input(UInt(p.RRESP_WIDTH.W))
   val rlast   = Input(Bool())
   val rvalid  = Input(Bool())
+  val rid     = Input(UInt(4.W))
   val rready  = Output(Bool())
 }
 
