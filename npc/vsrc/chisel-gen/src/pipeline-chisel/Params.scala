@@ -1,4 +1,4 @@
-package rv32e
+package pipeline_chisel
 
 /**
  * 统一配置：所有"关键参数"集中在此，例化时像 Verilog parameter 一样调整。

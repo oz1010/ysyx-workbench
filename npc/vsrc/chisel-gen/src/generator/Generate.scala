@@ -27,7 +27,7 @@ object Generate {
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
 
   /** 顶层全层级编译的入口类（对外适配层，端口与手写核例化保持一致）。 */
-  private val topFqcn = "rv32e.riscv32e_core"
+  private val topFqcn = "pipeline_chisel.riscv32e_core"
 
   private def sourceModules(root: Path): Seq[(Path, String)] = {
     Files.walk(root).iterator().asScala
