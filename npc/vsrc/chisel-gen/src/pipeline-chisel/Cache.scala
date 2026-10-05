@@ -1,4 +1,4 @@
-package rv32e
+package pipeline_chisel
 
 import chisel3._
 import chisel3.util._
