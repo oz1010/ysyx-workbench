@@ -33,7 +33,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     val dcache = Module(new DCache(p))
     val arbiter = Module(new Axi4IOArbiter(p, 2))
     val m_gprs = Module(new GprFile(p))
-    val csr = Module(new CsrFile(p))
+    val m_csrs = Module(new CsrFile(p))
 
     // ---------------- 流水线级间握手 ----------------
     ifu.io.out <> idu.io.in
@@ -54,10 +54,12 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     m_gprs.io.write <> wbu.io.gprWrite
 
     // ---------------- CSR ----------------
-    csr.io.read <> exu.io.csrRead
-    csr.io.write <> wbu.io.csrWrite
-    csr.io.trap <> wbu.io.csrTrap
-    // csr.io.mret  := wbu.io.csrMret
+    // TODO 增加调试信息
+    exu.io.csrRead.data := 0.U
+    // m_csrs.io.read <> exu.io.csrRead
+    // m_csrs.io.write <> wbu.io.csrWrite
+    m_csrs.io.trap <> wbu.io.csrTrap
+    // m_csrs.io.mret  := wbu.io.csrMret
 
     // ---------------- ICache ----------------
     icache.io.cpu <> ifu.io.cache
@@ -84,12 +86,17 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     idu.io.gprRead1.data := 0.U
     m_gprs.io.read1.en := true.B
     m_gprs.io.read1.addr := core_gpraddr
+    m_csrs.io.read.en := true.B
+    m_csrs.io.read.addr := core_gpraddr
+    m_csrs.io.write.en := true.B
+    m_csrs.io.write.addr := core_gpraddr
+    m_csrs.io.write.data := core_pc
     core_gpraddr := core_gpraddr + 1.U
     when(wbu.io.gprWrite.en && wbu.io.gprWrite.addr(1) =/= 0.U) {
       core_pc := wbu.io.out.bits.pc
       core_dnpc := wbu.io.out.bits.pc
     }.otherwise {
-      core_pc := core_pc + wbu.io.out.bits.pc + m_gprs.io.read1.data + core_dnpc
+      core_pc := core_pc + wbu.io.out.bits.pc + m_gprs.io.read1.data + core_dnpc + m_csrs.io.read.data
     }
     pc := core_pc
   }
