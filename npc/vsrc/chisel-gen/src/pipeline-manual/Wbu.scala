@@ -33,7 +33,18 @@ class Wbu(p: CoreParams) extends Module {
   io.csrTrap.tval := 0.U
   io.redirect.valid := false.B
   io.redirect.target := 0.U
-  io.gprWrite.en := false.B
-  io.gprWrite.addr := 0.U
-  io.gprWrite.data := 0.U
+  // TODO 增加调试信息
+  // io.gprWrite.en := false.B
+  // io.gprWrite.addr := 0.U
+  // io.gprWrite.data := 0.U
+
+  val testGprEn = RegInit(false.B)
+  val testGprAddr = RegInit(0.U(p.GPR_ADDR_W.W))
+  val testGprData = RegInit(0.U(p.XLEN.W))
+  testGprEn := !testGprEn
+  testGprAddr := testGprAddr + 1.U
+  testGprData := testGprData + testGprAddr
+  io.gprWrite.en := testGprEn
+  io.gprWrite.addr := testGprAddr
+  io.gprWrite.data := testGprData
 }
