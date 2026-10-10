@@ -117,12 +117,50 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
     // _simu->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060295_CORE0__DOT__m_reg_group__DOT__x
     if (type == SYNC_TO_SIMU)
     {
+#ifdef CONFIG_ISA_RISCV_PIPELINE_CHISEL
+        _simu->rootp->concat(TOP_S_X, _0) = _cpu->gpr[0];
+        _simu->rootp->concat(TOP_S_X, _1) = _cpu->gpr[1];
+        _simu->rootp->concat(TOP_S_X, _2) = _cpu->gpr[2];
+        _simu->rootp->concat(TOP_S_X, _3) = _cpu->gpr[3];
+        _simu->rootp->concat(TOP_S_X, _4) = _cpu->gpr[4];
+        _simu->rootp->concat(TOP_S_X, _5) = _cpu->gpr[5];
+        _simu->rootp->concat(TOP_S_X, _6) = _cpu->gpr[6];
+        _simu->rootp->concat(TOP_S_X, _7) = _cpu->gpr[7];
+        _simu->rootp->concat(TOP_S_X, _8) = _cpu->gpr[8];
+        _simu->rootp->concat(TOP_S_X, _9) = _cpu->gpr[9];
+        _simu->rootp->concat(TOP_S_X, _10) = _cpu->gpr[10];
+        _simu->rootp->concat(TOP_S_X, _11) = _cpu->gpr[11];
+        _simu->rootp->concat(TOP_S_X, _12) = _cpu->gpr[12];
+        _simu->rootp->concat(TOP_S_X, _13) = _cpu->gpr[13];
+        _simu->rootp->concat(TOP_S_X, _14) = _cpu->gpr[14];
+        _simu->rootp->concat(TOP_S_X, _15) = _cpu->gpr[15];
+#else
         memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], gpr_bytes);
+#endif
         _simu->rootp->TOP_S_PC = _cpu->pc;
     }
     else
     {
+#ifdef CONFIG_ISA_RISCV_PIPELINE_CHISEL
+        _cpu->gpr[0] = _simu->rootp->concat(TOP_S_X, _0);
+        _cpu->gpr[1] = _simu->rootp->concat(TOP_S_X, _1);
+        _cpu->gpr[2] = _simu->rootp->concat(TOP_S_X, _2);
+        _cpu->gpr[3] = _simu->rootp->concat(TOP_S_X, _3);
+        _cpu->gpr[4] = _simu->rootp->concat(TOP_S_X, _4);
+        _cpu->gpr[5] = _simu->rootp->concat(TOP_S_X, _5);
+        _cpu->gpr[6] = _simu->rootp->concat(TOP_S_X, _6);
+        _cpu->gpr[7] = _simu->rootp->concat(TOP_S_X, _7);
+        _cpu->gpr[8] = _simu->rootp->concat(TOP_S_X, _8);
+        _cpu->gpr[9] = _simu->rootp->concat(TOP_S_X, _9);
+        _cpu->gpr[10] = _simu->rootp->concat(TOP_S_X, _10);
+        _cpu->gpr[11] = _simu->rootp->concat(TOP_S_X, _11);
+        _cpu->gpr[12] = _simu->rootp->concat(TOP_S_X, _12);
+        _cpu->gpr[13] = _simu->rootp->concat(TOP_S_X, _13);
+        _cpu->gpr[14] = _simu->rootp->concat(TOP_S_X, _14);
+        _cpu->gpr[15] = _simu->rootp->concat(TOP_S_X, _15);
+#else
         memcpy(&_cpu->gpr[0], &_simu->rootp->TOP_S_X.m_storage[0], gpr_bytes);
+#endif
         _cpu->pc = _simu->rootp->TOP_S_PC;
     }
 
