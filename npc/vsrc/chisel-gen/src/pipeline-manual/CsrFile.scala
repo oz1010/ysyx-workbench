@@ -19,6 +19,12 @@ class CsrFile(p: CoreParams) extends Module {
     // val mepc     = Output(UInt(p.XLEN.W))
   })
 
+  val csrs = RegInit(VecInit(Seq.fill(p.CSR_COUNT)(0.U(p.XLEN.W))))
+
   // TODO 临时不写逻辑
-  io.read.data := 0.U
+  io.read.data := csrs(1)
+  csrs(1) := csrs(1) + 1.U
+  when(io.write.en) {
+    csrs(1) := io.write.data
+  }
 }

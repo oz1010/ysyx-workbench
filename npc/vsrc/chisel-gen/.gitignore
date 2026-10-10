@@ -5,6 +5,7 @@
 # 保留文件，适用于所有路径
 !Makefile
 !.gitignore
+!.scalafmt.conf
 
 # chisel相关
 !.mill-version
