@@ -1,7 +1,9 @@
 MILL ?= /root/tools/mill/bin/mill
 export COURSIER_REPOSITORIES ?= https://repo1.maven.org/maven2
 # chisel 7.15.0 发布对应的 firtool 版本（环境里的 1.105.0 太旧，无法解析新版 FIRRTL）
-export CHISEL_FIRTOOL_PATH = /root/tools/firtool-1.158.0/bin
+# export CHISEL_FIRTOOL_PATH = /root/tools/firtool-1.158.0/bin
+GEN_PIPELINE_NAME ?= pipeline-manual
+TARGET_PIPELINE_DIR = $(NPC_HOME)/vsrc/core/pipeline-chisel
 OUT ?= build
 
 .PHONY: all copy_to_npc verilog clean
@@ -12,8 +14,9 @@ verilog:
 	@$(MILL) -i chisel.runMain Generate $(OUT)
 
 copy_to_npc: verilog
-	@-rm -rf $(NPC_HOME)/vsrc/core/pipeline-chisel
-	@cp -r $(OUT)/pipeline-chisel $(NPC_HOME)/vsrc/core/
+	@-rm -rf $(TARGET_PIPELINE_DIR)
+	@cp -r $(OUT)/$(GEN_PIPELINE_NAME) $(TARGET_PIPELINE_DIR)
+	@echo "[\033[32mDONE\033[0m] Copy to $(TARGET_PIPELINE_DIR)"
 
 clean:
 	@rm -rf "$(OUT)"

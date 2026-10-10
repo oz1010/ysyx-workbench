@@ -2,7 +2,7 @@ import chisel3._
 import circt.stage.ChiselStage
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.matching.Regex
@@ -17,7 +17,8 @@ import scala.util.matching.Regex
  *   - flash/sram/rom/sdram/psram 等外设存储器阵列改写到 srams.v，面积综合
  *     （IN_YOSYS_STA）下只生成 (* blackbox *) 空壳，不计入芯片面积；
  *     cache 内部的 tagMem/dataMem 等核内存储阵列随核逻辑正常综合，计入芯片面积；
- *   - 不在顶层层级中的其余类仍按原来的逐类独立编译输出。
+ *   - 不在顶层层级中的其余类仍按原来的逐类独立编译输出；
+ *   - src 下遇到的 .v/.sv 手写 Verilog 不做编译，原样拷贝到生成目录
  */
 object Generate {
   private val modulePattern: Regex =
@@ -27,7 +28,7 @@ object Generate {
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
 
   /** 顶层全层级编译的入口类（对外适配层，端口与手写核例化保持一致）。 */
-  private val topFqcn = "pipeline_chisel.riscv32e_core"
+  private val topFqcn = "pipeline_manual.riscv32e_core"
 
   private def sourceModules(root: Path): Seq[(Path, String)] = {
     Files.walk(root).iterator().asScala
@@ -39,6 +40,13 @@ object Generate {
         modulePattern.findAllMatchIn(text).map(m => file -> (pkg + m.group(1))).toSeq
       }
       .sortBy { case (file, name) => (file.toString, name) }
+  }
+
+  private def sourceVerilogFiles(root: Path): Seq[Path] = {
+    Files.walk(root).iterator().asScala
+      .filter(p => Files.isRegularFile(p) && (p.toString.endsWith(".v") || p.toString.endsWith(".sv")))
+      .toSeq
+      .sortBy(_.toString)
   }
 
   private def caseClassInstance(cls: Class[_]): AnyRef = {
@@ -168,6 +176,15 @@ object Generate {
       val sb = new StringBuilder(preamble)
       chunks.foreach { case (_, body) => sb.append(body).append('\n') }
       Files.writeString(target, sb.toString, StandardCharsets.UTF_8)
+    }
+
+    // ---- 0) 手写 Verilog (.v/.sv) 原样拷贝，保持相对路径 ----
+    sourceVerilogFiles(sourceRoot).foreach { source =>
+      val relative = sourceRoot.relativize(source)
+      val target = outRoot.resolve(relative)
+      Option(target.getParent).foreach(Files.createDirectories(_))
+      Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+      println(s"[chisel] $relative :: copy -> ${outRoot.relativize(target)}")
     }
 
     // ---- 1) 顶层单次编译，整个层级只生成一份 ----

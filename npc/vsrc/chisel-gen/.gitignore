@@ -13,3 +13,4 @@
 !src/
 !src/**/
 !src/**/*.scala
+!src/**/*.v
