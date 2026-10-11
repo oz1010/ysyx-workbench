@@ -8,9 +8,9 @@ import chisel3.util._
   */
 class CsrFile(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val read = Flipped(new RegReadIO(p.CSR_ADDR_W, p.XLEN))
+    val read  = Flipped(new RegReadIO(p.CSR_ADDR_W, p.XLEN))
     val write = Flipped(new RegWriteIO(p.CSR_ADDR_W, p.XLEN))
-    val trap = Flipped(new TrapIO(p))
+    val trap  = Flipped(new TrapIO(p))
     // // MRET 返回
     // val mret   = Input(Bool())
     // // 状态输出
@@ -23,7 +23,7 @@ class CsrFile(p: CoreParams) extends Module {
 
   // TODO 临时不写逻辑
   io.read.data := csrs(1)
-  csrs(1) := csrs(1) + 1.U
+  csrs(1)      := csrs(1) + 1.U
   when(io.write.en) {
     csrs(1) := io.write.data
   }
