@@ -17,16 +17,26 @@ class Ifu(p: CoreParams) extends Module {
     val wbRedirect = Input(new Redirect(p)) // 陷阱/MRET（WBU 级，优先级最高）
   })
 
-  val resetPcGetter = Module(new ResetPcGetter(p.ADDR_WIDTH))
-  val pc            = RegInit(
-    resetPcGetter.io.reset_pc
-  )
-  val reqPend       = RegInit(false.B) // 已发出请求、等待 ICache 返回
-  val reqPc         = Reg(UInt(p.ADDR_WIDTH.W))
-  val fValid        = RegInit(false.B)
-  val fReady        = RegInit(false.B)
-  val fBits         = Reg(new IfBundle(p))
+  val pc      = Reg(UInt(p.ADDR_WIDTH.W))
+  val reqPend = RegInit(false.B) // 已发出请求、等待 ICache 返回
+  val reqPc   = Reg(UInt(p.ADDR_WIDTH.W))
+  val fValid  = RegInit(false.B)
+  val fReady  = RegInit(false.B)
+  val fBits   = Reg(new IfBundle(p))
 
+  // 真正的硬件pc应该直接内置默认值p.RESET_PC
+  if (p.RESET_PC_EN) {
+    when(reset.asBool) {
+      pc := p.RESET_PC.U
+    }
+  } else {
+    val resetPcGetter = Module(new ResetPcGetter(p.ADDR_WIDTH))
+    resetPcGetter.io.clk := clock
+    resetPcGetter.io.rst := reset.asBool
+    when(reset.asBool) {
+      pc := resetPcGetter.io.reset_pc
+    }
+  }
   fReady := true.B // 复位时不能取指令
 
   // ---------------- 请求 ICache ----------------

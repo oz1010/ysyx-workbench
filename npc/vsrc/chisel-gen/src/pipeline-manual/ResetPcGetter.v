@@ -1,8 +1,16 @@
 module ResetPcGetter #(
-    parameter addrWidth = 32
+    parameter ADDR_WIDTH = 32
 )(
-    output [addrWidth-1:0] reset_pc
+    input   wire            clk,
+    input   wire            rst,
+    output [ADDR_WIDTH-1:0] reset_pc
 );
-    // 调用 Verilog 的 function 赋值给输出端口
-    assign reset_pc = func_get_reset_pc();
+    assign reset_pc = r_pc;
+
+    reg [31:0] r_pc;
+    always @(posedge clk) begin
+        if (rst) begin
+            r_pc <= func_get_reset_pc();
+        end
+    end
 endmodule
