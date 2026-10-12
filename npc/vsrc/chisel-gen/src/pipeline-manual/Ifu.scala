@@ -18,19 +18,21 @@ class Ifu(p: CoreParams) extends Module {
   })
 
   val resetPcGetter = Module(new ResetPcGetter(p.ADDR_WIDTH))
-
-  val pc = RegInit(
+  val pc            = RegInit(
     resetPcGetter.io.reset_pc
-  ) // 改为调用verilog的function func_get_reset_pc获取
-  val reqPend = RegInit(false.B) // 已发出请求、等待 ICache 返回
-  val reqPc   = Reg(UInt(p.ADDR_WIDTH.W))
-  val fValid  = RegInit(false.B)
-  val fBits   = Reg(new IfBundle(p))
+  )
+  val reqPend       = RegInit(false.B) // 已发出请求、等待 ICache 返回
+  val reqPc         = Reg(UInt(p.ADDR_WIDTH.W))
+  val fValid        = RegInit(false.B)
+  val fReady        = RegInit(false.B)
+  val fBits         = Reg(new IfBundle(p))
+
+  fReady := true.B // 复位时不能取指令
 
   // ---------------- 请求 ICache ----------------
   // 取回缓冲（fValid）非空时不发新请求：防止下游停顿期间响应覆盖
   // 尚未消费的指令（丢指令）。sResp 仅脉冲一拍且无条件回 sIdle，丢弃安全。
-  io.cache.req.valid   := !reqPend && !fValid
+  io.cache.req.valid   := !reqPend && !fValid && fReady
   io.cache.req.addr    := pc
   io.cache.req.wdata   := 0.U
   io.cache.req.wstrb   := 0.U
