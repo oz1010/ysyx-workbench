@@ -47,7 +47,9 @@ static void welcome()
         MUXDEF(CONFIG_ISA_RISCV_SINGLE, "single", 
             MUXDEF(CONFIG_ISA_RISCV_MULTIPLE, "multiple", 
                 MUXDEF(CONFIG_ISA_RISCV_PIPELINE, "pipeline", 
-                    "unknown"
+                    MUXDEF(CONFIG_ISA_RISCV_PIPELINE_CHISEL, "pipeline-chisel", 
+                        "unknown"
+                    )
                 )
             )
         ), 

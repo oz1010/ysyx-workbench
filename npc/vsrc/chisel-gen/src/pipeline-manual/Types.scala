@@ -3,6 +3,38 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 
+/** 指令测试码 */
+object InstCodeTest {
+  // 以下数值仅为示例。
+  val INVALID = 0.U(8.W)
+  val LUI     = 1.U(8.W)
+}
+
+// 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
+object AluOp extends ChiselEnum {
+  val ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU = Value
+}
+
+// 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
+object MemOp extends ChiselEnum {
+  val LB, LH, LW, LBU, LHU, SB, SH, SW = Value
+}
+
+// 回写动作码，0:ALU 1:Load 2:CSR 3:PC+4
+object WbSel extends ChiselEnum {
+  val ALU, LOAD, CSR, PC_4 = Value
+}
+
+// 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
+object CsrOp extends ChiselEnum {
+  val NONE, RW, RS, RC = Value
+}
+
+// axi4编号
+object Axi4ID extends ChiselEnum {
+  val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
+}
+
 /** 重定向数据（冲刷流水线并修改取指 PC） */
 class Redirect(p: CoreParams) extends Bundle {
   val valid  = Bool()
@@ -18,9 +50,9 @@ class Axi4IO(p: CoreParams) extends Bundle {
   val arvalid = Output(Bool())
   val arready = Input(Bool())
   val araddr  = Output(UInt(p.ADDR_WIDTH.W))
-  val arid    = Output(UInt(4.W)) // 单一主设备，ID 恒为 0
-  val arlen   = Output(UInt(8.W))
-  val arsize  = Output(UInt(3.W))
+  val arid    = Output(UInt(4.W))
+  val arlen   = Output(UInt(8.W)) // burst数量，2^n字节
+  val arsize  = Output(UInt(3.W)) // 单个burst数据大小，2^n字节
   val arburst = Output(UInt(2.W))
   // 读数据通道
   val rvalid  = Input(Bool())
@@ -33,9 +65,9 @@ class Axi4IO(p: CoreParams) extends Bundle {
   val awvalid = Output(Bool())
   val awready = Input(Bool())
   val awaddr  = Output(UInt(p.ADDR_WIDTH.W))
-  val awid    = Output(UInt(4.W)) // 单一主设备，ID 恒为 0
-  val awlen   = Output(UInt(8.W))
-  val awsize  = Output(UInt(3.W))
+  val awid    = Output(UInt(4.W))
+  val awlen   = Output(UInt(8.W)) // burst数量，2^n字节
+  val awsize  = Output(UInt(3.W)) // 单个burst数据大小，2^n字节
   val awburst = Output(UInt(2.W))
   // 写数据通道
   val wvalid  = Output(Bool())
@@ -102,30 +134,6 @@ class CacheRefillIO(p: CoreParams) extends Bundle {
 // }
 
 /* ================= 流水线级间寄存器 ================= */
-
-/** 指令测试码 */
-object InstCodeTest {
-  // 以下数值仅为示例。
-  val INVALID = 0.U(8.W)
-  val LUI     = 1.U(8.W)
-}
-
-// 0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
-object AluOp extends ChiselEnum {
-  val ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU = Value
-}
-// funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
-object MemOp extends ChiselEnum {
-  val LB, LH, LW, LBU, LHU, SB, SH, SW = Value
-}
-// 0:ALU 1:Load 2:CSR 3:PC+4
-object WbSel extends ChiselEnum {
-  val ALU, LOAD, CSR, PC_4 = Value
-}
-// 0 无 1 RW 2 RS 3 RC
-object CsrOp extends ChiselEnum {
-  val NONE, RW, RS, RC = Value
-}
 
 /** 控制信号（ID 级译码产生，随流水线传递） */
 class Ctrl extends Bundle {
