@@ -33,7 +33,7 @@ class Axi4IOArbiter(
 
   // 默认对所有客户端的读通道反馈
   for (i <- 0 until ClientNum) {
-    io.clients(i).arready := false.B
+    io.clients(i).arready := io.master.arready
     io.clients(i).rvalid  := false.B
     io.clients(i).rdata   := io.master.rdata
     io.clients(i).rresp   := io.master.rresp
@@ -111,24 +111,22 @@ class Axi4IOArbiter(
     is(sIdle) {
       when(anyArvalid) {
         // 条件是所有客户端arvalid逻辑综合，必须手动设置值
-        io.master.arvalid            := true.B
-        io.master.araddr             := io.clients(chosenId).araddr
-        io.master.arid               := io.clients(chosenId).arid
-        io.master.arlen              := io.clients(chosenId).arlen
-        io.master.arsize             := io.clients(chosenId).arsize
-        io.master.arburst            := io.clients(chosenId).arburst
-        io.clients(chosenId).arready := io.master.arready
+        io.master.arvalid := true.B
+        io.master.araddr  := io.clients(chosenId).araddr
+        io.master.arid    := io.clients(chosenId).arid
+        io.master.arlen   := io.clients(chosenId).arlen
+        io.master.arsize  := io.clients(chosenId).arsize
+        io.master.arburst := io.clients(chosenId).arburst
       }
     }
     is(sRead) {
       // 在读突发传输中，保持当前 grantID 对应的 AR 信号（如果 AR 已经握手成功，arvalid 可以拉低，但地址总线可以保持稳定）
-      io.master.arvalid     := false.B
-      io.master.araddr      := currentClient.araddr
-      io.master.arid        := currentClient.arid
-      io.master.arlen       := currentClient.arlen
-      io.master.arsize      := currentClient.arsize
-      io.master.arburst     := currentClient.arburst
-      currentClient.arready := io.master.arready
+      io.master.arvalid := false.B
+      io.master.araddr  := currentClient.araddr
+      io.master.arid    := currentClient.arid
+      io.master.arlen   := currentClient.arlen
+      io.master.arsize  := currentClient.arsize
+      io.master.arburst := currentClient.arburst
 
       // 将 Master 的读数据原封不动分发给当前获得仲裁权的客户端
       currentClient.rvalid := io.master.rvalid
