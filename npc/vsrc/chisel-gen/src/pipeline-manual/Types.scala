@@ -80,6 +80,60 @@ class Axi4IO(p: CoreParams) extends Bundle {
   val bready  = Output(Bool())
   val bresp   = Input(UInt(p.BRESP_WIDTH.W))
   val bid     = Input(UInt(4.W))
+
+  // 读地址通道握手判定
+  def arFire: Bool = arvalid && arready
+  // 读数据通道握手判定
+  def rFire: Bool  = rvalid && rready
+  // 写地址通道握手判定
+  def awFire: Bool = awvalid && awready
+  // 写数据通道握手判定
+  def wFire: Bool  = wvalid && wready
+  // 写响应通道握手判定
+  def bFire: Bool  = bvalid && bready
+}
+
+// axi4-master默认赋值函数
+object Axi4MasterDefaults {
+  def apply(io: Axi4IO): Unit = {
+    io.arvalid := false.B
+    io.araddr  := 0.U
+    io.arid    := 0.U
+    io.arlen   := 0.U
+    io.arsize  := 0.U
+    io.arburst := 0.U
+    io.rready  := false.B
+
+    io.awvalid := false.B
+    io.awaddr  := 0.U
+    io.awid    := 0.U
+    io.awlen   := 0.U
+    io.awsize  := 0.U
+    io.awburst := 0.U
+    io.wvalid  := false.B
+    io.wdata   := 0.U
+    io.wstrb   := 0.U
+    io.wlast   := false.B
+    io.bready  := false.B
+  }
+}
+
+// axi4-slave默认赋值函数
+object Axi4SlaveDefaults {
+  def apply(io: Axi4IO): Unit = {
+    io.arready := false.B
+    io.rvalid  := false.B
+    io.rdata   := 0.U
+    io.rresp   := 0.U
+    io.rlast   := false.B
+    io.rid     := 0.U
+
+    io.awready := false.B
+    io.wready  := false.B
+    io.bvalid  := false.B
+    io.bresp   := 0.U
+    io.bid     := 0.U
+  }
 }
 
 /** Cache数据，master视角 */
