@@ -11,23 +11,49 @@ object InstCodeTest {
 }
 
 // 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
-object AluOp extends ChiselEnum {
-  val ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU = Value
+object AluOp {
+  val width = 4.W
+  val ADD   = 0.U(width)
+  val SUB   = 1.U(width)
+  val AND   = 2.U(width)
+  val OR    = 3.U(width)
+  val XOR   = 4.U(width)
+  val SLL   = 5.U(width)
+  val SRL   = 6.U(width)
+  val SRA   = 7.U(width)
+  val SLT   = 8.U(width)
+  val SLTU  = 9.U(width)
 }
 
 // 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
-object MemOp extends ChiselEnum {
-  val LB, LH, LW, LBU, LHU, SB, SH, SW = Value
+object MemOp {
+  val width = 3.W
+  val LB    = 0.U(width)
+  val LH    = 1.U(width)
+  val LW    = 2.U(width)
+  val LBU   = 4.U(width)
+  val LHU   = 5.U(width)
+  val SB    = 0.U(width)
+  val SH    = 1.U(width)
+  val SW    = 2.U(width)
 }
 
 // 回写动作码，0:ALU 1:Load 2:CSR 3:PC+4
-object WbSel extends ChiselEnum {
-  val ALU, LOAD, CSR, PC_4 = Value
+object WbSel {
+  val width = 2.W
+  val ALU   = 0.U(width)
+  val LOAD  = 1.U(width)
+  val CSR   = 2.U(width)
+  val PC_4  = 3.U(width)
 }
 
 // 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
-object CsrOp extends ChiselEnum {
-  val NONE, RW, RS, RC = Value
+object CsrOp {
+  val width = 2.W
+  val NONE  = 0.U(width)
+  val RW    = 1.U(width)
+  val RS    = 2.U(width)
+  val RC    = 3.U(width)
 }
 
 // axi4编号

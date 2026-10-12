@@ -45,13 +45,16 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     // ---------------- 重定向（WBU 陷阱/MRET > EX 预测修正） ----------------
     ifu.io.exRedirect := exu.io.redirect
     ifu.io.wbRedirect := wbu.io.redirect
+    idu.io.exRedirect := exu.io.redirect
+    idu.io.wbRedirect := wbu.io.redirect
     lsu.io.kill       := wbu.io.redirect.valid
 
     // ---------------- GSR ----------------
     // TODO 增加调试信息
-    // m_gprs.io.read1 <> idu.io.gprRead1
+    m_gprs.io.read1 <> idu.io.gprRead1
     m_gprs.io.read2 <> idu.io.gprRead2
     m_gprs.io.write <> wbu.io.gprWrite
+    idu.io.gprWrite := wbu.io.gprWrite
 
     // ---------------- CSR ----------------
     // TODO 增加调试信息
@@ -83,9 +86,9 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     val core_pc      = RegInit(0.U(p.ADDR_WIDTH.W))
     val core_dnpc    = RegInit(0.U(p.ADDR_WIDTH.W))
     val core_gpraddr = RegInit(0.U(p.GPR_ADDR_W.W))
-    idu.io.gprRead1.data := 0.U
-    m_gprs.io.read1.en   := true.B
-    m_gprs.io.read1.addr := core_gpraddr
+    // idu.io.gprRead1.data := 0.U
+    // m_gprs.io.read1.en   := true.B
+    // m_gprs.io.read1.addr := core_gpraddr
     m_csrs.io.read.en    := true.B
     m_csrs.io.read.addr  := core_gpraddr
     m_csrs.io.write.en   := true.B
