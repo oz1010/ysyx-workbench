@@ -18,11 +18,11 @@ class Ifu(p: CoreParams) extends Module {
   })
 
   val pc      = Reg(UInt(p.ADDR_WIDTH.W))
-  val reqPend = RegInit(false.B) // 已发出请求、等待 ICache 返回
+  val ready   = RegInit(false.B)     // 模块就绪标识
+  val reqPend = RegInit(false.B)     // 已发出请求、等待 ICache 返回
   val reqPc   = Reg(UInt(p.ADDR_WIDTH.W))
-  val fValid  = RegInit(false.B)
-  val fReady  = RegInit(false.B)
-  val fBits   = Reg(new IfBundle(p))
+  val fValid  = RegInit(false.B)     // icache的通信数据有效标识
+  val fBits   = Reg(new IfBundle(p)) // icache的通信数据寄存器
 
   // 真正的硬件pc应该直接内置默认值p.RESET_PC
   if (p.RESET_PC_EN) {
@@ -37,12 +37,12 @@ class Ifu(p: CoreParams) extends Module {
       pc := resetPcGetter.io.reset_pc
     }
   }
-  fReady := true.B // 复位时不能取指令
+  ready := true.B // 复位时不能取指令
 
   // ---------------- 请求 ICache ----------------
   // 取回缓冲（fValid）非空时不发新请求：防止下游停顿期间响应覆盖
   // 尚未消费的指令（丢指令）。sResp 仅脉冲一拍且无条件回 sIdle，丢弃安全。
-  io.cache.req.valid   := !reqPend && !fValid && fReady
+  io.cache.req.valid   := !reqPend && !fValid && ready
   io.cache.req.addr    := pc
   io.cache.req.wdata   := 0.U
   io.cache.req.wstrb   := 0.U
@@ -78,8 +78,8 @@ class Ifu(p: CoreParams) extends Module {
   }
 
   // ---------------- ifu数据输出 ----------------
-  val ifValid = RegInit(false.B)
-  val ifBits  = Reg(new IfBundle(p))
+  val ifValid = RegInit(false.B)     // 流水线数据有效标识
+  val ifBits  = Reg(new IfBundle(p)) // 流水线数据寄存器
   val move    = fValid && (!ifValid || io.out.ready)
   when(io.out.ready) { ifValid := false.B }
   when(move) {
