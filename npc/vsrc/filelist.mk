@@ -17,6 +17,7 @@ VGEN_DIR    = $(WORK_DIR)/build/vgen
 VMOD_NAME	= ysyxSoCFull
 # VMOD_NAME	= top
 VERILATOR   = verilator
+THREADS ?= $(shell nproc)
 
 # VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull.v
 VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull_axi.v
@@ -105,6 +106,10 @@ VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
 VERILATOR_CFLAGS += --autoflush
 VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
+# 禁用仿真无法优化的组合逻辑环路
+VERILATOR_CFLAGS += -Wno-UNOPTFLAT
+# 使用多线程运行仿真
+VERILATOR_CFLAGS += --threads $(THREADS)
 
 VERILATOR_CFLAGS += $(INCLUDES)
 
