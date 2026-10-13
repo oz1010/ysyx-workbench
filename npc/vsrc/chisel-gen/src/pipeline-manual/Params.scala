@@ -44,7 +44,7 @@ case class CoreParams(
   val LINE_WORDS: Int = LINE_BYTES / 4        // 每行 32bit 字数
   val XLEN: Int       = 32
   val GPR_COUNT: Int  = 16                    // RV32E：仅 x0~x15
-  val CSR_COUNT: Int  = 6                     // 重新映射，固定实现几个
+  val CSR_COUNT: Int  = 7                     // 重新映射，固定实现几个
   val CSR_ADDR_W: Int = 12                    // CSR地址宽度
   val GPR_ADDR_W: Int = log2Up(GPR_COUNT)     // GSR地址宽度
 }
