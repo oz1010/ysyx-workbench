@@ -19,8 +19,8 @@ class Wbu(p: CoreParams) extends Module {
     val interrupt = Input(Bool())           // TODO 暂时忽略中断的影响
     // TODO 暂时忽略csr值输入
     val csrMie    = Input(Bool())
-    val csrMtvec  = Input(UInt(p.XLEN.W))
     val csrMepc   = Input(UInt(p.XLEN.W))
+    val csrMtvec  = Input(UInt(p.XLEN.W))
   })
 
   val in = io.in.bits

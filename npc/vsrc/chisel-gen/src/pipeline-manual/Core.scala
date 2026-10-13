@@ -36,8 +36,8 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     lsu.io.out <> wbu.io.in
     wbu.io.out.ready := true.B
     wbu.io.csrMie    := false.B
-    wbu.io.csrMepc   := 0.U
-    wbu.io.csrMtvec  := 0.U
+    wbu.io.csrMepc   := m_csrs.io.mepc
+    wbu.io.csrMtvec  := m_csrs.io.mtvec
 
     // ---------------- IFU ----------------
     ifu.io.exRedirect := exu.io.redirect

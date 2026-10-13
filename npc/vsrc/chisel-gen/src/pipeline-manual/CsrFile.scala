@@ -15,16 +15,37 @@ class CsrFile(p: CoreParams) extends Module {
     // val mret   = Input(Bool())
     // // 状态输出
     // val mie      = Output(Bool())       // mstatus.MIE
-    // val mtvec    = Output(UInt(p.XLEN.W))
-    // val mepc     = Output(UInt(p.XLEN.W))
+    val mepc  = Output(UInt(p.XLEN.W))
+    val mtvec = Output(UInt(p.XLEN.W))
   })
 
   val csrs = RegInit(VecInit(Seq.fill(p.CSR_COUNT)(0.U(p.XLEN.W))))
 
-  // TODO 临时不写逻辑
-  io.read.data := csrs(1)
-  csrs(1)      := csrs(1) + 1.U
+  def getCsrIdx(addr: UInt): UInt = {
+    MuxLookup(addr(p.CSR_ADDR_W - 1, 0), 0.U)(
+      Seq(
+        CSRAddr.MSTATUS   -> 1.U,
+        CSRAddr.MTVEC     -> 2.U,
+        CSRAddr.MEPC      -> 3.U,
+        CSRAddr.MCAUSE    -> 4.U,
+        CSRAddr.MVENDORID -> 5.U,
+        CSRAddr.MARCHID   -> 6.U
+      )
+    )
+  }
+
+  val readIdx  = getCsrIdx(io.read.addr)
+  val writeIdx = getCsrIdx(io.write.addr)
+
+  // CSR 更新（同周期冲突时：MRET < 陷阱 < CSR 写）
+  io.read.data := csrs(readIdx)
+  io.mepc      := csrs(getCsrIdx(CSRAddr.MEPC))
+  io.mtvec     := csrs(getCsrIdx(CSRAddr.MTVEC))
   when(io.write.en) {
-    csrs(1) := io.write.data
+    csrs(writeIdx) := io.write.data
+  }.elsewhen(io.trap.en) {
+    csrs(getCsrIdx(CSRAddr.MEPC))   := io.trap.epc
+    csrs(getCsrIdx(CSRAddr.MCAUSE)) := io.trap.cause
+    csrs(getCsrIdx(CSRAddr.MTVEC))  := io.trap.tval
   }
 }

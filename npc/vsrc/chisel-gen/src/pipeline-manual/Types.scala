@@ -72,6 +72,19 @@ object Axi4ID extends ChiselEnum {
   val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
 }
 
+// CSR地址
+object CSRAddr {
+  val width     = 12.W
+  // 编号从1开始
+  val MSTATUS   = 0x300.U(width) // mstatus寄存器 - 存放处理器的状态
+  val MTVEC     = 0x305.U(width) // mtvec寄存器 - 存放trap-handler基地址
+  val MEPC      = 0x341.U(width) // mepc寄存器 - 存放触发异常的PC
+  val MCAUSE    = 0x342.U(width) // mcause寄存器 - 存放触发异常的原因
+  val MVENDORID = 0xf11.U(width) // Vendor ID, ysyx的ASCII码, 即0x79737978
+  val MARCHID   =
+    0xf12.U(width) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
+}
+
 /** 重定向数据（冲刷流水线并修改取指 PC） */
 class Redirect(p: CoreParams) extends Bundle {
   val valid  = Bool()
