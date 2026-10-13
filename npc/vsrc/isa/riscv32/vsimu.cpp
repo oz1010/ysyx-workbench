@@ -132,7 +132,7 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
 int exec_vsimu(Decode* s)
 {
     bool simu_continue;
-    s->dnpc = s->snpc;
+    // s->dynamic_next_pc = s->snpc;
 
     // 同步cpu到模拟处理器
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_SIMU);
@@ -174,7 +174,7 @@ int exec_vsimu(Decode* s)
     // 同步模拟处理器到cpu
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
 
-    s->dnpc = get_vsimu_dnpc();
+    // s->dynamic_next_pc = get_vsimu_dnpc();
 
     // 仿真直接调用finish，强制修改状态
     if (top->contextp()->gotFinish() && npc_ctx.state == NPC_RUNNING)
@@ -276,10 +276,10 @@ paddr_t get_vsimu_pc(void)
     return top->rootp->TOP_S_PC;
 }
 
-paddr_t get_vsimu_dnpc(void)
-{
-    return top->rootp->TOP_S_DNPC;
-}
+// paddr_t get_vsimu_dnpc(void)
+// {
+//     return top->rootp->TOP_S_DNPC;
+// }
 
 uint32_t get_csr_index(paddr_t addr)
 {

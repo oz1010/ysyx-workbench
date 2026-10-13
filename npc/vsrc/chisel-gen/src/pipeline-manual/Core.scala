@@ -35,6 +35,9 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     exu.io.out <> lsu.io.in
     lsu.io.out <> wbu.io.in
     wbu.io.out.ready := true.B
+    wbu.io.csrMie    := false.B
+    wbu.io.csrMepc   := 0.U
+    wbu.io.csrMtvec  := 0.U
 
     // ---------------- IFU ----------------
     ifu.io.exRedirect := exu.io.redirect
@@ -96,25 +99,14 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     // ---------------- 关键输出 ----------------
     val core_pc   = RegInit(0.U(p.ADDR_WIDTH.W))
     val core_dnpc = RegInit(0.U(p.ADDR_WIDTH.W))
-    pc    := core_pc
-    valid := wbu.io.out.valid
-
-    // // TODO 增加调试信息
-    // val core_gpraddr = RegInit(0.U(p.GPR_ADDR_W.W))
-    // // idu.io.gprRead1.data := 0.U
-    // // m_gprs.io.read1.en   := true.B
-    // // m_gprs.io.read1.addr := core_gpraddr
-    // m_csrs.io.read.en    := true.B
-    // m_csrs.io.read.addr  := core_gpraddr
-    // m_csrs.io.write.en   := true.B
-    // m_csrs.io.write.addr := core_gpraddr
-    // m_csrs.io.write.data := core_pc
-    // core_gpraddr         := core_gpraddr + 1.U
-    // when(wbu.io.gprWrite.en && wbu.io.gprWrite.addr(1) =/= 0.U) {
-    //   core_pc   := wbu.io.out.bits.pc
-    //   core_dnpc := wbu.io.out.bits.pc
-    // }.otherwise {
-    //   core_pc := core_pc + wbu.io.out.bits.pc + m_gprs.io.read1.data + core_dnpc + m_csrs.io.read.data
-    // }
+    core_pc := wbu.io.out.bits.pc
+    pc      := core_pc
+    valid   := wbu.io.out.valid
+    when(wbu.io.out.valid) {
+      core_pc := wbu.io.out.bits.pc
+    }
+    when(lsu.io.out.valid) {
+      core_dnpc := lsu.io.out.bits.pc
+    }
   }
 }
