@@ -10,6 +10,17 @@ object InstCodeTest {
   val LUI     = 1.U(8.W)
 }
 
+// 异常码
+object ExceptCode {
+  val width        = 32.W
+  val INST_ILLEGAL = 2.U(width)
+  val INST_ECALL   = 11.U(width)
+  val INST_EBREAK  = 3.U(width)
+  val FETCH_MISS   = 0.U(width)
+  val LOAD_MISS    = 4.U(width)
+  val STORE_MISS   = 6.U(width)
+}
+
 // 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
 object AluOp {
   val width = 4.W
