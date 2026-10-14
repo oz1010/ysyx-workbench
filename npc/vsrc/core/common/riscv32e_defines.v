@@ -134,7 +134,7 @@
 `define CSR_MARCHID         (`CSR_ADDR_W'hf12) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
 `define CSR_WRITE_COUNT     5 // 支持写入的寄存器数量
 `define CSR_RO_COUNT        2 // 支持只读的寄存器数量
-`define CSR_WCH_ITEM_COUNT  2 // 同时支持更新的寄存器数量
+`define CSR_WCH_ITEM_COUNT  3 // 同时支持更新的寄存器数量
 `define CSR_WCH_INFO_W      (1+`CSR_ADDR_W+32) // 同时支持更新的寄存器信息宽度：en(1) + addr(CSR_ADDR_W) + data(32)
 `define CSR_WCH_W           (`CSR_WCH_INFO_W*`CSR_WCH_ITEM_COUNT) // 同时支持更新的寄存器信息通道宽度
 

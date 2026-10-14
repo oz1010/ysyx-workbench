@@ -50,9 +50,9 @@ module csrs #(
     wire  [`CSR_ADDR_W-1:0]         csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
     wire  [31:0]                    csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
     assign {
-        csr_wen[1], csr_wen[0],
-        csr_waddr[1], csr_waddr[0],
-        csr_wdata[1], csr_wdata[0]
+        csr_wen[2], csr_wen[1], csr_wen[0],
+        csr_waddr[2], csr_waddr[1], csr_waddr[0],
+        csr_wdata[2], csr_wdata[1], csr_wdata[0]
     } = csr_wch;
 
     /* 

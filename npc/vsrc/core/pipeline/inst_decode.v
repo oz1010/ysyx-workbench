@@ -211,13 +211,23 @@ module inst_decode #(
     always @(posedge clk) begin
         if (rst) begin
             r_stage_out_valid <= 0;
+            r_expt <= 0;
+            r_expt_cause <= 0;
+            r_expt_tval <= 0;
         end else begin
             r_stage_out_valid <= 
                 stage_in_done ? 1 :
                 stage_out_done ? 0 :
                 r_stage_out_valid;
-            if (stage_in_done && (inst_code==`INST_INVALID)) begin
-                `EXPT_RISE(`STAGE_INDEX_IDU, `EXPT_CAUSE_ILL, inst)
+            // 异常信息仅在当前输入指令进入时有效，进入后需要清除，
+            // 否则后续指令会继承残留的异常信息（冲刷不会清理这些寄存器）
+            if (stage_in_done) begin
+                r_expt <= 0;
+                r_expt_cause <= 0;
+                r_expt_tval <= 0;
+                if (inst_code==`INST_INVALID) begin
+                    `EXPT_RISE(`STAGE_INDEX_IDU, `EXPT_CAUSE_ILL, inst)
+                end
             end
         end
     end

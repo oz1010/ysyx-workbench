@@ -59,10 +59,14 @@ module execute #(
     wire  [`CSR_ADDR_W-1:0]         csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
     wire  [31:0]                    csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
     assign                          csr_wch = {
-        csr_wen[1], csr_wen[0],
-        csr_waddr[1], csr_waddr[0],
-        csr_wdata[1], csr_wdata[0]
+        csr_wen[2], csr_wen[1], csr_wen[0],
+        csr_waddr[2], csr_waddr[1], csr_waddr[0],
+        csr_wdata[2], csr_wdata[1], csr_wdata[0]
     };
+    // EXU最多使用2个写通道（ecall），第3个通道固定关闭
+    assign                          csr_wen[2] = 1'b0;
+    assign                          csr_waddr[2] = {`CSR_ADDR_W{1'b0}};
+    assign                          csr_wdata[2] = 32'b0;
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;

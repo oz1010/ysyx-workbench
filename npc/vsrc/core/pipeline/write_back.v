@@ -77,17 +77,18 @@ module write_back #(
     );
 
     /**
-    * 0 -- mcause
-    * 1 -- mtval
+    * 0 -- mepc
+    * 1 -- mcause
+    * 2 -- mtval
     */
     wire [`CSR_WCH_W-1:0]           expt_csr_wch;
     wire                            expt_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
     wire  [`CSR_ADDR_W-1:0]         expt_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
     wire  [31:0]                    expt_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
     assign                          expt_csr_wch = {
-        expt_csr_wen[1], expt_csr_wen[0],
-        expt_csr_waddr[1], expt_csr_waddr[0],
-        expt_csr_wdata[1], expt_csr_wdata[0]
+        expt_csr_wen[2], expt_csr_wen[1], expt_csr_wen[0],
+        expt_csr_waddr[2], expt_csr_waddr[1], expt_csr_waddr[0],
+        expt_csr_wdata[2], expt_csr_wdata[1], expt_csr_wdata[0]
     };
     wire expt_valid = |expt && stage_in_done;
 
@@ -105,11 +106,14 @@ module write_back #(
     * `EXPT_CAUSE_ILL
     */
     assign expt_csr_wen[0] = 1;
-    assign expt_csr_waddr[0] = `CSR_MCAUSE;
-    assign expt_csr_wdata[0] = expt_cause;
+    assign expt_csr_waddr[0] = `CSR_MEPC;
+    assign expt_csr_wdata[0] = pc;
     assign expt_csr_wen[1] = 1;
-    assign expt_csr_waddr[1] = `CSR_MTVAL;
-    assign expt_csr_wdata[1] = expt_tval;
+    assign expt_csr_waddr[1] = `CSR_MCAUSE;
+    assign expt_csr_wdata[1] = expt_cause;
+    assign expt_csr_wen[2] = 1;
+    assign expt_csr_waddr[2] = `CSR_MTVAL;
+    assign expt_csr_wdata[2] = expt_tval;
     assign out_csr_wch = expt_valid ? expt_csr_wch :
         stage_in_done ? csr_wch : 
         0;
