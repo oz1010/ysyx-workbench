@@ -30,8 +30,8 @@ read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HO
   @NPC_HOME@/vsrc/core/common/inner_con.v \
   @NPC_HOME@/vsrc/core/common/axi_master.v \
   @NPC_HOME@/vsrc/core/common/ex_muldivrem.v \
+  @NPC_HOME@/vsrc/core/common/perf_monitor.v \
   @NPC_HOME@/vsrc/device/arbiter_axi4.v \
-  @NPC_HOME@/vsrc/core/pipeline/perf_monitor.v \
   @NPC_HOME@/vsrc/core/pipeline/inst_fetch.v \
   @NPC_HOME@/vsrc/core/pipeline/inst_decode.v \
   @NPC_HOME@/vsrc/core/pipeline/execute.v \
