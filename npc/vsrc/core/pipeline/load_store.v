@@ -54,6 +54,10 @@ module load_store #(
     input   wire [1:0]                  cache_stat,
     /* 访存对应的dcache命中状态，out_valid期间有效 */
     output  wire [1:0]                  out_cache_stat,
+    /* 硬件监控信号 */
+    output  wire                        hw_monitor_ls_en,
+    output  wire                        hw_monitor_ls_iswrite,
+    output  wire [DATA_WIDTH-1:0]       hw_monitor_ls_data,
     /* 访存标识及访存目标地址，out_valid期间有效（无访存时分别为0） */
     output  wire                        out_mem_access,
     output  wire [ADDR_WIDTH-1:0]       out_mem_addr
@@ -185,6 +189,12 @@ module load_store #(
     wire fence_enable = (inst_code==`INST_FENCE | inst_code==`INST_FENCE_I);
     wire test_mode_enable = access_addr>=32'h0f00_2000 & access_addr<=32'h0fff_ffff;
 
+    // 处理硬件监控信号
+    assign hw_monitor_ls_en = !rst && ls_enable && !fence_enable && !test_mode_enable && access_enable && 
+        ((r_write_enable && awvalid && awready) || (r_read_enable && arvalid && arready));
+    assign hw_monitor_ls_iswrite = r_write_enable;
+    assign hw_monitor_ls_data = r_write_enable ? awaddr : araddr;
+
     axi_master_writer #(
     `ifndef IN_YOSYS_STA
         .NAME("LSU"),
@@ -302,10 +312,6 @@ module load_store #(
             end else if (access_enable) begin
                 /* 处理读写逻辑 */
                 if (r_write_enable) begin
-                    if (awvalid & awready) begin
-                        func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, awaddr);
-                    end
-
                     if (bvalid & bready) begin
                         r_write_enable <= 0;
                         r_result <= 0;
@@ -314,10 +320,6 @@ module load_store #(
                     end
 
                 end else if (r_read_enable) begin
-                    if (arvalid && arready) begin
-                        func_cpu_stat_ctrl(`HW_CPU_STAT_DATA, araddr);
-                    end
-
                     if (rvalid & rready) begin
                         r_result <= read_data;
                     end

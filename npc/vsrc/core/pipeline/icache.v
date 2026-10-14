@@ -80,6 +80,7 @@ module icache #(
 
     /* 读请求命中状态（2bit）：NONE/HIT/MISS；仅可缓存地址（flash/psram/sdram/mrom）有
      * 统计数据，不可缓存地址（片内sram）透传访问和写均为NONE */
+    output  reg                         cache_en,
     output  reg  [1:0]                  cache_stat
 );
 
@@ -349,15 +350,17 @@ assign impl_write_data = c_s_rdata;
 always @(posedge clk) begin
     if (rst) begin
         cache_stat <= `CACHE_STAT_NONE;
+        cache_en <= 0;
     end else begin
+        cache_en <= 0;
         if (icache_ren) begin
             if (c_m_arvalid && c_m_arready) begin
                 // 这里的统计数据会因为流水线flush而出现偏差
                 if (impl_read_en) begin
-                    func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_HIT, 1);
+                    cache_en <= 1;
                     cache_stat <= `CACHE_STAT_HIT;
                 end else begin
-                    func_cpu_stat_ctrl(`HW_CPU_STAT_ICACHE_MISS, 1);
+                    cache_en <= 1;
                     cache_stat <= `CACHE_STAT_MISS;
                 end
             end

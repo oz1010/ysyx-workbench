@@ -80,6 +80,7 @@ module dcache #(
 
     /* 读请求命中状态（2bit）：NONE/HIT/MISS；仅可缓存地址（flash/psram/sdram/mrom）有
      * 统计数据，不可缓存地址（片内sram）透传访问和写均为NONE */
+    output  reg                         cache_en,
     output  reg  [1:0]                  cache_stat
 );
 
@@ -366,8 +367,10 @@ always @(posedge clk) begin
     if (rst) begin
         impl_reset_en <= 0;
         impl_reset_addr <= 0;
+        cache_en <= 0;
         cache_stat <= `CACHE_STAT_NONE;
     end else begin
+        cache_en <= 0;
         if (m_awvalid && impl_read_en) begin
             impl_reset_en <= 1;
             impl_reset_addr <= m_awaddr;
@@ -381,10 +384,10 @@ always @(posedge clk) begin
         if (dcache_ren) begin
             if (c_m_arvalid && c_m_arready) begin
                 if (impl_read_en) begin 
-                    func_cpu_stat_ctrl(`HW_CPU_STAT_DCACHE_HIT, 1);
+                    cache_en <= 1;
                     cache_stat <= `CACHE_STAT_HIT;
                 end else begin
-                    func_cpu_stat_ctrl(`HW_CPU_STAT_DCACHE_MISS, 1);
+                    cache_en <= 1;
                     cache_stat <= `CACHE_STAT_MISS;
                 end
             end
