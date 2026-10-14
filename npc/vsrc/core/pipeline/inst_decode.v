@@ -216,6 +216,9 @@ module inst_decode #(
                 stage_in_done ? 1 :
                 stage_out_done ? 0 :
                 r_stage_out_valid;
+            if (stage_in_done && (inst_code==`INST_INVALID)) begin
+                `EXPT_RISE(`STAGE_INDEX_IDU, `EXPT_CAUSE_ILL, inst)
+            end
         end
     end
 

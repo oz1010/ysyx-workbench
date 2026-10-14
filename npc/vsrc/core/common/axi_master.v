@@ -408,7 +408,7 @@ module axi_master_reader #(
         (read_size==1) ? (fv_read_window[DATA_WIDTH-1:0] & 32'hFFFF) :
         fv_read_window[DATA_WIDTH-1:0];
     always @(*) begin
-        s_read_data = read_sign ? func_sext(fv_read_masked, 8*(32'h1<<read_size)) : fv_read_masked;
+        s_read_data = read_sign ? get_sext(fv_read_masked, 8*(32'h1<<read_size)) : fv_read_masked;
     end
     `elsif IN_YOSYS_STA
     always @(posedge clk) begin

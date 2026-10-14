@@ -129,9 +129,10 @@
 `define CSR_MTVEC           (`CSR_ADDR_W'h305) // mtvec寄存器 - 存放trap-handler基地址
 `define CSR_MEPC            (`CSR_ADDR_W'h341) // mepc寄存器 - 存放触发异常的PC
 `define CSR_MCAUSE          (`CSR_ADDR_W'h342) // mcause寄存器 - 存放触发异常的原因
+`define CSR_MTVAL           (`CSR_ADDR_W'h343) // mtval寄存器 - 存放触发异常的辅助值
 `define CSR_MVENDORID       (`CSR_ADDR_W'hf11) // Vendor ID, ysyx的ASCII码, 即0x79737978
 `define CSR_MARCHID         (`CSR_ADDR_W'hf12) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
-`define CSR_WRITE_COUNT     4 // 支持写入的寄存器数量
+`define CSR_WRITE_COUNT     5 // 支持写入的寄存器数量
 `define CSR_RO_COUNT        2 // 支持只读的寄存器数量
 `define CSR_WCH_ITEM_COUNT  2 // 同时支持更新的寄存器数量
 `define CSR_WCH_INFO_W      (1+`CSR_ADDR_W+32) // 同时支持更新的寄存器信息宽度：en(1) + addr(CSR_ADDR_W) + data(32)
@@ -391,9 +392,9 @@ function void read_unalign_data;
 
         // 处理符号位
         case (inst_code)
-            `INST_LB:           result = func_sext((s_data) & 32'h000000FF, 8);
-            `INST_LH:           result = func_sext((s_data) & 32'h0000FFFF, 16);
-            `INST_LW:           result = func_sext((s_data) & 32'hFFFFFFFF, 32);
+            `INST_LB:           result = get_sext((s_data) & 32'h000000FF, 8);
+            `INST_LH:           result = get_sext((s_data) & 32'h0000FFFF, 16);
+            `INST_LW:           result = get_sext((s_data) & 32'hFFFFFFFF, 32);
             `INST_LBU:          result = (s_data) & 32'hFF;
             `INST_LHU:          result = (s_data) & 32'hFFFF;
             default: ;
@@ -401,39 +402,6 @@ function void read_unalign_data;
     end
 endfunction
 
-// function void get_unalign_addr_data;
-//     input   logic [7:0]         idx;
-//     input   logic               is_sign;
-//     input   logic [2:0]         size;
-//     input   logic [31:0]        in_data;
-//     input   logic [1:0]         shift_val;
-//     output  logic [31:0]        result;
-//     begin
-//         logic [31:0] s_data;
-//         logic [31:0] data0;
-//         logic [31:0] size0;
-//         case (idx)
-//             0: s_data = in_data >> (8*shift_val);
-//             1: s_data = s_data | (in_data<<(32-8*shift_val));
-
-//             `ifndef IN_YOSYS_STA
-//             default: $error("read unalign in_data is error idx %x", idx);
-//             `endif
-//         endcase
-
-//         // 处理大小
-//         size0 = 8*(1<<size);
-//         case (size)
-//             0:  data0 = (s_data) & 32'h000000FF;
-//             1:  data0 = (s_data) & 32'h0000FFFF;
-//             2:  data0 = (s_data) & 32'hFFFFFFFF;
-//             default: ;
-//         endcase
-
-//         // 处理符号位
-//         result = is_sign ? func_sext(data0, size0) : data0;
-//     end
-// endfunction
 
 // 直接处理64位数据（拼接的两个数据）
 function void get_unalign_addr_data;
@@ -458,7 +426,7 @@ function void get_unalign_addr_data;
         endcase
 
         // 处理符号位
-        result = is_sign ? func_sext(data0, size0) : data0;
+        result = is_sign ? get_sext(data0, size0) : data0;
     end
 endfunction
 
@@ -536,8 +504,9 @@ function automatic [31:0] func_read_raw_csr;
             `CSR_MTVEC: csr_idx = 2;
             `CSR_MEPC: csr_idx = 3;
             `CSR_MCAUSE: csr_idx = 4;
-            `CSR_MVENDORID: csr_idx = 5;
-            `CSR_MARCHID: csr_idx = 6;
+            `CSR_MTVAL: csr_idx = 5;
+            `CSR_MVENDORID: csr_idx = 6;
+            `CSR_MARCHID: csr_idx = 7;
             default: csr_idx = 0; // Invalid
         endcase
         func_read_raw_csr = global_csrs[csr_idx];
@@ -559,8 +528,9 @@ function void func_write_raw_csr;
             `CSR_MTVEC: csr_idx = 2;
             `CSR_MEPC: csr_idx = 3;
             `CSR_MCAUSE: csr_idx = 4;
-            `CSR_MVENDORID: csr_idx = 5;
-            `CSR_MARCHID: csr_idx = 6;
+            `CSR_MTVAL: csr_idx = 5;
+            `CSR_MVENDORID: csr_idx = 6;
+            `CSR_MARCHID: csr_idx = 7;
             default: csr_idx = 0; // Invalid
         endcase
         // 使用异步方式写入csr
@@ -582,8 +552,9 @@ function automatic [31:0] func_get_csr_index;
             `CSR_MTVEC: csr_idx = 2;
             `CSR_MEPC: csr_idx = 3;
             `CSR_MCAUSE: csr_idx = 4;
-            `CSR_MVENDORID: csr_idx = 5;
-            `CSR_MARCHID: csr_idx = 6;
+            `CSR_MTVAL: csr_idx = 5;
+            `CSR_MVENDORID: csr_idx = 6;
+            `CSR_MARCHID: csr_idx = 7;
             default: csr_idx = 0; // Invalid
         endcase
         func_get_csr_index = csr_idx;
@@ -594,8 +565,9 @@ function automatic [31:0] func_get_csr_index;
             `CSR_MTVEC: csr_idx = 2;
             `CSR_MEPC: csr_idx = 3;
             `CSR_MCAUSE: csr_idx = 4;
-            `CSR_MVENDORID: csr_idx = 5;
-            `CSR_MARCHID: csr_idx = 6;
+            `CSR_MTVAL: csr_idx = 5;
+            `CSR_MVENDORID: csr_idx = 6;
+            `CSR_MARCHID: csr_idx = 7;
             default: csr_idx = 0; // Invalid
         endcase
         func_get_csr_index = csr_idx;
@@ -670,16 +642,16 @@ function void func_dev_skip;
     end
 endfunction
 
-function automatic [31:0] func_sext;
+function automatic [31:0] get_sext;
     input [31:0] x;
     input [31:0] len;
     begin
 `ifdef FORMAL_VERIFY
-    func_sext = (x & (32'h1 << (len-1))) ? (x | (32'hFFFFFFFF << len)) : (x & ((32'h1 << len)-1));
+    get_sext = (x & (32'h1 << (len-1))) ? (x | (32'hFFFFFFFF << len)) : (x & ((32'h1 << len)-1));
 `elsif IN_YOSYS_STA
-    func_sext = x;
+    get_sext = x;
 `else
-    func_sext = sext(x, len);
+    get_sext = sext(x, len);
 `endif 
     end
 endfunction

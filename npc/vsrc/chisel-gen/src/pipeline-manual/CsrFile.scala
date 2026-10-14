@@ -28,8 +28,9 @@ class CsrFile(p: CoreParams) extends Module {
         CSRAddr.MTVEC     -> 2.U,
         CSRAddr.MEPC      -> 3.U,
         CSRAddr.MCAUSE    -> 4.U,
-        CSRAddr.MVENDORID -> 5.U,
-        CSRAddr.MARCHID   -> 6.U
+        CSRAddr.MTVAL     -> 5.U,
+        CSRAddr.MVENDORID -> 6.U,
+        CSRAddr.MARCHID   -> 7.U
       )
     )
   }
@@ -46,6 +47,6 @@ class CsrFile(p: CoreParams) extends Module {
   }.elsewhen(io.trap.en) {
     csrs(getCsrIdx(CSRAddr.MEPC))   := io.trap.epc
     csrs(getCsrIdx(CSRAddr.MCAUSE)) := io.trap.cause
-    csrs(getCsrIdx(CSRAddr.MTVEC))  := io.trap.tval
+    csrs(getCsrIdx(CSRAddr.MTVAL))  := io.trap.tval
   }
 }

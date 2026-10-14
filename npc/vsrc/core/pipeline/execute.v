@@ -259,9 +259,9 @@ module execute #(
                         `INST_ORI:          r_result <= src1 | imm;
                         `INST_ANDI:         r_result <= src1 & imm;
 
-                        `INST_SLLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`CORE_INV_OPN); else r_result <= src1 << (imm&32'h1F);
-                        `INST_SRLI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`CORE_INV_OPN); else r_result <= src1 >> (imm&32'h1F);
-                        `INST_SRAI:         if ((imm&32'h20)!=32'h0) func_exit_simu(`CORE_INV_OPN); else r_result <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
+                        `INST_SLLI:         if ((imm&32'h20)!=32'h0) `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_BRK, `CORE_INV_OPN) else r_result <= src1 << (imm&32'h1F);
+                        `INST_SRLI:         if ((imm&32'h20)!=32'h0) `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_BRK, `CORE_INV_OPN) else r_result <= src1 >> (imm&32'h1F);
+                        `INST_SRAI:         if ((imm&32'h20)!=32'h0) `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_BRK, `CORE_INV_OPN) else r_result <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
                         `INST_ADD:          r_result <= src1 + src2;
                         `INST_SUB:          r_result <= src1 - src2;
                         `INST_SLL:          r_result <= src1 << (src2 & 32'h1F);
@@ -274,10 +274,10 @@ module execute #(
                         `INST_AND:          r_result <= src1 & src2;
                         // `INST_FENCE:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         // `INST_FENCE_I:      `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
-                        `INST_ECALL:        func_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
-                        `INST_EBREAK:       func_exit_simu(a0);
-                        `INST_CSRRW:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
-                        `INST_CSRRS:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
+                        `INST_ECALL:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_MEC, 0) // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
+                        `INST_EBREAK:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_BRK, a0)
+                        `INST_CSRRW:        r_result <= csr_rdata;
+                        `INST_CSRRS:        r_result <= csr_rdata;
                         `INST_CSRRC:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         `INST_CSRRWI:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         `INST_CSRRSI:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
@@ -291,7 +291,6 @@ module execute #(
                         // `INST_REM:          r_result <= s_src1 % s_src2;
                         // `INST_REMU:         r_result <= src1 % src2;
                         `INST_MRET:         func_query_intr(); // MEPC 0x341
-                        `INST_INVALID:      `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         default: ;
                     endcase
                 end

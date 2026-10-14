@@ -152,7 +152,7 @@ module load_store #(
     );
 
     wire prev_err = |expt;
-    wire ls_enable = (|(inst_code & `INST_CODE_MEM));
+    wire ls_enable = (|(inst_code & `INST_CODE_MEM)) && !prev_err; // 当存在异常时，避免多周期存取指令干扰，直接透传
     wire access_enable = !in_ready;
     assign out_cache_stat = r_cache_stat;
     assign out_mem_access = r_mem_access;
