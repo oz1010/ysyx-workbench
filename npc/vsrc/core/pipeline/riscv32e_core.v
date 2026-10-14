@@ -115,6 +115,14 @@ wire                        monitor_ls_in_done;
 wire                        monitor_ls_out_done;
 wire                        monitor_wb_in_done;
 wire                        monitor_wb_out_done;
+/* 硬件监控信号 */
+wire                        hw_monitor_ls_en;
+wire                        hw_monitor_ls_iswrite;
+wire [DATA_WIDTH-1:0]       hw_monitor_ls_data;
+wire                        hw_monitor_icache_en;
+wire                        hw_monitor_icache_hit = icache_stat==`CACHE_STAT_HIT;
+wire                        hw_monitor_dcache_en;
+wire                        hw_monitor_dcache_hit = dcache_stat==`CACHE_STAT_HIT;
 /* 将模块信号和控制信号关联后输出，默认直接输出 */
 assign con_core_ready = !rst;
 assign con_core_valid = !rst & !core_stage_flush[`STAGE_INDEX_IFU];
@@ -407,10 +415,8 @@ end
 always @(posedge clk) begin
     if (rst) begin
         execute_time <= 0;
-        func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 0);
     end else begin
         execute_time <= execute_time + 1;
-        func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 1);
     end
 end
 
@@ -503,6 +509,21 @@ perf_monitor m_perf_monitor (
     .core_flush_done(core_flush_done),
     .done()
 );
+// 硬件性能监控（集中调用监控函数）
+hw_monitor #(
+    .INST_WIDTH(INST_WIDTH)
+) m_hw_monitor(
+    .clk(clk),
+    .rst(rst),
+    .hw_monitor_icache_en(hw_monitor_icache_en),
+    .hw_monitor_icache_hit(hw_monitor_icache_hit),
+    .hw_monitor_dcache_en(hw_monitor_dcache_en),
+    .hw_monitor_dcache_hit(hw_monitor_dcache_hit),
+    .hw_monitor_ls_en(hw_monitor_ls_en),
+    .hw_monitor_ls_iswrite(hw_monitor_ls_iswrite),
+    .hw_monitor_ls_data(hw_monitor_ls_data),
+    .done()
+);
 
 /* 指令缓存 */
 `ifndef FORMAL_VERIFY
@@ -580,6 +601,7 @@ icache #(
     .s_rdata(axi4_icache_rdata),
     .s_rlast(axi4_icache_rlast),
     .s_rid(axi4_icache_rid),
+    .cache_en(hw_monitor_icache_en),
     .cache_stat(icache_stat)
 );
 `else
@@ -692,6 +714,7 @@ dcache #(
     .s_rdata(axi4_dcache_rdata),
     .s_rlast(axi4_dcache_rlast),
     .s_rid(axi4_dcache_rid),
+    .cache_en(hw_monitor_dcache_en),
     .cache_stat(dcache_stat)
 );
 `else
@@ -1373,6 +1396,9 @@ load_store #(
     .out_bits(mod_con_ls_bits),
     .cache_stat(dcache_stat),
     .out_cache_stat(ls_cache_stat),
+    .hw_monitor_ls_en(hw_monitor_ls_en),
+    .hw_monitor_ls_iswrite(hw_monitor_ls_iswrite),
+    .hw_monitor_ls_data(hw_monitor_ls_data),
     .out_mem_access(ls_mem_access),
     .out_mem_addr(ls_mem_addr)
 );
