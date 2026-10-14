@@ -11,6 +11,9 @@ bmc: mode bmc
 bmc: depth @DEPTH@
 cvr: mode cover
 cvr: depth @CVR_DEPTH@
+# 轨迹生成FST格式（sby仿真引擎输出，GTKWave/Surfer原生支持），不再生成VCD
+fst on
+vcd off
 
 [engines]
 # 可选：yices, z3, boolector
