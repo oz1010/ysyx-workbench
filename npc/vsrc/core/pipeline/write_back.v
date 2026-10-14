@@ -76,6 +76,21 @@ module write_back #(
         .stage_out_done(stage_out_done)
     );
 
+    /**
+    * 0 -- mcause
+    * 1 -- mtval
+    */
+    wire [`CSR_WCH_W-1:0]           expt_csr_wch;
+    wire                            expt_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
+    wire  [`CSR_ADDR_W-1:0]         expt_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
+    wire  [31:0]                    expt_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
+    assign                          expt_csr_wch = {
+        expt_csr_wen[1], expt_csr_wen[0],
+        expt_csr_waddr[1], expt_csr_waddr[0],
+        expt_csr_wdata[1], expt_csr_wdata[0]
+    };
+    wire expt_valid = |expt && stage_in_done;
+
     /*
     * 组合逻辑，同步触发寄存器组更新
     * 更新寄存器需要与wb同步进行
@@ -87,20 +102,23 @@ module write_back #(
 
     /*
     * 组合逻辑，同步触发csr寄存器组更新
+    * `EXPT_CAUSE_ILL
     */
-    assign out_csr_wch = stage_in_done ? csr_wch : 0;
+    assign expt_csr_wen[0] = 1;
+    assign expt_csr_waddr[0] = `CSR_MCAUSE;
+    assign expt_csr_wdata[0] = expt_cause;
+    assign expt_csr_wen[1] = 1;
+    assign expt_csr_waddr[1] = `CSR_MTVAL;
+    assign expt_csr_wdata[1] = expt_tval;
+    assign out_csr_wch = expt_valid ? expt_csr_wch :
+        stage_in_done ? csr_wch : 
+        0;
 
     always @(posedge clk) begin
         if (rst) begin
             r_stage_out_valid <= 0;
         end else begin
             r_stage_out_valid <= stage_in_done ? 1 : 0;
-            if (|expt) begin
-                case (expt_cause)
-                    `EXPT_CAUSE_ILL: func_invalid_inst(pc, expt_tval);
-                    default: ;
-                endcase
-            end
         end
     end
 

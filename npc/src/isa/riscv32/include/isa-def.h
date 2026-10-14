@@ -30,12 +30,37 @@ enum {
   /* Machine Trap Handling */
   CSR_MEPC          = 0x341,  // mepc寄存器 - 存放触发异常的PC
   CSR_MCAUSE        = 0x342,  // mcause寄存器 - 存放触发异常的原因
+  CSR_MTVAL         = 0x343,  // mtval寄存器 - 存放触发异常的辅助值
 
   /* Machine Information Registers */
   CSR_MVENDORID     = 0xf11, // Vendor ID, ysyx的ASCII码, 即0x79737978
   CSR_MARCHID       = 0xf12, // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
 
   CSR_COUNT         = 4096    // 查看csrrw中csr占12位推算需要占用4096个csr寄存器
+};
+
+/**
+ * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
+ *   Table 3.6: Machine cause register (mcause) values after trap.
+*/
+enum
+{
+    EXPT_CAUSE_IAM = 0,   // Instruction Address Misaligned , mtval赋值：触发异常的目标跳转地址
+    EXPT_CAUSE_IAF = 1,   // Instruction Access Fault       , mtval赋值：触发异常的指令物理地址
+    EXPT_CAUSE_ILL = 2,   // Illegal Instruction            , mtval赋值：触发异常的指令二进制码 (Opcode)
+    EXPT_CAUSE_BRK = 3,   // Breakpoint                     , mtval赋值：触发异常的指令地址（或 0）
+    EXPT_CAUSE_LAM = 4,   // Load Address Misaligned        , mtval赋值：尝试读取的非法访存地址
+    EXPT_CAUSE_LAF = 5,   // Load Access Fault              , mtval赋值：尝试读取的非法物理地址
+    EXPT_CAUSE_SAM = 6,   // Store/AMO Address Misaligned   , mtval赋值：尝试写入的非法访存地址
+    EXPT_CAUSE_SAF = 7,   // Store/AMO Access Fault         , mtval赋值：尝试写入的非法物理地址
+    EXPT_CAUSE_UEC = 8,   // Environment Call from U-mode   , mtval赋值：通常为0
+    EXPT_CAUSE_SEC = 9,   // Environment Call from S-mode   , mtval赋值：通常为0
+    EXPT_CAUSE_MEC = 11,  // Environment Call from M-mode   , mtval赋值：通常为0
+    EXPT_CAUSE_IPF = 12,  // Instruction Page Fault         , mtval赋值：导致页缺失的虚拟地址
+    EXPT_CAUSE_LPF = 13,  // Load Page Fault                , mtval赋值：导致页缺失的虚拟地址
+    EXPT_CAUSE_SPF = 15,  // Store/AMO Page Fault           , mtval赋值：导致页缺失的虚拟地址
+
+    // 24-31 48-63可以自定义
 };
 
 typedef struct {

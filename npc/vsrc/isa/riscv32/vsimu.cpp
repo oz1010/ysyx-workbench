@@ -49,6 +49,10 @@ void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
 extern std::string cfg_output;
 extern bool cfg_hw_trace;
 
+uint32_t get_csr_index(paddr_t addr);
+void set_vsimu_csr(paddr_t addr, uint32_t data);
+uint32_t get_vsimu_csr(paddr_t addr);
+
 #if VM_TRACE_FST
 #define VERILATED_TRACE_C VerilatedFstC
 #define VERILATED_TRACE_FILE_EXT ".fst"
@@ -147,6 +151,27 @@ int exec_vsimu(Decode* s)
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
         //     exit(-1);
         // }
+
+        // TODO 应该先判断是否写入过mcause，再进行逻辑判断
+        uint32_t mcause = get_vsimu_csr(CSR_MCAUSE);
+        uint32_t mtval = get_vsimu_csr(CSR_MTVAL);
+        switch (mcause)
+        {
+            case EXPT_CAUSE_ILL: // Illegal instruction
+                invalid_inst(cpu.pc, mtval);
+                break;
+
+            case EXPT_CAUSE_BRK:  // EBREAK
+                // exit_simu(cpu.gpr[10]);
+                exit_simu(mtval);
+                break;
+
+            case EXPT_CAUSE_MEC: // ecall from M-mode
+                isa_raise_intr((0<<31|11<<0), cpu.pc);
+                break;
+
+            default: break;
+        }
 
         simu_continue =
             !top->contextp()->gotFinish() &&
@@ -290,8 +315,9 @@ uint32_t get_csr_index(paddr_t addr)
         a[CSR_MTVEC] = 2;
         a[CSR_MEPC] = 3;
         a[CSR_MCAUSE] = 4;
-        a[CSR_MVENDORID] = 5;
-        a[CSR_MARCHID] = 6;
+        a[CSR_MTVAL] = 5;
+        a[CSR_MVENDORID] = 6;
+        a[CSR_MARCHID] = 7;
         return a;
     }();
     // 需要保持和vsrc/core/common/csrs.v get_csr_index一致的逻辑，否则容易出问题
