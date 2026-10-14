@@ -69,14 +69,14 @@ wire core_valid = !rst;
 reg last_core_valid;
 reg last_core_flush_done;
 
-/* WBU进入时的CSR写通道拆分：2组{en(1), addr(CSR_ADDR_W), data(32)} */
+/* WBU进入时的CSR写通道拆分：多组{en(1), addr(CSR_ADDR_W), data(32)} */
 wire                        mon_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
 wire [`CSR_ADDR_W-1:0]      mon_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
 wire [31:0]                 mon_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
 assign {
-    mon_csr_wen[1], mon_csr_wen[0],
-    mon_csr_waddr[1], mon_csr_waddr[0],
-    mon_csr_wdata[1], mon_csr_wdata[0]
+    mon_csr_wen[2], mon_csr_wen[1], mon_csr_wen[0],
+    mon_csr_waddr[2], mon_csr_waddr[1], mon_csr_waddr[0],
+    mon_csr_wdata[2], mon_csr_wdata[1], mon_csr_wdata[0]
 } = wb_csr_wch;
 
 /* 寄存器写监控项的mid扩展：{保留11bit, 写地址13bit, 写使能, 数据类型2bit, is_end, 阶段4bit} */
@@ -84,6 +84,7 @@ wire [12:0] mon_gpr_waddr = {8'h0, wb_gpr_windex};
 wire [12:0] mon_csr_waddr_ext[0:`CSR_WCH_ITEM_COUNT-1];
 assign mon_csr_waddr_ext[0] = {1'b0, mon_csr_waddr[0]};
 assign mon_csr_waddr_ext[1] = {1'b0, mon_csr_waddr[1]};
+assign mon_csr_waddr_ext[2] = {1'b0, mon_csr_waddr[2]};
 
 always @(posedge clk) begin
     if (rst) begin
