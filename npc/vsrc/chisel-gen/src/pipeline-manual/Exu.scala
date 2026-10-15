@@ -3,7 +3,8 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 
-/** EXU：ALU、前递（EX/MEM、MEM/WB）、分支解析与静态预测修正、 CSR 读（返回旧值）、异常检测（含访存/跳转地址非对齐）。
+/** EXU：ALU、分支解析与静态预测修正、 CSR 读（返回旧值）、异常检测（含访存/跳转地址非对齐）。
+  *   - 暂时不实现：前递（EX/MEM、MEM/WB）
   */
 class Exu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
@@ -45,8 +46,11 @@ class Exu(p: CoreParams) extends Module {
 
   // 注：load 相邻相关由 IDU 的 load-use stall 保证不会用到错误前递；
   //     间隔一条的 load 相关由 MEM/WB 前递（此时 load 数据已就绪）。
-  val rs1f = fwd(in.rs1Addr, in.rs1Val)
-  val rs2f = fwd(in.rs2Addr, in.rs2Val)
+  // TODO 暂时不实现前递
+  // val rs1f = fwd(in.rs1Addr, in.rs1Val)
+  // val rs2f = fwd(in.rs2Addr, in.rs2Val)
+  val rs1f = in.rs1Val
+  val rs2f = in.rs2Val
 
   // ---------------- ALU ----------------
   val isLui     = in.inst(6, 0) === "b0110111".U
@@ -124,10 +128,10 @@ class Exu(p: CoreParams) extends Module {
   io.csrRead.addr := in.inst(31, 20)
   val csrWdata = Mux(in.ctrl.csrImm, Cat(0.U(27.W), in.inst(19, 15)), rs1f)
 
-  // ---------------- 阶段寄存器 ----------------
+  // ---------------- 流水线处理 ----------------
   // 不阻塞流水线，单周期处理单元
-  io.in.ready           := true.B
-  io.out.valid          := true.B
+  io.in.ready           := io.out.ready
+  io.out.valid          := io.in.valid
   io.out.bits.pc        := in.pc
   io.out.bits.aluResult := aluResult
   io.out.bits.storeData := rs2f
@@ -140,6 +144,9 @@ class Exu(p: CoreParams) extends Module {
   io.out.bits.excCause  := excCause
 
   // ---------------- 重定向（异常时不重定向，交由 WBU 走 mtvec） ----------------
-  io.redirect.valid  := v && !excValid && mispredict
+  // TODO 这里因为成环而改用寄存器来处理
+  val trapEn = RegInit(false.B)
+  trapEn             := Mux((v && !excValid && mispredict), true.B, false.B)
+  io.redirect.valid  := trapEn
   io.redirect.target := redirTgt
 }

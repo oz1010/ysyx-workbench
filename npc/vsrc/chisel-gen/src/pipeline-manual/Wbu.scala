@@ -42,8 +42,9 @@ class Wbu(p: CoreParams) extends Module {
   val trap    = exc || intTake
   val cause   = Mux(exc, in.excCause, p.INT_CAUSE.U(p.XLEN.W))
   val mret    = v && in.ctrl.mret && !trap
-
-  io.redirect.valid  := trap || mret
+  val trapEn  = RegInit(false.B)
+  trapEn             := Mux((trap || mret), true.B, false.B)
+  io.redirect.valid  := trapEn
   io.redirect.target := Mux(trap, io.csrMtvec, io.csrMepc)
 
   // CSR 更新（同周期冲突时：MRET < 陷阱 < CSR 写，WBU 单点仲裁）
@@ -67,13 +68,8 @@ class Wbu(p: CoreParams) extends Module {
   io.gprWrite.addr := in.rdAddr
   io.gprWrite.data := wbData
 
-  // ---------------- 指令完成脉冲 ----------------
-  // LS/WB 中同一条指令会驻留多个周期，仅在 lsValid 上升沿拉高一拍，
-  // 保证每条退休指令（含陷入/中断/MRET）恰好产生一次完成脉冲
-  io.in.ready := true.B
-  val wbReg = Reg(new WbBundle(p))
-  wbReg.pc := io.in.bits.pc
-  val vPrev = RegNext(v, false.B)
-  io.out.valid := v && !vPrev
-  io.out.bits  := wbReg
+  // 流水线处理
+  io.in.ready    := true.B
+  io.out.valid   := v
+  io.out.bits.pc := io.in.bits.pc
 }

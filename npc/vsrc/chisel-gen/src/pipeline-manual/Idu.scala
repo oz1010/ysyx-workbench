@@ -3,7 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 
-/** IDU：译码 + ID 寄存器 + RAW(load-use) 冒险检测。
+/** IDU：译码。
   *   - RV32I(RV32E) 基础指令集，SYSTEM 支持 ECALL/EBREAK/MRET/CSR 指令。
   */
 class Idu(p: CoreParams) extends Module {
@@ -13,7 +13,7 @@ class Idu(p: CoreParams) extends Module {
     val gprRead1   = new RegReadIO(p.GPR_ADDR_W, p.XLEN)
     val gprRead2   = new RegReadIO(p.GPR_ADDR_W, p.XLEN)
     val gprWrite   = Flipped(new RegWriteIO(p.GPR_ADDR_W, p.XLEN))
-    val loadStall  = Output(Bool()) // load-use RAW 冒险，请求 stall
+    val loadStall  = Input(Bool()) // load-use RAW 冒险，请求 stall
     val exRedirect = Input(new Redirect(p))
     val wbRedirect = Input(new Redirect(p))
   })
@@ -282,33 +282,19 @@ class Idu(p: CoreParams) extends Module {
     )
   )
 
-  // ---------------- RAW 冒险：load-use（相邻） ----------------
-  val idValidReg = RegInit(false.B)
-  val idReg      = Reg(new IdBundle(p))
-  val loadStall  = idValidReg && idReg.ctrl.load && idReg.rdAddr =/= 0.U &&
-    ((usesRs1 && rs1Addr === idReg.rdAddr) || (usesRs2 && rs2Addr === idReg.rdAddr))
-
-  // ---------------- 阶段寄存器 ----------------
-  val idReady = io.out.ready && !loadStall
-  when(io.wbRedirect.valid || io.exRedirect.valid) {
-    idValidReg := false.B
-  }.elsewhen(idReady) {
-    idValidReg       := io.in.valid
-    idReg.pc         := io.in.bits.pc
-    idReg.inst       := io.in.bits.inst
-    idReg.rs1Val     := rs1Val
-    idReg.rs2Val     := rs2Val
-    idReg.imm        := immSel
-    idReg.rs1Addr    := rs1Addr
-    idReg.rs2Addr    := rs2Addr
-    idReg.rdAddr     := rdAddr
-    idReg.ctrl       := ctrl
-    idReg.predTaken  := io.in.bits.predTaken
-    idReg.predTarget := io.in.bits.predTarget
-  }
-
-  io.out.bits  := idReg
-  io.out.valid := idValidReg
-  io.loadStall := loadStall
-  io.in.ready  := idReady
+  // ---------------- 流水线处理 ----------------
+  val stalled = io.loadStall
+  io.in.ready            := io.out.ready && !stalled
+  io.out.valid           := io.in.valid && !stalled
+  io.out.bits.pc         := io.in.bits.pc
+  io.out.bits.inst       := io.in.bits.inst
+  io.out.bits.rs1Val     := rs1Val
+  io.out.bits.rs2Val     := rs2Val
+  io.out.bits.imm        := immSel
+  io.out.bits.rs1Addr    := rs1Addr
+  io.out.bits.rs2Addr    := rs2Addr
+  io.out.bits.rdAddr     := rdAddr
+  io.out.bits.ctrl       := ctrl
+  io.out.bits.predTaken  := io.in.bits.predTaken
+  io.out.bits.predTarget := io.in.bits.predTarget
 }
