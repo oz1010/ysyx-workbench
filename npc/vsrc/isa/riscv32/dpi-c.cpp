@@ -83,6 +83,7 @@ void init_dpi()
     //     raw_psram = (uint8_t *)malloc(PSRAM_SIZE);
     // #endif
     //     assert(raw_psram);
+    init_hw_monitor_record();
 }
 
 void exit_dpi()
@@ -1061,7 +1062,6 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
         if (init_monitor_en)
         {
             init_monitor_en = false;
-            init_hw_monitor_record();
         }
         return;
     }
