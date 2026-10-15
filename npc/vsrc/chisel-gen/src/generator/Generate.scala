@@ -37,7 +37,7 @@ object Generate {
       .toSeq
       .flatMap { file =>
         val text = Files.readString(file)
-        val pkg = packagePattern
+        val pkg  = packagePattern
           .findFirstMatchIn(text)
           .map(m => m.group(1) + ".")
           .getOrElse("")
@@ -65,7 +65,7 @@ object Generate {
   private def caseClassInstance(cls: Class[_]): AnyRef = {
     val companion =
       Class.forName(cls.getName + "$").getField("MODULE$").get(null)
-    val apply = companion.getClass.getMethods
+    val apply     = companion.getClass.getMethods
       .filter(m => m.getName == "apply" && !m.isSynthetic)
       .find(
         _.getParameterCount == companion.getClass.getMethods
@@ -74,7 +74,7 @@ object Generate {
       .getOrElse(
         sys.error(s"No all-default apply found on companion of ${cls.getName}")
       )
-    val args = (1 to apply.getParameterCount).map(i =>
+    val args      = (1 to apply.getParameterCount).map(i =>
       companion.getClass.getMethod(s"apply$$default$$$i").invoke(companion)
     )
     apply.invoke(companion, args: _*)
@@ -91,7 +91,7 @@ object Generate {
   }
 
   private def instantiate(fqcn: String): RawModule = {
-    val cls = Class.forName(fqcn)
+    val cls  = Class.forName(fqcn)
     val ctor = cls.getConstructors.maxBy(_.getParameterCount)
     val args = ctor.getParameterTypes.map(defaultArg(_, fqcn))
     ctor.newInstance(args: _*).asInstanceOf[RawModule]
@@ -132,6 +132,7 @@ object Generate {
       // disallowLocalVariables: 不在 always 块内生成 automatic 局部变量，
       // 保证 yosys (make sta-area) 能解析生成代码。
       // --preserve-aggregate=all: 保持 Vec/Bundle 等聚合数据类型结构，不被打平为独立的 x_0, x_1 标量信号
+      // TODO 计算面积时，不能将聚合数据展开；或改用Verilog主动推送修改项；
       firtoolOpts = Array(
         "--disable-layers=Verification",
         "--lowering-options=disallowLocalVariables",
@@ -144,11 +145,11 @@ object Generate {
 
   /** 把一次编译出的 Verilog 切成 (文件头, [(模块名, 模块文本)])，文件头含宏定义，需写进每个文件。 */
   private def splitModules(verilog: String): (String, Seq[(String, String)]) = {
-    val starts = moduleStart.findAllMatchIn(verilog).toSeq
+    val starts   = moduleStart.findAllMatchIn(verilog).toSeq
     require(starts.nonEmpty, "no module emitted")
     val preamble = verilog.substring(0, starts.head.start)
-    val chunks = starts.map { m =>
-      val end = verilog.indexOf("endmodule", m.end)
+    val chunks   = starts.map { m =>
+      val end     = verilog.indexOf("endmodule", m.end)
       require(end >= 0, s"endmodule not found for module ${m.group(1)}")
       val lineEnd = verilog.indexOf('\n', end) match {
         case -1  => verilog.length
@@ -178,13 +179,13 @@ object Generate {
       headerEnd >= 0,
       s"fail to locate port list end of sram module $name"
     )
-    val bodyEnd = chunk.lastIndexOf("endmodule")
+    val bodyEnd   = chunk.lastIndexOf("endmodule")
     require(
       bodyEnd > headerEnd,
       s"fail to locate endmodule of sram module $name"
     )
-    val header = chunk.substring(0, headerEnd + 2)
-    val body = chunk.substring(headerEnd + 2, bodyEnd)
+    val header    = chunk.substring(0, headerEnd + 2)
+    val body      = chunk.substring(headerEnd + 2, bodyEnd)
     s"`ifdef IN_YOSYS_STA\n(* blackbox *)\n`endif\n" +
       header + "\n" +
       "`ifndef IN_YOSYS_STA\n" + body + "`endif\n" +
@@ -192,17 +193,17 @@ object Generate {
   }
 
   def main(args: Array[String]): Unit = {
-    val root = Paths.get(".").toAbsolutePath.normalize()
+    val root       = Paths.get(".").toAbsolutePath.normalize()
     val sourceRoot = root.resolve("src")
-    val outRoot = root.resolve(if (args.nonEmpty) args(0) else "build")
+    val outRoot    = root.resolve(if (args.nonEmpty) args(0) else "build")
     Files.createDirectories(outRoot)
 
     val modules = sourceModules(sourceRoot)
     require(modules.nonEmpty, s"No Module classes found below $sourceRoot")
 
     def targetFor(source: Path, fqcn: String): Path = {
-      val relative = sourceRoot.relativize(source)
-      val simple = fqcn.substring(fqcn.lastIndexOf('.') + 1)
+      val relative  = sourceRoot.relativize(source)
+      val simple    = fqcn.substring(fqcn.lastIndexOf('.') + 1)
       val targetDir =
         Option(relative.getParent).map(outRoot.resolve).getOrElse(outRoot)
       Files.createDirectories(targetDir)
@@ -210,9 +211,9 @@ object Generate {
     }
 
     def writeVerilog(
-        target: Path,
-        preamble: String,
-        chunks: Seq[(String, String)]
+      target: Path,
+      preamble: String,
+      chunks: Seq[(String, String)]
     ): Unit = {
       val sb = new StringBuilder(preamble)
       chunks.foreach { case (_, body) => sb.append(body).append('\n') }
@@ -222,7 +223,7 @@ object Generate {
     // ---- 0) 手写 Verilog (.v/.sv) 原样拷贝，保持相对路径 ----
     sourceVerilogFiles(sourceRoot).foreach { source =>
       val relative = sourceRoot.relativize(source)
-      val target = outRoot.resolve(relative)
+      val target   = outRoot.resolve(relative)
       Option(target.getParent).foreach(Files.createDirectories(_))
       Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
       println(s"[chisel] $relative :: copy -> ${outRoot.relativize(target)}")
@@ -232,10 +233,10 @@ object Generate {
     val (topSource, _) = modules
       .find(_._2 == topFqcn)
       .getOrElse(sys.error(s"top module $topFqcn not found below $sourceRoot"))
-    val topSimple = topFqcn.substring(topFqcn.lastIndexOf('.') + 1)
-    val topTarget = targetFor(topSource, topFqcn)
+    val topSimple      = topFqcn.substring(topFqcn.lastIndexOf('.') + 1)
+    val topTarget      = targetFor(topSource, topFqcn)
 
-    val (preamble, chunks) = splitModules(
+    val (preamble, chunks)           = splitModules(
       adaptTop(topSimple, emitVerilog(topFqcn))
     )
     val classFile: Map[String, Path] = modules.map { case (source, fqcn) =>
