@@ -77,17 +77,12 @@ module risk_raw #(
             end else begin
                 /**
                  * 阻塞流水线时，标识某阶段是否可以释放阻塞（等待WBU完成后pc与wait_pc一致）
-                 * 必须同时要求WBU输出有效：连续两条指令同pc时（如位于mtvec的ecall，
-                 * 或跳转到自身的jal/分支），WBU残留的上一条同pc指令payload会误触发释放
                  */
-                assign stage_is_raw_release[idx] =
-                    (r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH]==wb_pc) & stage_valid[`STAGE_INDEX_WBU];
+                assign stage_is_raw_release[idx] = r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH]==wb_pc;
                 /**
                  * 这里只处理了上一周期的数据，理论上应该与上三个周期比对
-                 * 同样要求对应阶段输出有效，避免残留payload造成同pc误判
                  */
-                assign stage_is_match_pc[idx] =
-                    (stage_in_pc[INST_WIDTH*idx +: INST_WIDTH] == if_last_pc) & stage_valid[idx];
+                assign stage_is_match_pc[idx] = stage_in_pc[INST_WIDTH*idx +: INST_WIDTH] == if_last_pc;
                 // assign stage_is_match_pc[idx] = idx==`STAGE_INDEX_IDU ? stage_in_pc[INST_WIDTH*idx +: INST_WIDTH] == id_imm_pc : stage_in_pc[INST_WIDTH*idx +: INST_WIDTH] == stage_in_pc[INST_WIDTH*(idx-1) +: INST_WIDTH];
                 // assign stage_is_match_pc[idx] = 1;
                 /**
