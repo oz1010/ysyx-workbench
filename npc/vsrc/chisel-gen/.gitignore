@@ -15,3 +15,5 @@
 !src/**/
 !src/**/*.scala
 !src/**/*.v
+
+src/common/AutoConfig.scala

@@ -27,8 +27,9 @@ Q            := @
 KCONFIG_PATH := $(NPC_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NPC_HOME)/tools/fixdep
 Kconfig      := $(NPC_HOME)/Kconfig
-VH_CONVERT	 := $(NPC_HOME)/scripts/convert_header.py
-rm-distclean += include/generated include/config .config .config.old
+GEN_VERILOG_CFG		:= $(NPC_HOME)/scripts/gen_verilog_config.py
+GEN_SCALA_CFG 		:= $(NPC_HOME)/scripts/gen_scala_config.py
+rm-distclean += include/generated include/config .config .config.old vsrc/chisel-gen/src/common/AutoConfig.scala
 silent := -s
 
 CONF   := $(KCONFIG_PATH)/build/conf
@@ -51,7 +52,8 @@ $(FIXDEP):
 menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 	$(Q)$(MCONF) $(Kconfig)
 	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
-	$(Q)$(VH_CONVERT) $(NPC_HOME)/include/generated/autoconf.h
+	$(Q)$(GEN_VERILOG_CFG) $(NPC_HOME)/include/generated/autoconf.h
+	$(Q)$(GEN_SCALA_CFG) $(NPC_HOME)/Kconfig --silent --output vsrc/chisel-gen/src/common/AutoConfig.scala
 
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/$(CFG_NAME) $(Kconfig)
