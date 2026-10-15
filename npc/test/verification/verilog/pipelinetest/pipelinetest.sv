@@ -25,11 +25,13 @@ module pipelinetest (
 (* anyseq *) reg        fv_wready;
 (* anyseq *) reg        fv_brespond;
 
-/* 复位保持2拍：static_predictor需在复位第2拍才能锁存到有效的core_pc */
+/* 复位保持3拍：static_predictor复位链为core_pc→predict_pc→fetch_pc逐级锁存，
+   core_pc第1拍复位到func_get_reset_pc()，predict_pc第2拍才锁存到有效值，
+   fetch_pc需第3拍才能锁存到有效取指地址，复位释放后DUT才从确定的复位PC取指 */
 reg [1:0] f_rstcnt = 0;
 always @(posedge clk) begin
-    if (f_rstcnt != 2) f_rstcnt <= f_rstcnt + 1;
-    if (f_rstcnt != 2) assume(rst);
+    if (f_rstcnt != 3) f_rstcnt <= f_rstcnt + 1;
+    if (f_rstcnt != 3) assume(rst);
     else assume(!rst);
 end
 

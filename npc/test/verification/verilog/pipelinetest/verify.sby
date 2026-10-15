@@ -22,9 +22,9 @@ smtbmc yices
 smtbmc boolector
 
 [script]
-# 由于 bmc 和 cvr 的读取文件完全相同，无需加 task 前缀，直接统一读取
-# bmc: xxx
-# cvr: xxx
+# 公共RTL读取（不含验证顶层）；验证顶层按任务分别读取：
+# bmc带断言；cvr不编译断言（yosys-smtbmc cover模式下求解器模型与witness
+# 重放可能出现不一致的伪违例，断言正确性由bmc任务穷举保证，cvr只查覆盖）
 read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include \
   @NPC_HOME@/vsrc/core/common/riscv32e_defines.v \
   @NPC_HOME@/vsrc/core/common/gprs.v \
@@ -47,6 +47,9 @@ read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HO
   @NPC_HOME@/vsrc/core/pipeline/static_predictor.v \
   @NPC_HOME@/vsrc/core/single/decoder.v \
   @NPC_HOME@/vsrc/core/single/write_back.v \
-  @NPC_HOME@/vsrc/core/single/riscv32e_core.v \
-  @NPC_HOME@/test/verification/verilog/pipelinetest/pipelinetest.sv
-prep -top pipelinetest
+  @NPC_HOME@/vsrc/core/single/riscv32e_core.v
+bmc: read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include @NPC_HOME@/test/verification/verilog/pipelinetest/pipelinetest.sv
+bmc: prep -top pipelinetest
+cvr: verilog_defaults -add -DFV_CVR_NO_ASSERT
+cvr: read_verilog -formal -sv -DFORMAL_VERIFY -I@NPC_HOME@/vsrc/core/common -I@NPC_HOME@/include @NPC_HOME@/test/verification/verilog/pipelinetest/pipelinetest.sv
+cvr: prep -top pipelinetest
