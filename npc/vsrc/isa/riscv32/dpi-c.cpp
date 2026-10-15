@@ -1062,6 +1062,7 @@ void dpi_add_monitor_item(int mid, int pc, int arg)
         if (init_monitor_en)
         {
             init_monitor_en = false;
+            init_hw_monitor_record();
         }
         return;
     }
