@@ -91,7 +91,16 @@ wire fv_inst_legal =
     /* DUT未处理CSR写后读冒险，默认不生成CSRRW；CSRRS仅允许rs1=x0的纯读形式 */
     & (dec_code!=`INST_CSRRW)
     & ((dec_code!=`INST_CSRRS) | (dec_rs1==0))
-    & (((dec_code!=`INST_CSRRW) & (dec_code!=`INST_CSRRS)) | fv_csr_addr_ok);
+    & (((dec_code!=`INST_CSRRW) & (dec_code!=`INST_CSRRS)) | fv_csr_addr_ok)
+    /* DUT未实现RV32M扩展(pipeline的inst_decode将MUL/DIV/REM译码为非法指令)，
+       而REF的单周期译码器支持之，双方行为不一致，取指序列中排除MUL/DIV/REM */
+    & ((dec_opcode!=7'b0110011) | (dec_funct7!=7'b0000001))
+    /* RV32E仅实现x0-x15共16个GPR(DUT的gprs写索引截断为4bit,rd=31实际写x15,
+       而RAW检测按完整5bit rd比较会漏检该别名冒险)；x16-x31为规范保留编码，
+       按指令类型排除真正引用它们的寄存器字段(非寄存器用途的字段如立即数不受限) */
+    & ((dec_type!=`TYPE_R)&(dec_type!=`TYPE_I)&(dec_type!=`TYPE_U)&(dec_type!=`TYPE_J) | (dec_rd<16))
+    & ((dec_type!=`TYPE_R)&(dec_type!=`TYPE_I)&(dec_type!=`TYPE_S)&(dec_type!=`TYPE_B) | (dec_rs1<16))
+    & ((dec_type!=`TYPE_R)&(dec_type!=`TYPE_S)&(dec_type!=`TYPE_B) | (dec_rs2<16));
 
 /* 读通道 */
 reg        r_rpending;
@@ -309,7 +318,7 @@ always @(posedge clk) begin
         cover(dut_valid && (wb_dec_code==`INST_ECALL));                     // ecall
         cover(dut_valid && (wb_dec_code==`INST_MRET));                      // mret
         cover(dut_valid && (wb_dec_code==`INST_FENCE_I));                   // fence.i
-        cover(dut_valid && (wb_dec_code==`INST_MUL));                       // 乘除法
+
     end
 end
 
