@@ -3,10 +3,10 @@
 # DEPTH 指定BMC深度，默认15（约覆盖1条指令从取指到完成，含访存延迟），
 # CVR_DEPTH 指定覆盖检查的BMC深度（ecall/mret/csr等需要更深的轨迹），
 # 更大的深度可用 make verify DEPTH=30 CVR_DEPTH=30 覆盖（遍历更长的指令序列，求解时间显著增加）
-# 每日写代码测试：make verify （使用默认 DEPTH=13 CVR_DEPTH=20 快速验证 10^5+ 场景）
+# 每日写代码测试：make verify （使用默认 DEPTH=15 CVR_DEPTH=20 快速验证 10^5+ 场景）
 # 彻底回归：make verify DEPTH=25 CVR_DEPTH=30 运行时间约几小时
 NPC_HOME := $(abspath ../../../..)
-DEPTH ?= 13
+DEPTH ?= 15
 CVR_DEPTH ?= 20
 SOLVER    ?= yices  # 可选：yices, z3, boolector
 CPU_NUM   ?= 4 # 当前后台有2个任务，同时使用2个求解器
