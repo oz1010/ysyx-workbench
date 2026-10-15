@@ -1430,8 +1430,6 @@ wire [INST_WIDTH-1:0]           con_wb_result;
 wire                            con_wb_result_update_gpr;
 `ifdef FORMAL_VERIFY
 wire [INST_WIDTH-1:0]           con_wb_inst;
-wire [DATA_WIDTH-1:0]           con_wb_result;
-wire                            con_wb_result_update_gpr;
 wire [DATA_WIDTH-1:0]           con_wb_ld_data;
 assign {
     con_wb_pc,
