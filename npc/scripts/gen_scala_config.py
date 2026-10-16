@@ -27,6 +27,13 @@ Supported Kconfig features:
     source, rsource
     Basic logical and comparison expressions
 
+Scala type mapping:
+    bool -> Boolean, tristate/string -> String
+    int -> Int literal in decimal
+        (BigInt fallback when outside the 32-bit range)
+    hex -> chisel UInt literal (0x0040_0000.U), zero-padded to at
+        least 8 hex digits; no width limit (UInt supports wide values)
+
 Limitations:
     This is a lightweight Kconfig interpreter, not a complete replacement
     for the official Kconfig implementation. In particular, choice,
@@ -804,7 +811,25 @@ def evaluate_symbols(model, config_values, header_values):
 # Scala generation
 # ----------------------------------------------------------------------
 
-def scala_value(symbol, value):
+INT32_MIN = -(2 ** 31)
+INT32_MAX = 2 ** 31 - 1
+
+
+def scala_hex(value):
+    """Format an integer as a Scala-style hex literal (e.g. 0x0040_0000)."""
+    if value < 0:
+        return "-" + scala_hex(-value)
+
+    # Zero-pad to at least 8 hex digits (32-bit); Scala UInt has no
+    # width limit, so wider values are left unpadded.
+    digits = format(value, "x").rjust(8, "0")
+    head = len(digits) % 4 or 4
+    groups = [digits[:head]]
+    groups.extend(digits[i:i + 4] for i in range(head, len(digits), 4))
+    return "0x" + "_".join(groups)
+
+
+def scala_value(model, symbol, value):
     if symbol.type == "bool":
         return "boolean", value == "y"
 
@@ -813,15 +838,25 @@ def scala_value(symbol, value):
 
     if symbol.type == "int":
         try:
-            return "integer", int(value, 10)
+            number = int(value, 10)
         except (TypeError, ValueError):
-            return "integer", 0
+            number = 0
+
+        if INT32_MIN <= number <= INT32_MAX:
+            return "int", number
+
+        warn(
+            model,
+            f"{symbol.name}: value {number} is outside the 32-bit range; "
+            "emitting BigInt instead of Int"
+        )
+        return "integer", number
 
     if symbol.type == "hex":
         try:
-            return "integer", int(value, 16)
+            return "hex", int(value, 16)
         except (TypeError, ValueError):
-            return "integer", 0
+            return "hex", 0
 
     if symbol.type == "string":
         return "string", str(value)
@@ -834,6 +869,12 @@ def scala_expr(kind, value):
     if kind == "boolean":
         return "true" if value else "false"
 
+    if kind == "int":
+        return str(value)
+
+    if kind == "hex":
+        return scala_hex(value) + ".U"
+
     if kind == "integer":
         return f'BigInt("{value}")'
 
@@ -843,9 +884,17 @@ def scala_expr(kind, value):
     raise ValueError(f"Unsupported Scala value type: {kind}")
 
 
-def scala_type(kind):
+def scala_type(kind, value):
+    if kind == "boolean":
+        return "Boolean"
+
+    if kind == "int":
+        return "Int"
+
+    if kind == "hex":
+        return "UInt"
+
     return {
-        "boolean": "Boolean",
         "integer": "BigInt",
         "string": "String",
     }[kind]
@@ -859,6 +908,9 @@ def generate_scala(definitions, kconfig_names, header_names, package):
         " */",
         "",
         f"package {package}",
+        "",
+        "import chisel3._",
+        "import chisel3.util._",
         "",
         "object AutoConfig {",
         "",
@@ -903,6 +955,8 @@ def generate_scala(definitions, kconfig_names, header_names, package):
         "      case b: Boolean => b",
         '      case s: String => s == "y" || s == "m"',
         "      case n: BigInt => n != 0",
+        "      case n: Int => n != 0",
+        "      case n: UInt => n.litValue != 0",
         "      case _ => false",
         "    }",
         "",
@@ -912,7 +966,7 @@ def generate_scala(definitions, kconfig_names, header_names, package):
     for name, (kind, value) in sorted(definitions.items()):
         scala_name = "CONFIG_" + name
         lines.append(
-            f"  val {scala_name}: {scala_type(kind)} = "
+            f"  val {scala_name}: {scala_type(kind, value)} = "
             f"{scala_expr(kind, value)}"
         )
 
@@ -956,7 +1010,9 @@ def convert(kconfig_path, header_path, output_path, package, silent):
     definitions = {}
 
     for name, symbol in sorted(model.symbols.items()):
-        definitions[name] = scala_value(symbol, values.get(name, "n"))
+        definitions[name] = scala_value(
+            model, symbol, values.get(name, "n")
+        )
 
     # Preserve header macros not declared in Kconfig.
     for name, value in header_values.items():
