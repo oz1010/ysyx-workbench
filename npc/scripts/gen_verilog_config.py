@@ -3,8 +3,8 @@
 
 """
 C语言头文件转Verilog头文件转换工具
-用法: ./convert_header.py <FILE> -o [OUTPUT_PATH]
-示例: ./convert_header.py autoconf.h
+用法: ./gen_verilog_config.py <FILE> -o [OUTPUT_PATH]
+示例: ./gen_verilog_config.py autoconf.h
 """
 
 import re
