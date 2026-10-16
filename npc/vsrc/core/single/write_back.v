@@ -209,9 +209,13 @@ module write_back #(
     input   wire [INST_WIDTH-1:0]           imm,
     input   wire [`INST_CODE_W-1:0]         inst_code,
 
+    // 普通csr读入
     input   wire [DATA_WIDTH-1:0]           csr_rdata,
-    output  wire [`CSR_WCH_W-1:0]           csr_wch,
-
+    // 普通csr写入
+    output  wire                            csr_wen,
+    output  wire [`CSR_ADDR_W-1:0]          csr_waddr,
+    output  wire [DATA_WIDTH-1:0]           csr_wdata,
+    // 异常csr写入
     output  reg                             expt_en,
     output  reg  [INST_WIDTH-1:0]           expt_epc,
     output  reg  [DATA_WIDTH-1:0]           expt_cause,
@@ -223,11 +227,6 @@ module write_back #(
     /* 寄存器组 */
     // 通用寄存器
     reg [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
-    // 程序寄存器
-    // reg [INST_WIDTH-1:0] pc;
-    // wire [INST_WIDTH-1:0] dnpc;
-    wire [INST_WIDTH-1:0] snpc;
-    wire [INST_WIDTH-1:0] pc_plus_imm;
     // 当前指令寄存器
     // 寄存器别名，register alias, ch2.3
     wire [INST_WIDTH-1:0] zero = x[0];
@@ -251,16 +250,9 @@ module write_back #(
     wire [INST_WIDTH-1:0] src2 = x[rs2];
     wire signed [INST_WIDTH-1:0] s_src1 = src1;
     wire signed [INST_WIDTH-1:0] s_src2 = src2;
-    wire [63:0] src1_64 = {32'h0, src1};
-    wire [63:0] src2_64 = {32'h0, src2};
-    wire signed [63:0] s_src1_64 = {{32{src1[31]}}, src1};
-    wire signed [63:0] s_src2_64 = {{32{src2[31]}}, src2};
-    wire signed [63:0] mulh_ret = (s_src1_64 * s_src2_64) >> 32;
-    wire signed [63:0] mulhsu_ret = (s_src1 * src2) >> 32;
-    wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 
-    assign snpc = pc + 4;
-    assign pc_plus_imm = pc + imm;
+    wire [INST_WIDTH-1:0] snpc = pc + 4;
+    wire [INST_WIDTH-1:0] pc_plus_imm = pc + imm;
     assign dnpc = 
         (inst_code==`INST_JAL) ? pc_plus_imm :
         (inst_code==`INST_JALR) ? ((src1 + imm)&~1) :
@@ -273,15 +265,13 @@ module write_back #(
         (inst_code==`INST_ECALL) ? csr_rdata :
         (inst_code==`INST_MRET) ? csr_rdata :
         snpc;
-    integer ret_pc, mem_data;
+    integer mem_data;
     wire [31:0] mem_addr = src1 + imm;
 
     always @(posedge clk) begin
         if (rst) begin
-            // pc <= get_reset_pc();
         end else begin
             // 更新寄存器或回写内存
-            // $display("Step - update, alu_result:%x rd:%d inst_code:%x", alu_result, rd, inst_code);
             case (inst_code)
                 `INST_LUI:          x[rd] <= imm;
                 `INST_AUIPC:        x[rd] <= pc_plus_imm;
@@ -327,7 +317,15 @@ module write_back #(
         end
     end
 
-    // 异常处理
+    /**
+    * ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#riscv32
+    * riscv32触发异常后硬件的响应过程如下:
+    * 
+    * 将当前PC值保存到mepc寄存
+    * 在mcause寄存器中设置异常号
+    * 从mtvec寄存器中取出异常入口地址
+    * 跳转到异常入口地址
+    */
     always @(*) begin
         expt_en = 0; expt_epc = 0; expt_cause = 0; expt_tval = 0;
         case (inst_code)
@@ -344,39 +342,14 @@ module write_back #(
         (inst_code==`INST_CSRRW) |
         (inst_code==`INST_CSRRS) |
         0;
-    wire                            csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
-    wire  [`CSR_ADDR_W-1:0]         csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
-    wire  [31:0]                    csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
-    assign                          csr_wch = {
-        csr_wen[2], csr_wen[1], csr_wen[0],
-        csr_waddr[2], csr_waddr[1], csr_waddr[0],
-        csr_wdata[2], csr_wdata[1], csr_wdata[0]
-    };
-    
-    /**
-    * ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#riscv32
-    * riscv32触发异常后硬件的响应过程如下:
-    * 
-    * 将当前PC值保存到mepc寄存
-    * 在mcause寄存器中设置异常号
-    * 从mtvec寄存器中取出异常入口地址
-    * 跳转到异常入口地址
-    */
-    // TODO csr为普通写入通道，应该只保留一个即可
-    assign csr_wen[0] = csr_inst;
-    assign csr_waddr[0] = 
+    assign csr_wen = csr_inst;
+    assign csr_waddr = 
         csr_inst ? imm[0 +: `CSR_ADDR_W] :
         0;
-    assign csr_wdata[0] =
+    assign csr_wdata =
         (inst_code==`INST_CSRRW) ? src1 :
         (inst_code==`INST_CSRRS) ? (csr_rdata|src1) :
         0;
-    assign csr_wen[1] = 0;
-    assign csr_waddr[1] = 0; 
-    assign csr_wdata[1] = 0;
-    assign csr_wen[2] = 0;
-    assign csr_waddr[2] = 0; 
-    assign csr_wdata[2] = 0; 
 
 endmodule
 `endif
