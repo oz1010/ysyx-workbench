@@ -38,12 +38,12 @@
 │  └───────────────┘  │ static_predictor (静态分支预测)    │  │
 │                     └──────────────────────────────────┘  │
 │                                                             │
-│  ┌── Cache ─────────────────────────────────────────────┐  │
-│  │  ICache ──(AXI4)──┐                                  │  │
-│  │                   ├── arbiter_axi4 ── xbar_axi4      │  │
-│  │  DCache ──(AXI4)──┘         ↓              ↓         │  │
-│  └─────────────────────── CLINT  exter_dev  io_master   │  │
-│                                              (外部 SoC)  │  │
+│  ┌── Cache ────────────────────────────────────────────┐  │
+│  │  IFU ─(req-resp)─ ICache ─(AXI4)─┐                   │  │
+│  │                                  ├─ arbiter_axi4 ─ xbar_axi4 │
+│  │  LSU ─(req-resp)─ DCache ─(AXI4)─┘       ↓           ↓     │
+│  └─────────────────────────────────── CLINT  exter_dev  io_master │
+│                                                   (外部 SoC) │
 │  ┌── 片内设备 ─────────────────────────────────────────┐  │
 │  │  perf_monitor (性能监控计数器)                        │  │
 │  └─────────────────────────────────────────────────────┘  │
@@ -70,7 +70,7 @@ ifu_regs      idu_regs      exu_regs      lsu_regs      wbu_regs
 **文件**：`vsrc/core/pipeline/inst_fetch.v`
 
 - 接收来自 `static_predictor` 的预测取指 PC（`core_fetch_pc`）
-- 通过 AXI4 主接口从内存读取 32 位指令
+- 通过 req-resp 主接口从 ICache 读取 32 位指令
 - 将（PC, 指令, 异常信息）打包输出到 IDU
 - FENCE.I 执行时，由顶层复位 ICache（`rst || fence_enable_trigger`）
 
@@ -104,8 +104,8 @@ ifu_regs      idu_regs      exu_regs      lsu_regs      wbu_regs
 
 **文件**：`vsrc/core/pipeline/load_store.v`
 
-- 通过 AXI4 主接口执行 Load/Store 操作
-- 支持非对齐访问（跨 4 字节边界时自动拆分为两次 burst）
+- 通过 req-resp 主接口执行 Load/Store 操作
+- 支持非对齐访问（跨 4 字节边界时自动拆分为两次单字请求）
 - 处理 LB/LH/LW/LBU/LHU（符号/零扩展）和 SB/SH/SW
 - 无需访存的指令直接透传结果
 
@@ -198,8 +198,10 @@ Flush 类型（2 位）：
 | N    | 路数 log₂                    | 配置项 CONFIG_ICACHE_PARAMETER_N |
 | M    | Cache Line 大小 log₂（字节） | 配置项 CONFIG_ICACHE_PARAMETER_M |
 
-- 与 IFU 之间为 AXI4 Slave 接口（CPU 侧）
+- 与 IFU 之间为 req-resp Slave 接口（CPU 侧）
 - 与总线仲裁器之间为 AXI4 Master 接口（内存侧）
+- 可缓存地址的读请求查表命中直接返回，未命中时通过 AXI4 从内存填充整行
+- 不可缓存地址（片内 SRAM 等）的读写请求直接透传到 AXI4 总线
 - FENCE.I 执行时通过顶层 `rst` 信号清空整个 ICache（方案 3）
 
 ### 6.2 DCache — 数据缓存
@@ -207,8 +209,27 @@ Flush 类型（2 位）：
 **文件**：`vsrc/core/pipeline/dcache.v`
 
 - 参数配置同 ICache（独立的 CONFIG_DCACHE_PARAMETER_*）
-- 与 LSU 之间为 AXI4 Slave 接口
+- 与 LSU 之间为 req-resp Slave 接口
 - 与总线仲裁器之间为 AXI4 Master 接口
+- 只缓存读数据；写请求透传到 AXI4 总线，若写命中 cache 行则将其无效
+
+### 6.2.1 req-resp 接口定义
+
+IFU/LSU 与 ICache/DCache 之间采用 req-resp 类总线接口：
+
+| 通道 | 信号                              | 方向（master → slave） | 含义                     |
+| ---- | --------------------------------- | ---------------------- | ------------------------ |
+| req  | `req_valid` / `req_ready`         | master → slave         | 请求握手                 |
+| req  | `req_addr`                        | master → slave         | 访存地址                 |
+| req  | `req_is_write`                    | master → slave         | 写请求标志               |
+| req  | `req_wdata` / `req_wstrb`         | master → slave         | 写数据与字节使能         |
+| resp | `resp_valid` / `resp_ready`       | slave → master         | 响应握手                 |
+| resp | `resp_data`                       | slave → master         | 读数据（写响应数据无效） |
+
+协议约定：读请求返回地址所在的对齐 32 位字，跨字的非对齐访问由 master（LSU）拆分为
+两个单字请求并自行拼接；写请求以 `req_wstrb` 指示有效字节。形式化验证时由
+`req_resp2axi4` 桥接模块（`vsrc/core/common/req_resp2axi4.v`）将 req-resp 转换为
+AXI4 直连仲裁器。
 
 ### 6.3 Cache 公共组件
 
@@ -229,10 +250,12 @@ Flush 类型（2 位）：
 
 AXI4 ID 分配：
 
-| ID   | 单元   |
-| ---- | ------ |
-| 0x6  | ICache |
-| 0x7  | DCache |
+| ID   | 单元                  |
+| ---- | --------------------- |
+| 0x1  | IFU（透传读）         |
+| 0x4  | LSU（透传写/读）      |
+| 0x6  | ICache（行填充）      |
+| 0x7  | DCache（行填充）      |
 
 ### 7.2 AXI4 仲裁器
 
@@ -240,6 +263,8 @@ AXI4 ID 分配：
 
 - 2 个 Master（ICache 和 DCache）合并为 1 个 Master 输出
 - 使用轮询或优先级仲裁
+- 仲裁器依据 `araddr/awaddr` 非零选择 master，并将下游响应回送给被选中的
+  master；因此各 master 在一次事务完成前（含等待响应期间）必须保持地址非零
 
 ```
 ICache ──┐

@@ -137,66 +137,26 @@ assign con_ls_valid = mod_con_ls_valid & !core_stage_flush[`STAGE_INDEX_WBU];
 assign con_wb_ready = mod_con_wb_ready;
 assign con_wb_valid = mod_con_wb_valid;
 
-/* ifu axi4 信号 */
-wire                        axi4_if_awready;
-wire                        axi4_if_awvalid;
-wire [ADDR_WIDTH-1:0]       axi4_if_awaddr;
-wire [3:0]                  axi4_if_awid;
-wire [7:0]                  axi4_if_awlen;
-wire [2:0]                  axi4_if_awsize;
-wire [1:0]                  axi4_if_awburst;
-wire                        axi4_if_wready;
-wire                        axi4_if_wvalid;
-wire [DATA_WIDTH-1:0]       axi4_if_wdata;
-wire [DATA_WIDTH/8-1:0]     axi4_if_wstrb;
-wire                        axi4_if_wlast;
-wire                        axi4_if_bready;
-wire                        axi4_if_bvalid;
-wire [BRESP_WIDTH-1:0]      axi4_if_bresp;
-wire [3:0]                  axi4_if_bid;
-wire                        axi4_if_arready;
-wire                        axi4_if_arvalid;
-wire [ADDR_WIDTH-1:0]       axi4_if_araddr;
-wire [3:0]                  axi4_if_arid;
-wire [7:0]                  axi4_if_arlen;
-wire [2:0]                  axi4_if_arsize;
-wire [1:0]                  axi4_if_arburst;
-wire                        axi4_if_rready;
-wire                        axi4_if_rvalid;
-wire [RRESP_WIDTH-1:0]      axi4_if_rresp;
-wire [DATA_WIDTH-1:0]       axi4_if_rdata;
-wire                        axi4_if_rlast;
-wire [3:0]                  axi4_if_rid;
-/* lsu axi4 信号 */
-wire                        axi4_ls_awready;
-wire                        axi4_ls_awvalid;
-wire [ADDR_WIDTH-1:0]       axi4_ls_awaddr;
-wire [3:0]                  axi4_ls_awid;
-wire [7:0]                  axi4_ls_awlen;
-wire [2:0]                  axi4_ls_awsize;
-wire [1:0]                  axi4_ls_awburst;
-wire                        axi4_ls_wready;
-wire                        axi4_ls_wvalid;
-wire [DATA_WIDTH-1:0]       axi4_ls_wdata;
-wire [DATA_WIDTH/8-1:0]     axi4_ls_wstrb;
-wire                        axi4_ls_wlast;
-wire                        axi4_ls_bready;
-wire                        axi4_ls_bvalid;
-wire [BRESP_WIDTH-1:0]      axi4_ls_bresp;
-wire [3:0]                  axi4_ls_bid;
-wire                        axi4_ls_arready;
-wire                        axi4_ls_arvalid;
-wire [ADDR_WIDTH-1:0]       axi4_ls_araddr;
-wire [3:0]                  axi4_ls_arid;
-wire [7:0]                  axi4_ls_arlen;
-wire [2:0]                  axi4_ls_arsize;
-wire [1:0]                  axi4_ls_arburst;
-wire                        axi4_ls_rready;
-wire                        axi4_ls_rvalid;
-wire [RRESP_WIDTH-1:0]      axi4_ls_rresp;
-wire [DATA_WIDTH-1:0]       axi4_ls_rdata;
-wire                        axi4_ls_rlast;
-wire [3:0]                  axi4_ls_rid;
+/* ifu req-resp 信号 */
+wire                        if_req_valid;
+wire                        if_req_ready;
+wire [ADDR_WIDTH-1:0]       if_req_addr;
+wire                        if_req_is_write;
+wire [DATA_WIDTH-1:0]       if_req_wdata;
+wire [DATA_WIDTH/8-1:0]     if_req_wstrb;
+wire                        if_resp_valid;
+wire                        if_resp_ready;
+wire [DATA_WIDTH-1:0]       if_resp_data;
+/* lsu req-resp 信号 */
+wire                        ls_req_valid;
+wire                        ls_req_ready;
+wire [ADDR_WIDTH-1:0]       ls_req_addr;
+wire                        ls_req_is_write;
+wire [DATA_WIDTH-1:0]       ls_req_wdata;
+wire [DATA_WIDTH/8-1:0]     ls_req_wstrb;
+wire                        ls_resp_valid;
+wire                        ls_resp_ready;
+wire [DATA_WIDTH-1:0]       ls_resp_data;
 /* 仲裁后的 axi4信号 */
 wire                        axi4_arbiter_awready;
 wire                        axi4_arbiter_awvalid;
@@ -526,7 +486,6 @@ hw_monitor #(
 );
 
 /* 指令缓存 */
-`ifndef FORMAL_VERIFY
 icache #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
@@ -542,35 +501,15 @@ icache #(
     .clk(clk),
     .rst(rst||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
 
-    .m_awready(axi4_if_awready),
-    .m_awvalid(axi4_if_awvalid),
-    .m_awaddr(axi4_if_awaddr),
-    .m_awid(axi4_if_awid),
-    .m_awlen(axi4_if_awlen),
-    .m_awsize(axi4_if_awsize),
-    .m_awburst(axi4_if_awburst),
-    .m_wready(axi4_if_wready),
-    .m_wvalid(axi4_if_wvalid),
-    .m_wdata(axi4_if_wdata),
-    .m_wstrb(axi4_if_wstrb),
-    .m_wlast(axi4_if_wlast),
-    .m_bready(axi4_if_bready),
-    .m_bvalid(axi4_if_bvalid),
-    .m_bresp(axi4_if_bresp),
-    .m_bid(axi4_if_bid),
-    .m_arready(axi4_if_arready),
-    .m_arvalid(axi4_if_arvalid),
-    .m_araddr(axi4_if_araddr),
-    .m_arid(axi4_if_arid),
-    .m_arlen(axi4_if_arlen),
-    .m_arsize(axi4_if_arsize),
-    .m_arburst(axi4_if_arburst),
-    .m_rready(axi4_if_rready),
-    .m_rvalid(axi4_if_rvalid),
-    .m_rresp(axi4_if_rresp),
-    .m_rdata(axi4_if_rdata),
-    .m_rlast(axi4_if_rlast),
-    .m_rid(axi4_if_rid),
+    .m_req_ready(if_req_ready),
+    .m_req_valid(if_req_valid),
+    .m_req_addr(if_req_addr),
+    .m_req_is_write(if_req_is_write),
+    .m_req_wdata(if_req_wdata),
+    .m_req_wstrb(if_req_wstrb),
+    .m_resp_ready(if_resp_ready),
+    .m_resp_valid(if_resp_valid),
+    .m_resp_data(if_resp_data),
 
     .s_awready(axi4_icache_awready),
     .s_awvalid(axi4_icache_awvalid),
@@ -604,42 +543,8 @@ icache #(
     .cache_en(hw_monitor_icache_en),
     .cache_stat(icache_stat)
 );
-`else
-/* 形式化验证：IFU直连仲裁器（axi4_if_*桥接axi4_icache_*），不含指令缓存 */
-assign icache_stat = `CACHE_STAT_NONE;
-assign axi4_if_awready        = axi4_icache_awready;
-assign axi4_icache_awvalid    = axi4_if_awvalid;
-assign axi4_icache_awaddr     = axi4_if_awaddr;
-assign axi4_icache_awid       = axi4_if_awid;
-assign axi4_icache_awlen      = axi4_if_awlen;
-assign axi4_icache_awsize     = axi4_if_awsize;
-assign axi4_icache_awburst    = axi4_if_awburst;
-assign axi4_if_wready         = axi4_icache_wready;
-assign axi4_icache_wvalid     = axi4_if_wvalid;
-assign axi4_icache_wdata      = axi4_if_wdata;
-assign axi4_icache_wstrb      = axi4_if_wstrb;
-assign axi4_icache_wlast      = axi4_if_wlast;
-assign axi4_icache_bready     = axi4_if_bready;
-assign axi4_if_bvalid         = axi4_icache_bvalid;
-assign axi4_if_bresp          = axi4_icache_bresp;
-assign axi4_if_bid            = axi4_icache_bid;
-assign axi4_if_arready        = axi4_icache_arready;
-assign axi4_icache_arvalid    = axi4_if_arvalid;
-assign axi4_icache_araddr     = axi4_if_araddr;
-assign axi4_icache_arid       = axi4_if_arid;
-assign axi4_icache_arlen      = axi4_if_arlen;
-assign axi4_icache_arsize     = axi4_if_arsize;
-assign axi4_icache_arburst    = axi4_if_arburst;
-assign axi4_icache_rready     = axi4_if_rready;
-assign axi4_if_rvalid         = axi4_icache_rvalid;
-assign axi4_if_rresp          = axi4_icache_rresp;
-assign axi4_if_rdata          = axi4_icache_rdata;
-assign axi4_if_rlast          = axi4_icache_rlast;
-assign axi4_if_rid            = axi4_icache_rid;
-`endif
 
 /* 数据缓存 */
-`ifndef FORMAL_VERIFY
 dcache #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
@@ -655,35 +560,15 @@ dcache #(
     .clk(clk),
     .rst(rst),
 
-    .m_awready(axi4_ls_awready),
-    .m_awvalid(axi4_ls_awvalid),
-    .m_awaddr(axi4_ls_awaddr),
-    .m_awid(axi4_ls_awid),
-    .m_awlen(axi4_ls_awlen),
-    .m_awsize(axi4_ls_awsize),
-    .m_awburst(axi4_ls_awburst),
-    .m_wready(axi4_ls_wready),
-    .m_wvalid(axi4_ls_wvalid),
-    .m_wdata(axi4_ls_wdata),
-    .m_wstrb(axi4_ls_wstrb),
-    .m_wlast(axi4_ls_wlast),
-    .m_bready(axi4_ls_bready),
-    .m_bvalid(axi4_ls_bvalid),
-    .m_bresp(axi4_ls_bresp),
-    .m_bid(axi4_ls_bid),
-    .m_arready(axi4_ls_arready),
-    .m_arvalid(axi4_ls_arvalid),
-    .m_araddr(axi4_ls_araddr),
-    .m_arid(axi4_ls_arid),
-    .m_arlen(axi4_ls_arlen),
-    .m_arsize(axi4_ls_arsize),
-    .m_arburst(axi4_ls_arburst),
-    .m_rready(axi4_ls_rready),
-    .m_rvalid(axi4_ls_rvalid),
-    .m_rresp(axi4_ls_rresp),
-    .m_rdata(axi4_ls_rdata),
-    .m_rlast(axi4_ls_rlast),
-    .m_rid(axi4_ls_rid),
+    .m_req_ready(ls_req_ready),
+    .m_req_valid(ls_req_valid),
+    .m_req_addr(ls_req_addr),
+    .m_req_is_write(ls_req_is_write),
+    .m_req_wdata(ls_req_wdata),
+    .m_req_wstrb(ls_req_wstrb),
+    .m_resp_ready(ls_resp_ready),
+    .m_resp_valid(ls_resp_valid),
+    .m_resp_data(ls_resp_data),
 
     .s_awready(axi4_dcache_awready),
     .s_awvalid(axi4_dcache_awvalid),
@@ -717,39 +602,6 @@ dcache #(
     .cache_en(hw_monitor_dcache_en),
     .cache_stat(dcache_stat)
 );
-`else
-/* 形式化验证：LSU直连仲裁器（axi4_ls_*桥接axi4_dcache_*），不含数据缓存 */
-assign dcache_stat = `CACHE_STAT_NONE;
-assign axi4_ls_awready        = axi4_dcache_awready;
-assign axi4_dcache_awvalid    = axi4_ls_awvalid;
-assign axi4_dcache_awaddr     = axi4_ls_awaddr;
-assign axi4_dcache_awid       = axi4_ls_awid;
-assign axi4_dcache_awlen      = axi4_ls_awlen;
-assign axi4_dcache_awsize     = axi4_ls_awsize;
-assign axi4_dcache_awburst    = axi4_ls_awburst;
-assign axi4_ls_wready         = axi4_dcache_wready;
-assign axi4_dcache_wvalid     = axi4_ls_wvalid;
-assign axi4_dcache_wdata      = axi4_ls_wdata;
-assign axi4_dcache_wstrb      = axi4_ls_wstrb;
-assign axi4_dcache_wlast      = axi4_ls_wlast;
-assign axi4_dcache_bready     = axi4_ls_bready;
-assign axi4_ls_bvalid         = axi4_dcache_bvalid;
-assign axi4_ls_bresp          = axi4_dcache_bresp;
-assign axi4_ls_bid            = axi4_dcache_bid;
-assign axi4_ls_arready        = axi4_dcache_arready;
-assign axi4_dcache_arvalid    = axi4_ls_arvalid;
-assign axi4_dcache_araddr     = axi4_ls_araddr;
-assign axi4_dcache_arid       = axi4_ls_arid;
-assign axi4_dcache_arlen      = axi4_ls_arlen;
-assign axi4_dcache_arsize     = axi4_ls_arsize;
-assign axi4_dcache_arburst    = axi4_ls_arburst;
-assign axi4_dcache_rready     = axi4_ls_rready;
-assign axi4_ls_rvalid         = axi4_dcache_rvalid;
-assign axi4_ls_rresp          = axi4_dcache_rresp;
-assign axi4_ls_rdata          = axi4_dcache_rdata;
-assign axi4_ls_rlast          = axi4_dcache_rlast;
-assign axi4_ls_rid            = axi4_dcache_rid;
-`endif
 
 /* arbiter模块 */
 arbiter_axi4 #(
@@ -1068,43 +920,24 @@ assign {
     con_if_expt_data
 } = con_if_bits;
 inst_fetch #(
-    .SRAM_TYPE(`SRAM_TYPE_AXI4),
     .INST_WIDTH(INST_WIDTH),
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
     .IN_DATA_W(IF_IN_DATA_W),
     .OUT_DATA_W(IF_OUT_DATA_W)
 ) ifu(
     .clk(clk),
     .rst(rst),
 
-    .awready(axi4_if_awready),
-    .awvalid(axi4_if_awvalid),
-    .awaddr(axi4_if_awaddr),
-    .awid(axi4_if_awid),
-    .awlen(axi4_if_awlen),
-    .awsize(axi4_if_awsize),
-    .awburst(axi4_if_awburst),
-    .wready(axi4_if_wready),
-    .wvalid(axi4_if_wvalid),
-    .wdata(axi4_if_wdata),
-    .wstrb(axi4_if_wstrb),
-    .wlast(axi4_if_wlast),
-    .bready(axi4_if_bready),
-    .bvalid(axi4_if_bvalid),
-    .bresp(axi4_if_bresp),
-    .bid(axi4_if_bid),
-    .arready(axi4_if_arready),
-    .arvalid(axi4_if_arvalid),
-    .araddr(axi4_if_araddr),
-    .arid(axi4_if_arid),
-    .arlen(axi4_if_arlen),
-    .arsize(axi4_if_arsize),
-    .arburst(axi4_if_arburst),
-    .rready(axi4_if_rready),
-    .rvalid(axi4_if_rvalid),
-    .rresp(axi4_if_rresp),
-    .rdata(axi4_if_rdata),
-    .rlast(axi4_if_rlast),
-    .rid(axi4_if_rid),
+    .req_valid(if_req_valid),
+    .req_ready(if_req_ready),
+    .req_addr(if_req_addr),
+    .req_is_write(if_req_is_write),
+    .req_wdata(if_req_wdata),
+    .req_wstrb(if_req_wstrb),
+    .resp_valid(if_resp_valid),
+    .resp_ready(if_resp_ready),
+    .resp_data(if_resp_data),
 
     .fetch_pc(core_fetch_pc),
     .cache_stat(icache_stat),
@@ -1351,41 +1184,23 @@ assign {
 `endif
 load_store #(
     .INST_WIDTH(INST_WIDTH),
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
     .IN_DATA_W(LS_IN_DATA_W),
     .OUT_DATA_W(LS_OUT_DATA_W)
 ) lsu(
     .clk(clk),
     .rst(rst),
 
-    .awready(axi4_ls_awready),
-    .awvalid(axi4_ls_awvalid),
-    .awaddr(axi4_ls_awaddr),
-    .awid(axi4_ls_awid),
-    .awlen(axi4_ls_awlen),
-    .awsize(axi4_ls_awsize),
-    .awburst(axi4_ls_awburst),
-    .wready(axi4_ls_wready),
-    .wvalid(axi4_ls_wvalid),
-    .wdata(axi4_ls_wdata),
-    .wstrb(axi4_ls_wstrb),
-    .wlast(axi4_ls_wlast),
-    .bready(axi4_ls_bready),
-    .bvalid(axi4_ls_bvalid),
-    .bresp(axi4_ls_bresp),
-    .bid(axi4_ls_bid),
-    .arready(axi4_ls_arready),
-    .arvalid(axi4_ls_arvalid),
-    .araddr(axi4_ls_araddr),
-    .arid(axi4_ls_arid),
-    .arlen(axi4_ls_arlen),
-    .arsize(axi4_ls_arsize),
-    .arburst(axi4_ls_arburst),
-    .rready(axi4_ls_rready),
-    .rvalid(axi4_ls_rvalid),
-    .rresp(axi4_ls_rresp),
-    .rdata(axi4_ls_rdata),
-    .rlast(axi4_ls_rlast),
-    .rid(axi4_ls_rid),
+    .req_valid(ls_req_valid),
+    .req_ready(ls_req_ready),
+    .req_addr(ls_req_addr),
+    .req_is_write(ls_req_is_write),
+    .req_wdata(ls_req_wdata),
+    .req_wstrb(ls_req_wstrb),
+    .resp_valid(ls_resp_valid),
+    .resp_ready(ls_resp_ready),
+    .resp_data(ls_resp_data),
 
     .in_ready(mod_con_ls_ready),
     .in_valid(con_ex_valid),
