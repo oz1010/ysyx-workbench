@@ -18,7 +18,7 @@ module riscv32e_core_sc #(
 
     output wire [INST_WIDTH-1:0] o_pc,
     output wire [INST_WIDTH-1:0] o_dnpc,
-    output wire [4:0]            o_rd,
+    output wire [`RISCV_GPR_ADDR_W-1:0]            o_rd,
     output wire [INST_WIDTH-1:0] o_res,
     output wire                  o_wen
 );
@@ -36,10 +36,10 @@ end
 
 /* 译码 */
 wire [6:0] opcode;
-wire [4:0] rd;
+wire [`RISCV_GPR_ADDR_W-1:0] rd;
 wire [2:0] funct3;
-wire [4:0] rs1;
-wire [4:0] rs2;
+wire [`RISCV_GPR_ADDR_W-1:0] rs1;
+wire [`RISCV_GPR_ADDR_W-1:0] rs2;
 wire [6:0] funct7;
 wire [31:0] imm;
 wire [2:0] inst_type;
@@ -121,16 +121,8 @@ reg r_valid;
 
 /* 常用处理器信号 */
 wire [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
-// wire [INST_WIDTH-1:0] pc;
 
 assign valid = r_valid;
-// assign w_pc = pc;
-// assign w_x = x;
-
-// initial begin
-//     r_valid = 0;
-// end
-// assign r_valid = !rst;
 
 /** 
  * 当前正在处理的pc指示
@@ -163,10 +155,10 @@ end
 
 /* 译码 */
 wire [6:0] opcode;
-wire [4:0] rd;
+wire [`RISCV_GPR_ADDR_W-1:0] rd;
 wire [2:0] funct3;
-wire [4:0] rs1;
-wire [4:0] rs2;
+wire [`RISCV_GPR_ADDR_W-1:0] rs1;
+wire [`RISCV_GPR_ADDR_W-1:0] rs2;
 wire [6:0] funct7;
 wire [31:0] imm;
 wire [2:0] inst_type;
@@ -178,13 +170,6 @@ wire [31:0] src1 = x[rs1];
 wire [31:0] src2 = x[rs2];
 wire signed [31:0] s_src1 = src1;
 wire signed [31:0] s_src2 = src2;
-wire [63:0] src1_64 = {32'h0, src1};
-wire [63:0] src2_64 = {32'h0, src2};
-wire signed [63:0] s_src1_64 = {{32{src1[31]}}, src1};
-wire signed [63:0] s_src2_64 = {{32{src2[31]}}, src2};
-wire signed [63:0] mulh_ret = (s_src1_64 * s_src2_64) >> 32;
-wire signed [63:0] mulhsu_ret = (s_src1 * src2) >> 32;
-wire signed [63:0] mulhu_ret = (src1 * src2) >> 32;
 
 write_back #(
     .INST_WIDTH(INST_WIDTH)

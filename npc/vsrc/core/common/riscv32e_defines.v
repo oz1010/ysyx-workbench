@@ -7,6 +7,7 @@
 `define RISCV_INST_WIDTH    32
 // RV32E GPR数量为16
 `define RISCV_GPR_COUNT     16
+`define RISCV_GPR_ADDR_W    $clog2(`RISCV_GPR_COUNT)
 
 `define TYPE_R              3'd0
 `define TYPE_I              3'd1
