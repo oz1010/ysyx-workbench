@@ -73,7 +73,8 @@ endmodule
 `else
 // 单周期处理器
 module riscv32e_core #(
-    parameter INST_WIDTH = 32
+    parameter INST_WIDTH = 32,
+    parameter DATA_WIDTH = 32
 ) (
     input  wire         clk,
     input  wire         rst,
@@ -119,10 +120,39 @@ module riscv32e_core #(
 reg [INST_WIDTH-1:0] r_inst;
 reg r_valid;
 
-/* 常用处理器信号 */
-wire [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
-
 assign valid = r_valid;
+
+/* csr寄存器组 */
+wire [`INST_CODE_W-1:0] csr_inst_code = inst_code;
+wire [`CSR_WCH_W-1:0]           wb_csr_wch;
+wire csr_raddr_en = 
+    (csr_inst_code==`INST_CSRRW) |
+    (csr_inst_code==`INST_CSRRS) |
+    0;
+wire [`CSR_ADDR_W-1:0] csr_raddr = 
+    csr_raddr_en ? imm[0 +: `CSR_ADDR_W] :
+    (csr_inst_code==`INST_ECALL) ? `CSR_MTVEC :
+    (csr_inst_code==`INST_MRET) ? `CSR_MEPC :
+    0;
+wire [DATA_WIDTH-1:0] csr_rdata;
+csrs #(
+    .DATA_WIDTH(DATA_WIDTH)
+) m_csrs (
+    .clk(clk),
+    .rst(rst),
+    
+    .raddr(csr_raddr),
+    .rdata(csr_rdata),
+
+    .csr_wch(wb_csr_wch),
+
+    .expt_en(expt_en),
+    .expt_epc(expt_epc),
+    .expt_cause(expt_cause),
+    .expt_tval(expt_tval),
+
+    .cscode()
+);
 
 /** 
  * 当前正在处理的pc指示
@@ -134,8 +164,8 @@ wire [INST_WIDTH-1:0] dnpc;
 assign pc = core_pc;
 always @(posedge clk) begin
     if (rst) begin
-        core_pc <= get_reset_pc();
-        core_dnpc <= get_reset_pc();
+        core_pc <= func_get_reset_pc();
+        core_dnpc <= func_get_reset_pc();
         r_valid <= 0;
     end else begin
         core_pc <= dnpc;
@@ -144,12 +174,28 @@ always @(posedge clk) begin
     end
 end
 
+/* 硬件性能监控 */
+hw_monitor #(
+    .INST_WIDTH(INST_WIDTH)
+) m_hw_monitor (
+    .clk(clk),
+    .rst(rst),
+    .hw_monitor_icache_en(0),
+    .hw_monitor_icache_hit(0),
+    .hw_monitor_dcache_en(0),
+    .hw_monitor_dcache_hit(0),
+    .hw_monitor_ls_en(0),
+    .hw_monitor_ls_iswrite(0),
+    .hw_monitor_ls_data(0),
+    .done()
+);
+
 /* 取指 */
 always @(*) begin
     if (rst) begin
         r_inst = 32'b0;
     end else begin
-        r_inst = fetch_inst(core_pc);
+        r_inst = func_vdev_read(core_pc, 4);
     end
 end
 
@@ -165,12 +211,6 @@ wire [2:0] inst_type;
 wire [`INST_CODE_W-1:0] inst_code;
 decoder risc32e_decoder(r_inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
 
-/* 执行并更新结果 */
-wire [31:0] src1 = x[rs1];
-wire [31:0] src2 = x[rs2];
-wire signed [31:0] s_src1 = src1;
-wire signed [31:0] s_src2 = src2;
-
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
@@ -184,9 +224,23 @@ write_back #(
     .rs2(rs2),
     .imm(imm),
     .inst_code(inst_code),
-    .w_x(x),
+
+    .csr_rdata(csr_rdata),
+    .csr_wch(wb_csr_wch),
+
+    .expt_en(expt_en),
+    .expt_epc(expt_epc),
+    .expt_cause(expt_cause),
+    .expt_tval(expt_tval),
+
     .dnpc(dnpc)
 );
+
+/* 集中异常处理 */
+wire                             expt_en;
+wire [INST_WIDTH-1:0]            expt_epc;
+wire [DATA_WIDTH-1:0]            expt_cause;
+wire [DATA_WIDTH-1:0]            expt_tval;
 
 endmodule
 `endif
