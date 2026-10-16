@@ -7,23 +7,19 @@ module gprs #(
     input   wire                        rst,
 
     /* 读寄存器接口 */
-    input   wire [REG_INDEX_W-1:0]      rs1,
-    output  wire [DATA_WIDTH-1:0]       src1,
-    input   wire [REG_INDEX_W-1:0]      rs2,
-    output  wire [DATA_WIDTH-1:0]       src2,
-    output  wire [DATA_WIDTH-1:0]       a0,
+    input   wire [`RISCV_GPR_ADDR_W-1:0]    rs1,
+    output  wire [DATA_WIDTH-1:0]           src1,
+    input   wire [`RISCV_GPR_ADDR_W-1:0]    rs2,
+    output  wire [DATA_WIDTH-1:0]           src2,
+    output  wire [DATA_WIDTH-1:0]           a0,
     
     /* 写寄存器接口 */
-    input   wire                        wen,
-    input   wire [REG_INDEX_W-1:0]      windex,
-    input   wire [DATA_WIDTH-1:0]       wdata
+    input   wire                            wen,
+    input   wire [`RISCV_GPR_ADDR_W-1:0]    waddr,
+    input   wire [DATA_WIDTH-1:0]           wdata
 );
 
-localparam REG_INDEX_W = log2(REG_COUNT);
-
 /* 寄存器组 */
-// 通用寄存器
-// RV32E GPR数量为16
 reg [DATA_WIDTH-1:0] x[0:REG_COUNT-1];
 // 寄存器别名，register alias, ch2.3
 wire [DATA_WIDTH-1:0] zero = x[0];
@@ -37,7 +33,7 @@ wire [DATA_WIDTH-1:0] t2 = x[7];
 wire [DATA_WIDTH-1:0] s0 = x[8];
 wire [DATA_WIDTH-1:0] fp = x[8];
 wire [DATA_WIDTH-1:0] s1 = x[9];
-wire [DATA_WIDTH-1:0] a[0:5];
+wire [DATA_WIDTH-1:0] a[0:7];
 // wire [DATA_WIDTH-1:0] a[0:7];
 // wire [DATA_WIDTH-1:0] s2 = x[18];
 // wire [DATA_WIDTH-1:0] s3 = x[19];
@@ -64,6 +60,21 @@ generate
     end
 endgenerate
 
+// `ifndef IN_YOSYS_STA
+//     generate
+//         // if (`RISCV_GPR_COUNT==32) begin : gpr_32
+//         //     assign a[7:0] = x[17:10];
+//         // end else begin : gpr_16
+//         //     assign a[4:0] = x[14:10];
+//         // end
+//         integer a_reg_count = (`RISCV_GPR_COUNT==32) ? 8 : 5;
+//         // a0-4 = x10-14
+//         for (genvar i = 0; i<a_reg_count; ++i) begin
+//             assign a[i] = x[i+10];
+//         end
+//     endgenerate
+// `endif
+
 /* 访问读取 */
 assign src1 = x[rs1];
 assign src2 = x[rs2];
@@ -76,7 +87,7 @@ assign a0 = a[0];
  * x0 始终为零
  */
 wire [`RISCV_GPR_COUNT-1:0] wen_onehot;
-assign wen_onehot = wen ? (1 << windex) : 0;
+assign wen_onehot = wen ? (1 << waddr) : 0;
 // always @(posedge clk) x[0] <= 0;
 assign x[0] = 0;
 genvar i;
