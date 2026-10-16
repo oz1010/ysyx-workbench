@@ -20,7 +20,7 @@ import scala.util.matching.Regex
   */
 object Generate {
   private val modulePattern: Regex =
-    "(?m)\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?:\\([^)]*\\))?\\s+extends\\s+(?:Raw)?Module\\b".r
+    "(?m)\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?:\\([^)]*\\))?\\s+extends\\s+((?:Raw)?Module|BlackBox)\\b".r
 
   private val packagePattern: Regex =
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
