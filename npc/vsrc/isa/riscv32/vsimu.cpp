@@ -180,9 +180,10 @@ int exec_vsimu(Decode* s)
         {
             if (top->rootp->TOP_S_CORE_INST_DONE[idx])
             {
-                // 此时done命令刚触发，需要再运行一个周期采集完整的数据
+#ifndef CONFIG_ISA_RISCV_SINGLE // 非单周期，done命令刚触发，可以再运行一个周期采集完整的数据
                 IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
                 TOP_RUN_TICK(top);
+#endif
                 simu_continue = false;
                 break;
             }

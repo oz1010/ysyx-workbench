@@ -15,9 +15,9 @@ module write_back_sc #(
     input wire                  i_valid,
     input wire [INST_WIDTH-1:0] pc,
     input wire [INST_WIDTH-1:0] i_ld_data,
-    input wire [4:0] rd,
-    input wire [4:0] rs1,
-    input wire [4:0] rs2,
+    input wire [`RISCV_GPR_ADDR_W-1:0] rd,
+    input wire [`RISCV_GPR_ADDR_W-1:0] rs1,
+    input wire [`RISCV_GPR_ADDR_W-1:0] rs2,
     input wire [INST_WIDTH-1:0] imm,
     input wire [`INST_CODE_W-1:0] inst_code,
 
@@ -202,9 +202,9 @@ module write_back #(
 
     input wire [INST_WIDTH-1:0] pc,
     input wire [INST_WIDTH-1:0] inst,
-    input wire [4:0] rd,
-    input wire [4:0] rs1,
-    input wire [4:0] rs2,
+    input wire [`RISCV_GPR_ADDR_W-1:0] rd,
+    input wire [`RISCV_GPR_ADDR_W-1:0] rs1,
+    input wire [`RISCV_GPR_ADDR_W-1:0] rs2,
     input wire [INST_WIDTH-1:0] imm,
     input wire [`INST_CODE_W-1:0] inst_code,
 
@@ -228,10 +228,15 @@ wire [INST_WIDTH-1:0] sp = x[2];
 wire [INST_WIDTH-1:0] gp = x[3];
 wire [INST_WIDTH-1:0] tp = x[4];
 wire [INST_WIDTH-1:0] a[7:0];
-assign a[7:0] = x[17:10];
+generate
+    if (`RISCV_GPR_COUNT==32) begin : gpr_32
+        assign a[7:0] = x[17:10];
+    end else begin : gpr_16
+        assign a[4:0] = x[14:10];
+    end
+endgenerate
 
 assign w_x = x;
-// assign w_dnpc = dnpc;
 
 /* 执行并更新结果 */
 wire [INST_WIDTH-1:0] src1 = x[rs1];
@@ -320,14 +325,6 @@ always @(posedge clk) begin
             `INST_CSRRWI:       func_invalid_inst(pc, inst);
             `INST_CSRRSI:       func_invalid_inst(pc, inst);
             `INST_CSRRCI:       func_invalid_inst(pc, inst);
-            `INST_MUL:          x[rd] <= src1 * src2;
-            `INST_MULH:         x[rd] <= mulh_ret[INST_WIDTH-1:0];
-            `INST_MULHSU:       x[rd] <= mulhsu_ret[INST_WIDTH-1:0];
-            `INST_MULHU:        x[rd] <= mulhu_ret[INST_WIDTH-1:0];
-            `INST_DIV:          x[rd] <= s_src1 / s_src2;
-            `INST_DIVU:         x[rd] <= src1 / src2;
-            `INST_REM:          x[rd] <= s_src1 % s_src2;
-            `INST_REMU:         x[rd] <= src1 % src2;
             `INST_MRET:         func_query_intr(); // MEPC 0x341
             `INST_INVALID:      func_invalid_inst(pc, inst);
             default: ;

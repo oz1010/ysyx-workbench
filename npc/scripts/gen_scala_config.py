@@ -7,10 +7,13 @@ and an optional user-specified C header.
 
 Python standard library only. No kconfiglib dependency.
 
-Priority:
-    Kconfig defaults
-    < same-directory .config
-    < explicitly specified .h
+Value semantics (parsed straight from .config, no symbol relations):
+    bool/tristate: on only when set to y/m in .config or the header;
+        anything else (n, "is not set", absent) is off
+    int/hex: the .config (or header) value when present, otherwise the
+        Kconfig default value; disabling a switch (e.g. ICACHE) thus
+        reverts its related numbers to the defaults
+    string: first default with a satisfied condition, otherwise empty
 
 Usage:
     python3 scripts/gen_scala_config.py
@@ -749,14 +752,28 @@ def value_for_expression(value):
     return value
 
 
+def declared_default(symbol, env):
+    """Resolve the first declared Kconfig default, ignoring conditions."""
+    for default, _condition in symbol.defaults:
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", default):
+            return env.get(default, default)
+        return parse_scalar(default)
+
+    return None
+
+
 def evaluate_symbols(model, config_values, header_values):
     values = {
         name: "n"
         for name in model.symbols
     }
 
-    # Apply defaults and overrides iteratively so that references to
-    # other symbols can settle over several passes.
+    # .config (and the optional header) is authoritative for switches:
+    # a bool/tristate is on only when set to y/m there. Numeric int/hex
+    # items take the .config value when present and otherwise revert to
+    # their Kconfig default, so turning off a switch (e.g. ICACHE)
+    # resets its related numbers to the defaults without tracking any
+    # symbol-to-symbol relations.
     overrides = dict(config_values)
     overrides.update(header_values)
 
@@ -776,7 +793,9 @@ def evaluate_symbols(model, config_values, header_values):
 
             value = None
 
-            if name in overrides and allowed:
+            if symbol.type in ("bool", "tristate"):
+                value = overrides.get(name, "n")
+            elif name in overrides:
                 value = overrides[name]
             else:
                 for default, condition in symbol.defaults:
@@ -788,6 +807,9 @@ def evaluate_symbols(model, config_values, header_values):
                         else:
                             value = parse_scalar(default)
                         break
+
+                if value is None and symbol.type in ("int", "hex"):
+                    value = declared_default(symbol, env)
 
             if value is None:
                 value = "n" if symbol.type in ("bool", "tristate") else ""
@@ -953,10 +975,6 @@ def generate_scala(definitions, kconfig_names, header_names, package):
         "  def isEnabled(name: String): Boolean =",
         "    values.get(name).exists {",
         "      case b: Boolean => b",
-        '      case s: String => s == "y" || s == "m"',
-        "      case n: BigInt => n != 0",
-        "      case n: Int => n != 0",
-        "      case n: UInt => n.litValue != 0",
         "      case _ => false",
         "    }",
         "",

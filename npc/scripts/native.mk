@@ -32,12 +32,9 @@ override ARGS += $(NPC_ARGS)
 ifeq ($(CONFIG_PERF_MONITOR), y)
 ANALYZER += analyzer
 RECORDER += recorder
-ifeq ($(CONFIG_PERF_MONITOR_BIN_DATA), y)
+ifneq ($(CONFIG_ISA_RISCV_SINGLE), y) # TODO 非单周期才接入了监控接口，后面考虑加入
 override PERF_NAME ?= npc-monitor.bin
 PERF_MONITOR_SH=$(NPC_HOME)/tools/monitor_analyzer/build/mon_analyzer $(RESULT_DIR)/$(PERF_NAME)
-else
-override PERF_NAME ?= npc-monitor.txt
-PERF_MONITOR_SH=$(NPC_HOME)/scripts/monitor_analyzer.py $(RESULT_DIR)/$(PERF_NAME)
 endif
 endif
 override ARGS += --perf=$(PERF_NAME)
