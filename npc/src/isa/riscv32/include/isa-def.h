@@ -66,7 +66,7 @@ enum
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
-#if defined(CONFIG_DIFFTEST) || defined(CONFIG_ISA_RISCV_SINGLE)
+#if defined(CONFIG_DIFFTEST)
   // 开diff后，需要使用csr同步到ref中。
   word_t csr[CSR_COUNT];
 #endif

@@ -670,4 +670,17 @@ function void func_add_monitor_item;
     end
 endfunction
 
+function automatic [31:0] func_vdev_read;
+    input [31:0] addr;
+    input [31:0] len;
+    begin
+`ifdef FORMAL_VERIFY
+`elsif IN_YOSYS_STA
+        func_vdev_read = addr + len;
+`else
+        func_vdev_read = dpi_vdev_read(addr, len);
+`endif
+    end
+endfunction
+
 `endif

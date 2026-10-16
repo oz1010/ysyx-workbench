@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <memory>
+#include <unordered_map>
 
 #include <cpu/decode.h>
 
@@ -48,6 +49,8 @@ void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
 
 extern std::string cfg_output;
 extern bool cfg_hw_trace;
+
+std::unordered_map<uint32_t, uint32_t> write_csr_history; // 写csr记录
 
 uint32_t get_csr_index(paddr_t addr);
 void set_vsimu_csr(paddr_t addr, uint32_t data);
@@ -138,6 +141,8 @@ int exec_vsimu(Decode* s)
     bool simu_continue;
     // s->dynamic_next_pc = s->snpc;
 
+    write_csr_history.clear();
+
     // 同步cpu到模拟处理器
     sync_simu_cpu(top.get(), &cpu, SYNC_TO_SIMU);
 
@@ -152,25 +157,28 @@ int exec_vsimu(Decode* s)
         //     exit(-1);
         // }
 
-        // TODO 应该先判断是否写入过mcause，再进行逻辑判断
-        uint32_t mcause = get_vsimu_csr(CSR_MCAUSE);
-        uint32_t mtval = get_vsimu_csr(CSR_MTVAL);
-        switch (mcause)
-        {
-            case EXPT_CAUSE_ILL: // Illegal instruction
-                invalid_inst(cpu.pc, mtval);
-                break;
+        // 先判断是否写入过mcause，再进行逻辑判断
+        // 这里不能直接读取cpu的信息，可能已经更新到下一地址了
+        if (write_csr_history.find(CSR_MCAUSE) != write_csr_history.end()) {
+            uint32_t mcause = get_vsimu_csr(CSR_MCAUSE);
+            uint32_t mepc = get_vsimu_csr(CSR_MEPC);
+            uint32_t mtval = get_vsimu_csr(CSR_MTVAL);
+            switch (mcause)
+            {
+                case EXPT_CAUSE_ILL: // Illegal instruction
+                    invalid_inst(mepc, mtval);
+                    break;
 
-            case EXPT_CAUSE_BRK:  // EBREAK
-                // exit_simu(cpu.gpr[10]);
-                exit_simu(mtval);
-                break;
+                case EXPT_CAUSE_BRK:  // EBREAK
+                    exit_simu(mtval);
+                    break;
 
-            case EXPT_CAUSE_MEC: // ecall from M-mode
-                isa_raise_intr((0<<31|11<<0), cpu.pc);
-                break;
+                case EXPT_CAUSE_MEC: // ecall from M-mode
+                    // isa_raise_intr((0<<31|11<<0), mepc);
+                    break;
 
-            default: break;
+                default: break;
+            }
         }
 
         simu_continue =
@@ -322,30 +330,25 @@ uint32_t get_csr_index(paddr_t addr)
         return a;
     }();
     // 需要保持和vsrc/core/common/csrs.v get_csr_index一致的逻辑，否则容易出问题
-    // static const size_t csr_index_max = top->rootp->TOP_S_CSR.size();
-    // static_assert(csr_index_max == ARRAY_SIZE(csr_addrs), "csr count may be dismatched");
 
     uint32_t csr_index = csr_addrs[addr & 0xfff];
     return csr_index;
 }
 void set_vsimu_csr(paddr_t addr, uint32_t data)
 {
-#if CONFIG_ISA_RISCV_SINGLE
-    cpu.csr[addr] = data;
-#else
 #if CONFIG_DIFFTEST
     // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
     cpu.csr[addr] = data;
 #endif
-    top->rootp->TOP_S_CSR[get_csr_index(addr)] = data;
-#endif
+    // printf("====== pc %x addr %x verilog %x data %x\n", cpu.pc, addr, top->rootp->TOP_S_CSR[get_csr_index(addr)], data);
+    // top->rootp->TOP_S_CSR[get_csr_index(addr)] = data;
+    write_csr_history[addr] = data;
 }
 uint32_t get_vsimu_csr(paddr_t addr)
 {
-#if CONFIG_ISA_RISCV_SINGLE
-    uint32_t data = cpu.csr[addr];
-#else
-    uint32_t data = top->rootp->TOP_S_CSR[get_csr_index(addr)];
+    uint32_t data = 0;
+#if CONFIG_DIFFTEST
+    data = cpu.csr[addr];
 #endif
     return data;
 }
