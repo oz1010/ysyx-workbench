@@ -209,6 +209,14 @@ module write_back #(
     input   wire [INST_WIDTH-1:0]           imm,
     input   wire [`INST_CODE_W-1:0]         inst_code,
 
+    // gpr读入
+    input   wire [DATA_WIDTH-1:0]           gpr_src1,
+    input   wire [DATA_WIDTH-1:0]           gpr_src2,
+    // gpr写入
+    output  wire                            gpr_wen,
+    output  wire [`RISCV_GPR_ADDR_W-1:0]    gpr_windex,
+    output  wire [DATA_WIDTH-1:0]           gpr_wdata,
+
     // 普通csr读入
     input   wire [DATA_WIDTH-1:0]           csr_rdata,
     // 普通csr写入
@@ -223,6 +231,10 @@ module write_back #(
 
     output wire [INST_WIDTH-1:0]            dnpc
 );
+
+    assign gpr_wen = 0;
+    assign gpr_windex = 0;
+    assign gpr_wdata = 0;
 
     /* 寄存器组 */
     // 通用寄存器

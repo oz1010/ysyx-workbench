@@ -226,6 +226,12 @@ write_back #(
     .imm(imm),
     .inst_code(inst_code),
 
+    .gpr_src1(),
+    .gpr_src2(),
+    .gpr_wen(),
+    .gpr_windex(),
+    .gpr_wdata(),
+
     .csr_rdata(csr_rdata),
     .csr_wen(csr_wen),
     .csr_waddr(csr_waddr),
