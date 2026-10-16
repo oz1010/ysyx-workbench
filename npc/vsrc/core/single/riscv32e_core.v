@@ -124,7 +124,9 @@ assign valid = r_valid;
 
 /* csr寄存器组 */
 wire [`INST_CODE_W-1:0] csr_inst_code = inst_code;
-wire [`CSR_WCH_W-1:0]           wb_csr_wch;
+wire                            csr_wen;
+wire [`CSR_ADDR_W-1:0]          csr_waddr;
+wire [DATA_WIDTH-1:0]           csr_wdata;
 wire csr_raddr_en = 
     (csr_inst_code==`INST_CSRRW) |
     (csr_inst_code==`INST_CSRRS) |
@@ -143,15 +145,14 @@ csrs #(
     
     .raddr(csr_raddr),
     .rdata(csr_rdata),
-
-    .csr_wch(wb_csr_wch),
+    .wen(csr_wen),
+    .waddr(csr_waddr),
+    .wdata(csr_wdata),
 
     .expt_en(expt_en),
     .expt_epc(expt_epc),
     .expt_cause(expt_cause),
-    .expt_tval(expt_tval),
-
-    .cscode()
+    .expt_tval(expt_tval)
 );
 
 /** 
@@ -226,7 +227,9 @@ write_back #(
     .inst_code(inst_code),
 
     .csr_rdata(csr_rdata),
-    .csr_wch(wb_csr_wch),
+    .csr_wen(csr_wen),
+    .csr_waddr(csr_waddr),
+    .csr_wdata(csr_wdata),
 
     .expt_en(expt_en),
     .expt_epc(expt_epc),
