@@ -5,7 +5,7 @@ module dcache #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2,
     parameter INST_WIDTH = 32,
-    /* 
+    /*
         w > 0
         n > 0
         m+n < 31
@@ -18,36 +18,18 @@ module dcache #(
     input   wire                        clk,
     input   wire                        rst,
 
-    output  wire                        m_awready,
-    input   wire                        m_awvalid,
-    input   wire [ADDR_WIDTH-1:0]       m_awaddr,
-    input   wire [3:0]                  m_awid,
-    input   wire [7:0]                  m_awlen,
-    input   wire [2:0]                  m_awsize,
-    input   wire [1:0]                  m_awburst,
-    output  wire                        m_wready,
-    input   wire                        m_wvalid,
-    input   wire [DATA_WIDTH-1:0]       m_wdata,
-    input   wire [DATA_WIDTH/8-1:0]     m_wstrb,
-    input   wire                        m_wlast,
-    input   wire                        m_bready,
-    output  wire                        m_bvalid,
-    output  wire [BRESP_WIDTH-1:0]      m_bresp,
-    output  wire [3:0]                  m_bid,
-    output  wire                        m_arready,
-    input   wire                        m_arvalid,
-    input   wire [ADDR_WIDTH-1:0]       m_araddr,
-    input   wire [3:0]                  m_arid,
-    input   wire [7:0]                  m_arlen,
-    input   wire [2:0]                  m_arsize,
-    input   wire [1:0]                  m_arburst,
-    input   wire                        m_rready,
-    output  wire                        m_rvalid,
-    output  wire [RRESP_WIDTH-1:0]      m_rresp,
-    output  wire [DATA_WIDTH-1:0]       m_rdata,
-    output  wire                        m_rlast,
-    output  wire [3:0]                  m_rid,
+    /* req-resp总线slave（连接LSU） */
+    output  wire                        m_req_ready,
+    input   wire                        m_req_valid,
+    input   wire [ADDR_WIDTH-1:0]       m_req_addr,
+    input   wire                        m_req_is_write,
+    input   wire [DATA_WIDTH-1:0]       m_req_wdata,
+    input   wire [DATA_WIDTH/8-1:0]     m_req_wstrb,
+    input   wire                        m_resp_ready,
+    output  wire                        m_resp_valid,
+    output  wire [DATA_WIDTH-1:0]       m_resp_data,
 
+    /* AXI4总线master（连接arbiter） */
     input   wire                        s_awready,
     output  wire                        s_awvalid,
     output  wire [ADDR_WIDTH-1:0]       s_awaddr,
@@ -97,202 +79,107 @@ localparam cache_line_size = 1<<(M);
 localparam cache_line_load_count = cache_line_size<4 ? 1 : (cache_line_size/((INST_WIDTH/8))); // 单次cache_line加载次数，数据位宽一般为32
 localparam cache_line_load_len = log2(cache_line_load_count);
 
-/* 与master端通信 */
-reg                         c_m_awready = 0;
-reg                         c_m_wready = 0;
-reg                         c_m_bvalid = 0;
-reg  [BRESP_WIDTH-1:0]      c_m_bresp = 0;
-reg  [3:0]                  c_m_bid = 0;
-reg                         c_m_arready;
-reg                         c_m_rvalid;
-reg  [RRESP_WIDTH-1:0]      c_m_rresp;
-reg  [DATA_WIDTH-1:0]       c_m_rdata;
-reg                         c_m_rlast;
-reg  [3:0]                  c_m_rid;
-wire                        c_m_awvalid;
-wire [ADDR_WIDTH-1:0]       c_m_awaddr;
-wire [3:0]                  c_m_awid;
-wire [7:0]                  c_m_awlen;
-wire [2:0]                  c_m_awsize;
-wire [1:0]                  c_m_awburst;
-wire                        c_m_wvalid;
-wire [DATA_WIDTH-1:0]       c_m_wdata;
-wire [DATA_WIDTH/8-1:0]     c_m_wstrb;
-wire                        c_m_wlast;
-wire                        c_m_bready;
-wire                        c_m_arvalid;
-wire [ADDR_WIDTH-1:0]       c_m_araddr;
-wire [3:0]                  c_m_arid;
-wire [7:0]                  c_m_arlen;
-wire [2:0]                  c_m_arsize;
-wire [1:0]                  c_m_arburst;
-wire                        c_m_rready;
-/* 与slave端通信 */
-wire                        c_s_awready;
-wire                        c_s_wready;
-wire                        c_s_bvalid;
-wire [BRESP_WIDTH-1:0]      c_s_bresp;
-wire [3:0]                  c_s_bid;
+`ifdef CONFIG_DCACHE
+`ifndef IN_YOSYS_STA
+wire m_req_cacheable =
+       ( m_req_addr>=`CONFIG_MROM_BASE && m_req_addr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
+    || ( m_req_addr>=`CONFIG_FLASH_BASE && m_req_addr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE) )
+    || ( m_req_addr>=`CONFIG_PSRAM_BASE && m_req_addr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
+    || ( m_req_addr>=`CONFIG_SDRAM_BASE && m_req_addr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) );
+`else
+wire m_req_cacheable = 0;
+`endif // IN_YOSYS_STA
+`else
+wire m_req_cacheable = 0;
+`endif // CONFIG_DCACHE
+
+/* master侧（req-resp）状态机 */
+localparam M_STATE_IDLE  = 2'h0; // 等待请求
+localparam M_STATE_CREAD = 2'h1; // 可缓存读，等待cache命中数据
+localparam M_STATE_PTRD  = 2'h2; // 不可缓存读，透传到slave
+localparam M_STATE_PTWR  = 2'h3; // 写，透传到slave
+reg [1:0]                   r_m_state = M_STATE_IDLE;
+reg [ADDR_WIDTH-1:0]        r_m_addr = 0;
+reg [DATA_WIDTH-1:0]        r_m_wdata = 0;
+reg [DATA_WIDTH/8-1:0]      r_m_wstrb = 0;
+reg                         r_s_aw_done = 0;
+reg                         r_s_w_done = 0;
+
+wire m_req_fire = m_req_valid && m_req_ready;
+assign m_req_ready = (r_m_state==M_STATE_IDLE) &&
+    (m_req_is_write ? 1'b1 : (m_req_cacheable ? 1'b1 : s_arready));
+
+/* 透传写通道（aw与w通道独立握手，各自完成后等待写响应）；
+   写地址需保持到写响应返回，仲裁器据此维持master选中状态 */
+assign s_awvalid = (r_m_state==M_STATE_PTWR) && !r_s_aw_done;
+assign s_awaddr  = (r_m_state==M_STATE_PTWR) ? r_m_addr : 0;
+assign s_awid    = `AXI4_ID_LSU;
+assign s_awlen   = 0;
+assign s_awsize  = 2;
+assign s_awburst = 1;
+assign s_wvalid  = (r_m_state==M_STATE_PTWR) && !r_s_w_done;
+assign s_wdata   = s_wvalid ? r_m_wdata : 0;
+assign s_wstrb   = s_wvalid ? r_m_wstrb : 0;
+assign s_wlast   = 1;
+assign s_bready  = (r_m_state==M_STATE_PTWR) && m_resp_ready;
+
+/* 透传读在请求被接受的同时发出（arready为请求接受条件），否则ar通道由cache填充使用 */
+wire pt_ar = (r_m_state==M_STATE_IDLE) && m_req_valid && !m_req_is_write && !m_req_cacheable;
+
+/* cache命中数据直接组合返回（与命中判定同周期） */
+assign m_resp_valid = (r_m_state==M_STATE_CREAD) ? impl_read_en :
+                      (r_m_state==M_STATE_PTRD) ? (s_rvalid && s_rlast) :
+                      (r_m_state==M_STATE_PTWR) ? s_bvalid : 1'b0;
+
+/* 与slave端通信（cache填充通道） */
 wire                        c_s_arready;
 wire                        c_s_rvalid;
 wire [RRESP_WIDTH-1:0]      c_s_rresp;
 wire [DATA_WIDTH-1:0]       c_s_rdata;
 wire                        c_s_rlast;
 wire [3:0]                  c_s_rid;
-reg                         c_s_awvalid = 0;
-reg  [ADDR_WIDTH-1:0]       c_s_awaddr = 0;
-reg  [3:0]                  c_s_awid = 0;
-reg  [7:0]                  c_s_awlen = 0;
-reg  [2:0]                  c_s_awsize = 0;
-reg  [1:0]                  c_s_awburst = 0;
-reg                         c_s_wvalid;
-reg  [DATA_WIDTH-1:0]       c_s_wdata;
-reg  [DATA_WIDTH/8-1:0]     c_s_wstrb;
-reg                         c_s_wlast;
-reg                         c_s_bready;
-reg                         c_s_arvalid;
-reg  [ADDR_WIDTH-1:0]       c_s_araddr;
-reg  [3:0]                  c_s_arid;
-reg  [7:0]                  c_s_arlen;
-reg  [2:0]                  c_s_arsize;
-reg  [1:0]                  c_s_arburst;
-reg                         c_s_rready;
+wire                        c_s_arvalid;
+wire [ADDR_WIDTH-1:0]       c_s_araddr;
+wire [3:0]                  c_s_arid;
+wire [7:0]                  c_s_arlen;
+wire [2:0]                  c_s_arsize;
+wire [1:0]                  c_s_arburst;
+wire                        c_s_rready;
+wire [1:0]                  slave_state;
 
-`ifdef CONFIG_DCACHE
-`ifndef IN_YOSYS_STA
-wire dcache_wen = 0; // 写数据透传
-wire dcache_ren = m_arid==`AXI4_ID_LSU &&
-    ( 
-           ( m_araddr>=`CONFIG_MROM_BASE && m_araddr<=(`CONFIG_MROM_BASE+`CONFIG_MROM_SIZE))
-        || ( m_araddr>=`CONFIG_FLASH_BASE && m_araddr<=(`CONFIG_FLASH_BASE+`CONFIG_FLASH_SIZE) )
-        || ( m_araddr>=`CONFIG_PSRAM_BASE && m_araddr<=(`CONFIG_PSRAM_BASE+`CONFIG_PSRAM_SIZE) )
-        || ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) )
-    );
-`else
-wire dcache_wen = 0;
-wire dcache_ren = 0;
-`endif // IN_YOSYS_STA
-`else
-wire dcache_wen = 0;
-wire dcache_ren = 0;
-`endif // CONFIG_DCACHE
+assign c_s_arready = s_arready;
+assign c_s_rvalid = s_rvalid;
+assign c_s_rresp = s_rresp;
+assign c_s_rdata = s_rdata;
+assign c_s_rlast = s_rlast;
+assign c_s_rid = s_rid;
 
-wire slave_len_burst_en = ( m_araddr>=`CONFIG_SDRAM_BASE && m_araddr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) );
+assign s_arvalid = pt_ar ? 1'b1 : c_s_arvalid;
+/* 透传读期间需保持araddr非零，仲裁器据此维持master选中状态以回送响应 */
+assign s_araddr  = pt_ar ? m_req_addr :
+                   (r_m_state==M_STATE_PTRD) ? r_m_addr : c_s_araddr;
+assign s_arid    = pt_ar ? `AXI4_ID_LSU : c_s_arid;
+assign s_arlen   = pt_ar ? 8'd0 : c_s_arlen;
+assign s_arsize  = pt_ar ? 3'd2 : c_s_arsize;
+assign s_arburst = pt_ar ? 2'd1 : c_s_arburst;
+assign s_rready  = (r_m_state==M_STATE_PTRD) ? m_resp_ready : c_s_rready;
+
+wire slave_len_burst_en = ( r_m_addr>=`CONFIG_SDRAM_BASE && r_m_addr<=(`CONFIG_SDRAM_BASE+`CONFIG_SDRAM_SIZE) );
 
 wire                        slave_en; // 从设备使能标记
 reg  [ADDR_WIDTH-1:0]       r_slave_addr; // 从设备读取地址
-wire [INST_WIDTH-1:0]       slave_data; // 从设备读取指令
-reg  [31:0]                 r_slave_index; // 从设备指令计数
+wire [INST_WIDTH-1:0]       slave_data; // 从设备读取数据
+reg  [31:0]                 r_slave_index; // 从设备数据计数
 wire [7:0]                  slave_len; // 从设备burst模式读取的长度
 assign slave_len = slave_len_burst_en ? cache_line_load_len[7:0] : 0; // 其他存储器比如flash暂时不支持burst模式
-
-assign m_awready = dcache_wen ? c_m_awready : s_awready;
-assign m_wready = dcache_wen ? c_m_wready : s_wready;
-assign m_bvalid = dcache_wen ? c_m_bvalid : s_bvalid;
-assign m_bresp = dcache_wen ? c_m_bresp : s_bresp;
-assign m_bid = dcache_wen ? c_m_bid : s_bid;
-assign m_arready = dcache_ren ? c_m_arready : s_arready;
-assign m_rvalid = dcache_ren ? c_m_rvalid : s_rvalid;
-assign m_rresp = dcache_ren ? c_m_rresp : s_rresp;
-assign m_rdata = dcache_ren ? c_m_rdata : s_rdata;
-assign m_rlast = dcache_ren ? c_m_rlast : s_rlast;
-assign m_rid = dcache_ren ? c_m_rid : s_rid;
-assign c_m_awvalid = dcache_wen ? m_awvalid : 0;
-assign c_m_awaddr = dcache_wen ? m_awaddr : 0;
-assign c_m_awid = dcache_wen ? m_awid : 0;
-assign c_m_awlen = dcache_wen ? m_awlen : 0;
-assign c_m_awsize = dcache_wen ? m_awsize : 0;
-assign c_m_awburst = dcache_wen ? m_awburst : 0;
-assign c_m_wvalid = dcache_wen ? m_wvalid : 0;
-assign c_m_wdata = dcache_wen ? m_wdata : 0;
-assign c_m_wstrb = dcache_wen ? m_wstrb : 0;
-assign c_m_wlast = dcache_wen ? m_wlast : 0;
-assign c_m_bready = dcache_wen ? m_bready : 0;
-assign c_m_arvalid = dcache_ren ? m_arvalid : 0;
-assign c_m_araddr = m_araddr;
-assign c_m_arid = dcache_ren ? m_arid : 0;
-assign c_m_arlen = dcache_ren ? m_arlen : 0;
-assign c_m_arsize = dcache_ren ? m_arsize : 0;
-assign c_m_arburst = dcache_ren ? m_arburst : 0;
-assign c_m_rready = dcache_ren ? m_rready : 0;
-
-assign c_s_awready = dcache_wen ? s_awready : 0;
-assign c_s_wready = dcache_wen ? s_wready : 0;
-assign c_s_bvalid = dcache_wen ? s_bvalid : 0;
-assign c_s_bresp = dcache_wen ? s_bresp : 0;
-assign c_s_bid = dcache_wen ? s_bid : 0;
-assign c_s_arready = dcache_ren ? s_arready : 0;
-assign c_s_rvalid = dcache_ren ? s_rvalid : 0;
-assign c_s_rresp = dcache_ren ? s_rresp : 0;
-assign c_s_rdata = dcache_ren ? s_rdata : 0;
-assign c_s_rlast = dcache_ren ? s_rlast : 0;
-assign c_s_rid = dcache_ren ? s_rid : 0;
-assign s_awvalid = dcache_wen ? c_s_awvalid : m_awvalid;
-assign s_awaddr = dcache_wen ? c_s_awaddr : m_awaddr;
-assign s_awid = dcache_wen ? c_s_awid : m_awid;
-assign s_awlen = dcache_wen ? c_s_awlen : m_awlen;
-assign s_awsize = dcache_wen ? c_s_awsize : m_awsize;
-assign s_awburst = dcache_wen ? c_s_awburst : m_awburst;
-assign s_wvalid = dcache_wen ? c_s_wvalid : m_wvalid;
-assign s_wdata = dcache_wen ? c_s_wdata : m_wdata;
-assign s_wstrb = dcache_wen ? c_s_wstrb : m_wstrb;
-assign s_wlast = dcache_wen ? c_s_wlast : m_wlast;
-assign s_bready = dcache_wen ? c_s_bready : m_bready;
-assign s_arvalid = dcache_ren ? c_s_arvalid : m_arvalid;
-assign s_araddr = dcache_ren ? c_s_araddr : m_araddr;
-assign s_arid = dcache_ren ? c_s_arid : m_arid;
-assign s_arlen = dcache_ren ? c_s_arlen : m_arlen;
-assign s_arsize = dcache_ren ? c_s_arsize : m_arsize;
-assign s_arburst = dcache_ren ? c_s_arburst : m_arburst;
-assign s_rready = dcache_ren ? c_s_rready : m_rready;
 
 initial begin
     r_slave_addr = 0;
     r_slave_index = 0;
 end
 
-wire [ADDR_WIDTH-1:0]       read_addr;
-wire [7:0]                  read_len;
-wire [2:0]                  read_size;
-wire [31:0]                 read_index;
-wire [1:0]                  read_state;
-axi4_salve_burst_reader #(
-    `ifndef IN_YOSYS_STA
-    .NAME("dcache"),
-    `endif
-    .BURST(1), // burst类型，0--FIXED 1--INCR 2--WRAP
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(DATA_WIDTH),
-    .BRESP_WIDTH(BRESP_WIDTH),
-    .RRESP_WIDTH(RRESP_WIDTH)
-) m_axi4_salve_reader (
-    .clk(clk),
-    .rst(rst),
-    .arready(c_m_arready),
-    .arvalid(c_m_arvalid),
-    .araddr(c_m_araddr),
-    .arid(c_m_arid),
-    .arlen(c_m_arlen),
-    .arsize(c_m_arsize),
-    .arburst(c_m_arburst),
-    .rready(c_m_rready),
-    .rvalid(c_m_rvalid),
-    .rresp(c_m_rresp),
-    .rdata(c_m_rdata),
-    .rlast(c_m_rlast),
-    .rid(c_m_rid),
-    .enable(dcache_ren),
-    .read_data_en(impl_read_en && c_m_rready), // 直连rvalid信号
-    .read_data(impl_read_data),
-    .read_addr(read_addr),
-    .read_len(read_len),
-    .read_size(read_size),
-    .read_index(read_index),
-    .read_state(read_state)
-);
-
-wire [1:0]                  slave_state;
 assign slave_en = impl_update_en && r_slave_index<cache_line_load_count;
+
 axi_master_reader #(
 `ifndef IN_YOSYS_STA
     .NAME("dcache"),
@@ -334,6 +221,7 @@ reg                        impl_update_en;
 reg                        impl_reset_en;
 reg                        impl_write_en;
 reg [DATA_WIDTH-1:0]       impl_write_data;
+reg [31:0]                 impl_reset_addr;
 wire                       impl_read_en;
 wire [DATA_WIDTH-1:0]      impl_read_data;
 cache #(
@@ -354,67 +242,128 @@ cache #(
     .read_data(impl_read_data)
 );
 wire [31:0] impl_addr_aligned = {impl_addr[31:2], 2'b0}; // 需要注意4字节对齐
-reg [31:0] impl_reset_addr;
-wire [ADDR_WIDTH-1:0]  slave_read_addr = read_addr + read_index*4; // 处理burst模式时，需要读取不同地址的值
-assign impl_addr = dcache_ren ? slave_read_addr : 
-    m_awvalid ? m_awaddr :
-    impl_reset_en ? impl_reset_addr : 
-    0;
+/* 空闲时地址跟随当前请求（采样命中状态），接受请求后保持锁存地址；
+   写命中时无效对应cache行 */
+assign impl_addr = impl_reset_en ? impl_reset_addr :
+    ((r_m_state==M_STATE_IDLE) ? m_req_addr : r_m_addr);
 assign impl_write_en = impl_update_en && c_s_rvalid && c_s_rready;
 assign impl_write_data = c_s_rdata;
+assign m_resp_data = (r_m_state==M_STATE_PTRD) ? s_rdata : impl_read_data;
 
 always @(posedge clk) begin
     if (rst) begin
+        r_m_state <= M_STATE_IDLE;
+        r_m_addr <= 0;
+        r_m_wdata <= 0;
+        r_m_wstrb <= 0;
+        r_s_aw_done <= 0;
+        r_s_w_done <= 0;
+        impl_update_en <= 0;
         impl_reset_en <= 0;
         impl_reset_addr <= 0;
         cache_en <= 0;
         cache_stat <= `CACHE_STAT_NONE;
     end else begin
         cache_en <= 0;
-        if (m_awvalid && impl_read_en) begin
-            impl_reset_en <= 1;
-            impl_reset_addr <= m_awaddr;
-        end
 
         if (impl_reset_en) begin
             impl_reset_en <= 0;
             impl_reset_addr <= 0;
         end
 
-        if (dcache_ren) begin
-            if (c_m_arvalid && c_m_arready) begin
-                if (impl_read_en) begin 
-                    cache_en <= 1;
-                    cache_stat <= `CACHE_STAT_HIT;
+        case (r_m_state)
+            M_STATE_IDLE: begin
+                if (m_req_fire) begin
+                    r_m_addr <= m_req_addr;
+                    r_m_wdata <= m_req_wdata;
+                    r_m_wstrb <= m_req_wstrb;
+                    if (m_req_is_write) begin
+                        // 写请求透传给slave，写命中时无效对应cache行
+                        r_m_state <= M_STATE_PTWR;
+                        if (impl_read_en) begin
+                            impl_reset_en <= 1;
+                            impl_reset_addr <= m_req_addr;
+                        end
+                    end else if (m_req_cacheable) begin
+                        // 可缓存读：请求被接受时采样命中状态
+                        r_m_state <= M_STATE_CREAD;
+                        cache_en <= 1;
+                        cache_stat <= impl_read_en ? `CACHE_STAT_HIT : `CACHE_STAT_MISS;
+                    end else begin
+                        // 不可缓存读请求透传给slave
+                        r_m_state <= M_STATE_PTRD;
+                        cache_stat <= `CACHE_STAT_NONE;
+                    end
+                end
+            end
+
+            M_STATE_CREAD: begin
+                if (impl_update_en) begin
+                    // 等待从设备读取完成数据
+                    if (c_s_rvalid && c_s_rready) begin
+                        r_slave_addr <= r_slave_addr + (INST_WIDTH/8);
+                        r_slave_index <= r_slave_index + 1;
+                    end
+
+                    // 等待缓存更新好
+                    if (impl_read_en) begin
+                        impl_update_en <= 0;
+                    end
                 end else begin
-                    cache_en <= 1;
-                    cache_stat <= `CACHE_STAT_MISS;
+                    // 未命中缓存，准备更新
+                    if (!impl_read_en) begin
+                        impl_update_en <= 1;
+                        r_slave_addr <= {r_m_addr[ADDR_WIDTH-1:offset_width], {(offset_width){1'b0}}};
+                        r_slave_index <= 0;
+                    end
+                end
+
+                // cache数据有效后返回响应
+                if (m_resp_valid && m_resp_ready) begin
+                    r_m_state <= M_STATE_IDLE;
                 end
             end
 
-            if (impl_update_en) begin
-                // 等待从设备读取完成数据
-                if (c_s_rvalid && c_s_rready) begin
-                    r_slave_addr <= r_slave_addr + (INST_WIDTH/8);
-                    r_slave_index <= r_slave_index + 1;
-                end
-
-                // 等待缓存更新好
-                if (impl_read_en) begin
-                    impl_update_en <= 0;
-                end
-            end else begin
-                // 未命中缓存，准备更新
-                if (!impl_read_en) begin
-                    impl_update_en <= 1;
-                    r_slave_addr <= {slave_read_addr[ADDR_WIDTH-1:offset_width], {(offset_width){1'b0}}};
-                    r_slave_index <= 0;
+            M_STATE_PTRD: begin
+                if (s_rvalid && s_rready && s_rlast) begin
+                    `ifndef IN_YOSYS_STA
+                    `ifndef FORMAL_VERIFY
+                    if (s_rresp!=0 || s_rlast!=1 || s_rid!=`AXI4_ID_LSU) begin
+                        $error("dcache pass-through read error, addr:%x resp:%x last:%x id:%x\n", r_m_addr, s_rresp, s_rlast, s_rid);
+                    end
+                    `endif
+                    `endif
+                    r_m_state <= M_STATE_IDLE;
                 end
             end
-        end else if (m_arvalid && m_arready) begin
-            // 不可缓存地址（片内sram等）的读请求直接透传，不产生缓存统计
-            cache_stat <= `CACHE_STAT_NONE;
-        end
+
+            M_STATE_PTWR: begin
+                if (s_awvalid && s_awready) begin
+                    r_s_aw_done <= 1;
+                end
+                if (s_wvalid && s_wready) begin
+                    r_s_w_done <= 1;
+                end
+                if (s_bvalid && s_bready) begin
+                    `ifndef IN_YOSYS_STA
+                    `ifndef FORMAL_VERIFY
+                    if (s_bresp!=0 || s_bid!=`AXI4_ID_LSU) begin
+                        $error("dcache pass-through write error, addr:%x resp:%x id:%x\n", r_m_addr, s_bresp, s_bid);
+                    end
+                    `endif
+                    `endif
+                    r_s_aw_done <= 0;
+                    r_s_w_done <= 0;
+                    r_m_state <= M_STATE_IDLE;
+                end
+            end
+
+            `ifndef IN_YOSYS_STA
+            `ifndef FORMAL_VERIFY
+            default: $error("dcache found unknown m_state(%d)", r_m_state);
+            `endif
+            `endif
+        endcase
     end
 end
 

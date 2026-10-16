@@ -2,44 +2,22 @@ module load_store #(
     parameter INST_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter BRESP_WIDTH = 2,
-    parameter RRESP_WIDTH = 2,
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
     input   wire                        clk,
     input   wire                        rst,
 
-    /* AXI4总线master */
-    input   wire                        awready,
-    output  wire                        awvalid,
-    output  wire [ADDR_WIDTH-1:0]       awaddr,
-    output  wire [3:0]                  awid,
-    output  wire [7:0]                  awlen,
-    output  wire [2:0]                  awsize,
-    output  wire [1:0]                  awburst,
-    input   wire                        wready,
-    output  wire                        wvalid,
-    output  wire [DATA_WIDTH-1:0]       wdata,
-    output  wire [DATA_WIDTH/8-1:0]     wstrb,
-    output  wire                        wlast,
-    output  wire                        bready,
-    input   wire                        bvalid,
-    input   wire [BRESP_WIDTH-1:0]      bresp,
-    input   wire [3:0]                  bid,
-    input   wire                        arready,
-    output  wire                        arvalid,
-    output  wire [ADDR_WIDTH-1:0]       araddr,
-    output  wire [3:0]                  arid,
-    output  wire [7:0]                  arlen,
-    output  wire [2:0]                  arsize,
-    output  wire [1:0]                  arburst,
-    output  wire                        rready,
-    input   wire                        rvalid,
-    input   wire [RRESP_WIDTH-1:0]      rresp,
-    input   wire [DATA_WIDTH-1:0]       rdata,
-    input   wire                        rlast,
-    input   wire [3:0]                  rid,
+    /* req-resp总线master（连接dcache） */
+    output  wire                        req_valid,
+    input   wire                        req_ready,
+    output  wire [ADDR_WIDTH-1:0]       req_addr,
+    output  wire                        req_is_write,
+    output  wire [DATA_WIDTH-1:0]       req_wdata,
+    output  wire [DATA_WIDTH/8-1:0]     req_wstrb,
+    input   wire                        resp_valid,
+    output  wire                        resp_ready,
+    input   wire [DATA_WIDTH-1:0]       resp_data,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -128,6 +106,12 @@ module load_store #(
     reg                             r_mem_access = 0;
     reg  [ADDR_WIDTH-1:0]           r_mem_addr = 0;
 
+    /* 请求事务状态：r_req_busy--请求已被接受等待响应；
+       跨字访问拆成两个单字请求，r_req_second指示当前为第二拍 */
+    reg                             r_req_busy = 0;
+    reg                             r_req_second = 0;
+    reg  [DATA_WIDTH-1:0]           r_req_first_data = 0;
+
 `ifdef FORMAL_VERIFY
     /* 形式化验证：记录load指令在总线上读到的原始数据 */
     reg  [DATA_WIDTH-1:0]           r_fv_ld_data;
@@ -135,7 +119,7 @@ module load_store #(
         if (rst) begin
             r_fv_ld_data <= 0;
         end else begin
-            if (rvalid & rready & rlast) r_fv_ld_data <= rdata;
+            if (resp_valid && resp_ready && r_read_enable) r_fv_ld_data <= resp_data;
         end
     end
 `endif
@@ -162,7 +146,7 @@ module load_store #(
     assign out_mem_access = r_mem_access;
     assign out_mem_addr = r_mem_addr;
     wire [INST_WIDTH-1:0]       access_addr = src1+imm;
-    wire [2:0]                  access_size = 
+    wire [2:0]                  access_size =
         inst_code == `INST_SB ? 0
         : inst_code == `INST_LB ? 0
         : inst_code == `INST_LBU ? 0
@@ -176,97 +160,82 @@ module load_store #(
     wire [ADDR_WIDTH-1:0] write_addr = access_addr;
     wire [DATA_WIDTH-1:0] write_data = src2;
     wire [2:0] write_size = access_size;
-    wire [1:0] write_state;
 
     reg r_read_enable;
     wire read_inst = (inst_code==`INST_LB | inst_code==`INST_LH | inst_code==`INST_LW | inst_code==`INST_LBU | inst_code==`INST_LHU);
     wire read_sign = (inst_code==`INST_LB | inst_code==`INST_LH | inst_code==`INST_LW);
     wire [ADDR_WIDTH-1:0] read_addr = access_addr;
-    wire [DATA_WIDTH-1:0] read_data;
     wire [2:0] read_size = access_size;
-    wire [1:0] read_state;
 
     wire fence_enable = (inst_code==`INST_FENCE | inst_code==`INST_FENCE_I);
     wire test_mode_enable = access_addr>=32'h0f00_2000 & access_addr<=32'h0fff_ffff;
 
+    /* 非对齐访问参数：跨字时拆成两个单字请求，strb高4bit有效表示存在第二拍 */
+    reg  [7:0]                  s_write_len;
+    reg  [7:0]                  s_write_strb;
+    reg  [1:0]                  s_write_shift;
+    always @(*) begin
+        s_write_len = 0;
+        s_write_strb = 0;
+        s_write_shift = 0;
+        if (!rst && r_write_enable) begin
+            get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift);
+        end
+    end
+    wire write_span = |s_write_strb[7:4];
+
+    reg  [7:0]                  s_read_len;
+    reg  [7:0]                  s_read_strb;
+    reg  [1:0]                  s_read_shift;
+    always @(*) begin
+        s_read_len = 0;
+        s_read_strb = 0;
+        s_read_shift = 0;
+        if (!rst && r_read_enable) begin
+            get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift);
+        end
+    end
+    wire read_span = |s_read_strb[7:4];
+
+    /* 读数据提取：按偏移截取并做符号扩展；
+       提取窗口低字为单字读数据，跨字读时为第一拍数据 */
+    wire [DATA_WIDTH-1:0]       read_window_low = read_span ? r_req_first_data : resp_data;
+    wire [2*DATA_WIDTH-1:0]     read_window = {resp_data, read_window_low};
+    /* 形式化验证：避免使用带输出参数的函数调用（yosys会产生伪组合环），直接按偏移截取并符号扩展 */
+`ifdef FORMAL_VERIFY
+    wire [DATA_WIDTH-1:0]       read_aligned = read_window >> (s_read_shift*8);
+    wire [DATA_WIDTH-1:0]       read_masked =
+        (read_size==0) ? (read_aligned & 32'h000000FF) :
+        (read_size==1) ? (read_aligned & 32'h0000FFFF) :
+        read_aligned;
+    wire [DATA_WIDTH-1:0]       read_sext =
+        (read_sign && read_size==0) ? {{24{read_masked[7]}}, read_masked[7:0]} :
+        (read_sign && read_size==1) ? {{16{read_masked[15]}}, read_masked[15:0]} :
+        read_masked;
+    wire [DATA_WIDTH-1:0]       read_extract = read_sext;
+`else
+    reg  [DATA_WIDTH-1:0]       read_extract;
+    always @(*) begin
+        get_unalign_addr_data(read_sign, read_size, read_window, s_read_shift, read_extract);
+    end
+`endif
+
+    /* 请求总线：单字读写，跨字访问的第二拍地址为addr+4 */
+    wire [ADDR_WIDTH-1:0]       req_addr_base = r_write_enable ? write_addr : read_addr;
+    assign req_valid = access_enable && (r_read_enable || r_write_enable) && !r_req_busy;
+    assign req_addr = r_req_second ? (req_addr_base + (INST_WIDTH/8)) : req_addr_base;
+    assign req_is_write = r_write_enable;
+    assign req_wdata = r_write_enable ?
+        (r_req_second ? write_data>>(32-8*s_write_shift) : write_data<<(8*s_write_shift)) : 0;
+    assign req_wstrb = r_write_enable ?
+        (r_req_second ? s_write_strb[7:4] : s_write_strb[3:0]) : 0;
+    assign resp_ready = r_req_busy;
+
     // 处理硬件监控信号
-    assign hw_monitor_ls_en = !rst && ls_enable && !fence_enable && !test_mode_enable && access_enable && 
-        ((r_write_enable && awvalid && awready) || (r_read_enable && arvalid && arready));
+    assign hw_monitor_ls_en = !rst && ls_enable && !fence_enable && !test_mode_enable && access_enable &&
+        ((r_write_enable || r_read_enable) && req_valid && req_ready && !r_req_second);
     assign hw_monitor_ls_iswrite = r_write_enable;
-    assign hw_monitor_ls_data = r_write_enable ? awaddr : araddr;
-
-    axi_master_writer #(
-    `ifndef IN_YOSYS_STA
-        .NAME("LSU"),
-    `endif
-        .ID(`AXI4_ID_LSU),
-        .BURST(1), // burst类型，0--FIXED 1--INCR 2--WRAP
-        .INST_WIDTH(INST_WIDTH),
-        .ADDR_WIDTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH),
-        .BRESP_WIDTH(BRESP_WIDTH),
-        .RRESP_WIDTH(RRESP_WIDTH)
-    ) m_axi_master_writer (
-        .clk(clk),
-        .rst(rst),
-        .awready(awready),
-        .awvalid(awvalid),
-        .awaddr(awaddr),
-        .awid(awid),
-        .awlen(awlen),
-        .awsize(awsize),
-        .awburst(awburst),
-        .wready(wready),
-        .wvalid(wvalid),
-        .wdata(wdata),
-        .wstrb(wstrb),
-        .wlast(wlast),
-        .bready(bready),
-        .bvalid(bvalid),
-        .bresp(bresp),
-        .bid(bid),
-        .write_enable(r_write_enable),
-        .write_addr(write_addr),
-        .write_data(write_data),
-        .write_size(write_size),
-        .write_state(write_state)
-    );
-
-    axi_master_reader #(
-    `ifndef IN_YOSYS_STA
-        .NAME("LSU"),
-    `endif
-        .ID(`AXI4_ID_LSU),
-        .BURST(1), // burst类型，0--FIXED 1--INCR 2--WRAP
-        .INST_WIDTH(INST_WIDTH),
-        .ADDR_WIDTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH),
-        .BRESP_WIDTH(BRESP_WIDTH),
-        .RRESP_WIDTH(RRESP_WIDTH)
-    ) m_axi_master_reader (
-        .clk(clk),
-        .rst(rst),
-        .arready(arready),
-        .arvalid(arvalid),
-        .araddr(araddr),
-        .arid(arid),
-        .arlen(arlen),
-        .arsize(arsize),
-        .arburst(arburst),
-        .rready(rready),
-        .rvalid(rvalid),
-        .rresp(rresp),
-        .rdata(rdata),
-        .rlast(rlast),
-        .rid(rid),
-        .enable(r_read_enable),
-        .read_sign(read_sign),
-        .read_addr(read_addr),
-        .read_len(0),
-        .read_data(read_data),
-        .read_size(read_size),
-        .read_state(read_state)
-    );
+    assign hw_monitor_ls_data = req_addr;
 
     always @(posedge clk) begin
         if (rst) begin
@@ -279,6 +248,9 @@ module load_store #(
             r_cache_stat <= `CACHE_STAT_NONE;
             r_mem_access <= 0;
             r_mem_addr <= 0;
+            r_req_busy <= 0;
+            r_req_second <= 0;
+            r_req_first_data <= 0;
         end else begin
             r_result <= r_result;
             r_result_update_gpr <= r_result_update_gpr;
@@ -291,6 +263,9 @@ module load_store #(
                 // 访存指令（读或写）锁存访存标识及访存目标地址，供perf monitor获取数据存储索引
                 r_mem_access <= read_inst | write_inst;
                 r_mem_addr <= access_addr;
+                // 清除上一指令残留的请求事务状态
+                r_req_busy <= 0;
+                r_req_second <= 0;
             end
 
             if (!ls_enable) begin
@@ -311,31 +286,52 @@ module load_store #(
             `endif
             end else if (access_enable) begin
                 /* 处理读写逻辑 */
-                if (r_write_enable) begin
-                    if (bvalid & bready) begin
-                        r_write_enable <= 0;
-                        r_result <= 0;
-                        r_result_update_gpr <= 0;
-                        r_stage_out_valid <= 1;
-                    end
-
-                end else if (r_read_enable) begin
-                    if (rvalid & rready) begin
-                        r_result <= read_data;
-                    end
-
-                    if (rvalid & rready & rlast) begin
-                        // notify prev module
-                        r_result_update_gpr <= 1;
-                        r_stage_out_valid <= 1;
-                        r_read_enable <= 0;
-                        // 读数据返回时锁存dcache命中状态（读请求被接受后cache_stat已稳定）
-                        r_cache_stat <= cache_stat;
+                if (!r_req_busy) begin
+                    if (req_valid && req_ready) begin
+                        r_req_busy <= 1;
+                        if (!r_req_second) begin
+                            if (r_write_enable) begin
+                                check_dev_addr(write_addr, `DEV_ATTR_WRITE);
+                            end
+                            if (r_read_enable) begin
+                                check_dev_addr(read_addr, `DEV_ATTR_READ);
+                            end
+                        end
+                        if (r_write_enable && (!write_span || r_req_second)) begin
+                            func_dev_skip(1, write_addr, {25'h0, write_size, s_write_strb[3:0]|s_write_strb[7:4]}, write_data);
+                        end
                     end
                 end else begin
-                    // `ifndef IN_YOSYS_STA
-                    // $error("Found unsopport inst_code(%x) in LSU", inst_code);
-                    // `endif
+                    if (resp_valid && resp_ready) begin
+                        r_req_busy <= 0;
+                        if (r_write_enable) begin
+                            if (!write_span || r_req_second) begin
+                                // notify prev module
+                                r_write_enable <= 0;
+                                r_result <= 0;
+                                r_result_update_gpr <= 0;
+                                r_stage_out_valid <= 1;
+                                r_req_second <= 0;
+                            end else begin
+                                r_req_second <= 1;
+                            end
+                        end else if (r_read_enable) begin
+                            if (!read_span || r_req_second) begin
+                                // notify prev module
+                                r_result <= read_extract;
+                                r_result_update_gpr <= 1;
+                                r_stage_out_valid <= 1;
+                                r_read_enable <= 0;
+                                r_req_second <= 0;
+                                // 读数据返回时锁存dcache命中状态（读请求被接受后cache_stat已稳定）
+                                r_cache_stat <= cache_stat;
+                                func_dev_skip(0, read_addr, {21'h0, read_size, s_read_len}, read_extract);
+                            end else begin
+                                r_req_first_data <= resp_data;
+                                r_req_second <= 1;
+                            end
+                        end
+                    end
                 end
 
                 if (stage_out_done) begin
