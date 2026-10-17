@@ -21,11 +21,7 @@
 #define TOP_STR str(TOP_NAME)
 
 #define TOP_CORE0_NAME ysyx_23060295_CORE0
-#ifdef CONFIG_ISA_RISCV_SINGLE
-#define TOP_S_X concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__wbu__DOT__x)
-#else
 #define TOP_S_X concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__m_gprs__DOT__x)
-#endif
 // #define TOP_S_CSR concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__m_csrs__DOT__csrs)
 #define TOP_S_PC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_pc)
 // #define TOP_S_DNPC concat4(TOP_NAME, __DOT__asic__DOT__cpu__DOT__cpu__DOT__, TOP_CORE0_NAME, __DOT__core_dnpc)

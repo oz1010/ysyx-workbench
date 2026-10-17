@@ -212,10 +212,11 @@ module write_back #(
     // gpr读入
     input   wire [DATA_WIDTH-1:0]           gpr_src1,
     input   wire [DATA_WIDTH-1:0]           gpr_src2,
+    input   wire [DATA_WIDTH-1:0]           gpr_a0,
     // gpr写入
-    output  wire                            gpr_wen,
-    output  wire [`RISCV_GPR_ADDR_W-1:0]    gpr_windex,
-    output  wire [DATA_WIDTH-1:0]           gpr_wdata,
+    output  reg                             gpr_wen,
+    output  reg  [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr,
+    output  reg  [DATA_WIDTH-1:0]           gpr_wdata,
 
     // 普通csr读入
     input   wire [DATA_WIDTH-1:0]           csr_rdata,
@@ -231,38 +232,10 @@ module write_back #(
 
     output wire [INST_WIDTH-1:0]            dnpc
 );
-
-    assign gpr_wen = 0;
-    assign gpr_windex = 0;
-    assign gpr_wdata = 0;
-
-    /* 寄存器组 */
-    // 通用寄存器
-    reg [INST_WIDTH-1:0] x[`RISCV_GPR_COUNT-1:0];
-    // 当前指令寄存器
-    // 寄存器别名，register alias, ch2.3
-    wire [INST_WIDTH-1:0] zero = x[0];
-    wire [INST_WIDTH-1:0] ra = x[1];
-    wire [INST_WIDTH-1:0] sp = x[2];
-    wire [INST_WIDTH-1:0] gp = x[3];
-    wire [INST_WIDTH-1:0] tp = x[4];
-    wire [INST_WIDTH-1:0] a[7:0];
-`ifndef IN_YOSYS_STA
-    generate
-        if (`RISCV_GPR_COUNT==32) begin : gpr_32
-            assign a[7:0] = x[17:10];
-        end else begin : gpr_16
-            assign a[4:0] = x[14:10];
-        end
-    endgenerate
-`endif
-
-    /* 执行并更新结果 */
-    wire [INST_WIDTH-1:0] src1 = x[rs1];
-    wire [INST_WIDTH-1:0] src2 = x[rs2];
+    wire [INST_WIDTH-1:0] src1 = gpr_src1;
+    wire [INST_WIDTH-1:0] src2 = gpr_src2;
     wire signed [INST_WIDTH-1:0] s_src1 = src1;
     wire signed [INST_WIDTH-1:0] s_src2 = src2;
-
     wire [INST_WIDTH-1:0] snpc = pc + 4;
     wire [INST_WIDTH-1:0] pc_plus_imm = pc + imm;
     assign dnpc = 
@@ -277,7 +250,8 @@ module write_back #(
         (inst_code==`INST_ECALL) ? csr_rdata :
         (inst_code==`INST_MRET) ? csr_rdata :
         snpc;
-    integer mem_data;
+    integer mem_rdata;
+    integer mem_wdata;
     wire [31:0] mem_addr = src1 + imm;
 
     always @(posedge clk) begin
@@ -285,47 +259,14 @@ module write_back #(
         end else begin
             // 更新寄存器或回写内存
             case (inst_code)
-                `INST_LUI:          x[rd] <= imm;
-                `INST_AUIPC:        x[rd] <= pc_plus_imm;
-                `INST_JAL:          x[rd] <= snpc;
-                `INST_JALR:         x[rd] <= snpc;
 `ifndef IN_YOSYS_STA
-                `INST_LB:           begin mem_data = sext(read_raw_mem(mem_addr, 1), 8); x[rd] <= mem_data; func_dev_skip(0, mem_addr, { 24'h0, 4'h0, 4'h0}, mem_data); end
-                `INST_LH:           begin mem_data = sext(read_raw_mem(mem_addr, 2), 16); x[rd] <= mem_data; func_dev_skip(0, mem_addr, { 24'h0, 4'h1, 4'h0}, mem_data); end
-                `INST_LW:           begin mem_data = sext(read_raw_mem(mem_addr, 4), 32); x[rd] <= mem_data; func_dev_skip(0, mem_addr, { 24'h0, 4'h2, 4'h0}, mem_data); end
-                `INST_LBU:          begin mem_data = read_raw_mem(mem_addr, 1) & 32'hFF; x[rd] <= mem_data; func_dev_skip(0, mem_addr, { 24'h0, 4'h0, 4'h0}, mem_data); end
-                `INST_LHU:          begin mem_data = read_raw_mem(mem_addr, 2) & 32'hFFFF; x[rd] <= mem_data; func_dev_skip(0, mem_addr, { 24'h0, 4'h1, 4'h0}, mem_data); end
-                `INST_SB:           begin mem_data = src2&32'hFF; write_raw_mem(mem_addr, 1, mem_data); func_dev_skip(1, mem_addr, {24'h0, 4'h0, 4'h1}, mem_data); end
-                `INST_SH:           begin mem_data = src2&32'hFFFF; write_raw_mem(mem_addr, 2, mem_data); func_dev_skip(1, mem_addr, {24'h0, 4'h1, 4'h3}, mem_data); end
-                `INST_SW:           begin mem_data = src2; write_raw_mem(mem_addr, 4, mem_data); func_dev_skip(1, mem_addr, {24'h0, 4'h2, 4'h7}, mem_data); end
+                `INST_SB:           begin mem_wdata = src2&32'hFF; write_raw_mem(mem_addr, 1, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h0, 4'h1}, mem_wdata); end
+                `INST_SH:           begin mem_wdata = src2&32'hFFFF; write_raw_mem(mem_addr, 2, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h1, 4'h3}, mem_wdata); end
+                `INST_SW:           begin mem_wdata = src2; write_raw_mem(mem_addr, 4, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h2, 4'h7}, mem_wdata); end
 `endif
-                `INST_ADDI:         x[rd] <= src1 + imm;
-                `INST_SLTI:         x[rd] <= {{31{1'b0}}, (s_src1 < imm)};
-                `INST_SLTIU:        x[rd] <= {{31{1'b0}}, (src1 < imm)};
-                `INST_XORI:         x[rd] <= src1 ^ imm;
-                `INST_ORI:          x[rd] <= src1 | imm;
-                `INST_ANDI:         x[rd] <= src1 & imm;
-                `INST_SLLI:         x[rd] <= src1 << (imm&32'h1F);
-                `INST_SRLI:         x[rd] <= src1 >> (imm&32'h1F);
-                `INST_SRAI:         x[rd] <= (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) );
-                `INST_ADD:          x[rd] <= src1 + src2;
-                `INST_SUB:          x[rd] <= src1 - src2;
-                `INST_SLL:          x[rd] <= src1 << (src2 & 32'h1F);
-                `INST_SLT:          x[rd] <= {{31{1'b0}}, (s_src1 < s_src2)};
-                `INST_SLTU:         x[rd] <= {{31{1'b0}}, (src1 < src2)};
-                `INST_XOR:          x[rd] <= src1 ^ src2;
-                `INST_SRL:          x[rd] <= src1 >> (src2 & 32'h1F);
-                `INST_SRA:          x[rd] <= src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) );
-                `INST_OR:           x[rd] <= src1 | src2;
-                `INST_AND:          x[rd] <= src1 & src2;
-                `INST_CSRRW:        x[rd] <= csr_rdata;
-                `INST_CSRRS:        x[rd] <= csr_rdata;
                 `INST_MRET:         func_query_intr(); // MEPC 0x341
                 default: ;
             endcase
-
-            // 确保 x0 始终为零
-            x[0] <= 0;
         end
     end
 
@@ -341,11 +282,53 @@ module write_back #(
     always @(*) begin
         expt_en = 0; expt_epc = 0; expt_cause = 0; expt_tval = 0;
         case (inst_code)
-            `INST_EBREAK:   begin expt_en = 1; expt_cause = `EXPT_CAUSE_BRK; expt_tval = x[10]; expt_epc = 0; end
+            `INST_EBREAK:   begin expt_en = 1; expt_cause = `EXPT_CAUSE_BRK; expt_tval = gpr_a0; expt_epc = 0; end
             `INST_INVALID:  begin expt_en = 1; expt_cause = `EXPT_CAUSE_ILL; expt_tval = inst; expt_epc = pc; end
             `INST_ECALL:    begin expt_en = 1; expt_cause = `EXPT_CAUSE_MEC; expt_tval = (0<<31|11<<0); expt_epc = pc; end // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
             `INST_SLLI, `INST_SRLI, `INST_SRAI: if ((imm&32'h20)!=32'h0) begin expt_en = 1; expt_cause = `EXPT_CAUSE_ILL; expt_tval = inst; expt_epc = pc; end
             default: begin end
+        endcase
+    end
+
+    // GPR寄存器堆处理
+    always @(*) begin
+        mem_rdata = 0;
+        gpr_wen = 0; gpr_waddr = rd; gpr_wdata = 0;
+        case (inst_code)
+            `INST_LUI:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = imm; end
+            `INST_AUIPC:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = pc_plus_imm; end
+            `INST_JAL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
+            `INST_JALR:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
+`ifndef IN_YOSYS_STA
+            `INST_LB:           begin mem_rdata = sext(read_raw_mem(mem_addr, 1), 8); func_dev_skip(0, mem_addr, { 24'h0, 4'h0, 4'h0}, mem_rdata);    gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LH:           begin mem_rdata = sext(read_raw_mem(mem_addr, 2), 16); func_dev_skip(0, mem_addr, { 24'h0, 4'h1, 4'h0}, mem_rdata);   gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LW:           begin mem_rdata = sext(read_raw_mem(mem_addr, 4), 32); func_dev_skip(0, mem_addr, { 24'h0, 4'h2, 4'h0}, mem_rdata);   gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LBU:          begin mem_rdata = read_raw_mem(mem_addr, 1) & 32'hFF; func_dev_skip(0, mem_addr, { 24'h0, 4'h0, 4'h0}, mem_rdata);    gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LHU:          begin mem_rdata = read_raw_mem(mem_addr, 2) & 32'hFFFF; func_dev_skip(0, mem_addr, { 24'h0, 4'h1, 4'h0}, mem_rdata);  gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+`endif
+            `INST_ADDI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 + imm; end
+            `INST_SLTI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (s_src1 < imm)}; end
+            `INST_SLTIU:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (src1 < imm)}; end
+            `INST_XORI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 ^ imm; end
+            `INST_ORI:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 | imm; end
+            `INST_ANDI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 & imm; end
+            `INST_SLLI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 << (imm&32'h1F); end
+            `INST_SRLI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 >> (imm&32'h1F); end
+            `INST_SRAI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) ); end
+            `INST_ADD:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 + src2; end
+            `INST_SUB:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 - src2; end
+            `INST_SLL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 << (src2 & 32'h1F); end
+            `INST_SLT:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (s_src1 < s_src2)}; end
+            `INST_SLTU:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (src1 < src2)}; end
+            `INST_XOR:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 ^ src2; end
+            `INST_SRL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 >> (src2 & 32'h1F); end
+            `INST_SRA:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) ); end
+            `INST_OR:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 | src2; end
+            `INST_AND:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 & src2; end
+            `INST_CSRRW:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = csr_rdata; end
+            `INST_CSRRS:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = csr_rdata; end
+
+            default:            begin end
         endcase
     end
 

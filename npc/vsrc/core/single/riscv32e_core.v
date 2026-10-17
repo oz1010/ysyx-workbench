@@ -116,11 +116,29 @@ module riscv32e_core #(
     output wire         valid
 );
 
-/* 寄存器组 */
-reg [INST_WIDTH-1:0] r_inst;
 reg r_valid;
-
 assign valid = r_valid;
+
+/* gpr寄存器组 */
+wire [DATA_WIDTH-1:0] gpr_src1;
+wire [DATA_WIDTH-1:0] gpr_src2;
+wire [DATA_WIDTH-1:0] gpr_a0;
+gprs #(
+    .DATA_WIDTH(DATA_WIDTH),
+    .REG_COUNT(`RISCV_GPR_COUNT)
+) m_gprs (
+    .clk(clk),
+    .rst(rst),
+    .rs1(rs1),
+    .src1(gpr_src1),
+    .rs2(rs2),
+    .src2(gpr_src2),
+    .a0(gpr_a0),
+    .wen(gpr_wen),
+    .waddr(gpr_waddr),
+    .wdata(gpr_wdata)
+);
+
 
 /* csr寄存器组 */
 wire [`INST_CODE_W-1:0] csr_inst_code = inst_code;
@@ -192,6 +210,7 @@ hw_monitor #(
 );
 
 /* 取指 */
+reg [INST_WIDTH-1:0] r_inst;
 always @(*) begin
     if (rst) begin
         r_inst = 32'b0;
@@ -212,6 +231,10 @@ wire [2:0] inst_type;
 wire [`INST_CODE_W-1:0] inst_code;
 decoder risc32e_decoder(r_inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
 
+/* 回写wb */
+wire                            gpr_wen;
+wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr;
+wire [DATA_WIDTH-1:0]           gpr_wdata;
 write_back #(
     .INST_WIDTH(INST_WIDTH)
 ) wbu(
@@ -226,11 +249,12 @@ write_back #(
     .imm(imm),
     .inst_code(inst_code),
 
-    .gpr_src1(),
-    .gpr_src2(),
-    .gpr_wen(),
-    .gpr_windex(),
-    .gpr_wdata(),
+    .gpr_src1(gpr_src1),
+    .gpr_src2(gpr_src2),
+    .gpr_a0(gpr_a0),
+    .gpr_wen(gpr_wen),
+    .gpr_waddr(gpr_waddr),
+    .gpr_wdata(gpr_wdata),
 
     .csr_rdata(csr_rdata),
     .csr_wen(csr_wen),
