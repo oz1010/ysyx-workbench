@@ -302,8 +302,12 @@ int read_raw_mem(int addr, int len)
     vdev_item_t* vdev = find_vdev_item(addr);
     if (unlikely(vdev == NULL))
     {
+#if CONFIG_ISA_RISCV_SINGLE
+        return 0; // 需要支持单周期的组合逻辑读，addr不稳定
+#else
         raw_stdout("Read mem is out of range, addr:%#.8x len:%d\n", addr, len);
         exit_simu(2);
+#endif
     }
     int data = vdev_read(vdev, addr, len);
     DPI_MTRACE("R [%#.8x] => %#.8x %d", addr, data, len);

@@ -65,9 +65,11 @@ void uart16550_handler(void *item_arg, bool is_write, vaddr_t addr, int len, wor
                     break;
 
                 default:
+#ifndef CONFIG_ISA_RISCV_SINGLE
                     printf("access uart16550 error, %s %#.8x %d \n", (is_write ? "write" : "read"),
                            addr, len);
                     assert(0 && "don't support access uart16550");
+#endif
                     break;
             }
         }
