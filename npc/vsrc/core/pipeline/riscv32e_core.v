@@ -396,7 +396,7 @@ gprs #(
     .src2(gpr_src2),
     .a0(gpr_a0),
     .wen(wb_gpr_wen),
-    .windex(wb_gpr_windex[3:0]),
+    .waddr(wb_gpr_windex[3:0]),
     .wdata(wb_gpr_wdata)
 );
 
@@ -423,8 +423,13 @@ csrs #(
     .rst(rst),
     .raddr(csr_raddr),
     .rdata(csr_rdata),
-    .csr_wch(wb_csr_wch),
-    .cscode()
+    .wen(wb_csr_wen),
+    .waddr(wb_csr_waddr),
+    .wdata(wb_csr_wdata),
+    .expt_en(wb_expt_en),
+    .expt_epc(wb_expt_epc),
+    .expt_cause(wb_expt_cause),
+    .expt_tval(wb_expt_tval)
 );
 
 /* 性能监控 */
@@ -459,7 +464,7 @@ perf_monitor m_perf_monitor (
     .wb_gpr_wen(wb_gpr_wen),
     .wb_gpr_windex(wb_gpr_windex),
     .wb_gpr_wdata(wb_gpr_wdata),
-    .wb_csr_wch(wb_csr_wch),
+    .wb_csr_wch(), // TODO 监控csr写入状态
     .if_cache_stat(if_cache_stat),
     .ls_cache_stat(ls_cache_stat),
     .ls_mem_access(ls_mem_access),
@@ -1235,7 +1240,13 @@ stage_regs#(
 wire                            wb_gpr_wen;
 wire [4:0]                      wb_gpr_windex;
 wire [DATA_WIDTH-1:0]           wb_gpr_wdata;
-wire [`CSR_WCH_W-1:0]           wb_csr_wch;
+wire                            wb_csr_wen;
+wire [`CSR_ADDR_W-1:0]          wb_csr_waddr;
+wire [DATA_WIDTH-1:0]           wb_csr_wdata;
+wire                            wb_expt_en;
+wire [INST_WIDTH-1:0]           wb_expt_epc;
+wire [DATA_WIDTH-1:0]           wb_expt_cause;
+wire [DATA_WIDTH-1:0]           wb_expt_tval;
 wire [WB_OUT_DATA_W-1:0]        mod_con_wb_bits;
 wire [WB_OUT_DATA_W-1:0]        con_wb_bits;
 wire [ADDR_WIDTH-1:0]           con_wb_pc;
@@ -1283,7 +1294,14 @@ write_back #(
     .gpr_wen(wb_gpr_wen),
     .gpr_windex(wb_gpr_windex),
     .gpr_wdata(wb_gpr_wdata),
-    .out_csr_wch(wb_csr_wch),
+
+    .csr_wen(wb_csr_wen),
+    .csr_waddr(wb_csr_waddr),
+    .csr_wdata(wb_csr_wdata),
+    .expt_en(wb_expt_en),
+    .expt_epc(wb_expt_epc),
+    .expt_cause(wb_expt_cause),
+    .expt_tval(wb_expt_tval),
 
     .in_ready(mod_con_wb_ready),
     .in_valid(con_ls_valid),

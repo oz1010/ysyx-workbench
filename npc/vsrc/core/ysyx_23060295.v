@@ -99,35 +99,17 @@ module ysyx_23060295 (
     output wire [3:0]   io_slave_rid
 );
 
-// assign io_master_awvalid = 0;
-// assign io_master_awaddr = 0;
-// assign io_master_awid = 0;
-// assign io_master_awlen = 0;
-// assign io_master_awsize = 4;
-// assign io_master_awburst = 0;
-// assign io_master_wvalid = 0;
-// assign io_master_wdata = 0;
-// assign io_master_wstrb = 0;
-// assign io_master_wlast = 0;
-// assign io_master_bready = 0;
-// assign io_master_arvalid = 0;
-// assign io_master_araddr = 0;
-// assign io_master_arid = 0;
-// assign io_master_arlen = 0;
-// assign io_master_arsize = 0;
-// assign io_master_arburst = 0;
-// assign io_master_rready = 0;
-// assign io_slave_awready = 0;
-// assign io_slave_wready = 0;
-// assign io_slave_bvalid = 0;
-// assign io_slave_bresp = 0;
-// assign io_slave_bid = 0;
-// assign io_slave_arready = 0;
-// assign io_slave_rvalid = 0;
-// assign io_slave_rresp = 0;
-// assign io_slave_rdata = 0;
-// assign io_slave_rlast = 0;
-// assign io_slave_rid = 0;
+assign io_slave_awready = 0;
+assign io_slave_wready = 0;
+assign io_slave_bvalid = 0;
+assign io_slave_bresp = 0;
+assign io_slave_bid = 0;
+assign io_slave_arready = 0;
+assign io_slave_rvalid = 0;
+assign io_slave_rresp = 0;
+assign io_slave_rdata = 0;
+assign io_slave_rlast = 0;
+assign io_slave_rid = 0;
 
 wire clk = clock;
 wire rst = reset;
@@ -159,6 +141,59 @@ generate
 endgenerate
 `endif
 
+`ifdef CONFIG_ISA_RISCV_SINGLE
+// 单周期版本的核心连接逻辑
+riscv32e_core #(
+    .INST_WIDTH(`RISCV_INST_WIDTH)
+) ysyx_23060295_CORE0(
+    .clk(clk),
+    .rst(rst),
+
+    .io_interrupt(io_interrupt),
+
+    .pc(core_pc[0]),
+    .valid(core_inst_done[0])
+);
+riscv32e_memsys #(
+    .INST_WIDTH(`RISCV_INST_WIDTH)
+) ysyx_23060295_memsys0(
+    .clk(clk),
+    .rst(rst),
+
+    .io_master_awready(io_master_awready),
+    .io_master_awvalid(io_master_awvalid),
+    .io_master_awaddr(io_master_awaddr),
+    .io_master_awid(io_master_awid),
+    .io_master_awlen(io_master_awlen),
+    .io_master_awsize(io_master_awsize),
+    .io_master_awburst(io_master_awburst),
+    .io_master_wready(io_master_wready),
+    .io_master_wvalid(io_master_wvalid),
+    .io_master_wdata(io_master_wdata),
+    .io_master_wstrb(io_master_wstrb),
+    .io_master_wlast(io_master_wlast),
+    .io_master_bready(io_master_bready),
+    .io_master_bvalid(io_master_bvalid),
+    .io_master_bresp(io_master_bresp),
+    .io_master_bid(io_master_bid),
+    .io_master_arready(io_master_arready),
+    .io_master_arvalid(io_master_arvalid),
+    .io_master_araddr(io_master_araddr),
+    .io_master_arid(io_master_arid),
+    .io_master_arlen(io_master_arlen),
+    .io_master_arsize(io_master_arsize),
+    .io_master_arburst(io_master_arburst),
+    .io_master_rready(io_master_rready),
+    .io_master_rvalid(io_master_rvalid),
+    .io_master_rresp(io_master_rresp),
+    .io_master_rdata(io_master_rdata),
+    .io_master_rlast(io_master_rlast),
+    .io_master_rid(io_master_rid),
+
+    .done()
+);
+
+`else
 riscv32e_core #(
     .INST_WIDTH(`RISCV_INST_WIDTH)
 ) ysyx_23060295_CORE0(
@@ -199,5 +234,6 @@ riscv32e_core #(
     .pc(core_pc[0]),
     .valid(core_inst_done[0])
 );
+`endif
 
 endmodule
