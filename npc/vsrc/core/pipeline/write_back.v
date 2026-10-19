@@ -10,10 +10,19 @@ module write_back #(
     input   wire                        clk,
     input   wire                        rst,
 
+    // gpr写入
     output  wire                        gpr_wen,
     output  wire [4:0]                  gpr_windex,
     output  wire [INST_WIDTH-1:0]       gpr_wdata,
-    output  wire [`CSR_WCH_W-1:0]       out_csr_wch,
+    // 普通csr写入
+    output  reg                         csr_wen,
+    output  reg  [`CSR_ADDR_W-1:0]      csr_waddr,
+    output  reg  [DATA_WIDTH-1:0]       csr_wdata,
+    // 异常csr写入
+    output  reg                         expt_en,
+    output  reg  [INST_WIDTH-1:0]       expt_epc,
+    output  reg  [DATA_WIDTH-1:0]       expt_cause,
+    output  reg  [DATA_WIDTH-1:0]       expt_tval,
 
     /* 模块输入数据总线 */
     output  wire                        in_ready,
@@ -37,7 +46,7 @@ module write_back #(
 `else
     assign {
         pc, dnpc, rd, rs1, rs2, inst_code, result, result_update_gpr, csr_wch,
-        expt, expt_cause, expt_tval
+        in_expt, in_expt_cause, in_expt_tval
     } = in_bits;
     assign out_bits = {
         pc, dnpc, rd, result, result_update_gpr
@@ -53,9 +62,9 @@ module write_back #(
     wire [INST_WIDTH-1:0]           result;
     wire                            result_update_gpr;
     wire [`CSR_WCH_W-1:0]           csr_wch;
-    wire [`STAGE_COUNT-1:0]         expt;
-    wire [DATA_WIDTH-1:0]           expt_cause;
-    wire [DATA_WIDTH-1:0]           expt_tval;
+    wire [`STAGE_COUNT-1:0]         in_expt;
+    wire [DATA_WIDTH-1:0]           in_expt_cause;
+    wire [DATA_WIDTH-1:0]           in_expt_tval;
 `ifdef FORMAL_VERIFY
     wire [INST_WIDTH-1:0]           inst;
     wire [DATA_WIDTH-1:0]           fv_ld_data;
@@ -77,23 +86,15 @@ module write_back #(
     );
 
     /**
-    * 0 -- mepc
-    * 1 -- mcause
-    * 2 -- mtval
+    * 异常写入逻辑
     */
-    wire [`CSR_WCH_W-1:0]           expt_csr_wch;
-    wire                            expt_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
-    wire  [`CSR_ADDR_W-1:0]         expt_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
-    wire  [31:0]                    expt_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
-    assign                          expt_csr_wch = {
-        expt_csr_wen[2], expt_csr_wen[1], expt_csr_wen[0],
-        expt_csr_waddr[2], expt_csr_waddr[1], expt_csr_waddr[0],
-        expt_csr_wdata[2], expt_csr_wdata[1], expt_csr_wdata[0]
-    };
-    wire expt_valid = |expt && stage_in_done;
+    assign expt_en = |in_expt && stage_in_done;
+    assign expt_epc = pc;
+    assign expt_cause = in_expt_cause;
+    assign expt_tval = in_expt_tval;
 
     /*
-    * 组合逻辑，同步触发寄存器组更新
+    * gpr写入，组合逻辑，同步触发寄存器组更新
     * 更新寄存器需要与wb同步进行
     * 避免wb_valid后，寄存器任然未更新成功
     */
@@ -102,21 +103,19 @@ module write_back #(
     assign gpr_wdata = result;
 
     /*
-    * 组合逻辑，同步触发csr寄存器组更新
-    * `EXPT_CAUSE_ILL
+    * 普通csr写入逻辑，只使用通道0的数据，其他通道应该没有值
     */
-    assign expt_csr_wen[0] = 1;
-    assign expt_csr_waddr[0] = `CSR_MEPC;
-    assign expt_csr_wdata[0] = pc;
-    assign expt_csr_wen[1] = 1;
-    assign expt_csr_waddr[1] = `CSR_MCAUSE;
-    assign expt_csr_wdata[1] = expt_cause;
-    assign expt_csr_wen[2] = 1;
-    assign expt_csr_waddr[2] = `CSR_MTVAL;
-    assign expt_csr_wdata[2] = expt_tval;
-    assign out_csr_wch = expt_valid ? expt_csr_wch :
-        stage_in_done ? csr_wch : 
-        0;
+    wire                            in_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
+    wire  [`CSR_ADDR_W-1:0]         in_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
+    wire  [31:0]                    in_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
+    assign {
+        in_csr_wen[2], in_csr_wen[1], in_csr_wen[0],
+        in_csr_waddr[2], in_csr_waddr[1], in_csr_waddr[0],
+        in_csr_wdata[2], in_csr_wdata[1], in_csr_wdata[0]
+    } = csr_wch;
+    assign csr_wen = stage_in_done && in_csr_wen[0];
+    assign csr_waddr = in_csr_waddr[0];
+    assign csr_wdata = in_csr_wdata[0];
 
     always @(posedge clk) begin
         if (rst) begin

@@ -64,6 +64,9 @@ module execute #(
         csr_wdata[2], csr_wdata[1], csr_wdata[0]
     };
     // EXU最多使用2个写通道（ecall），第3个通道固定关闭
+    assign                          csr_wen[1] = 1'b0;
+    assign                          csr_waddr[1] = {`CSR_ADDR_W{1'b0}};
+    assign                          csr_wdata[1] = 32'b0;
     assign                          csr_wen[2] = 1'b0;
     assign                          csr_waddr[2] = {`CSR_ADDR_W{1'b0}};
     assign                          csr_wdata[2] = 32'b0;
@@ -103,9 +106,6 @@ module execute #(
     wire csr_inst = 
         (inst_code==`INST_CSRRW) |
         (inst_code==`INST_CSRRS) |
-        0;
-    wire ecall_inst = 
-        inst_code==`INST_ECALL |
         0;
     // reg r_mdr_enable;
     // wire mdr_valid;
@@ -168,23 +168,13 @@ module execute #(
     * 从mtvec寄存器中取出异常入口地址
     * 跳转到异常入口地址
     */
-    assign csr_wen[0] = csr_inst | ecall_inst;
+    assign csr_wen[0] = csr_inst;
     assign csr_waddr[0] = 
         csr_inst ? imm[0 +: `CSR_ADDR_W] :
-        ecall_inst ? `CSR_MEPC :
         0;
     assign csr_wdata[0] =
         (inst_code==`INST_CSRRW) ? src1 :
         (inst_code==`INST_CSRRS) ? (csr_rdata|src1) :
-        (inst_code==`INST_ECALL) ? pc :
-        0;
-    assign csr_wen[1] = ecall_inst;
-    assign csr_waddr[1] = 
-        ecall_inst ? `CSR_MCAUSE :
-        0;
-    assign csr_wdata[1] =
-        // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
-        (inst_code==`INST_ECALL) ? (0<<31|11<<0) :
         0;
 
     always @(posedge clk) begin
@@ -278,7 +268,7 @@ module execute #(
                         `INST_AND:          r_result <= src1 & src2;
                         // `INST_FENCE:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
                         // `INST_FENCE_I:      `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
-                        `INST_ECALL:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_MEC, 0) // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
+                        `INST_ECALL:        `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_MEC, (0<<31 | 11<<0)) // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
                         `INST_EBREAK:       `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_BRK, a0)
                         `INST_CSRRW:        r_result <= csr_rdata;
                         `INST_CSRRS:        r_result <= csr_rdata;
