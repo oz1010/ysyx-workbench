@@ -93,7 +93,7 @@ module riscv32e_core #(
     output reg                          if_req_iswrite,
     input  wire                         if_rsp_valid,
     output reg                          if_rsp_ready,
-    output reg  [DATA_WIDTH-1:0]        if_rsp_data,
+    input  wire [DATA_WIDTH-1:0]        if_rsp_data,
     
     // 访问存储接口
     output reg                          mem_req_valid,
@@ -110,17 +110,13 @@ module riscv32e_core #(
     output wire                         valid
 );
 
-    reg r_valid;
-    assign valid = r_valid;
+    reg                                 r_valid;
+    wire                                expt_en;
+    wire [INST_WIDTH-1:0]               expt_epc;
+    wire [DATA_WIDTH-1:0]               expt_cause;
+    wire [DATA_WIDTH-1:0]               expt_tval;
 
     // TODO 暂时屏蔽信号
-    assign if_req_valid = 0;
-    assign if_req_addr = 0;
-    assign if_req_wdata = 0;
-    assign if_req_wstrb = 0;
-    assign if_req_iswrite = 0;
-    assign if_rsp_ready = 0;
-    assign if_rsp_data = 0;
     assign mem_req_valid = 0;
     assign mem_req_addr = 0;
     assign mem_req_wdata = 0;
@@ -183,35 +179,12 @@ module riscv32e_core #(
         .expt_tval(expt_tval)
     );
 
-    /** 
-    * 当前正在处理的pc指示
-    * 单周期处理器core_dnpc只需与core_pc一致即可
-    */
-    reg [INST_WIDTH-1:0] core_pc;
-    reg [INST_WIDTH-1:0] core_dnpc;
-    wire [INST_WIDTH-1:0] dnpc;
-    assign pc = core_pc;
-    always @(posedge clk) begin
-        if (rst) begin
-            core_pc <= reset_pc;
-            core_dnpc <= reset_pc;
-            r_valid <= 0;
-        end else begin
-            core_pc <= dnpc;
-            core_dnpc <= dnpc;
-            r_valid <= 1;
-        end
-    end
-
-    /* 取指 */
-    reg [INST_WIDTH-1:0] r_inst;
-    always @(*) begin
-        if (rst) begin
-            r_inst = 32'b0;
-        end else begin
-            r_inst = func_vdev_read(core_pc, 4);
-        end
-    end
+    /* 取指，单周期一直取指 */
+    reg [INST_WIDTH-1:0] inst;
+    assign if_req_valid = rst ? 0 : 1;
+    assign if_req_addr = core_pc;
+    assign if_rsp_ready = rst ? 0 : 1;
+    assign inst = if_rsp_data;
 
     /* 译码 */
     wire [6:0] opcode;
@@ -223,7 +196,7 @@ module riscv32e_core #(
     wire [31:0] imm;
     wire [2:0] inst_type;
     wire [`INST_CODE_W-1:0] inst_code;
-    decoder risc32e_decoder(r_inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
+    decoder risc32e_decoder(inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
 
     /* 回写wb */
     wire                            gpr_wen;
@@ -236,7 +209,7 @@ module riscv32e_core #(
         .rst(rst),
 
         .pc(core_pc),
-        .inst(r_inst),
+        .inst(inst),
         .rd(rd),
         .rs1(rs1),
         .rs2(rs2),
@@ -263,11 +236,24 @@ module riscv32e_core #(
         .dnpc(dnpc)
     );
 
-    /* 集中异常处理 */
-    wire                             expt_en;
-    wire [INST_WIDTH-1:0]            expt_epc;
-    wire [DATA_WIDTH-1:0]            expt_cause;
-    wire [DATA_WIDTH-1:0]            expt_tval;
+    /** 
+    * 关键信号处理
+    */
+    reg [INST_WIDTH-1:0] core_pc;
+    reg [INST_WIDTH-1:0] core_dnpc;
+    wire [INST_WIDTH-1:0] dnpc;
+    assign valid = r_valid;
+    assign pc = core_pc;
+    assign core_dnpc = dnpc;
+    always @(posedge clk) begin
+        if (rst) begin
+            core_pc <= reset_pc;
+            r_valid <= 0;
+        end else begin
+            core_pc <= dnpc;
+            r_valid <= 1;
+        end
+    end
 
 endmodule
 `endif
