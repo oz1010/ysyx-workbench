@@ -43,7 +43,7 @@ class Ifu(p: CoreParams) extends Module {
   io.cache.req.addr    := pc
   io.cache.req.wdata   := 0.U
   io.cache.req.wstrb   := 0.U
-  io.cache.req.isWrite := false.B
+  io.cache.req.iswrite := false.B
   reqPend              := Mux(
     io.cache.req.valid && io.cache.req.ready,
     true.B,
@@ -51,7 +51,7 @@ class Ifu(p: CoreParams) extends Module {
   )
 
   // 接收指令并做静态预测
-  val inst   = io.cache.resp.data
+  val inst   = io.cache.rsp.data
   val opcode = inst(6, 0)
   val isBr   = opcode === "b1100011".U
   val isJal  = opcode === "b1101111".U
@@ -76,9 +76,9 @@ class Ifu(p: CoreParams) extends Module {
   }
 
   // 流水线处理
-  io.out.valid           := io.cache.resp.valid && !io.wbRedirect.valid && !io.exRedirect.valid
+  io.out.valid           := io.cache.rsp.valid && !io.wbRedirect.valid && !io.exRedirect.valid
   io.out.bits.pc         := pc
-  io.out.bits.inst       := io.cache.resp.data
+  io.out.bits.inst       := io.cache.rsp.data
   io.out.bits.predTaken  := predT
   io.out.bits.predTarget := predTgt
 }

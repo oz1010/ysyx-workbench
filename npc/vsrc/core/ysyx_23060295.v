@@ -99,141 +99,206 @@ module ysyx_23060295 (
     output wire [3:0]   io_slave_rid
 );
 
-assign io_slave_awready = 0;
-assign io_slave_wready = 0;
-assign io_slave_bvalid = 0;
-assign io_slave_bresp = 0;
-assign io_slave_bid = 0;
-assign io_slave_arready = 0;
-assign io_slave_rvalid = 0;
-assign io_slave_rresp = 0;
-assign io_slave_rdata = 0;
-assign io_slave_rlast = 0;
-assign io_slave_rid = 0;
+    localparam ADDR_WIDTH = 32;
+    localparam INST_WIDTH = 32;
+    localparam DATA_WIDTH = 32;
 
-wire clk = clock;
-wire rst = reset;
+    assign io_slave_awready = 0;
+    assign io_slave_wready = 0;
+    assign io_slave_bvalid = 0;
+    assign io_slave_bresp = 0;
+    assign io_slave_bid = 0;
+    assign io_slave_arready = 0;
+    assign io_slave_rvalid = 0;
+    assign io_slave_rresp = 0;
+    assign io_slave_rdata = 0;
+    assign io_slave_rlast = 0;
+    assign io_slave_rid = 0;
 
-// 检测core是否陷入循环，默认但指令执行周期比较短暂
-wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
-wire core_inst_done[`RISCV_CORE_NUM-1:0];
-`ifndef IN_YOSYS_STA
-reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
-reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
-generate
-    for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
-        always @(posedge clk) begin
-            if (rst) begin
-                core_error[i] <= 0;
-                core_inst_stuck_tick[i] <= 0;
-            end else begin
-                core_inst_stuck_tick[i] <= core_inst_done[i] ? 0 : core_inst_stuck_tick[i] + 1;
-                if (core_inst_stuck_tick[i] == 5000) begin
-                    $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
-                    core_error[i] <= 1;
-                    // $finish;
-                    // $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
-                    // $finish;
+    wire clk = clock;
+    wire rst = reset;
+
+    // 检测core是否陷入循环，默认但指令执行周期比较短暂
+    wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
+    wire core_inst_done[`RISCV_CORE_NUM-1:0];
+    `ifndef IN_YOSYS_STA
+    reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
+    reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
+    generate
+        for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
+            always @(posedge clk) begin
+                if (rst) begin
+                    core_error[i] <= 0;
+                    core_inst_stuck_tick[i] <= 0;
+                end else begin
+                    core_inst_stuck_tick[i] <= core_inst_done[i] ? 0 : core_inst_stuck_tick[i] + 1;
+                    if (core_inst_stuck_tick[i] == 5000) begin
+                        $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
+                        core_error[i] <= 1;
+                        // $finish;
+                        // $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
+                        // $finish;
+                    end
                 end
             end
         end
-    end
-endgenerate
-`endif
+    endgenerate
+    `endif
 
-`ifdef CONFIG_ISA_RISCV_SINGLE
-// 单周期版本的核心连接逻辑
-riscv32e_core #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
-) ysyx_23060295_CORE0(
-    .clk(clk),
-    .rst(rst),
+    wire [ADDR_WIDTH-1:0]           reset_pc;
+    wire                            if_req_valid;
+    wire                            if_req_ready;
+    wire [ADDR_WIDTH-1:0]           if_req_addr;
+    wire [DATA_WIDTH-1:0]           if_req_wdata;
+    wire [DATA_WIDTH/8-1:0]         if_req_wstrb;
+    wire                            if_req_iswrite;
+    wire                            if_rsp_valid;
+    wire                            if_rsp_ready;
+    wire  [DATA_WIDTH-1:0]          if_rsp_data;
+    wire                            mem_req_valid;
+    wire                            mem_req_ready;
+    wire [ADDR_WIDTH-1:0]           mem_req_addr;
+    wire [DATA_WIDTH-1:0]           mem_req_wdata;
+    wire [DATA_WIDTH/8-1:0]         mem_req_wstrb;
+    wire                            mem_req_iswrite;
+    wire                            mem_rsp_valid;
+    wire                            mem_rsp_ready;
+    wire [DATA_WIDTH-1:0]           mem_rsp_data;
 
-    .io_interrupt(io_interrupt),
+    `ifdef CONFIG_ISA_RISCV_SINGLE
+    // 单周期版本的核心连接逻辑
+    riscv32e_core #(
+        .INST_WIDTH(`RISCV_INST_WIDTH)
+    ) ysyx_23060295_CORE0(
+        .clk(clk),
+        .rst(rst),
 
-    .pc(core_pc[0]),
-    .valid(core_inst_done[0])
-);
-riscv32e_memsys #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
-) ysyx_23060295_memsys0(
-    .clk(clk),
-    .rst(rst),
+        .reset_pc(reset_pc),
+        .io_interrupt(io_interrupt),
 
-    .io_master_awready(io_master_awready),
-    .io_master_awvalid(io_master_awvalid),
-    .io_master_awaddr(io_master_awaddr),
-    .io_master_awid(io_master_awid),
-    .io_master_awlen(io_master_awlen),
-    .io_master_awsize(io_master_awsize),
-    .io_master_awburst(io_master_awburst),
-    .io_master_wready(io_master_wready),
-    .io_master_wvalid(io_master_wvalid),
-    .io_master_wdata(io_master_wdata),
-    .io_master_wstrb(io_master_wstrb),
-    .io_master_wlast(io_master_wlast),
-    .io_master_bready(io_master_bready),
-    .io_master_bvalid(io_master_bvalid),
-    .io_master_bresp(io_master_bresp),
-    .io_master_bid(io_master_bid),
-    .io_master_arready(io_master_arready),
-    .io_master_arvalid(io_master_arvalid),
-    .io_master_araddr(io_master_araddr),
-    .io_master_arid(io_master_arid),
-    .io_master_arlen(io_master_arlen),
-    .io_master_arsize(io_master_arsize),
-    .io_master_arburst(io_master_arburst),
-    .io_master_rready(io_master_rready),
-    .io_master_rvalid(io_master_rvalid),
-    .io_master_rresp(io_master_rresp),
-    .io_master_rdata(io_master_rdata),
-    .io_master_rlast(io_master_rlast),
-    .io_master_rid(io_master_rid),
+        .if_req_valid(if_req_valid),
+        .if_req_ready(if_req_ready),
+        .if_req_addr(if_req_addr),
+        .if_req_wdata(if_req_wdata),
+        .if_req_wstrb(if_req_wstrb),
+        .if_req_iswrite(if_req_iswrite),
+        .if_rsp_valid(if_rsp_valid),
+        .if_rsp_ready(if_rsp_ready),
+        .if_rsp_data(if_rsp_data),
+        .mem_req_valid(mem_req_valid),
+        .mem_req_ready(mem_req_ready),
+        .mem_req_addr(mem_req_addr),
+        .mem_req_wdata(mem_req_wdata),
+        .mem_req_wstrb(mem_req_wstrb),
+        .mem_req_iswrite(mem_req_iswrite),
+        .mem_rsp_valid(mem_rsp_valid),
+        .mem_rsp_ready(mem_rsp_ready),
+        .mem_rsp_data(mem_rsp_data),
 
-    .done()
-);
+        .pc(core_pc[0]),
+        .valid(core_inst_done[0])
+    );
+    riscv32e_memsys #(
+        .INST_WIDTH(`RISCV_INST_WIDTH)
+    ) ysyx_23060295_memsys0(
+        .clk(clk),
+        .rst(rst),
 
-`else
-riscv32e_core #(
-    .INST_WIDTH(`RISCV_INST_WIDTH)
-) ysyx_23060295_CORE0(
-    .clk(clk),
-    .rst(rst),
+        .reset_pc(reset_pc),
 
-    .io_interrupt(io_interrupt),
-    .io_master_awready(io_master_awready),
-    .io_master_awvalid(io_master_awvalid),
-    .io_master_awaddr(io_master_awaddr),
-    .io_master_awid(io_master_awid),
-    .io_master_awlen(io_master_awlen),
-    .io_master_awsize(io_master_awsize),
-    .io_master_awburst(io_master_awburst),
-    .io_master_wready(io_master_wready),
-    .io_master_wvalid(io_master_wvalid),
-    .io_master_wdata(io_master_wdata),
-    .io_master_wstrb(io_master_wstrb),
-    .io_master_wlast(io_master_wlast),
-    .io_master_bready(io_master_bready),
-    .io_master_bvalid(io_master_bvalid),
-    .io_master_bresp(io_master_bresp),
-    .io_master_bid(io_master_bid),
-    .io_master_arready(io_master_arready),
-    .io_master_arvalid(io_master_arvalid),
-    .io_master_araddr(io_master_araddr),
-    .io_master_arid(io_master_arid),
-    .io_master_arlen(io_master_arlen),
-    .io_master_arsize(io_master_arsize),
-    .io_master_arburst(io_master_arburst),
-    .io_master_rready(io_master_rready),
-    .io_master_rvalid(io_master_rvalid),
-    .io_master_rresp(io_master_rresp),
-    .io_master_rdata(io_master_rdata),
-    .io_master_rlast(io_master_rlast),
-    .io_master_rid(io_master_rid),
+        .if_req_valid(if_req_valid),
+        .if_req_ready(if_req_ready),
+        .if_req_addr(if_req_addr),
+        .if_req_wdata(if_req_wdata),
+        .if_req_wstrb(if_req_wstrb),
+        .if_req_iswrite(if_req_iswrite),
+        .if_rsp_valid(if_rsp_valid),
+        .if_rsp_ready(if_rsp_ready),
+        .if_rsp_data(if_rsp_data),
+        .mem_req_valid(mem_req_valid),
+        .mem_req_ready(mem_req_ready),
+        .mem_req_addr(mem_req_addr),
+        .mem_req_wdata(mem_req_wdata),
+        .mem_req_wstrb(mem_req_wstrb),
+        .mem_req_iswrite(mem_req_iswrite),
+        .mem_rsp_valid(mem_rsp_valid),
+        .mem_rsp_ready(mem_rsp_ready),
+        .mem_rsp_data(mem_rsp_data),
 
-    .pc(core_pc[0]),
-    .valid(core_inst_done[0])
-);
-`endif
+        .io_master_awready(io_master_awready),
+        .io_master_awvalid(io_master_awvalid),
+        .io_master_awaddr(io_master_awaddr),
+        .io_master_awid(io_master_awid),
+        .io_master_awlen(io_master_awlen),
+        .io_master_awsize(io_master_awsize),
+        .io_master_awburst(io_master_awburst),
+        .io_master_wready(io_master_wready),
+        .io_master_wvalid(io_master_wvalid),
+        .io_master_wdata(io_master_wdata),
+        .io_master_wstrb(io_master_wstrb),
+        .io_master_wlast(io_master_wlast),
+        .io_master_bready(io_master_bready),
+        .io_master_bvalid(io_master_bvalid),
+        .io_master_bresp(io_master_bresp),
+        .io_master_bid(io_master_bid),
+        .io_master_arready(io_master_arready),
+        .io_master_arvalid(io_master_arvalid),
+        .io_master_araddr(io_master_araddr),
+        .io_master_arid(io_master_arid),
+        .io_master_arlen(io_master_arlen),
+        .io_master_arsize(io_master_arsize),
+        .io_master_arburst(io_master_arburst),
+        .io_master_rready(io_master_rready),
+        .io_master_rvalid(io_master_rvalid),
+        .io_master_rresp(io_master_rresp),
+        .io_master_rdata(io_master_rdata),
+        .io_master_rlast(io_master_rlast),
+        .io_master_rid(io_master_rid),
+
+        .done()
+    );
+
+    `else
+    riscv32e_core #(
+        .INST_WIDTH(`RISCV_INST_WIDTH)
+    ) ysyx_23060295_CORE0(
+        .clk(clk),
+        .rst(rst),
+
+        .io_interrupt(io_interrupt),
+        .io_master_awready(io_master_awready),
+        .io_master_awvalid(io_master_awvalid),
+        .io_master_awaddr(io_master_awaddr),
+        .io_master_awid(io_master_awid),
+        .io_master_awlen(io_master_awlen),
+        .io_master_awsize(io_master_awsize),
+        .io_master_awburst(io_master_awburst),
+        .io_master_wready(io_master_wready),
+        .io_master_wvalid(io_master_wvalid),
+        .io_master_wdata(io_master_wdata),
+        .io_master_wstrb(io_master_wstrb),
+        .io_master_wlast(io_master_wlast),
+        .io_master_bready(io_master_bready),
+        .io_master_bvalid(io_master_bvalid),
+        .io_master_bresp(io_master_bresp),
+        .io_master_bid(io_master_bid),
+        .io_master_arready(io_master_arready),
+        .io_master_arvalid(io_master_arvalid),
+        .io_master_araddr(io_master_araddr),
+        .io_master_arid(io_master_arid),
+        .io_master_arlen(io_master_arlen),
+        .io_master_arsize(io_master_arsize),
+        .io_master_arburst(io_master_arburst),
+        .io_master_rready(io_master_rready),
+        .io_master_rvalid(io_master_rvalid),
+        .io_master_rresp(io_master_rresp),
+        .io_master_rdata(io_master_rdata),
+        .io_master_rlast(io_master_rlast),
+        .io_master_rid(io_master_rid),
+
+        .pc(core_pc[0]),
+        .valid(core_inst_done[0])
+    );
+    `endif
 
 endmodule

@@ -189,15 +189,15 @@ object Axi4SlaveDefaults {
 
 /** Cache数据，master视角 */
 class CacheIO(p: CoreParams) extends Bundle {
-  val req  = new Bundle {
+  val req = new Bundle {
     val valid   = Output(Bool())
     val ready   = Input(Bool())
     val addr    = Output(UInt(p.ADDR_WIDTH.W))
     val wdata   = Output(UInt(p.DATA_WIDTH.W))
     val wstrb   = Output(UInt((p.DATA_WIDTH / 8).W))
-    val isWrite = Output(Bool())
+    val iswrite = Output(Bool())
   }
-  val resp = new Bundle {
+  val rsp = new Bundle {
     val valid = Input(Bool())
     val data  = Input(UInt(p.DATA_WIDTH.W))
   }
@@ -205,26 +205,26 @@ class CacheIO(p: CoreParams) extends Bundle {
 
 /** Cache refill（读行）数据，master视角 */
 class CacheRefillIO(p: CoreParams) extends Bundle {
-  val req  = new Bundle {
+  val req = new Bundle {
     val valid = Output(Bool())
     val addr  = Output(UInt(p.ADDR_WIDTH.W)) // 行基地址
   }
-  val gnt  = Input(Bool()) // 仲裁器接受本次行读请求
-  val resp = new Bundle {
+  val gnt = Input(Bool()) // 仲裁器接受本次行读请求
+  val rsp = new Bundle {
     val valid = Input(Bool())
     val data  = Input(UInt(p.DATA_WIDTH.W))
     val last  = Input(Bool())
   }
 }
 
-// /** 仲裁器侧的 refill 从机视角（req 输入，gnt/resp 输出） */
+// /** 仲裁器侧的 refill 从机视角（req 输入，gnt/rsp 输出） */
 // class RefillSlaveIO(p: CoreParams) extends Bundle {
 //   val req = new Bundle {
 //     val valid = Input(Bool())
 //     val addr  = Input(UInt(p.ADDR_WIDTH.W))
 //   }
 //   val gnt  = Output(Bool())
-//   val resp = new Bundle {
+//   val rsp = new Bundle {
 //     val valid = Output(Bool())
 //     val data  = Output(UInt(p.DATA_WIDTH.W))
 //     val last  = Output(Bool())

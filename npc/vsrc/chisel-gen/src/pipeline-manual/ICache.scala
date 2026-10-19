@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 /** ICache：直通取指（passthrough，无缓存阵列）。 CPU 请求 -> AXI4 单拍读（arlen=0, INCR）-> 返回数据回传
-  * CPU。 io.cpu.resp 脉冲一拍（IFU 在 resp.valid 且 reqPend 时无条件消费并回 idle）。
+  * CPU。 io.cpu.rsp 脉冲一拍（IFU 在 rsp.valid 且 reqPend 时无条件消费并回 idle）。
   */
 class ICache(p: CoreParams) extends Module {
   val io = IO(new Bundle {
@@ -39,15 +39,15 @@ class ICache(p: CoreParams) extends Module {
 
   // ---------------- CPU 读请求响应 ----------------
   val ready = RegInit(false.B)
-  ready             := true.B
-  io.cpu.req.ready  := state === sIdle && ready
+  ready            := true.B
+  io.cpu.req.ready := state === sIdle && ready
   when(cpuReqDone) {
     state := sRunning
   }.elsewhen(axi4RDone) {
     state := sIdle
   }
-  io.cpu.resp.valid := axi4RDone
-  io.cpu.resp.data  := io.master.rdata
+  io.cpu.rsp.valid := axi4RDone
+  io.cpu.rsp.data  := io.master.rdata
 
   // ---------------- AXI4 读地址通道 ----------------
   val arvalid   = RegInit(false.B)

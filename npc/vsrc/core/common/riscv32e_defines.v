@@ -3,6 +3,10 @@
 
 `include "generated/autoconf.vh"
 
+// TODO 复位没有完全统一，目前发现有：0x300000f4 0x3000002c
+//   替代方案：强制默认为0x30000000，此处必须为跳转指令
+`define RISCV_RESET_PC_EN   0 // 是否使用复位取指地址
+`define RISCV_RESET_PC      32'h300000f4 // 是否使用复位取指地址
 `define RISCV_CORE_NUM      `CONFIG_CORE_NUM
 `define RISCV_INST_WIDTH    32
 // RV32E GPR数量为16
