@@ -32,11 +32,11 @@ class Lsu(p: CoreParams) extends Module {
   io.cache.req.addr    := addr
   io.cache.req.wdata   := in.storeData
   io.cache.req.wstrb   := wstrb
-  io.cache.req.isWrite := in.ctrl.store
-  val memWait = isMemInst && !io.cache.resp.valid
+  io.cache.req.iswrite := in.ctrl.store
+  val memWait = isMemInst && !io.cache.rsp.valid
 
   // load 数据抽取
-  val rdata    = io.cache.resp.data
+  val rdata    = io.cache.rsp.data
   val off      = addr(1, 0)
   val byteSel  = Mux(
     off(1),

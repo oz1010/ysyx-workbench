@@ -11,8 +11,8 @@ class DCache(p: CoreParams) extends Module {
 
   // TODO 临时关闭功能
   io.cpu.req.ready  := 0.U
-  io.cpu.resp.valid := 0.U
-  io.cpu.resp.data  := 0.U
+  io.cpu.rsp.valid  := 0.U
+  io.cpu.rsp.data   := 0.U
   // TODO 临时禁用读
   io.master.arvalid := false.B
   io.master.araddr  := 0.U
