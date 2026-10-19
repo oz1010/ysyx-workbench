@@ -221,9 +221,9 @@ module write_back #(
     // 普通csr读入
     input   wire [DATA_WIDTH-1:0]           csr_rdata,
     // 普通csr写入
-    output  wire                            csr_wen,
-    output  wire [`CSR_ADDR_W-1:0]          csr_waddr,
-    output  wire [DATA_WIDTH-1:0]           csr_wdata,
+    output  reg                             csr_wen,
+    output  reg  [`CSR_ADDR_W-1:0]          csr_waddr,
+    output  reg  [DATA_WIDTH-1:0]           csr_wdata,
     // 异常csr写入
     output  reg                             expt_en,
     output  reg  [INST_WIDTH-1:0]           expt_epc,
@@ -260,11 +260,9 @@ module write_back #(
             // 更新寄存器或回写内存
             case (inst_code)
 `ifndef IN_YOSYS_STA
-                `INST_SB:           begin mem_wdata = src2&32'hFF; write_raw_mem(mem_addr, 1, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h0, 4'h1}, mem_wdata); end
-                `INST_SH:           begin mem_wdata = src2&32'hFFFF; write_raw_mem(mem_addr, 2, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h1, 4'h3}, mem_wdata); end
-                `INST_SW:           begin mem_wdata = src2; write_raw_mem(mem_addr, 4, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h2, 4'h7}, mem_wdata); end
+                // TODO 需要修改 write_raw_mem func_dev_skip
 `endif
-                `INST_MRET:         func_query_intr(); // MEPC 0x341
+                `INST_MRET:         ; // MEPC 0x341
                 default: ;
             endcase
         end
@@ -290,22 +288,51 @@ module write_back #(
         endcase
     end
 
+    // TODO 将访存接口移到memsys
+    always @(negedge clk) begin
+        if (rst) begin
+        end else begin
+            mem_rdata <= 0;
+            case (inst_code)
+                `INST_LB:           begin mem_rdata <= sext(read_raw_mem(mem_addr, 1), 8); end
+                `INST_LH:           begin mem_rdata <= sext(read_raw_mem(mem_addr, 2), 16); end
+                `INST_LW:           begin mem_rdata <= sext(read_raw_mem(mem_addr, 4), 32); end
+                `INST_LBU:          begin mem_rdata <= read_raw_mem(mem_addr, 1) & 32'hFF; end
+                `INST_LHU:          begin mem_rdata <= read_raw_mem(mem_addr, 2) & 32'hFFFF; end
+                default: ;
+            endcase
+        end
+    end
+    always @(posedge clk) begin
+        if (rst) begin
+        end else begin
+            case (inst_code)
+                `INST_SB:           begin mem_wdata = src2&32'hFF; write_raw_mem(mem_addr, 1, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h0, 4'h1}, mem_wdata); end
+                `INST_SH:           begin mem_wdata = src2&32'hFFFF; write_raw_mem(mem_addr, 2, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h1, 4'h3}, mem_wdata); end
+                `INST_SW:           begin mem_wdata = src2; write_raw_mem(mem_addr, 4, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h2, 4'h7}, mem_wdata); end
+                `INST_LB:           begin func_dev_skip(0, mem_addr, {24'h0, 4'h0, 4'h0}, mem_rdata); end
+                `INST_LH:           begin func_dev_skip(0, mem_addr, {24'h0, 4'h1, 4'h0}, mem_rdata); end
+                `INST_LW:           begin func_dev_skip(0, mem_addr, {24'h0, 4'h2, 4'h0}, mem_rdata); end
+                `INST_LBU:          begin func_dev_skip(0, mem_addr, {24'h0, 4'h0, 4'h0}, mem_rdata); end
+                `INST_LHU:          begin func_dev_skip(0, mem_addr, {24'h0, 4'h1, 4'h0}, mem_rdata); end
+                default: ;
+            endcase
+        end
+    end
+
     // GPR寄存器堆处理
     always @(*) begin
-        mem_rdata = 0;
         gpr_wen = 0; gpr_waddr = rd; gpr_wdata = 0;
         case (inst_code)
             `INST_LUI:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = imm; end
             `INST_AUIPC:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = pc_plus_imm; end
             `INST_JAL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
             `INST_JALR:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
-`ifndef IN_YOSYS_STA
-            `INST_LB:           begin mem_rdata = sext(read_raw_mem(mem_addr, 1), 8); func_dev_skip(0, mem_addr, { 24'h0, 4'h0, 4'h0}, mem_rdata);    gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LH:           begin mem_rdata = sext(read_raw_mem(mem_addr, 2), 16); func_dev_skip(0, mem_addr, { 24'h0, 4'h1, 4'h0}, mem_rdata);   gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LW:           begin mem_rdata = sext(read_raw_mem(mem_addr, 4), 32); func_dev_skip(0, mem_addr, { 24'h0, 4'h2, 4'h0}, mem_rdata);   gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LBU:          begin mem_rdata = read_raw_mem(mem_addr, 1) & 32'hFF; func_dev_skip(0, mem_addr, { 24'h0, 4'h0, 4'h0}, mem_rdata);    gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LHU:          begin mem_rdata = read_raw_mem(mem_addr, 2) & 32'hFFFF; func_dev_skip(0, mem_addr, { 24'h0, 4'h1, 4'h0}, mem_rdata);  gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-`endif
+            `INST_LB:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LH:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LW:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LBU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LHU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
             `INST_ADDI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 + imm; end
             `INST_SLTI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (s_src1 < imm)}; end
             `INST_SLTIU:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (src1 < imm)}; end
@@ -327,24 +354,19 @@ module write_back #(
             `INST_AND:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 & src2; end
             `INST_CSRRW:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = csr_rdata; end
             `INST_CSRRS:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = csr_rdata; end
-
             default:            begin end
         endcase
     end
 
     // CSR寄存器堆处理
-    wire csr_inst = 
-        (inst_code==`INST_CSRRW) |
-        (inst_code==`INST_CSRRS) |
-        0;
-    assign csr_wen = csr_inst;
-    assign csr_waddr = 
-        csr_inst ? imm[0 +: `CSR_ADDR_W] :
-        0;
-    assign csr_wdata =
-        (inst_code==`INST_CSRRW) ? src1 :
-        (inst_code==`INST_CSRRS) ? (csr_rdata|src1) :
-        0;
+    always @(*) begin
+        csr_wen = 0; csr_waddr = 0; csr_wdata = 0;
+        case(inst_code)
+            `INST_CSRRW:        begin csr_wen = 1; csr_waddr = imm[0 +: `CSR_ADDR_W]; csr_wdata = src1; end
+            `INST_CSRRS:        begin csr_wen = 1; csr_waddr = imm[0 +: `CSR_ADDR_W]; csr_wdata = (csr_rdata|src1); end
+            default: ;
+        endcase
+    end
 
 endmodule
 `endif
