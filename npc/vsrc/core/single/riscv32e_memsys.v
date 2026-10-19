@@ -18,7 +18,7 @@ module riscv32e_memsys #(
     input wire                          if_req_iswrite,
     output reg                          if_rsp_valid,
     input wire                          if_rsp_ready,
-    input wire  [DATA_WIDTH-1:0]        if_rsp_data,
+    output reg [DATA_WIDTH-1:0]         if_rsp_data,
     
     // 访问存储接口
     input wire                          mem_req_valid,
@@ -115,9 +115,34 @@ module riscv32e_memsys #(
     );
 
     // TODO 暂时屏蔽信号
-    assign if_req_ready = 0;
-    assign if_rsp_valid = 0;
     assign mem_req_ready = 0;
     assign mem_rsp_valid = 0;
 
+    generate
+        if (`CONFIG_ISA_RISCV_SINGLE) begin
+        // 单周期组合取指
+        always @(*) begin
+            if (rst) begin
+                if_req_ready = 0;
+                if_rsp_valid = 0;
+                if_rsp_data = 0;
+            end else begin
+                if_req_ready = 1;
+                if_rsp_valid = 0;
+                if_rsp_data = 0;
+                if (if_req_valid && if_req_ready) begin
+                    if_rsp_valid = 1;
+                    if_rsp_data = func_vdev_read(if_req_addr, 4);
+                end
+            end
+        end
+
+        end else begin
+        // TODO 非单周期取指，需要转换为axi4信号
+        assign if_req_ready = 0;
+        assign if_rsp_valid = 0;
+        assign if_rsp_data = 0;
+
+        end
+    endgenerate
 endmodule
