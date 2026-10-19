@@ -65,6 +65,8 @@ module riscv32e_memsys #(
     output wire                         done
 );
 
+    wire core_ready = !rst;
+
     // 单周期不需要通过axi4总线访问外部设备
     assign io_master_awvalid = 0;
     assign io_master_awaddr = 0;
