@@ -315,36 +315,36 @@ module write_back #(
     always @(*) begin
         gpr_wen = 0; gpr_waddr = rd; gpr_wdata = 0;
         case (inst_code)
-            `INST_LUI:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = imm; end
-            `INST_AUIPC:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = pc_plus_imm; end
-            `INST_JAL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
-            `INST_JALR:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
-            `INST_LB:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
-            `INST_LH:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
-            `INST_LW:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
-            `INST_LBU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
-            `INST_LHU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
-            `INST_ADDI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 + imm; end
-            `INST_SLTI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (s_src1 < imm)}; end
-            `INST_SLTIU:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (src1 < imm)}; end
-            `INST_XORI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 ^ imm; end
-            `INST_ORI:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 | imm; end
-            `INST_ANDI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 & imm; end
-            `INST_SLLI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 << (imm&32'h1F); end
-            `INST_SRLI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 >> (imm&32'h1F); end
-            `INST_SRAI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) ); end
-            `INST_ADD:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 + src2; end
-            `INST_SUB:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 - src2; end
-            `INST_SLL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 << (src2 & 32'h1F); end
-            `INST_SLT:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (s_src1 < s_src2)}; end
-            `INST_SLTU:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (src1 < src2)}; end
-            `INST_XOR:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 ^ src2; end
-            `INST_SRL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 >> (src2 & 32'h1F); end
-            `INST_SRA:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) ); end
-            `INST_OR:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 | src2; end
-            `INST_AND:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 & src2; end
-            `INST_CSRRW:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = csr_rdata; end
-            `INST_CSRRS:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = csr_rdata; end
+            `INST_LUI:          begin gpr_wen = 1; gpr_wdata = imm; end
+            `INST_AUIPC:        begin gpr_wen = 1; gpr_wdata = pc_plus_imm; end
+            `INST_JAL:          begin gpr_wen = 1; gpr_wdata = snpc; end
+            `INST_JALR:         begin gpr_wen = 1; gpr_wdata = snpc; end
+            `INST_LB:           begin gpr_wen = 1; gpr_wdata = mem_rsp_data; end
+            `INST_LH:           begin gpr_wen = 1; gpr_wdata = mem_rsp_data; end
+            `INST_LW:           begin gpr_wen = 1; gpr_wdata = mem_rsp_data; end
+            `INST_LBU:          begin gpr_wen = 1; gpr_wdata = mem_rsp_data; end
+            `INST_LHU:          begin gpr_wen = 1; gpr_wdata = mem_rsp_data; end
+            `INST_ADDI:         begin gpr_wen = 1; gpr_wdata = src1 + imm; end
+            `INST_SLTI:         begin gpr_wen = 1; gpr_wdata = {{31{1'b0}}, (s_src1 < imm)}; end
+            `INST_SLTIU:        begin gpr_wen = 1; gpr_wdata = {{31{1'b0}}, (src1 < imm)}; end
+            `INST_XORI:         begin gpr_wen = 1; gpr_wdata = src1 ^ imm; end
+            `INST_ORI:          begin gpr_wen = 1; gpr_wdata = src1 | imm; end
+            `INST_ANDI:         begin gpr_wen = 1; gpr_wdata = src1 & imm; end
+            `INST_SLLI:         begin gpr_wen = 1; gpr_wdata = src1 << (imm&32'h1F); end
+            `INST_SRLI:         begin gpr_wen = 1; gpr_wdata = src1 >> (imm&32'h1F); end
+            `INST_SRAI:         begin gpr_wen = 1; gpr_wdata = (src1 >> (imm&32'h1F)) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(imm&32'h1F))) ); end
+            `INST_ADD:          begin gpr_wen = 1; gpr_wdata = src1 + src2; end
+            `INST_SUB:          begin gpr_wen = 1; gpr_wdata = src1 - src2; end
+            `INST_SLL:          begin gpr_wen = 1; gpr_wdata = src1 << (src2 & 32'h1F); end
+            `INST_SLT:          begin gpr_wen = 1; gpr_wdata = {{31{1'b0}}, (s_src1 < s_src2)}; end
+            `INST_SLTU:         begin gpr_wen = 1; gpr_wdata = {{31{1'b0}}, (src1 < src2)}; end
+            `INST_XOR:          begin gpr_wen = 1; gpr_wdata = src1 ^ src2; end
+            `INST_SRL:          begin gpr_wen = 1; gpr_wdata = src1 >> (src2 & 32'h1F); end
+            `INST_SRA:          begin gpr_wen = 1; gpr_wdata = src1 >> (src2 & 32'h1F) | ({32{src1[31]}} & (32'hFFFFFFFF<<(32-(src2 & 32'h1F))) ); end
+            `INST_OR:           begin gpr_wen = 1; gpr_wdata = src1 | src2; end
+            `INST_AND:          begin gpr_wen = 1; gpr_wdata = src1 & src2; end
+            `INST_CSRRW:        begin gpr_wen = 1; gpr_wdata = csr_rdata; end
+            `INST_CSRRS:        begin gpr_wen = 1; gpr_wdata = csr_rdata; end
             default:            begin end
         endcase
     end
