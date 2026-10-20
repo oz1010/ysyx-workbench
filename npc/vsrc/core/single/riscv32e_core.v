@@ -88,23 +88,21 @@ module riscv32e_core #(
     output reg                          if_req_valid,
     input  wire                         if_req_ready,
     output reg  [ADDR_WIDTH-1:0]        if_req_addr,
+    output reg  [`MEMOP_W-1:0]          if_req_op,
     output reg  [DATA_WIDTH-1:0]        if_req_wdata,
-    output reg  [DATA_WIDTH/8-1:0]      if_req_wstrb,
-    output reg                          if_req_iswrite,
     input  wire                         if_rsp_valid,
     output reg                          if_rsp_ready,
     input  wire [DATA_WIDTH-1:0]        if_rsp_data,
     
     // 访问存储接口
-    output reg                          mem_req_valid,
+    output wire                         mem_req_valid,
     input  wire                         mem_req_ready,
-    output reg  [ADDR_WIDTH-1:0]        mem_req_addr,
-    output reg  [DATA_WIDTH-1:0]        mem_req_wdata,
-    output reg  [DATA_WIDTH/8-1:0]      mem_req_wstrb,
-    output reg                          mem_req_iswrite,
+    output wire [ADDR_WIDTH-1:0]        mem_req_addr,
+    output wire [`MEMOP_W-1:0]          mem_req_op,
+    output wire [DATA_WIDTH-1:0]        mem_req_wdata,
     input  wire                         mem_rsp_valid,
-    output reg                          mem_rsp_ready,
-    output reg  [DATA_WIDTH-1:0]        mem_rsp_data,
+    output wire                         mem_rsp_ready,
+    input  wire [DATA_WIDTH-1:0]        mem_rsp_data,
 
     output wire [INST_WIDTH-1:0]        pc,
     output wire                         valid
@@ -115,15 +113,6 @@ module riscv32e_core #(
     wire [INST_WIDTH-1:0]               expt_epc;
     wire [DATA_WIDTH-1:0]               expt_cause;
     wire [DATA_WIDTH-1:0]               expt_tval;
-
-    // TODO 暂时屏蔽信号
-    assign mem_req_valid = 0;
-    assign mem_req_addr = 0;
-    assign mem_req_wdata = 0;
-    assign mem_req_wstrb = 0;
-    assign mem_req_iswrite = 0;
-    assign mem_rsp_ready = 0;
-    assign mem_rsp_data = 0;
 
     /* gpr寄存器组 */
     wire [DATA_WIDTH-1:0] gpr_src1;
@@ -183,8 +172,11 @@ module riscv32e_core #(
     reg [INST_WIDTH-1:0] inst;
     assign if_req_valid = rst ? 0 : 1;
     assign if_req_addr = core_pc;
+    assign if_req_op = `MEMOP_FLAG_4B;
     assign if_rsp_ready = rst ? 0 : 1;
     assign inst = if_rsp_data;
+    // 禁用写接口
+    assign if_req_wdata = 0;
 
     /* 译码 */
     wire [6:0] opcode;
@@ -232,6 +224,15 @@ module riscv32e_core #(
         .expt_epc(expt_epc),
         .expt_cause(expt_cause),
         .expt_tval(expt_tval),
+
+        .mem_req_valid(mem_req_valid),
+        .mem_req_ready(mem_req_ready),
+        .mem_req_addr(mem_req_addr),
+        .mem_req_op(mem_req_op),
+        .mem_req_wdata(mem_req_wdata),
+        .mem_rsp_valid(mem_rsp_valid),
+        .mem_rsp_ready(mem_rsp_ready),
+        .mem_rsp_data(mem_rsp_data),
 
         .dnpc(dnpc)
     );

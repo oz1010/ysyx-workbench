@@ -195,6 +195,7 @@ end
 endmodule
 `else
 module write_back #(
+    parameter ADDR_WIDTH = 32,
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
@@ -230,6 +231,16 @@ module write_back #(
     output  reg  [DATA_WIDTH-1:0]           expt_cause,
     output  reg  [DATA_WIDTH-1:0]           expt_tval,
 
+    // 访问存储接口
+    output reg                              mem_req_valid,
+    input  wire                             mem_req_ready,
+    output reg  [ADDR_WIDTH-1:0]            mem_req_addr,
+    output reg  [`MEMOP_W-1:0]              mem_req_op,
+    output reg  [DATA_WIDTH-1:0]            mem_req_wdata,
+    input  wire                             mem_rsp_valid,
+    output reg                              mem_rsp_ready,
+    input  wire [DATA_WIDTH-1:0]            mem_rsp_data,
+
     output wire [INST_WIDTH-1:0]            dnpc
 );
     wire [INST_WIDTH-1:0] src1 = gpr_src1;
@@ -250,23 +261,6 @@ module write_back #(
         (inst_code==`INST_ECALL) ? csr_rdata :
         (inst_code==`INST_MRET) ? csr_rdata :
         snpc;
-    integer mem_rdata;
-    integer mem_wdata;
-    wire [31:0] mem_addr = src1 + imm;
-
-    always @(posedge clk) begin
-        if (rst) begin
-        end else begin
-            // 更新寄存器或回写内存
-            case (inst_code)
-`ifndef IN_YOSYS_STA
-                // TODO 需要修改 write_raw_mem func_dev_skip
-`endif
-                `INST_MRET:         ; // MEPC 0x341
-                default: ;
-            endcase
-        end
-    end
 
     /**
     * ref. https://ysyx.oscc.cc/docs/ics-pa/3.2.html#riscv32
@@ -288,37 +282,34 @@ module write_back #(
         endcase
     end
 
-    // TODO 将访存接口移到memsys
-    always @(negedge clk) begin
-        if (rst) begin
-        end else begin
-            mem_rdata <= 0;
-            case (inst_code)
-                `INST_LB:           begin mem_rdata <= sext(read_raw_mem(mem_addr, 1), 8); end
-                `INST_LH:           begin mem_rdata <= sext(read_raw_mem(mem_addr, 2), 16); end
-                `INST_LW:           begin mem_rdata <= sext(read_raw_mem(mem_addr, 4), 32); end
-                `INST_LBU:          begin mem_rdata <= read_raw_mem(mem_addr, 1) & 32'hFF; end
-                `INST_LHU:          begin mem_rdata <= read_raw_mem(mem_addr, 2) & 32'hFFFF; end
-                default: ;
-            endcase
-        end
-    end
-    always @(posedge clk) begin
-        if (rst) begin
-        end else begin
-            case (inst_code)
-                `INST_SB:           begin mem_wdata = src2&32'hFF; write_raw_mem(mem_addr, 1, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h0, 4'h1}, mem_wdata); end
-                `INST_SH:           begin mem_wdata = src2&32'hFFFF; write_raw_mem(mem_addr, 2, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h1, 4'h3}, mem_wdata); end
-                `INST_SW:           begin mem_wdata = src2; write_raw_mem(mem_addr, 4, mem_wdata); func_dev_skip(1, mem_addr, {24'h0, 4'h2, 4'h7}, mem_wdata); end
-                `INST_LB:           begin func_dev_skip(0, mem_addr, {24'h0, 4'h0, 4'h0}, mem_rdata); end
-                `INST_LH:           begin func_dev_skip(0, mem_addr, {24'h0, 4'h1, 4'h0}, mem_rdata); end
-                `INST_LW:           begin func_dev_skip(0, mem_addr, {24'h0, 4'h2, 4'h0}, mem_rdata); end
-                `INST_LBU:          begin func_dev_skip(0, mem_addr, {24'h0, 4'h0, 4'h0}, mem_rdata); end
-                `INST_LHU:          begin func_dev_skip(0, mem_addr, {24'h0, 4'h1, 4'h0}, mem_rdata); end
-                default: ;
-            endcase
-        end
-    end
+    // 访存逻辑
+    assign mem_req_valid =
+        inst_code==`INST_SB ||
+        inst_code==`INST_SH ||
+        inst_code==`INST_SW ||
+        inst_code==`INST_LB ||
+        inst_code==`INST_LH ||
+        inst_code==`INST_LW ||
+        inst_code==`INST_LBU ||
+        inst_code==`INST_LHU ||
+        0;
+    assign mem_req_addr = src1 + imm;
+    assign mem_req_op =
+        inst_code==`INST_LB ?   `MEMOP_LB : 
+        inst_code==`INST_LH ?   `MEMOP_LH : 
+        inst_code==`INST_LW ?   `MEMOP_LW : 
+        inst_code==`INST_LBU ?  `MEMOP_LBU : 
+        inst_code==`INST_LHU ?  `MEMOP_LHU : 
+        inst_code==`INST_SB ?   `MEMOP_SB : 
+        inst_code==`INST_SH ?   `MEMOP_SH : 
+        inst_code==`INST_SW ?   `MEMOP_SW : 
+        0;
+    assign mem_req_wdata = 
+        inst_code==`INST_SB ? src2&32'hFF : 
+        inst_code==`INST_SH ? src2&32'hFFFF : 
+        inst_code==`INST_SW ? src2 : 
+        0;
+    assign mem_rsp_ready = 1;
 
     // GPR寄存器堆处理
     always @(*) begin
@@ -328,11 +319,11 @@ module write_back #(
             `INST_AUIPC:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = pc_plus_imm; end
             `INST_JAL:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
             `INST_JALR:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = snpc; end
-            `INST_LB:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LH:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LW:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LBU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
-            `INST_LHU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rdata; end
+            `INST_LB:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
+            `INST_LH:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
+            `INST_LW:           begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
+            `INST_LBU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
+            `INST_LHU:          begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = mem_rsp_data; end
             `INST_ADDI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = src1 + imm; end
             `INST_SLTI:         begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (s_src1 < imm)}; end
             `INST_SLTIU:        begin gpr_wen = 1; gpr_waddr = rd; gpr_wdata = {{31{1'b0}}, (src1 < imm)}; end
