@@ -201,7 +201,7 @@ module write_back #(
 ) (
     input   wire                            clk,
     input   wire                            rst,
-
+    // 解码指令
     input   wire [INST_WIDTH-1:0]           pc,
     input   wire [INST_WIDTH-1:0]           inst,
     input   wire [`RISCV_GPR_ADDR_W-1:0]    rd,
@@ -209,7 +209,15 @@ module write_back #(
     input   wire [`RISCV_GPR_ADDR_W-1:0]    rs2,
     input   wire [INST_WIDTH-1:0]           imm,
     input   wire [`INST_CODE_W-1:0]         inst_code,
-
+    // 访问存储接口
+    output reg                              mem_req_valid,
+    input  wire                             mem_req_ready,
+    output reg  [ADDR_WIDTH-1:0]            mem_req_addr,
+    output reg  [`MEMOP_W-1:0]              mem_req_op,
+    output reg  [DATA_WIDTH-1:0]            mem_req_wdata,
+    input  wire                             mem_rsp_valid,
+    output reg                              mem_rsp_ready,
+    input  wire [DATA_WIDTH-1:0]            mem_rsp_data,
     // gpr读入
     input   wire [DATA_WIDTH-1:0]           gpr_src1,
     input   wire [DATA_WIDTH-1:0]           gpr_src2,
@@ -218,7 +226,6 @@ module write_back #(
     output  reg                             gpr_wen,
     output  reg  [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr,
     output  reg  [DATA_WIDTH-1:0]           gpr_wdata,
-
     // 普通csr读入
     input   wire [DATA_WIDTH-1:0]           csr_rdata,
     // 普通csr写入
@@ -230,16 +237,6 @@ module write_back #(
     output  reg  [INST_WIDTH-1:0]           expt_epc,
     output  reg  [DATA_WIDTH-1:0]           expt_cause,
     output  reg  [DATA_WIDTH-1:0]           expt_tval,
-
-    // 访问存储接口
-    output reg                              mem_req_valid,
-    input  wire                             mem_req_ready,
-    output reg  [ADDR_WIDTH-1:0]            mem_req_addr,
-    output reg  [`MEMOP_W-1:0]              mem_req_op,
-    output reg  [DATA_WIDTH-1:0]            mem_req_wdata,
-    input  wire                             mem_rsp_valid,
-    output reg                              mem_rsp_ready,
-    input  wire [DATA_WIDTH-1:0]            mem_rsp_data,
 
     output wire [INST_WIDTH-1:0]            dnpc
 );

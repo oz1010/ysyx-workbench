@@ -18,7 +18,6 @@ module riscv32e_memsys #(
     output reg                          if_rsp_valid,
     input wire                          if_rsp_ready,
     output reg [DATA_WIDTH-1:0]         if_rsp_data,
-    
     // 访问存储接口
     input wire                          mem_req_valid,
     output reg                          mem_req_ready,
@@ -28,6 +27,19 @@ module riscv32e_memsys #(
     output reg                          mem_rsp_valid,
     input wire                          mem_rsp_ready,
     output reg  [DATA_WIDTH-1:0]        mem_rsp_data,
+    // gpr写入
+    input  wire                         gpr_wen,
+    input  wire [`RISCV_GPR_ADDR_W-1:0] gpr_waddr,
+    input  wire [DATA_WIDTH-1:0]        gpr_wdata,
+    // 普通csr写入
+    input  wire                         csr_wen,
+    input  wire [`CSR_ADDR_W-1:0]       csr_waddr,
+    input  wire [DATA_WIDTH-1:0]        csr_wdata,
+    // 异常csr写入
+    input  wire                         expt_en,
+    input  wire [INST_WIDTH-1:0]        expt_epc,
+    input  wire [DATA_WIDTH-1:0]        expt_cause,
+    input  wire [DATA_WIDTH-1:0]        expt_tval,
 
     /* AXI4 Master总线 */
     input  wire                         io_master_awready,

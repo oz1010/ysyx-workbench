@@ -120,6 +120,7 @@ module ysyx_23060295 (
 
     // 检测core是否陷入循环，默认但指令执行周期比较短暂
     wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
+    wire [31:0] core_dnpc[`RISCV_CORE_NUM-1:0];
     wire core_inst_done[`RISCV_CORE_NUM-1:0];
     `ifndef IN_YOSYS_STA
     reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
@@ -162,6 +163,16 @@ module ysyx_23060295 (
     wire                            mem_rsp_valid;
     wire                            mem_rsp_ready;
     wire [DATA_WIDTH-1:0]           mem_rsp_data;
+    wire                            gpr_wen;
+    wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr;
+    wire [DATA_WIDTH-1:0]           gpr_wdata;
+    wire                            csr_wen;
+    wire [`CSR_ADDR_W-1:0]          csr_waddr;
+    wire [DATA_WIDTH-1:0]           csr_wdata;
+    wire                            expt_en;
+    wire [INST_WIDTH-1:0]           expt_epc;
+    wire [DATA_WIDTH-1:0]           expt_cause;
+    wire [DATA_WIDTH-1:0]           expt_tval;
 
     `ifdef CONFIG_ISA_RISCV_SINGLE
     // 单周期版本的核心连接逻辑
@@ -190,9 +201,20 @@ module ysyx_23060295 (
         .mem_rsp_valid(mem_rsp_valid),
         .mem_rsp_ready(mem_rsp_ready),
         .mem_rsp_data(mem_rsp_data),
+        .gpr_wen(gpr_wen),
+        .gpr_waddr(gpr_waddr),
+        .gpr_wdata(gpr_wdata),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
+        .expt_en(expt_en),
+        .expt_epc(expt_epc),
+        .expt_cause(expt_cause),
+        .expt_tval(expt_tval),
 
         .pc(core_pc[0]),
-        .valid(core_inst_done[0])
+        .dnpc(core_dnpc[0]),
+        .inst_done(core_inst_done[0])
     );
     riscv32e_memsys #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
@@ -218,6 +240,16 @@ module ysyx_23060295 (
         .mem_rsp_valid(mem_rsp_valid),
         .mem_rsp_ready(mem_rsp_ready),
         .mem_rsp_data(mem_rsp_data),
+        .gpr_wen(gpr_wen),
+        .gpr_waddr(gpr_waddr),
+        .gpr_wdata(gpr_wdata),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
+        .expt_en(expt_en),
+        .expt_epc(expt_epc),
+        .expt_cause(expt_cause),
+        .expt_tval(expt_tval),
 
         .io_master_awready(io_master_awready),
         .io_master_awvalid(io_master_awvalid),
