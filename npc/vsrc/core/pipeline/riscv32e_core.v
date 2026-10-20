@@ -46,16 +46,6 @@ module riscv32e_core #(
     /* 用于调试和综合避免忽略掉信息 */
     output wire [INST_WIDTH-1:0] pc,
     output wire             valid
-`ifdef FORMAL_VERIFY
-    /* 形式化验证：WBU完成指令的信息输出 */
-    , output wire [INST_WIDTH-1:0] fv_wb_pc
-    , output wire [INST_WIDTH-1:0] fv_wb_dnpc
-    , output wire [INST_WIDTH-1:0] fv_wb_inst
-    , output wire [4:0]          fv_wb_rd
-    , output wire [DATA_WIDTH-1:0] fv_wb_result
-    , output wire                fv_wb_result_update_gpr
-    , output wire [DATA_WIDTH-1:0] fv_wb_ld_data
-`endif
 );
 
 /* 模块信号输出宽度 */
@@ -66,19 +56,9 @@ localparam ID_OUT_DATA_W = (INST_WIDTH*3 + 5 + 5 + 5 + `INST_CODE_W + `STAGE_COU
 localparam EX_IN_DATA_W = ID_OUT_DATA_W + DATA_WIDTH*3;
 localparam EX_OUT_DATA_W = (5 + `INST_CODE_W + INST_WIDTH*7 + 1 + `STAGE_COUNT + DATA_WIDTH*2 + 5*2 + `CSR_WCH_W);
 localparam LS_IN_DATA_W = EX_OUT_DATA_W;
-`ifdef FORMAL_VERIFY
-/* 形式化验证时LSU额外透传inst与load原始数据 */
-localparam LS_OUT_DATA_W = (INST_WIDTH*4 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*3 + 5*2 + `CSR_WCH_W);
-`else
 localparam LS_OUT_DATA_W = (INST_WIDTH*3 + 5 + 1 + `INST_CODE_W + `STAGE_COUNT + DATA_WIDTH*2 + 5*2 + `CSR_WCH_W);
-`endif
 localparam WB_IN_DATA_W = LS_OUT_DATA_W;
-`ifdef FORMAL_VERIFY
-/* 形式化验证时WBU额外输出inst、写回结果及load原始数据 */
-localparam WB_OUT_DATA_W = INST_WIDTH*3 + 5 + 1 + DATA_WIDTH*2;
-`else
 localparam WB_OUT_DATA_W = INST_WIDTH*3 + 6;
-`endif
 
 /* 模块之间的连接信号或数据 */
 wire                        con_core_ready;

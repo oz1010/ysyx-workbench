@@ -327,11 +327,9 @@ always @(posedge clk) begin
             M_STATE_PTRD: begin
                 if (s_rvalid && s_rready && s_rlast) begin
                     `ifndef IN_YOSYS_STA
-                    `ifndef FORMAL_VERIFY
                     if (s_rresp!=0 || s_rlast!=1 || s_rid!=`AXI4_ID_LSU) begin
                         $error("dcache pass-through read error, addr:%x resp:%x last:%x id:%x\n", r_m_addr, s_rresp, s_rlast, s_rid);
                     end
-                    `endif
                     `endif
                     r_m_state <= M_STATE_IDLE;
                 end
@@ -346,11 +344,9 @@ always @(posedge clk) begin
                 end
                 if (s_bvalid && s_bready) begin
                     `ifndef IN_YOSYS_STA
-                    `ifndef FORMAL_VERIFY
                     if (s_bresp!=0 || s_bid!=`AXI4_ID_LSU) begin
                         $error("dcache pass-through write error, addr:%x resp:%x id:%x\n", r_m_addr, s_bresp, s_bid);
                     end
-                    `endif
                     `endif
                     r_s_aw_done <= 0;
                     r_s_w_done <= 0;
@@ -359,9 +355,7 @@ always @(posedge clk) begin
             end
 
             `ifndef IN_YOSYS_STA
-            `ifndef FORMAL_VERIFY
             default: $error("dcache found unknown m_state(%d)", r_m_state);
-            `endif
             `endif
         endcase
     end

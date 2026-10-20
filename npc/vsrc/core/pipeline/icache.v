@@ -327,11 +327,9 @@ always @(posedge clk) begin
                 end
                 if (s_bvalid && s_bready) begin
                     `ifndef IN_YOSYS_STA
-                    `ifndef FORMAL_VERIFY
                     if (s_bresp!=0 || s_bid!=`AXI4_ID_IFU) begin
                         $error("icache pass-through write error, addr:%x resp:%x id:%x\n", r_m_addr, s_bresp, s_bid);
                     end
-                    `endif
                     `endif
                     r_s_aw_done <= 0;
                     r_s_w_done <= 0;
@@ -340,9 +338,7 @@ always @(posedge clk) begin
             end
 
             `ifndef IN_YOSYS_STA
-            `ifndef FORMAL_VERIFY
             default: $error("icache found unknown m_state(%d)", r_m_state);
-            `endif
             `endif
         endcase
     end

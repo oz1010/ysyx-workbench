@@ -176,7 +176,7 @@ module ysyx_23060295 (
 
     `ifdef CONFIG_ISA_RISCV_SINGLE
     // 单周期版本的核心连接逻辑
-    riscv32e_core #(
+    riscv32e_core_sc #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_CORE0(
         .clk(clk),
