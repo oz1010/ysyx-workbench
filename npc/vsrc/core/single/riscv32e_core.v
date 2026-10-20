@@ -104,16 +104,27 @@ module riscv32e_core #(
     output wire                         mem_rsp_ready,
     input  wire [DATA_WIDTH-1:0]        mem_rsp_data,
 
-    output wire [INST_WIDTH-1:0]        pc,
-    output wire                         valid
+    // gpr写入
+    output wire                         gpr_wen,
+    output wire [`RISCV_GPR_ADDR_W-1:0] gpr_waddr,
+    output wire [DATA_WIDTH-1:0]        gpr_wdata,
+
+    // 普通csr写入
+    output wire                         csr_wen,
+    output wire [`CSR_ADDR_W-1:0]       csr_waddr,
+    output wire [DATA_WIDTH-1:0]        csr_wdata,
+
+    // 异常csr写入
+    output wire                         expt_en,
+    output wire [INST_WIDTH-1:0]        expt_epc,
+    output wire [DATA_WIDTH-1:0]        expt_cause,
+    output wire [DATA_WIDTH-1:0]        expt_tval,
+
+    // 关键信息
+    output wire [INST_WIDTH-1:0]        pc, // 退休指令的PC
+    output wire [INST_WIDTH-1:0]        dnpc, // 退休指令的下一条指令PC
+    output wire                         inst_done // 退休指令已经完成
 );
-
-    reg                                 r_valid;
-    wire                                expt_en;
-    wire [INST_WIDTH-1:0]               expt_epc;
-    wire [DATA_WIDTH-1:0]               expt_cause;
-    wire [DATA_WIDTH-1:0]               expt_tval;
-
     /* gpr寄存器组 */
     wire [DATA_WIDTH-1:0] gpr_src1;
     wire [DATA_WIDTH-1:0] gpr_src2;
@@ -136,18 +147,14 @@ module riscv32e_core #(
 
 
     /* csr寄存器组 */
-    wire [`INST_CODE_W-1:0] csr_inst_code = inst_code;
-    wire                            csr_wen;
-    wire [`CSR_ADDR_W-1:0]          csr_waddr;
-    wire [DATA_WIDTH-1:0]           csr_wdata;
     wire csr_raddr_en = 
-        (csr_inst_code==`INST_CSRRW) |
-        (csr_inst_code==`INST_CSRRS) |
+        (inst_code==`INST_CSRRW) |
+        (inst_code==`INST_CSRRS) |
         0;
     wire [`CSR_ADDR_W-1:0] csr_raddr = 
         csr_raddr_en ? imm[0 +: `CSR_ADDR_W] :
-        (csr_inst_code==`INST_ECALL) ? `CSR_MTVEC :
-        (csr_inst_code==`INST_MRET) ? `CSR_MEPC :
+        (inst_code==`INST_ECALL) ? `CSR_MTVEC :
+        (inst_code==`INST_MRET) ? `CSR_MEPC :
         0;
     wire [DATA_WIDTH-1:0] csr_rdata;
     csrs #(
@@ -191,9 +198,6 @@ module riscv32e_core #(
     decoder risc32e_decoder(inst, opcode, rd, funct3, rs1, rs2, funct7, imm, inst_type, inst_code);
 
     /* 回写wb */
-    wire                            gpr_wen;
-    wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr;
-    wire [DATA_WIDTH-1:0]           gpr_wdata;
     write_back #(
         .INST_WIDTH(INST_WIDTH)
     ) wbu(
@@ -207,24 +211,6 @@ module riscv32e_core #(
         .rs2(rs2),
         .imm(imm),
         .inst_code(inst_code),
-
-        .gpr_src1(gpr_src1),
-        .gpr_src2(gpr_src2),
-        .gpr_a0(gpr_a0),
-        .gpr_wen(gpr_wen),
-        .gpr_waddr(gpr_waddr),
-        .gpr_wdata(gpr_wdata),
-
-        .csr_rdata(csr_rdata),
-        .csr_wen(csr_wen),
-        .csr_waddr(csr_waddr),
-        .csr_wdata(csr_wdata),
-
-        .expt_en(expt_en),
-        .expt_epc(expt_epc),
-        .expt_cause(expt_cause),
-        .expt_tval(expt_tval),
-
         .mem_req_valid(mem_req_valid),
         .mem_req_ready(mem_req_ready),
         .mem_req_addr(mem_req_addr),
@@ -233,7 +219,20 @@ module riscv32e_core #(
         .mem_rsp_valid(mem_rsp_valid),
         .mem_rsp_ready(mem_rsp_ready),
         .mem_rsp_data(mem_rsp_data),
-
+        .gpr_src1(gpr_src1),
+        .gpr_src2(gpr_src2),
+        .gpr_a0(gpr_a0),
+        .gpr_wen(gpr_wen),
+        .gpr_waddr(gpr_waddr),
+        .gpr_wdata(gpr_wdata),
+        .csr_rdata(csr_rdata),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
+        .expt_en(expt_en),
+        .expt_epc(expt_epc),
+        .expt_cause(expt_cause),
+        .expt_tval(expt_tval),
         .dnpc(dnpc)
     );
 
@@ -242,17 +241,17 @@ module riscv32e_core #(
     */
     reg [INST_WIDTH-1:0] core_pc;
     reg [INST_WIDTH-1:0] core_dnpc;
-    wire [INST_WIDTH-1:0] dnpc;
-    assign valid = r_valid;
-    assign pc = core_pc;
+    reg                  core_inst_done;
     assign core_dnpc = dnpc;
+    assign pc = core_pc;
+    assign inst_done = core_inst_done;
     always @(posedge clk) begin
         if (rst) begin
             core_pc <= reset_pc;
-            r_valid <= 0;
+            core_inst_done <= 0;
         end else begin
             core_pc <= dnpc;
-            r_valid <= 1;
+            core_inst_done <= 1;
         end
     end
 
