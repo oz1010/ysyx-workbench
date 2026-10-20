@@ -3,15 +3,16 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** CSR 文件：mstatus(mtvec/mepc/mcause/mvendorid/marchid) 仅实现 M
   * 模式最常用的位：mstatus.MIE(bit3)、mstatus.MPIE(bit7)。
   */
 class CsrFile(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val read  = Flipped(new RegReadIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val write = Flipped(new RegWriteIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val trap  = Flipped(new TrapIO(p))
+    val read  = Flipped(new OldRegReadIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val write = Flipped(new OldRegWriteIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val trap  = Flipped(new OldTrapIO(p))
     // // MRET 返回
     // val mret   = Input(Bool())
     // // 状态输出

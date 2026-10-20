@@ -3,6 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** IFU：取指 + 静态分支预测。
   *
@@ -14,7 +15,7 @@ import config.AutoConfig._
 
 class Ifu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val cache      = new CacheIO(p)
+    val cache      = new OldCacheIO(p)
     val out        = Decoupled(new IfBundle(p))
     val exRedirect = Input(new Redirect(p)) // 预测失败/跳转修正（EX 级）
     val wbRedirect = Input(new Redirect(p)) // 陷阱/MRET（WBU 级，优先级最高）

@@ -3,6 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** WBU（WB 级）：写回 + CSR 提交 + 陷阱/中断/MRET 处理。
   *   - 异常：指令自带的异常（illegal/ecall/ebreak/非对齐）在提交时进 mtvec
@@ -13,10 +14,10 @@ class Wbu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
     val in        = Flipped(Decoupled(new LsBundle(p)))
     val out       = Decoupled(new WbBundle(p))
-    val csrWrite  = new RegWriteIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH)
-    val csrTrap   = new TrapIO(p)
+    val csrWrite  = new OldRegWriteIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val csrTrap   = new OldTrapIO(p)
     val redirect  = Output(new Redirect(p)) // 陷阱/MRET（→ IFU）
-    val gprWrite  = new RegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val gprWrite  = new OldRegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
     val interrupt = Input(Bool())           // TODO 暂时忽略中断的影响
     // TODO 暂时忽略csr值输入
     val csrMie    = Input(Bool())

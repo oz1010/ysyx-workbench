@@ -12,24 +12,24 @@ module riscv32e_core_sc #(
     input  wire                         io_interrupt,
 
     // 取指接口
-    output reg                          if_req_valid,
-    input  wire                         if_req_ready,
-    output reg  [ADDR_WIDTH-1:0]        if_req_addr,
-    output reg  [`MEMOP_W-1:0]          if_req_op,
-    output reg  [DATA_WIDTH-1:0]        if_req_wdata,
-    input  wire                         if_rsp_valid,
-    output reg                          if_rsp_ready,
-    input  wire [DATA_WIDTH-1:0]        if_rsp_data,
+    output reg                          io_if_req_valid,
+    input  wire                         io_if_req_ready,
+    output reg  [ADDR_WIDTH-1:0]        io_if_req_addr,
+    output reg  [`MEMOP_W-1:0]          io_if_req_op,
+    output reg  [DATA_WIDTH-1:0]        io_if_req_wdata,
+    input  wire                         io_if_rsp_valid,
+    output reg                          io_if_rsp_ready,
+    input  wire [DATA_WIDTH-1:0]        io_if_rsp_data,
     
     // 访问存储接口
-    output wire                         mem_req_valid,
-    input  wire                         mem_req_ready,
-    output wire [ADDR_WIDTH-1:0]        mem_req_addr,
-    output wire [`MEMOP_W-1:0]          mem_req_op,
-    output wire [DATA_WIDTH-1:0]        mem_req_wdata,
-    input  wire                         mem_rsp_valid,
-    output wire                         mem_rsp_ready,
-    input  wire [DATA_WIDTH-1:0]        mem_rsp_data,
+    output wire                         io_mem_req_valid,
+    input  wire                         io_mem_req_ready,
+    output wire [ADDR_WIDTH-1:0]        io_mem_req_addr,
+    output wire [`MEMOP_W-1:0]          io_mem_req_op,
+    output wire [DATA_WIDTH-1:0]        io_mem_req_wdata,
+    input  wire                         io_mem_rsp_valid,
+    output wire                         io_mem_rsp_ready,
+    input  wire [DATA_WIDTH-1:0]        io_mem_rsp_data,
 
     // gpr写入
     output wire                         gpr_wen,
@@ -42,10 +42,11 @@ module riscv32e_core_sc #(
     output wire [DATA_WIDTH-1:0]        csr_wdata,
 
     // 异常csr写入
-    output wire                         expt_en,
-    output wire [INST_WIDTH-1:0]        expt_epc,
-    output wire [DATA_WIDTH-1:0]        expt_cause,
-    output wire [DATA_WIDTH-1:0]        expt_tval,
+    output wire                         trap_en,
+    output wire [INST_WIDTH-1:0]        trap_epc,
+    output wire [DATA_WIDTH-1:0]        trap_cause,
+    output wire [DATA_WIDTH-1:0]        trap_tval,
+    output wire [DATA_WIDTH-1:0]        trap_status,
 
     // 关键信息
     output wire [INST_WIDTH-1:0]        pc, // 退休指令的PC
@@ -96,21 +97,22 @@ module riscv32e_core_sc #(
         .waddr(csr_waddr),
         .wdata(csr_wdata),
 
-        .expt_en(expt_en),
-        .expt_epc(expt_epc),
-        .expt_cause(expt_cause),
-        .expt_tval(expt_tval)
+        .trap_en(trap_en),
+        .trap_epc(trap_epc),
+        .trap_cause(trap_cause),
+        .trap_tval(trap_tval),
+        .trap_status(trap_status)
     );
 
     /* 取指，单周期一直取指 */
     reg [INST_WIDTH-1:0] inst;
-    assign if_req_valid = rst ? 0 : 1;
-    assign if_req_addr = core_pc;
-    assign if_req_op = `MEMOP_FLAG_4B;
-    assign if_rsp_ready = rst ? 0 : 1;
-    assign inst = if_rsp_data;
+    assign io_if_req_valid = rst ? 0 : 1;
+    assign io_if_req_addr = core_pc;
+    assign io_if_req_op = `MEMOP_FLAG_4B;
+    assign io_if_rsp_ready = rst ? 0 : 1;
+    assign inst = io_if_rsp_data;
     // 禁用写接口
-    assign if_req_wdata = 0;
+    assign io_if_req_wdata = 0;
 
     /* 译码 */
     wire [6:0] opcode;
@@ -138,14 +140,14 @@ module riscv32e_core_sc #(
         .rs2(rs2),
         .imm(imm),
         .inst_code(inst_code),
-        .mem_req_valid(mem_req_valid),
-        .mem_req_ready(mem_req_ready),
-        .mem_req_addr(mem_req_addr),
-        .mem_req_op(mem_req_op),
-        .mem_req_wdata(mem_req_wdata),
-        .mem_rsp_valid(mem_rsp_valid),
-        .mem_rsp_ready(mem_rsp_ready),
-        .mem_rsp_data(mem_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data),
         .gpr_src1(gpr_src1),
         .gpr_src2(gpr_src2),
         .gpr_a0(gpr_a0),
@@ -156,10 +158,11 @@ module riscv32e_core_sc #(
         .csr_wen(csr_wen),
         .csr_waddr(csr_waddr),
         .csr_wdata(csr_wdata),
-        .expt_en(expt_en),
-        .expt_epc(expt_epc),
-        .expt_cause(expt_cause),
-        .expt_tval(expt_tval),
+        .trap_en(trap_en),
+        .trap_epc(trap_epc),
+        .trap_cause(trap_cause),
+        .trap_tval(trap_tval),
+        .trap_status(trap_status),
         .dnpc(dnpc)
     );
 

@@ -3,10 +3,11 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 class DCache(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val cpu    = Flipped(new CacheIO(p))
+    val cpu    = Flipped(new OldCacheIO(p))
     val master = new Axi4IO(p)
   })
 

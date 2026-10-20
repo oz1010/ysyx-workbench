@@ -3,6 +3,8 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
+import pipeline_manual.Axi4MasterDefaults.apply
 
 /** 指令测试码 */
 object InstCodeTest {
@@ -189,7 +191,7 @@ object Axi4SlaveDefaults {
 }
 
 /** Cache数据，master视角 */
-class CacheIO(p: CoreParams) extends Bundle {
+class OldCacheIO(p: CoreParams) extends Bundle {
   val req = new Bundle {
     val valid   = Output(Bool())
     val ready   = Input(Bool())
@@ -201,6 +203,29 @@ class CacheIO(p: CoreParams) extends Bundle {
   val rsp = new Bundle {
     val valid = Input(Bool())
     val data  = Input(UInt(CONFIG_DATA_WIDTH.W))
+  }
+}
+class CacheIO                   extends Bundle {
+  val req = new Bundle {
+    val valid = Output(Bool())
+    val ready = Input(Bool())
+    val addr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
+    val op    = Output(UInt(MEMOP_W.W))
+    val wdata = Output(UInt(CONFIG_DATA_WIDTH.W))
+  }
+  val rsp = new Bundle {
+    val valid = Input(Bool())
+    val ready = Output(Bool())
+    val data  = Input(UInt(CONFIG_DATA_WIDTH.W))
+  }
+}
+object CacheIODefaults {
+  def apply(io: CacheIO): Unit = {
+    io.req.valid := false.B
+    io.req.addr  := 0.U
+    io.req.op    := 0.U
+    io.req.wdata := 0.U
+    io.rsp.ready := false.B
   }
 }
 
@@ -322,21 +347,50 @@ class WbBundle(p: CoreParams) extends Bundle {
 }
 
 /** 寄存器读写取接口，master视角，支持GPR CSR */
-class RegReadIO(ADDR_WIDTH: Int, DATA_WIDTH: Int)  extends Bundle {
+class OldRegReadIO(ADDR_WIDTH: Int, DATA_WIDTH: Int)  extends Bundle {
   val en   = Output(Bool())
   val addr = Output(UInt(ADDR_WIDTH.W))
   val data = Input(UInt(DATA_WIDTH.W))
 }
-class RegWriteIO(ADDR_WIDTH: Int, DATA_WIDTH: Int) extends Bundle {
+class OldRegWriteIO(ADDR_WIDTH: Int, DATA_WIDTH: Int) extends Bundle {
   val en   = Output(Bool())
   val addr = Output(UInt(ADDR_WIDTH.W))
   val data = Output(UInt(DATA_WIDTH.W))
 }
+class RegWriteIO(ADDR_WIDTH: Int, DATA_WIDTH: Int)    extends Bundle {
+  val wen   = Output(Bool())
+  val waddr = Output(UInt(ADDR_WIDTH.W))
+  val wdata = Output(UInt(DATA_WIDTH.W))
+}
+object RegWriteIODefaults {
+  def apply(io: RegWriteIO): Unit = {
+    io.wen   := false.B
+    io.waddr := 0.U
+    io.wdata := 0.U
+  }
+}
 
 /** 陷阱接口，master视角 */
-class TrapIO(p: CoreParams) extends Bundle {
+class OldTrapIO(p: CoreParams) extends Bundle {
   val en    = Output(Bool())
   val epc   = Output(UInt(CONFIG_ADDR_WIDTH.W))
   val cause = Output(UInt(CONFIG_ADDR_WIDTH.W))
   val tval  = Output(UInt(CONFIG_ADDR_WIDTH.W))
+}
+class TrapIO()                 extends Bundle {
+  val en     = Output(Bool())
+  val epc    = Output(UInt(CONFIG_ADDR_WIDTH.W))
+  val cause  = Output(UInt(CONFIG_ADDR_WIDTH.W))
+  val tval   = Output(UInt(CONFIG_ADDR_WIDTH.W))
+  val status = Output(UInt(CONFIG_ADDR_WIDTH.W))
+}
+// 陷阱接口，支持异常（同步）和中断（异步）
+object TrapIODefaults {
+  def apply(io: TrapIO): Unit = {
+    io.en     := false.B
+    io.epc    := 0.U
+    io.cause  := 0.U
+    io.tval   := 0.U
+    io.status := 0.U
+  }
 }

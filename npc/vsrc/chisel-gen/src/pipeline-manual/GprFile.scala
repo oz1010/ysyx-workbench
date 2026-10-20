@@ -3,15 +3,16 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** GPR 文件：mstatus(mtvec/mepc/mcause/mvendorid/marchid) 仅实现 M
   * 模式最常用的位：mstatus.MIE(bit3)、mstatus.MPIE(bit7)。
   */
 class GprFile(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val read1 = Flipped(new RegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val read2 = Flipped(new RegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val write = Flipped(new RegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val read1 = Flipped(new OldRegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val read2 = Flipped(new OldRegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val write = Flipped(new OldRegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
   })
 
   /*
