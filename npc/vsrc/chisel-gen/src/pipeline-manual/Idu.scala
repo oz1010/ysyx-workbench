@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 /** IDU：译码。
   *   - RV32I(RV32E) 基础指令集，SYSTEM 支持 ECALL/EBREAK/MRET/CSR 指令。
@@ -10,9 +11,9 @@ class Idu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
     val in         = Flipped(Decoupled(new IfBundle(p)))
     val out        = Decoupled(new IdBundle(p))
-    val gprRead1   = new RegReadIO(p.GPR_ADDR_W, p.XLEN)
-    val gprRead2   = new RegReadIO(p.GPR_ADDR_W, p.XLEN)
-    val gprWrite   = Flipped(new RegWriteIO(p.GPR_ADDR_W, p.XLEN))
+    val gprRead1   = new RegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val gprRead2   = new RegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val gprWrite   = Flipped(new RegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
     val loadStall  = Input(Bool()) // load-use RAW 冒险，请求 stall
     val exRedirect = Input(new Redirect(p))
     val wbRedirect = Input(new Redirect(p))

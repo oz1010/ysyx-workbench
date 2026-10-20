@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 class HazardUnit(p: CoreParams) extends Module {
   val io = IO(new Bundle {

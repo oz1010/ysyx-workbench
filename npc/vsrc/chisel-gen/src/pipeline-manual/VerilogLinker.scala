@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 class ResetPcGetter(addrWidth: Int)
     extends BlackBox(Map("ADDR_WIDTH" -> addrWidth))
