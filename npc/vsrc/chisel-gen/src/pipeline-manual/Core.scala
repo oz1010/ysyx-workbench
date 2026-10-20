@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 /** RV32E 五级流水线核（内部顶层，Chisel 隐式 clock/reset）。 IFU --(IF/ID)--> IDU --(ID/EX)-->
   * EXU --(EX/MEM)--> LSU --(MEM/WB)--> WBU 每级间均为 valid/ready 握手（Decoupled）；
@@ -11,9 +12,9 @@ import chisel3.util._
 class riscv32e_core(p: CoreParams) extends RawModule {
   val clk          = IO(Input(Clock()))
   val rst          = IO(Input(Bool()))  // 同步复位，高有效
+  val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
   val io_interrupt = IO(Input(Bool()))
-  val io_master    = IO(new Axi4IO(p))
-  val pc           = IO(Output(UInt(p.ADDR_WIDTH.W)))
+  val pc           = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
   val valid        = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
 
   withClockAndReset(clk, rst) {
@@ -23,9 +24,6 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     val exu        = Module(new Exu(p))
     val lsu        = Module(new Lsu(p))
     val wbu        = Module(new Wbu(p))
-    val icache     = Module(new ICache(p))
-    val dcache     = Module(new DCache(p))
-    val arbiter    = Module(new Axi4IOArbiter(p, 2))
     val m_gprs     = Module(new GprFile(p))
     val m_csrs     = Module(new CsrFile(p))
     val regIfId    = Module(new PipelineReg(new IfBundle(p)))
@@ -33,6 +31,11 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     val regExLs    = Module(new PipelineReg(new ExBundle(p)))
     val regLsWb    = Module(new PipelineReg(new LsBundle(p)))
     val hazardUnit = Module(new HazardUnit(p))
+    // TODO 以下部分后面需要去掉
+    val io_master  = IO(new Axi4IO(p))
+    val arbiter    = Module(new Axi4IOArbiter(p, 2))
+    val icache     = Module(new ICache(p))
+    val dcache     = Module(new DCache(p))
 
     // ---------------- 全局控制信号收集 ----------------
     val exRedirect  = exu.io.redirect
@@ -112,8 +115,8 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     arbiter.io.clients(1) <> dcache.io.master
 
     // ---------------- 关键输出 ----------------
-    val core_pc   = RegInit(0.U(p.ADDR_WIDTH.W))
-    val core_dnpc = RegInit(0.U(p.ADDR_WIDTH.W))
+    val core_pc   = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
+    val core_dnpc = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
     core_pc := wbu.io.out.bits.pc
     pc      := core_pc
     valid   := wbu.io.out.valid

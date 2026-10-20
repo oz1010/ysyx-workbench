@@ -34,7 +34,7 @@ Scala type mapping:
     bool -> Boolean, tristate/string -> String
     int -> Int literal in decimal
         (BigInt fallback when outside the 32-bit range)
-    hex -> chisel UInt literal (0x0040_0000.U), zero-padded to at
+    hex -> chisel UInt literal (0x0040_0000L.U), zero-padded to at
         least 8 hex digits; no width limit (UInt supports wide values)
 
 Limitations:
@@ -895,7 +895,7 @@ def scala_expr(kind, value):
         return str(value)
 
     if kind == "hex":
-        return scala_hex(value) + ".U"
+        return scala_hex(value) + "L.U"
 
     if kind == "integer":
         return f'BigInt("{value}")'

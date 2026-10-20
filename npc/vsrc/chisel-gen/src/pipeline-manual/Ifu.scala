@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 /** IFU：取指 + 静态分支预测。
   *
@@ -23,13 +24,13 @@ class Ifu(p: CoreParams) extends Module {
   val reqPend = RegInit(false.B) // 已发出请求、等待 ICache 返回
 
   // 真正的硬件pc应该直接内置默认值p.RESET_PC
-  val pc = Reg(UInt(p.ADDR_WIDTH.W))
+  val pc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
   if (p.RESET_PC_EN) {
     when(reset.asBool) {
       pc := p.RESET_PC.U
     }
   } else {
-    val resetPcGetter = Module(new ResetPcGetter(p.ADDR_WIDTH))
+    val resetPcGetter = Module(new ResetPcGetter(CONFIG_ADDR_WIDTH))
     resetPcGetter.io.clk := clock
     resetPcGetter.io.rst := reset.asBool
     when(reset.asBool) {

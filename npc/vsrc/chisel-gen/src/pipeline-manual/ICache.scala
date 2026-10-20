@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 /** ICache：直通取指（passthrough，无缓存阵列）。 CPU 请求 -> AXI4 单拍读（arlen=0, INCR）-> 返回数据回传
   * CPU。 io.cpu.rsp 脉冲一拍（IFU 在 rsp.valid 且 reqPend 时无条件消费并回 idle）。
@@ -27,9 +28,9 @@ class ICache(p: CoreParams) extends Module {
 
   // AXI4 固定参数：单一主设备，单拍 INCR 读
   io.master.arid    := Axi4ID.ICACHE.asUInt
-  io.master.arlen   := 0.U                          // burst数量，2^n字节
-  io.master.arsize  := log2Ceil(p.DATA_WIDTH / 8).U // 单个burst数据大小，2^n字节
-  io.master.arburst := 1.U                          // 01=INCR
+  io.master.arlen   := 0.U                               // burst数量，2^n字节
+  io.master.arsize  := log2Ceil(CONFIG_DATA_WIDTH / 8).U // 单个burst数据大小，2^n字节
+  io.master.arburst := 1.U                               // 01=INCR
 
   val sIdle :: sRunning :: Nil = Enum(2)
   val state                    = RegInit(sIdle)

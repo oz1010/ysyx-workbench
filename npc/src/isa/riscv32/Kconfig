@@ -73,4 +73,16 @@ config CORE_NUM
     int "Number of processor cores"
     default 1
 
+config ADDR_WIDTH
+    int
+    depends on ISA_riscv
+    default 64 if RV64
+    default 32
+
+config DATA_WIDTH
+    int
+    depends on ISA_riscv
+    default 64 if RV64
+    default 32
+
 endmenu

@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 /** EXU：ALU、分支解析与静态预测修正、 CSR 读（返回旧值）、异常检测（含访存/跳转地址非对齐）。
   *   - 暂时不实现：前递（EX/MEM、MEM/WB）
@@ -15,11 +16,11 @@ class Exu(p: CoreParams) extends Module {
     val lsValid  = Input(Bool())
     val wbStage  = Input(new LsBundle(p))
     val wbValid  = Input(Bool())
-    val wbData   = Input(UInt(p.XLEN.W))   // WBU 最终写回数据（含 load 数据）
+    val wbData   = Input(UInt(CONFIG_ADDR_WIDTH.W)) // WBU 最终写回数据（含 load 数据）
     // CSR读口（读旧值）
-    val csrRead  = new RegReadIO(p.CSR_ADDR_W, p.XLEN)
+    val csrRead  = new RegReadIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH)
     // 预测失败 / 跳转修正重定向
-    val redirect = Output(new Redirect(p)) // 预测修正/跳转（→ IFU）
+    val redirect = Output(new Redirect(p))          // 预测修正/跳转（→ IFU）
   })
 
   val in = io.in.bits
@@ -87,7 +88,7 @@ class Exu(p: CoreParams) extends Module {
     )
   )
   val brTarget   = in.pc + in.imm
-  val jalrTarget = (rs1f + in.imm) & (~1.U(p.XLEN.W)).asUInt
+  val jalrTarget = (rs1f + in.imm) & (~1.U(CONFIG_ADDR_WIDTH.W)).asUInt
   // 预测修正：分支实际走向与预测不符；JALR 预测 not-taken 恒需修正
   val mispredict =
     (in.ctrl.isBranch && (taken =/= in.predTaken)) || in.ctrl.isJalr

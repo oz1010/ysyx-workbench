@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import config.AutoConfig._
 
 /** 通用流水线级间寄存器 (Pipeline Register)
   *   - 支持 Valid-Ready 握手协议、Stall（暂停/保持）以及 Flush（冲刷/清零）
