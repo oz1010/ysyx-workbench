@@ -218,6 +218,95 @@ module ysyx_23060295 (
         .dnpc(core_dnpc[0]),
         .inst_done(core_inst_done[0])
     );
+
+    `elsif CONFIG_ISA_RISCV_PIPELINE_CHISEL
+    // chisel流水线版本
+    riscv32e_core #(
+        .INST_WIDTH(`RISCV_INST_WIDTH)
+    ) ysyx_23060295_CORE0(
+        .clk(clk),
+        .rst(rst),
+
+        .reset_pc(reset_pc),
+        .io_interrupt(io_interrupt),
+
+        .io_if_req_valid(io_if_req_valid),
+        .io_if_req_ready(io_if_req_ready),
+        .io_if_req_addr(io_if_req_addr),
+        .io_if_req_op(io_if_req_op),
+        .io_if_req_wdata(io_if_req_wdata),
+        .io_if_rsp_valid(io_if_rsp_valid),
+        .io_if_rsp_ready(io_if_rsp_ready),
+        .io_if_rsp_data(io_if_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data),
+        .gpr_wen(gpr_wen),
+        .gpr_waddr(gpr_waddr),
+        .gpr_wdata(gpr_wdata),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
+        .trap_en(trap_en),
+        .trap_epc(trap_epc),
+        .trap_cause(trap_cause),
+        .trap_tval(trap_tval),
+        .trap_status(trap_status),
+
+        .pc(core_pc[0]),
+        .dnpc(core_dnpc[0]),
+        .inst_done(core_inst_done[0])
+    );
+
+    `else
+    // 其他类型版本
+    riscv32e_core #(
+        .INST_WIDTH(`RISCV_INST_WIDTH)
+    ) ysyx_23060295_CORE0(
+        .clk(clk),
+        .rst(rst),
+
+        .io_interrupt(io_interrupt),
+        .io_master_awready(io_master_awready),
+        .io_master_awvalid(io_master_awvalid),
+        .io_master_awaddr(io_master_awaddr),
+        .io_master_awid(io_master_awid),
+        .io_master_awlen(io_master_awlen),
+        .io_master_awsize(io_master_awsize),
+        .io_master_awburst(io_master_awburst),
+        .io_master_wready(io_master_wready),
+        .io_master_wvalid(io_master_wvalid),
+        .io_master_wdata(io_master_wdata),
+        .io_master_wstrb(io_master_wstrb),
+        .io_master_wlast(io_master_wlast),
+        .io_master_bready(io_master_bready),
+        .io_master_bvalid(io_master_bvalid),
+        .io_master_bresp(io_master_bresp),
+        .io_master_bid(io_master_bid),
+        .io_master_arready(io_master_arready),
+        .io_master_arvalid(io_master_arvalid),
+        .io_master_araddr(io_master_araddr),
+        .io_master_arid(io_master_arid),
+        .io_master_arlen(io_master_arlen),
+        .io_master_arsize(io_master_arsize),
+        .io_master_arburst(io_master_arburst),
+        .io_master_rready(io_master_rready),
+        .io_master_rvalid(io_master_rvalid),
+        .io_master_rresp(io_master_rresp),
+        .io_master_rdata(io_master_rdata),
+        .io_master_rlast(io_master_rlast),
+        .io_master_rid(io_master_rid),
+
+        .pc(core_pc[0]),
+        .valid(core_inst_done[0])
+    );
+    `endif
+
     riscv32e_memsys #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_memsys0(
@@ -286,48 +375,5 @@ module ysyx_23060295 (
 
         .done()
     );
-
-    `else
-    riscv32e_core #(
-        .INST_WIDTH(`RISCV_INST_WIDTH)
-    ) ysyx_23060295_CORE0(
-        .clk(clk),
-        .rst(rst),
-
-        .io_interrupt(io_interrupt),
-        .io_master_awready(io_master_awready),
-        .io_master_awvalid(io_master_awvalid),
-        .io_master_awaddr(io_master_awaddr),
-        .io_master_awid(io_master_awid),
-        .io_master_awlen(io_master_awlen),
-        .io_master_awsize(io_master_awsize),
-        .io_master_awburst(io_master_awburst),
-        .io_master_wready(io_master_wready),
-        .io_master_wvalid(io_master_wvalid),
-        .io_master_wdata(io_master_wdata),
-        .io_master_wstrb(io_master_wstrb),
-        .io_master_wlast(io_master_wlast),
-        .io_master_bready(io_master_bready),
-        .io_master_bvalid(io_master_bvalid),
-        .io_master_bresp(io_master_bresp),
-        .io_master_bid(io_master_bid),
-        .io_master_arready(io_master_arready),
-        .io_master_arvalid(io_master_arvalid),
-        .io_master_araddr(io_master_araddr),
-        .io_master_arid(io_master_arid),
-        .io_master_arlen(io_master_arlen),
-        .io_master_arsize(io_master_arsize),
-        .io_master_arburst(io_master_arburst),
-        .io_master_rready(io_master_rready),
-        .io_master_rvalid(io_master_rvalid),
-        .io_master_rresp(io_master_rresp),
-        .io_master_rdata(io_master_rdata),
-        .io_master_rlast(io_master_rlast),
-        .io_master_rid(io_master_rid),
-
-        .pc(core_pc[0]),
-        .valid(core_inst_done[0])
-    );
-    `endif
 
 endmodule

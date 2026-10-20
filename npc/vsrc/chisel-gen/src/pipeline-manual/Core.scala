@@ -16,7 +16,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
   val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
   val io_interrupt = IO(Input(Bool()))
   val io_if        = IO(new CacheIO())
-  val mem          = IO(new CacheIO())
+  val io_mem       = IO(new CacheIO())
   val gpr          = IO(new RegWriteIO(GPR_ADDR_W, CONFIG_DATA_WIDTH))
   val csr          = IO(new RegWriteIO(CSR_ADDR_W, CONFIG_DATA_WIDTH))
   val trap         = IO(new TrapIO())
@@ -26,7 +26,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
 
   // TODO 临时赋值
   CacheIODefaults(io_if)
-  CacheIODefaults(mem)
+  CacheIODefaults(io_mem)
   RegWriteIODefaults(gpr)
   RegWriteIODefaults(csr)
   TrapIODefaults(trap)
