@@ -61,13 +61,11 @@ module ex_muldivrem #(
         end else begin
             if (valid) begin
                 `ifndef IN_YOSYS_STA
-                `ifndef FORMAL_VERIFY
                 // TODO 非综合使用比较方式，校验两种的结果是否一致
                 if (single_result!=multi_result) begin
                     $error("muldivrem result dismatch, code %x src1 %d src2 %d result(s:%d m:%d)",
                         inst_code, src1, src2, single_result, multi_result);
                 end
-                `endif
                 `endif
             end
         end

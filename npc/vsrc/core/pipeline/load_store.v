@@ -45,25 +45,7 @@ module load_store #(
         result, result_update_gpr, csr_wch,
         expt, expt_cause, expt_tval
     } = in_bits;
-`ifdef FORMAL_VERIFY
-    /* 形式化验证：透传inst与load使用的总线原始数据到WBU */
-    assign out_bits = {
-        pc,
-        dnpc,
-        inst,
-        rd,
-        rs1,
-        rs2,
-        inst_code,
-        ls_enable ? r_result : result,
-        ls_enable ? r_result_update_gpr : result_update_gpr,
-        csr_wch,
-        prev_err ? expt : r_expt,
-        prev_err ? expt_cause : r_expt_cause,
-        prev_err ? expt_tval : r_expt_tval,
-        r_fv_ld_data
-    };
-`else
+
     assign out_bits = {
         pc,
         dnpc,
@@ -78,7 +60,6 @@ module load_store #(
         prev_err ? expt_cause : r_expt_cause,
         prev_err ? expt_tval : r_expt_tval
     };
-`endif
 
     wire [INST_WIDTH-1:0]           pc;
     wire [INST_WIDTH-1:0]           dnpc;
@@ -111,18 +92,6 @@ module load_store #(
     reg                             r_req_busy = 0;
     reg                             r_req_second = 0;
     reg  [DATA_WIDTH-1:0]           r_req_first_data = 0;
-
-`ifdef FORMAL_VERIFY
-    /* 形式化验证：记录load指令在总线上读到的原始数据 */
-    reg  [DATA_WIDTH-1:0]           r_fv_ld_data;
-    always @(posedge clk) begin
-        if (rst) begin
-            r_fv_ld_data <= 0;
-        end else begin
-            if (resp_valid && resp_ready && r_read_enable) r_fv_ld_data <= resp_data;
-        end
-    end
-`endif
 
     wire                            stage_in_done;
     reg                             r_stage_out_valid;
@@ -202,23 +171,10 @@ module load_store #(
     wire [DATA_WIDTH-1:0]       read_window_low = read_span ? r_req_first_data : resp_data;
     wire [2*DATA_WIDTH-1:0]     read_window = {resp_data, read_window_low};
     /* 形式化验证：避免使用带输出参数的函数调用（yosys会产生伪组合环），直接按偏移截取并符号扩展 */
-`ifdef FORMAL_VERIFY
-    wire [DATA_WIDTH-1:0]       read_aligned = read_window >> (s_read_shift*8);
-    wire [DATA_WIDTH-1:0]       read_masked =
-        (read_size==0) ? (read_aligned & 32'h000000FF) :
-        (read_size==1) ? (read_aligned & 32'h0000FFFF) :
-        read_aligned;
-    wire [DATA_WIDTH-1:0]       read_sext =
-        (read_sign && read_size==0) ? {{24{read_masked[7]}}, read_masked[7:0]} :
-        (read_sign && read_size==1) ? {{16{read_masked[15]}}, read_masked[15:0]} :
-        read_masked;
-    wire [DATA_WIDTH-1:0]       read_extract = read_sext;
-`else
     reg  [DATA_WIDTH-1:0]       read_extract;
     always @(*) begin
         get_unalign_addr_data(read_sign, read_size, read_window, s_read_shift, read_extract);
     end
-`endif
 
     /* 请求总线：单字读写，跨字访问的第二拍地址为addr+4 */
     wire [ADDR_WIDTH-1:0]       req_addr_base = r_write_enable ? write_addr : read_addr;

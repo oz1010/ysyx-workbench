@@ -1,6 +1,6 @@
 `include "riscv32e_defines.v"
 
-module decoder (
+module inst_decode_sc (
     input  [31:0] inst,
     output [6:0] opcode,
     output [`RISCV_GPR_ADDR_W-1:0] rd,
