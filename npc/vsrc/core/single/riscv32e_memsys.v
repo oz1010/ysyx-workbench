@@ -10,23 +10,23 @@ module riscv32e_memsys #(
     output reg  [ADDR_WIDTH-1:0]        reset_pc,
 
     // 取指接口
-    input wire                          if_req_valid,
-    output reg                          if_req_ready,
-    input wire  [ADDR_WIDTH-1:0]        if_req_addr,
-    input wire  [`MEMOP_W-1:0]          if_req_op,
-    input wire  [DATA_WIDTH-1:0]        if_req_wdata,
-    output reg                          if_rsp_valid,
-    input wire                          if_rsp_ready,
-    output reg [DATA_WIDTH-1:0]         if_rsp_data,
+    input wire                          io_if_req_valid,
+    output reg                          io_if_req_ready,
+    input wire  [ADDR_WIDTH-1:0]        io_if_req_addr,
+    input wire  [`MEMOP_W-1:0]          io_if_req_op,
+    input wire  [DATA_WIDTH-1:0]        io_if_req_wdata,
+    output reg                          io_if_rsp_valid,
+    input wire                          io_if_rsp_ready,
+    output reg [DATA_WIDTH-1:0]         io_if_rsp_data,
     // 访问存储接口
-    input wire                          mem_req_valid,
-    output reg                          mem_req_ready,
-    input wire  [ADDR_WIDTH-1:0]        mem_req_addr,
-    input wire  [`MEMOP_W-1:0]          mem_req_op,
-    input wire  [DATA_WIDTH-1:0]        mem_req_wdata,
-    output reg                          mem_rsp_valid,
-    input wire                          mem_rsp_ready,
-    output reg  [DATA_WIDTH-1:0]        mem_rsp_data,
+    input wire                          io_mem_req_valid,
+    output reg                          io_mem_req_ready,
+    input wire  [ADDR_WIDTH-1:0]        io_mem_req_addr,
+    input wire  [`MEMOP_W-1:0]          io_mem_req_op,
+    input wire  [DATA_WIDTH-1:0]        io_mem_req_wdata,
+    output reg                          io_mem_rsp_valid,
+    input wire                          io_mem_rsp_ready,
+    output reg  [DATA_WIDTH-1:0]        io_mem_rsp_data,
     // gpr写入
     input  wire                         gpr_wen,
     input  wire [`RISCV_GPR_ADDR_W-1:0] gpr_waddr,
@@ -36,10 +36,11 @@ module riscv32e_memsys #(
     input  wire [`CSR_ADDR_W-1:0]       csr_waddr,
     input  wire [DATA_WIDTH-1:0]        csr_wdata,
     // 异常csr写入
-    input  wire                         expt_en,
-    input  wire [INST_WIDTH-1:0]        expt_epc,
-    input  wire [DATA_WIDTH-1:0]        expt_cause,
-    input  wire [DATA_WIDTH-1:0]        expt_tval,
+    input  wire                         trap_en,
+    input  wire [INST_WIDTH-1:0]        trap_epc,
+    input  wire [DATA_WIDTH-1:0]        trap_cause,
+    input  wire [DATA_WIDTH-1:0]        trap_tval,
+    input  wire [DATA_WIDTH-1:0]        trap_status,
 
     /* AXI4 Master总线 */
     input  wire                         io_master_awready,
@@ -131,40 +132,40 @@ module riscv32e_memsys #(
         // 组合取指
         always @(*) begin
             if (rst) begin
-                if_req_ready = 0;
-                if_rsp_valid = 0;
-                if_rsp_data = 0;
+                io_if_req_ready = 0;
+                io_if_rsp_valid = 0;
+                io_if_rsp_data = 0;
             end else begin
-                if_req_ready = 1;
-                if_rsp_valid = 0;
-                if_rsp_data = 0;
-                if (if_req_valid && if_req_ready) begin
-                    if_rsp_valid = 1;
-                    if_rsp_data = func_vdev_read(if_req_addr, 4);
+                io_if_req_ready = 1;
+                io_if_rsp_valid = 0;
+                io_if_rsp_data = 0;
+                if (io_if_req_valid && io_if_req_ready) begin
+                    io_if_rsp_valid = 1;
+                    io_if_rsp_data = func_vdev_read(io_if_req_addr, 4);
                 end
             end
         end
 
         // 访存
-        assign mem_req_ready = 1;
-        assign mem_rsp_valid = 
-            mem_req_op==`MEMOP_LB || 
-            mem_req_op==`MEMOP_LH || 
-            mem_req_op==`MEMOP_LW || 
-            mem_req_op==`MEMOP_LBU || 
-            mem_req_op==`MEMOP_LHU || 
+        assign io_mem_req_ready = 1;
+        assign io_mem_rsp_valid = 
+            io_mem_req_op==`MEMOP_LB || 
+            io_mem_req_op==`MEMOP_LH || 
+            io_mem_req_op==`MEMOP_LW || 
+            io_mem_req_op==`MEMOP_LBU || 
+            io_mem_req_op==`MEMOP_LHU || 
             0;
         always @(negedge clk) begin
             if (rst) begin
             end else begin
-                mem_rsp_data <= 0;
-                if (mem_req_valid && mem_req_ready) begin
-                    case (mem_req_op)
-                        `MEMOP_LB:          begin mem_rsp_data <= sext(read_raw_mem(mem_req_addr, 1), 8); end
-                        `MEMOP_LH:          begin mem_rsp_data <= sext(read_raw_mem(mem_req_addr, 2), 16); end
-                        `MEMOP_LW:          begin mem_rsp_data <= sext(read_raw_mem(mem_req_addr, 4), 32); end
-                        `MEMOP_LBU:         begin mem_rsp_data <= read_raw_mem(mem_req_addr, 1) & 32'hFF; end
-                        `MEMOP_LHU:         begin mem_rsp_data <= read_raw_mem(mem_req_addr, 2) & 32'hFFFF; end
+                io_mem_rsp_data <= 0;
+                if (io_mem_req_valid && io_mem_req_ready) begin
+                    case (io_mem_req_op)
+                        `MEMOP_LB:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 1), 8); end
+                        `MEMOP_LH:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 2), 16); end
+                        `MEMOP_LW:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 4), 32); end
+                        `MEMOP_LBU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
+                        `MEMOP_LHU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
                         default: ;
                     endcase
                 end
@@ -173,16 +174,16 @@ module riscv32e_memsys #(
         always @(posedge clk) begin
             if (rst) begin
             end else begin
-                if (mem_req_valid && mem_req_ready) begin
-                    case (mem_req_op)
-                        `MEMOP_SB:          begin write_raw_mem(mem_req_addr, 1, mem_req_wdata); func_dev_skip(1, mem_req_addr, {24'h0, 4'h0, 4'h1}, mem_req_wdata); end
-                        `MEMOP_SH:          begin write_raw_mem(mem_req_addr, 2, mem_req_wdata); func_dev_skip(1, mem_req_addr, {24'h0, 4'h1, 4'h3}, mem_req_wdata); end
-                        `MEMOP_SW:          begin write_raw_mem(mem_req_addr, 4, mem_req_wdata); func_dev_skip(1, mem_req_addr, {24'h0, 4'h2, 4'h7}, mem_req_wdata); end
-                        `MEMOP_LB:          begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h0, 4'h0}, mem_rsp_data); end
-                        `MEMOP_LH:          begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h1, 4'h0}, mem_rsp_data); end
-                        `MEMOP_LW:          begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h2, 4'h0}, mem_rsp_data); end
-                        `MEMOP_LBU:         begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h0, 4'h0}, mem_rsp_data); end
-                        `MEMOP_LHU:         begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h1, 4'h0}, mem_rsp_data); end
+                if (io_mem_req_valid && io_mem_req_ready) begin
+                    case (io_mem_req_op)
+                        `MEMOP_SB:          begin write_raw_mem(io_mem_req_addr, 1, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h0, 4'h1}, io_mem_req_wdata); end
+                        `MEMOP_SH:          begin write_raw_mem(io_mem_req_addr, 2, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h1, 4'h3}, io_mem_req_wdata); end
+                        `MEMOP_SW:          begin write_raw_mem(io_mem_req_addr, 4, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h2, 4'h7}, io_mem_req_wdata); end
+                        `MEMOP_LB:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
+                        `MEMOP_LH:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
+                        `MEMOP_LW:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h2, 4'h0}, io_mem_rsp_data); end
+                        `MEMOP_LBU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
+                        `MEMOP_LHU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
                         default: ;
                     endcase
                 end
@@ -191,14 +192,14 @@ module riscv32e_memsys #(
 
         end else begin
         // TODO 非单周期取指，需要转换为axi4信号
-        assign if_req_ready = 0;
-        assign if_rsp_valid = 0;
-        assign if_rsp_data = 0;
+        assign io_if_req_ready = 0;
+        assign io_if_rsp_valid = 0;
+        assign io_if_rsp_data = 0;
 
         // TODO 非单周期访存取指，需要转换为axi4信号
-        assign mem_req_ready = 0;
-        assign mem_rsp_valid = 0;
-        assign mem_rsp_data = 0;
+        assign io_mem_req_ready = 0;
+        assign io_mem_rsp_valid = 0;
+        assign io_mem_rsp_data = 0;
         end
     endgenerate
 endmodule

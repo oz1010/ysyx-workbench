@@ -3,13 +3,14 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** LSU（MEM 级）：封装 DCache，完成 load 数据抽取/符号扩展，
   *   - 产生 MEM/WB 寄存器；store 经 Cache 写直通到 Store Buffer。
   */
 class Lsu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val cache = new CacheIO(p)
+    val cache = new OldCacheIO(p)
     val in    = Flipped(Decoupled(new ExBundle(p)))
     val out   = Decoupled(new LsBundle(p))
     val kill  = Input(Bool()) // WBU 陷阱/MRET：冲刷 EX/MEM 及其后

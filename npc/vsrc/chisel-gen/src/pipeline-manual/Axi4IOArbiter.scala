@@ -3,6 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** 总线仲裁器：仲裁 ICache / DCache 的行填充请求，共用 AXI4 读通道。 主设备单一，ID 恒为 0；写通道由 DCache 写直通直连
   * io_master，不经仲裁器。 框架：端口与连接已定义，内部实现留空。

@@ -3,6 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** EXU：ALU、分支解析与静态预测修正、 CSR 读（返回旧值）、异常检测（含访存/跳转地址非对齐）。
   *   - 暂时不实现：前递（EX/MEM、MEM/WB）
@@ -18,7 +19,7 @@ class Exu(p: CoreParams) extends Module {
     val wbValid  = Input(Bool())
     val wbData   = Input(UInt(CONFIG_ADDR_WIDTH.W)) // WBU 最终写回数据（含 load 数据）
     // CSR读口（读旧值）
-    val csrRead  = new RegReadIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val csrRead  = new OldRegReadIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH)
     // 预测失败 / 跳转修正重定向
     val redirect = Output(new Redirect(p))          // 预测修正/跳转（→ IFU）
   })

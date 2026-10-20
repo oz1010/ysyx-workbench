@@ -3,6 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import config.ManuConfig._
 
 /** RV32E 五级流水线核（内部顶层，Chisel 隐式 clock/reset）。 IFU --(IF/ID)--> IDU --(ID/EX)-->
   * EXU --(EX/MEM)--> LSU --(MEM/WB)--> WBU 每级间均为 valid/ready 握手（Decoupled）；
@@ -14,8 +15,21 @@ class riscv32e_core(p: CoreParams) extends RawModule {
   val rst          = IO(Input(Bool()))  // 同步复位，高有效
   val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
   val io_interrupt = IO(Input(Bool()))
+  val io_if        = IO(new CacheIO())
+  val mem          = IO(new CacheIO())
+  val gpr          = IO(new RegWriteIO(GPR_ADDR_W, CONFIG_DATA_WIDTH))
+  val csr          = IO(new RegWriteIO(CSR_ADDR_W, CONFIG_DATA_WIDTH))
+  val trap         = IO(new TrapIO())
   val pc           = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
-  val valid        = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
+  val dnpc         = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val inst_done    = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
+
+  // TODO 临时赋值
+  CacheIODefaults(io_if)
+  CacheIODefaults(mem)
+  RegWriteIODefaults(gpr)
+  RegWriteIODefaults(csr)
+  TrapIODefaults(trap)
 
   withClockAndReset(clk, rst) {
     // ---------------- 实例化模块 ----------------
@@ -117,9 +131,10 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     // ---------------- 关键输出 ----------------
     val core_pc   = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
     val core_dnpc = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
-    core_pc := wbu.io.out.bits.pc
-    pc      := core_pc
-    valid   := wbu.io.out.valid
+    core_pc   := wbu.io.out.bits.pc
+    pc        := core_pc
+    dnpc      := core_dnpc
+    inst_done := wbu.io.out.valid
     when(wbu.io.out.valid) {
       core_pc := wbu.io.out.bits.pc
     }

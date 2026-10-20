@@ -147,32 +147,33 @@ module ysyx_23060295 (
     `endif
 
     wire [ADDR_WIDTH-1:0]           reset_pc;
-    wire                            if_req_valid;
-    wire                            if_req_ready;
-    wire [ADDR_WIDTH-1:0]           if_req_addr;
-    wire [`MEMOP_W-1:0]             if_req_op;
-    wire [DATA_WIDTH-1:0]           if_req_wdata;
-    wire                            if_rsp_valid;
-    wire                            if_rsp_ready;
-    wire  [DATA_WIDTH-1:0]          if_rsp_data;
-    wire                            mem_req_valid;
-    wire                            mem_req_ready;
-    wire [ADDR_WIDTH-1:0]           mem_req_addr;
-    wire [`MEMOP_W-1:0]             mem_req_op;
-    wire [DATA_WIDTH-1:0]           mem_req_wdata;
-    wire                            mem_rsp_valid;
-    wire                            mem_rsp_ready;
-    wire [DATA_WIDTH-1:0]           mem_rsp_data;
+    wire                            io_if_req_valid;
+    wire                            io_if_req_ready;
+    wire [ADDR_WIDTH-1:0]           io_if_req_addr;
+    wire [`MEMOP_W-1:0]             io_if_req_op;
+    wire [DATA_WIDTH-1:0]           io_if_req_wdata;
+    wire                            io_if_rsp_valid;
+    wire                            io_if_rsp_ready;
+    wire  [DATA_WIDTH-1:0]          io_if_rsp_data;
+    wire                            io_mem_req_valid;
+    wire                            io_mem_req_ready;
+    wire [ADDR_WIDTH-1:0]           io_mem_req_addr;
+    wire [`MEMOP_W-1:0]             io_mem_req_op;
+    wire [DATA_WIDTH-1:0]           io_mem_req_wdata;
+    wire                            io_mem_rsp_valid;
+    wire                            io_mem_rsp_ready;
+    wire [DATA_WIDTH-1:0]           io_mem_rsp_data;
     wire                            gpr_wen;
     wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr;
     wire [DATA_WIDTH-1:0]           gpr_wdata;
     wire                            csr_wen;
     wire [`CSR_ADDR_W-1:0]          csr_waddr;
     wire [DATA_WIDTH-1:0]           csr_wdata;
-    wire                            expt_en;
-    wire [INST_WIDTH-1:0]           expt_epc;
-    wire [DATA_WIDTH-1:0]           expt_cause;
-    wire [DATA_WIDTH-1:0]           expt_tval;
+    wire                            trap_en;
+    wire [INST_WIDTH-1:0]           trap_epc;
+    wire [DATA_WIDTH-1:0]           trap_cause;
+    wire [DATA_WIDTH-1:0]           trap_tval;
+    wire [DATA_WIDTH-1:0]           trap_status;
 
     `ifdef CONFIG_ISA_RISCV_SINGLE
     // 单周期版本的核心连接逻辑
@@ -185,32 +186,33 @@ module ysyx_23060295 (
         .reset_pc(reset_pc),
         .io_interrupt(io_interrupt),
 
-        .if_req_valid(if_req_valid),
-        .if_req_ready(if_req_ready),
-        .if_req_addr(if_req_addr),
-        .if_req_op(if_req_op),
-        .if_req_wdata(if_req_wdata),
-        .if_rsp_valid(if_rsp_valid),
-        .if_rsp_ready(if_rsp_ready),
-        .if_rsp_data(if_rsp_data),
-        .mem_req_valid(mem_req_valid),
-        .mem_req_ready(mem_req_ready),
-        .mem_req_addr(mem_req_addr),
-        .mem_req_op(mem_req_op),
-        .mem_req_wdata(mem_req_wdata),
-        .mem_rsp_valid(mem_rsp_valid),
-        .mem_rsp_ready(mem_rsp_ready),
-        .mem_rsp_data(mem_rsp_data),
+        .io_if_req_valid(io_if_req_valid),
+        .io_if_req_ready(io_if_req_ready),
+        .io_if_req_addr(io_if_req_addr),
+        .io_if_req_op(io_if_req_op),
+        .io_if_req_wdata(io_if_req_wdata),
+        .io_if_rsp_valid(io_if_rsp_valid),
+        .io_if_rsp_ready(io_if_rsp_ready),
+        .io_if_rsp_data(io_if_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data),
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),
         .csr_wen(csr_wen),
         .csr_waddr(csr_waddr),
         .csr_wdata(csr_wdata),
-        .expt_en(expt_en),
-        .expt_epc(expt_epc),
-        .expt_cause(expt_cause),
-        .expt_tval(expt_tval),
+        .trap_en(trap_en),
+        .trap_epc(trap_epc),
+        .trap_cause(trap_cause),
+        .trap_tval(trap_tval),
+        .trap_status(trap_status),
 
         .pc(core_pc[0]),
         .dnpc(core_dnpc[0]),
@@ -224,32 +226,33 @@ module ysyx_23060295 (
 
         .reset_pc(reset_pc),
 
-        .if_req_valid(if_req_valid),
-        .if_req_ready(if_req_ready),
-        .if_req_addr(if_req_addr),
-        .if_req_op(if_req_op),
-        .if_req_wdata(if_req_wdata),
-        .if_rsp_valid(if_rsp_valid),
-        .if_rsp_ready(if_rsp_ready),
-        .if_rsp_data(if_rsp_data),
-        .mem_req_valid(mem_req_valid),
-        .mem_req_ready(mem_req_ready),
-        .mem_req_addr(mem_req_addr),
-        .mem_req_op(mem_req_op),
-        .mem_req_wdata(mem_req_wdata),
-        .mem_rsp_valid(mem_rsp_valid),
-        .mem_rsp_ready(mem_rsp_ready),
-        .mem_rsp_data(mem_rsp_data),
+        .io_if_req_valid(io_if_req_valid),
+        .io_if_req_ready(io_if_req_ready),
+        .io_if_req_addr(io_if_req_addr),
+        .io_if_req_op(io_if_req_op),
+        .io_if_req_wdata(io_if_req_wdata),
+        .io_if_rsp_valid(io_if_rsp_valid),
+        .io_if_rsp_ready(io_if_rsp_ready),
+        .io_if_rsp_data(io_if_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data),
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),
         .csr_wen(csr_wen),
         .csr_waddr(csr_waddr),
         .csr_wdata(csr_wdata),
-        .expt_en(expt_en),
-        .expt_epc(expt_epc),
-        .expt_cause(expt_cause),
-        .expt_tval(expt_tval),
+        .trap_en(trap_en),
+        .trap_epc(trap_epc),
+        .trap_cause(trap_cause),
+        .trap_tval(trap_tval),
+        .trap_status(trap_status),
 
         .io_master_awready(io_master_awready),
         .io_master_awvalid(io_master_awvalid),

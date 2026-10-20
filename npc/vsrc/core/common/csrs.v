@@ -16,10 +16,11 @@ module csrs #(
     input   wire [DATA_WIDTH-1:0]       wdata,
 
     /* 异常写入接口 */
-    input   wire                        expt_en,
-    input   wire [INST_WIDTH-1:0]       expt_epc,
-    input   wire [DATA_WIDTH-1:0]       expt_cause,
-    input   wire [DATA_WIDTH-1:0]       expt_tval
+    input   wire                        trap_en,
+    input   wire [INST_WIDTH-1:0]       trap_epc,
+    input   wire [DATA_WIDTH-1:0]       trap_cause,
+    input   wire [DATA_WIDTH-1:0]       trap_tval,
+    input   wire [DATA_WIDTH-1:0]       trap_status
 );
 
     localparam CSR_INDEX_COUNT = `CSR_RO_COUNT + `CSR_WRITE_COUNT + 1;
@@ -70,16 +71,16 @@ module csrs #(
             `endif
         end else begin
             // 响应异常写（在普通写之后执行，若普通写未覆盖则生效
-            if (expt_en) begin
-                csrs[func_get_csr_index(`CSR_MEPC)] <= expt_epc;
-                csrs[func_get_csr_index(`CSR_MCAUSE)] <= expt_cause;
-                csrs[func_get_csr_index(`CSR_MTVAL)] <= expt_tval;
+            if (trap_en) begin
+                csrs[func_get_csr_index(`CSR_MEPC)] <= trap_epc;
+                csrs[func_get_csr_index(`CSR_MCAUSE)] <= trap_cause;
+                csrs[func_get_csr_index(`CSR_MTVAL)] <= trap_tval;
 
                 `ifdef CONFIG_DIFFTEST
                 // 开diff后，需要将数据同步写入cpu.csr
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MEPC}, expt_epc);
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MCAUSE}, expt_cause);
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVAL}, expt_tval);
+                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MEPC}, trap_epc);
+                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MCAUSE}, trap_cause);
+                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVAL}, trap_tval);
                 `endif
             end
 
