@@ -13,9 +13,8 @@ module riscv32e_memsys #(
     input wire                          if_req_valid,
     output reg                          if_req_ready,
     input wire  [ADDR_WIDTH-1:0]        if_req_addr,
+    input wire  [`MEMOP_W-1:0]          if_req_op,
     input wire  [DATA_WIDTH-1:0]        if_req_wdata,
-    input wire  [DATA_WIDTH/8-1:0]      if_req_wstrb,
-    input wire                          if_req_iswrite,
     output reg                          if_rsp_valid,
     input wire                          if_rsp_ready,
     output reg [DATA_WIDTH-1:0]         if_rsp_data,
@@ -24,12 +23,11 @@ module riscv32e_memsys #(
     input wire                          mem_req_valid,
     output reg                          mem_req_ready,
     input wire  [ADDR_WIDTH-1:0]        mem_req_addr,
+    input wire  [`MEMOP_W-1:0]          mem_req_op,
     input wire  [DATA_WIDTH-1:0]        mem_req_wdata,
-    input wire  [DATA_WIDTH/8-1:0]      mem_req_wstrb,
-    input wire                          mem_req_iswrite,
     output reg                          mem_rsp_valid,
     input wire                          mem_rsp_ready,
-    input wire  [DATA_WIDTH-1:0]        mem_rsp_data,
+    output reg  [DATA_WIDTH-1:0]        mem_rsp_data,
 
     /* AXI4 Master总线 */
     input  wire                         io_master_awready,
@@ -114,15 +112,11 @@ module riscv32e_memsys #(
         .hw_monitor_ls_iswrite(0),
         .hw_monitor_ls_data(0),
         .done()
-    );
-
-    // TODO 暂时屏蔽信号
-    assign mem_req_ready = 0;
-    assign mem_rsp_valid = 0;
+    );    
 
     generate
-        if (`CONFIG_ISA_RISCV_SINGLE) begin
-        // 单周期组合取指
+        if (`CONFIG_ISA_RISCV_SINGLE) begin // 单周期特有逻辑
+        // 组合取指
         always @(*) begin
             if (rst) begin
                 if_req_ready = 0;
@@ -139,12 +133,60 @@ module riscv32e_memsys #(
             end
         end
 
+        // 访存
+        assign mem_req_ready = 1;
+        assign mem_rsp_valid = 
+            mem_req_op==`MEMOP_LB || 
+            mem_req_op==`MEMOP_LH || 
+            mem_req_op==`MEMOP_LW || 
+            mem_req_op==`MEMOP_LBU || 
+            mem_req_op==`MEMOP_LHU || 
+            0;
+        always @(negedge clk) begin
+            if (rst) begin
+            end else begin
+                mem_rsp_data <= 0;
+                if (mem_req_valid && mem_req_ready) begin
+                    case (mem_req_op)
+                        `MEMOP_LB:          begin mem_rsp_data <= sext(read_raw_mem(mem_req_addr, 1), 8); end
+                        `MEMOP_LH:          begin mem_rsp_data <= sext(read_raw_mem(mem_req_addr, 2), 16); end
+                        `MEMOP_LW:          begin mem_rsp_data <= sext(read_raw_mem(mem_req_addr, 4), 32); end
+                        `MEMOP_LBU:         begin mem_rsp_data <= read_raw_mem(mem_req_addr, 1) & 32'hFF; end
+                        `MEMOP_LHU:         begin mem_rsp_data <= read_raw_mem(mem_req_addr, 2) & 32'hFFFF; end
+                        default: ;
+                    endcase
+                end
+            end
+        end
+        always @(posedge clk) begin
+            if (rst) begin
+            end else begin
+                if (mem_req_valid && mem_req_ready) begin
+                    case (mem_req_op)
+                        `MEMOP_SB:          begin write_raw_mem(mem_req_addr, 1, mem_req_wdata); func_dev_skip(1, mem_req_addr, {24'h0, 4'h0, 4'h1}, mem_req_wdata); end
+                        `MEMOP_SH:          begin write_raw_mem(mem_req_addr, 2, mem_req_wdata); func_dev_skip(1, mem_req_addr, {24'h0, 4'h1, 4'h3}, mem_req_wdata); end
+                        `MEMOP_SW:          begin write_raw_mem(mem_req_addr, 4, mem_req_wdata); func_dev_skip(1, mem_req_addr, {24'h0, 4'h2, 4'h7}, mem_req_wdata); end
+                        `MEMOP_LB:          begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h0, 4'h0}, mem_rsp_data); end
+                        `MEMOP_LH:          begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h1, 4'h0}, mem_rsp_data); end
+                        `MEMOP_LW:          begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h2, 4'h0}, mem_rsp_data); end
+                        `MEMOP_LBU:         begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h0, 4'h0}, mem_rsp_data); end
+                        `MEMOP_LHU:         begin func_dev_skip(0, mem_req_addr, {24'h0, 4'h1, 4'h0}, mem_rsp_data); end
+                        default: ;
+                    endcase
+                end
+            end
+        end
+
         end else begin
         // TODO 非单周期取指，需要转换为axi4信号
         assign if_req_ready = 0;
         assign if_rsp_valid = 0;
         assign if_rsp_data = 0;
 
+        // TODO 非单周期访存取指，需要转换为axi4信号
+        assign mem_req_ready = 0;
+        assign mem_rsp_valid = 0;
+        assign mem_rsp_data = 0;
         end
     endgenerate
 endmodule

@@ -149,18 +149,16 @@ module ysyx_23060295 (
     wire                            if_req_valid;
     wire                            if_req_ready;
     wire [ADDR_WIDTH-1:0]           if_req_addr;
+    wire [`MEMOP_W-1:0]             if_req_op;
     wire [DATA_WIDTH-1:0]           if_req_wdata;
-    wire [DATA_WIDTH/8-1:0]         if_req_wstrb;
-    wire                            if_req_iswrite;
     wire                            if_rsp_valid;
     wire                            if_rsp_ready;
     wire  [DATA_WIDTH-1:0]          if_rsp_data;
     wire                            mem_req_valid;
     wire                            mem_req_ready;
     wire [ADDR_WIDTH-1:0]           mem_req_addr;
+    wire [`MEMOP_W-1:0]             mem_req_op;
     wire [DATA_WIDTH-1:0]           mem_req_wdata;
-    wire [DATA_WIDTH/8-1:0]         mem_req_wstrb;
-    wire                            mem_req_iswrite;
     wire                            mem_rsp_valid;
     wire                            mem_rsp_ready;
     wire [DATA_WIDTH-1:0]           mem_rsp_data;
@@ -179,18 +177,16 @@ module ysyx_23060295 (
         .if_req_valid(if_req_valid),
         .if_req_ready(if_req_ready),
         .if_req_addr(if_req_addr),
+        .if_req_op(if_req_op),
         .if_req_wdata(if_req_wdata),
-        .if_req_wstrb(if_req_wstrb),
-        .if_req_iswrite(if_req_iswrite),
         .if_rsp_valid(if_rsp_valid),
         .if_rsp_ready(if_rsp_ready),
         .if_rsp_data(if_rsp_data),
         .mem_req_valid(mem_req_valid),
         .mem_req_ready(mem_req_ready),
         .mem_req_addr(mem_req_addr),
+        .mem_req_op(mem_req_op),
         .mem_req_wdata(mem_req_wdata),
-        .mem_req_wstrb(mem_req_wstrb),
-        .mem_req_iswrite(mem_req_iswrite),
         .mem_rsp_valid(mem_rsp_valid),
         .mem_rsp_ready(mem_rsp_ready),
         .mem_rsp_data(mem_rsp_data),
@@ -209,18 +205,16 @@ module ysyx_23060295 (
         .if_req_valid(if_req_valid),
         .if_req_ready(if_req_ready),
         .if_req_addr(if_req_addr),
+        .if_req_op(if_req_op),
         .if_req_wdata(if_req_wdata),
-        .if_req_wstrb(if_req_wstrb),
-        .if_req_iswrite(if_req_iswrite),
         .if_rsp_valid(if_rsp_valid),
         .if_rsp_ready(if_rsp_ready),
         .if_rsp_data(if_rsp_data),
         .mem_req_valid(mem_req_valid),
         .mem_req_ready(mem_req_ready),
         .mem_req_addr(mem_req_addr),
+        .mem_req_op(mem_req_op),
         .mem_req_wdata(mem_req_wdata),
-        .mem_req_wstrb(mem_req_wstrb),
-        .mem_req_iswrite(mem_req_iswrite),
         .mem_rsp_valid(mem_rsp_valid),
         .mem_rsp_ready(mem_rsp_ready),
         .mem_rsp_data(mem_rsp_data),

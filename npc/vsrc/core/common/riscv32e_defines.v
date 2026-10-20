@@ -96,6 +96,24 @@
 /* 无效指令 */
 `define INST_INVALID        ({`INST_CODE_W{1'b1}}) // 若定义为0，某些判断有问题
 
+/**
+ * 低2位为size大小2^n
+ */
+`define MEMOP_W             4
+`define MEMOP_FLAG_WRITE    (`MEMOP_W'b1000) // 写入标记
+`define MEMOP_FLAG_UNSIG    (`MEMOP_W'b0100) // 无符号标记
+`define MEMOP_FLAG_1B       (`MEMOP_W'b0000) // 1字节标记
+`define MEMOP_FLAG_2B       (`MEMOP_W'b0001) // 2字节标记
+`define MEMOP_FLAG_4B       (`MEMOP_W'b0010) // 4字节标记
+`define MEMOP_LB            (`MEMOP_FLAG_1B)
+`define MEMOP_LH            (`MEMOP_FLAG_2B)
+`define MEMOP_LW            (`MEMOP_FLAG_4B)
+`define MEMOP_LBU           (`MEMOP_FLAG_1B|`MEMOP_FLAG_UNSIG)
+`define MEMOP_LHU           (`MEMOP_FLAG_2B|`MEMOP_FLAG_UNSIG)
+`define MEMOP_SB            (`MEMOP_FLAG_1B|`MEMOP_FLAG_WRITE)
+`define MEMOP_SH            (`MEMOP_FLAG_2B|`MEMOP_FLAG_WRITE)
+`define MEMOP_SW            (`MEMOP_FLAG_4B|`MEMOP_FLAG_WRITE)
+
 `define STAGE_INDEX_IFU     0
 `define STAGE_INDEX_IDU     1
 `define STAGE_INDEX_EXU     2
