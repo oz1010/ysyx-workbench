@@ -128,7 +128,8 @@ module riscv32e_memsys #(
     );    
 
     generate
-        if (`CONFIG_ISA_RISCV_SINGLE) begin // 单周期特有逻辑
+        // if (`CONFIG_ISA_RISCV_SINGLE) begin // 单周期特有逻辑
+        if (0) begin // 单周期特有逻辑
         // 组合取指
         always @(*) begin
             if (rst) begin
