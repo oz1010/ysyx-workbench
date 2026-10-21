@@ -18,8 +18,8 @@ class Axi4IOArbiter(
   require(ClientNum > 0, "ClientNum must be greater than 0")
 
   val io = IO(new Bundle {
-    val clients = Vec(ClientNum, Flipped(new Axi4IO(p))) // 将客户端请求分发到总线上
-    val master  = new Axi4IO(p)
+    val clients = Vec(ClientNum, Flipped(new OldAxi4IO(p))) // 将客户端请求分发到总线上
+    val master  = new OldAxi4IO(p)
   })
 
   val sIdle :: sRead :: Nil = Enum(2)

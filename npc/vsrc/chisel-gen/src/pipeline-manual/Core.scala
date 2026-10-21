@@ -25,8 +25,8 @@ class riscv32e_core(p: CoreParams) extends RawModule {
   val inst_done    = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
 
   // TODO 临时赋值
-  CacheIODefaults(io_if)
-  CacheIODefaults(io_mem)
+  CacheIOMasterDefaults(io_if)
+  CacheIOMasterDefaults(io_mem)
   RegWriteIODefaults(gpr)
   RegWriteIODefaults(csr)
   TrapIODefaults(trap)

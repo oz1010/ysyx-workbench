@@ -8,7 +8,7 @@ import config.ManuConfig._
 class DCache(p: CoreParams) extends Module {
   val io = IO(new Bundle {
     val cpu    = Flipped(new OldCacheIO(p))
-    val master = new Axi4IO(p)
+    val master = new OldAxi4IO(p)
   })
 
   // TODO 临时关闭功能
