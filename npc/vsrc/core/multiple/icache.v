@@ -15,8 +15,8 @@ module icache #(
     parameter N = 2,
     parameter M = 3
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     output  wire                        m_awready,
     input   wire                        m_awvalid,
@@ -262,8 +262,8 @@ axi4_salve_reader #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_axi4_salve_reader (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .arready(c_m_arready),
     .arvalid(c_m_arvalid),
     .araddr(c_m_araddr),
@@ -300,8 +300,8 @@ axi_master_reader #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_axi_master_reader (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .arready(c_s_arready),
     .arvalid(c_s_arvalid),
     .araddr(c_s_araddr),
@@ -337,8 +337,8 @@ cache #(
     .N(N),
     .M(M)
 ) icache_impl (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .addr(impl_addr),
     .update_en(impl_update_en),
     .reset_en(0),
@@ -351,8 +351,8 @@ assign impl_addr = c_m_araddr;
 assign impl_write_en = impl_update_en && c_s_rvalid && c_s_rready;
 assign impl_write_data = c_s_rdata;
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         cache_stat <= `CACHE_STAT_NONE;
     end else begin
         if (icache_ren) begin

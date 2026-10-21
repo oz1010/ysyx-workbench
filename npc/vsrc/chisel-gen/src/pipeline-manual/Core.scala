@@ -11,8 +11,8 @@ import config.ManuConfig._
   * 框架：模块例化与信号连接已完成，各模块内部实现留空。
   */
 class riscv32e_core(p: CoreParams) extends RawModule {
-  val clk          = IO(Input(Clock()))
-  val rst          = IO(Input(Bool()))  // 同步复位，高有效
+  val clock        = IO(Input(Clock()))
+  val reset        = IO(Input(Bool()))  // 同步复位，高有效
   val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
   val io_interrupt = IO(Input(Bool()))
   val io_if        = IO(new CacheIO())
@@ -31,7 +31,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
   RegWriteIODefaults(csr)
   TrapIODefaults(trap)
 
-  withClockAndReset(clk, rst) {
+  withClockAndReset(clock, reset) {
     // ---------------- 实例化模块 ----------------
     val ifu        = Module(new Ifu(p))
     val idu        = Module(new Idu(p))

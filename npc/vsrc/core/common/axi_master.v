@@ -13,8 +13,8 @@ module axi_master_writer #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     /* 通信信号 */
     input   wire                        awready,
     output  wire                        awvalid,
@@ -102,13 +102,13 @@ module axi_master_writer #(
         s_write_len = 0;
         s_write_strb = 0;
         s_write_shift_val = 0;
-        if (!rst && write_enable) begin
+        if (!reset && write_enable) begin
             get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift_val);
         end
     end
 
-    always @(posedge clk) begin
-        if (rst || !write_enable) begin
+    always @(posedge clock) begin
+        if (reset || !write_enable) begin
             r_write_state <= `AXI4_STATE_ADDR;
 
             r_awvalid <= 0;
@@ -205,8 +205,8 @@ module axi4_salve_writer #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     /* 通信信号 */
     output  wire                        awready,
     input   wire                        awvalid,
@@ -256,8 +256,8 @@ module axi4_salve_writer #(
 
     wire in_write_mode = (awready || wready || bvalid);
 
-    always @(posedge clk) begin
-        if (rst || !enable) begin
+    always @(posedge clock) begin
+        if (reset || !enable) begin
             r_awready <= 0;
             r_wready <= 0;
             r_bvalid <= 0;
@@ -326,8 +326,8 @@ module axi_master_reader #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     /* 通信信号 */
     input   wire                        arready,
     output  wire                        arvalid,
@@ -390,7 +390,7 @@ module axi_master_reader #(
     end
 
     `ifdef IN_YOSYS_STA
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         s_read_data <= s_multi_read_data[s_read_shift_val*8 +: DATA_WIDTH];
     end
     `else
@@ -407,8 +407,8 @@ module axi_master_reader #(
     wire s_multi_unaligned_read = s_read_shift_val!=0 && arlen==8'h1;
     reg [DATA_WIDTH-1:0] s_multi_read_data_low;
     wire [2*DATA_WIDTH-1:0] s_multi_read_data = {rdata, s_multi_unaligned_read ? s_multi_read_data_low : rdata};
-    always @(posedge clk) begin
-        if (rst || !enable) begin
+    always @(posedge clock) begin
+        if (reset || !enable) begin
             s_multi_read_data_low <= 0;
         end else begin
             if (rvalid && s_read_idx==0) s_multi_read_data_low <= rdata;
@@ -419,13 +419,13 @@ module axi_master_reader #(
         s_read_len = 0;
         s_read_strb = 0;
         s_read_shift_val = 0;
-        if (!rst && enable) begin
+        if (!reset && enable) begin
             get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift_val);
         end
     end
 
-    always @(posedge clk) begin
-        if (rst || !enable) begin
+    always @(posedge clock) begin
+        if (reset || !enable) begin
             r_read_state <= `AXI4_STATE_ADDR;
 
             r_arvalid <= 0;
@@ -518,8 +518,8 @@ module axi4_salve_reader #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     /* 通信信号 */
     output  wire                        arready,
     input   wire                        arvalid,
@@ -568,8 +568,8 @@ module axi4_salve_reader #(
     assign read_size = arsize;
     assign read_state = r_read_state;
 
-    always @(posedge clk) begin
-        if (rst || !enable) begin
+    always @(posedge clock) begin
+        if (reset || !enable) begin
             r_read_state <= `AXI4_STATE_ADDR;
 
             r_arready <= 1;

@@ -7,8 +7,8 @@ module riscv32e_core #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input  wire             clk,
-    input  wire             rst,
+    input  wire             clock,
+    input  wire             reset,
 
     /* 外部中断 */
     input  wire             io_interrupt,
@@ -324,8 +324,8 @@ assign valid = con_wb_valid;
 reg [INST_WIDTH-1:0] core_pc;
 reg [INST_WIDTH-1:0] core_dnpc;
 assign pc = core_pc;
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         core_pc <= func_get_reset_pc();
         core_dnpc <= func_get_reset_pc() + 4;
     end else begin
@@ -338,8 +338,8 @@ always @(posedge clk) begin
 end
 
 /* 核心执行tick计数 */
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         execute_time <= 0;
         func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 0);
     end else begin
@@ -361,8 +361,8 @@ gprs #(
     .DATA_WIDTH(DATA_WIDTH),
     .REG_COUNT(`RISCV_GPR_COUNT)
 ) m_gprs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .rs1(gpr_rs1),
     .src1(gpr_src1),
     .rs2(gpr_rs2),
@@ -400,8 +400,8 @@ wire [`CSR_WCH_W-1:0] csr_wch = {
 csrs #(
     .DATA_WIDTH(DATA_WIDTH)
 ) m_csrs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .raddr(csr_raddr),
     .rdata(csr_rdata),
     .csr_wch(csr_wch),
@@ -410,8 +410,8 @@ csrs #(
 
 /* 性能监控 */
 perf_monitor m_perf_monitor (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .if_in_done(monitor_if_in_done),
     .if_out_done(monitor_if_out_done),
     .id_in_done(monitor_id_in_done),
@@ -453,8 +453,8 @@ icache #(
 `endif
     .INST_WIDTH(INST_WIDTH)
 ) m_icache (
-    .clk(clk),
-    .rst(rst||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
+    .clock(clock),
+    .reset(reset||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
 
     .m_awready(axi4_if_awready),
     .m_awvalid(axi4_if_awvalid),
@@ -531,8 +531,8 @@ dcache #(
 `endif
     .INST_WIDTH(INST_WIDTH)
 ) m_dcache (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .m_awready(axi4_ls_awready),
     .m_awvalid(axi4_ls_awvalid),
@@ -604,8 +604,8 @@ arbiter_axi4 #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_arbiter_axi4(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .u_awreadys(   {axi4_icache_awready,    axi4_dcache_awready   }),
     .u_awvalids(   {axi4_icache_awvalid,    axi4_dcache_awvalid   }),
     .u_awaddrs(    {axi4_icache_awaddr,     axi4_dcache_awaddr    }),
@@ -677,8 +677,8 @@ xbar_axi4 #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_xbar_axi4 (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(axi4_arbiter_awready),
     .awvalid(axi4_arbiter_awvalid),
     .awaddr(axi4_arbiter_awaddr),
@@ -754,8 +754,8 @@ clint #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_clint(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(axi4_s_awready[0]),
     .awvalid(axi4_s_awvalid[0]),
     .awaddr(axi4_s_awaddr[0]),
@@ -793,8 +793,8 @@ exter_dev #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_exter_dev(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(axi4_s_awready[1]),
     .awvalid(axi4_s_awvalid[1]),
     .awaddr(axi4_s_awaddr[1]),
@@ -828,8 +828,8 @@ exter_dev #(
 
 /* 流水线控制信号 */
 reg r_core_valid;
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         r_core_valid <= 0;
     end else begin
         if ((!|execute_time) | (con_wb_valid&con_core_ready)) begin
@@ -858,8 +858,8 @@ inst_fetch #(
     .IN_DATA_W(IF_IN_DATA_W),
     .OUT_DATA_W(IF_OUT_DATA_W)
 ) ifu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .awready(axi4_if_awready),
     .awvalid(axi4_if_awvalid),
@@ -908,8 +908,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(IF_OUT_DATA_W)
 ) ifu_regs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .valid(con_if_valid),
     .ready(con_id_ready),
     .bits(mod_con_if_bits),
@@ -935,8 +935,8 @@ inst_decode #(
     .IN_DATA_W(ID_IN_DATA_W),
     .OUT_DATA_W(ID_OUT_DATA_W)
 ) idu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .in_ready(mod_con_id_ready),
     .in_valid(con_if_valid),
@@ -950,8 +950,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(ID_OUT_DATA_W)
 ) idu_regs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .valid(con_id_valid),
     .ready(con_ex_ready),
     .bits(mod_con_id_bits),
@@ -959,7 +959,7 @@ stage_regs#(
 );
 wire fence_enable = (con_id_inst_code == `INST_FENCE) || (con_id_inst_code == `INST_FENCE_I);
 reg last_fence_enable;
-always @(posedge clk ) last_fence_enable <= fence_enable;
+always @(posedge clock ) last_fence_enable <= fence_enable;
 wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
@@ -997,8 +997,8 @@ execute #(
     .IN_DATA_W(EX_IN_DATA_W),
     .OUT_DATA_W(EX_OUT_DATA_W)
 ) exu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .jump_en(con_ex_jump_en),
     .dnpc(con_ex_dnpc),
@@ -1019,8 +1019,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(EX_OUT_DATA_W)
 ) exu_regs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .valid(con_ex_valid),
     .ready(con_ls_ready),
     .bits(mod_con_ex_bits),
@@ -1045,8 +1045,8 @@ load_store #(
     .IN_DATA_W(LS_IN_DATA_W),
     .OUT_DATA_W(LS_OUT_DATA_W)
 ) lsu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .awready(axi4_ls_awready),
     .awvalid(axi4_ls_awvalid),
@@ -1095,8 +1095,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(LS_OUT_DATA_W)
 ) lsu_regs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .valid(con_ls_valid),
     .ready(con_wb_ready),
     .bits(mod_con_ls_bits),
@@ -1112,8 +1112,8 @@ write_back #(
     .IN_DATA_W(WB_IN_DATA_W),
     .OUT_DATA_W(WB_OUT_DATA_W)
 ) wbu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .gpr_wen(wb_gpr_wen),
     .gpr_windex(wb_gpr_windex),
@@ -1152,8 +1152,8 @@ assign monitor_wb_out_done = con_core_ready & mod_con_wb_valid;
 /* WBU进入时的CSR写通道：多周期核在EX阶段提交CSR写，
    单发射顺序执行下EX离开时的写通道即WBU进入指令的写通道，锁存后随WBU进入上报 */
 reg  [`CSR_WCH_W-1:0]       wb_csr_wch;
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         wb_csr_wch <= 0;
     end else if (monitor_ex_out_done) begin
         wb_csr_wch <= csr_wch;

@@ -20,8 +20,8 @@ module ps2_top_apb(
     wire ps2_sel = in_psel && (in_paddr == 32'h10011000);
 
     ps2_ctrl m_ps2_ctrl(
-        .clk(clock),
-        .rst(reset),
+        .clock(clock),
+        .reset(reset),
         .rd_n(!ps2_sel),
         .ps2_clk(ps2_clk),
         .ps2_data(ps2_data),

@@ -14,8 +14,8 @@ module axi4_salve_burst_reader #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     /* 通信信号 */
     output  wire                        arready,
     input   wire                        arvalid,
@@ -62,8 +62,8 @@ module axi4_salve_burst_reader #(
     assign read_index = r_read_index;
     assign read_state = r_read_state;
 
-    always @(posedge clk) begin
-        if (rst || !enable) begin
+    always @(posedge clock) begin
+        if (reset || !enable) begin
             r_read_state <= `AXI4_STATE_ADDR;
             r_read_index <= 0;
             r_read_index_max <= 0;
@@ -113,8 +113,8 @@ module axi4_salve_burst_writer #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     /* 通信信号 */
     output  wire                        awready,
     input   wire                        awvalid,
@@ -168,8 +168,8 @@ module axi4_salve_burst_writer #(
     wire in_write_mode = (awready || wready || bvalid);
     assign write_index_max = (1<<awlen) - 1;
 
-    always @(posedge clk) begin
-        if (rst || !enable) begin
+    always @(posedge clock) begin
+        if (reset || !enable) begin
             r_awready <= 0;
             r_wready <= 0;
             r_bvalid <= 0;

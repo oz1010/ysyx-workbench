@@ -7,8 +7,8 @@ module load_store #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* AXI4总线master */
     input   wire                        awready,
@@ -64,8 +64,8 @@ module load_store #(
     wire                            stage_out_done;
 
     inner_con ls_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -148,8 +148,8 @@ module load_store #(
         .BRESP_WIDTH(BRESP_WIDTH),
         .RRESP_WIDTH(RRESP_WIDTH)
     ) m_axi_master_writer (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .awready(awready),
         .awvalid(awvalid),
         .awaddr(awaddr),
@@ -185,8 +185,8 @@ module load_store #(
         .BRESP_WIDTH(BRESP_WIDTH),
         .RRESP_WIDTH(RRESP_WIDTH)
     ) m_axi_master_reader (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .arready(arready),
         .arvalid(arvalid),
         .araddr(araddr),
@@ -209,8 +209,8 @@ module load_store #(
         .read_state(read_state)
     );
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_result <= 0;
             r_result_update_gpr <= 0;
 

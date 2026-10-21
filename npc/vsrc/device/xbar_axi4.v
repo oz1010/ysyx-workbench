@@ -7,8 +7,8 @@ module xbar_axi4 #(
     parameter RRESP_WIDTH = 3,
     parameter SLAVE_COUNT = USER_S_COUNT + 1
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     output  wire                                            awready,
     input   wire                                            awvalid,
@@ -213,8 +213,8 @@ endfunction
 // 每次按照顺序循环遍历，slave中第一个为默认节点
 integer aw_match_id;
 integer ar_match_id;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         state <= select_t;
         r_grant_idx <= 0;
     end else begin
@@ -315,8 +315,8 @@ always @(*) begin
     end
 end
 assign wstate = widx_select == 0 ? idle_t : work_t;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         widx_last <= 0;
     end else begin
         if (widx_select != 0) begin
@@ -340,8 +340,8 @@ always @(*) begin
     end
 end
 assign rstate = ridx_select == 0 ? idle_t : work_t;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         ridx_last <= 0;
     end else begin
         if (ridx_select != 0) begin

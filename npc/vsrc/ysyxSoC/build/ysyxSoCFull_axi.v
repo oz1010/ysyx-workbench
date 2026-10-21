@@ -5898,7 +5898,7 @@ module ysyxSoCFull(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scal
           sdram #(
             .BASE_ADDR_OFFSET(blk_idx*32'h02000000 + bits_idx*2)
           ) sdram (	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:145:23
-            .clk (_asic_sdram_clk),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
+            .clock (_asic_sdram_clk),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
             .cke (_asic_sdram_cke),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
             .cs  (_asic_sdram_cs),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24
             .ras (_asic_sdram_ras),	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/src/SoC.scala:107:24

@@ -84,8 +84,8 @@ module axi4_delayer(
     .SIGNAL_WIDTH(2),
     .K_BITS(K_BITS)
   ) ar_delayer (
-    .clk(clock),
-    .rst(reset),
+    .clock(clock),
+    .reset(reset),
     .enable(sdram_delay_en),
     .start(in_arvalid),
     .catch(out_arready),
@@ -102,8 +102,8 @@ module axi4_delayer(
     .SIGNAL_WIDTH(2),
     .K_BITS(K_BITS)
   ) r_delayer (
-    .clk(clock),
-    .rst(reset),
+    .clock(clock),
+    .reset(reset),
     .enable(sdram_delay_en),
     .start(in_rready),
     .catch(out_rvalid),

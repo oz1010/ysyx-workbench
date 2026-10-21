@@ -74,7 +74,7 @@ module uart_top_apb (
    //  reg_we   __|       |_____________________________________
    //
    uart_regs Uregs(
-          .clk         (clock),
+          .clock         (clock),
           .wb_rst_i    (reset),
           .wb_addr_i   (reg_adr),
           .wb_dat_i    (in_pwrite ? reg_dat8_w:reg_dat8_w_reg),

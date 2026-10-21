@@ -3,8 +3,8 @@ module riscv32e_memsys #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
-    input  wire                         clk,
-    input  wire                         rst,
+    input  wire                         clock,
+    input  wire                         reset,
 
     // 复位
     output reg  [ADDR_WIDTH-1:0]        reset_pc,
@@ -76,7 +76,7 @@ module riscv32e_memsys #(
     output wire                         done
 );
 
-    wire core_ready = !rst;
+    wire core_ready = !reset;
 
     // 单周期不需要通过axi4总线访问外部设备
     assign io_master_awvalid = 0;
@@ -103,8 +103,8 @@ module riscv32e_memsys #(
         if (`RISCV_RESET_PC_EN) begin // 直接使用静态值
             assign reset_pc = `RISCV_RESET_PC;
         end else begin // 从镜像读取值
-            always @(posedge clk) begin
-                if (rst) begin
+            always @(posedge clock) begin
+                if (reset) begin
                     reset_pc <= func_get_reset_pc();
                 end
             end
@@ -115,8 +115,8 @@ module riscv32e_memsys #(
     hw_monitor #(
         .INST_WIDTH(INST_WIDTH)
     ) m_hw_monitor (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .hw_monitor_icache_en(0),
         .hw_monitor_icache_hit(0),
         .hw_monitor_dcache_en(0),
@@ -130,7 +130,7 @@ module riscv32e_memsys #(
     `ifdef CONFIG_ISA_RISCV_SINGLE // 单周期特有逻辑
     // 组合取指
     always @(*) begin
-        if (rst) begin
+        if (reset) begin
             io_if_req_ready = 0;
             io_if_rsp_valid = 0;
             io_if_rsp_data = 0;
@@ -154,8 +154,8 @@ module riscv32e_memsys #(
         io_mem_req_op==`MEMOP_LBU || 
         io_mem_req_op==`MEMOP_LHU || 
         0;
-    always @(negedge clk) begin
-        if (rst) begin
+    always @(negedge clock) begin
+        if (reset) begin
         end else begin
             io_mem_rsp_data <= 0;
             if (io_mem_req_valid && io_mem_req_ready) begin
@@ -170,8 +170,8 @@ module riscv32e_memsys #(
             end
         end
     end
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
         end else begin
             if (io_mem_req_valid && io_mem_req_ready) begin
                 case (io_mem_req_op)
@@ -206,7 +206,7 @@ module riscv32e_memsys #(
     //     if (0) begin // 单周期特有逻辑
     //     // 组合取指
     //     always @(*) begin
-    //         if (rst) begin
+    //         if (reset) begin
     //             io_if_req_ready = 0;
     //             io_if_rsp_valid = 0;
     //             io_if_rsp_data = 0;
@@ -230,8 +230,8 @@ module riscv32e_memsys #(
     //         io_mem_req_op==`MEMOP_LBU || 
     //         io_mem_req_op==`MEMOP_LHU || 
     //         0;
-    //     always @(negedge clk) begin
-    //         if (rst) begin
+    //     always @(negedge clock) begin
+    //         if (reset) begin
     //         end else begin
     //             io_mem_rsp_data <= 0;
     //             if (io_mem_req_valid && io_mem_req_ready) begin
@@ -246,8 +246,8 @@ module riscv32e_memsys #(
     //             end
     //         end
     //     end
-    //     always @(posedge clk) begin
-    //         if (rst) begin
+    //     always @(posedge clock) begin
+    //         if (reset) begin
     //         end else begin
     //             if (io_mem_req_valid && io_mem_req_ready) begin
     //                 case (io_mem_req_op)

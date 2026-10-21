@@ -3,8 +3,8 @@ module gprs #(
     parameter DATA_WIDTH = 32,
     parameter REG_COUNT = `RISCV_GPR_COUNT
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* 读寄存器接口 */
     input   wire [`RISCV_GPR_ADDR_W-1:0]    rs1,
@@ -88,11 +88,11 @@ assign a0 = a[0];
  */
 wire [`RISCV_GPR_COUNT-1:0] wen_onehot;
 assign wen_onehot = wen ? (1 << waddr) : 0;
-// always @(posedge clk) x[0] <= 0;
+// always @(posedge clock) x[0] <= 0;
 assign x[0] = 0;
 genvar i;
 for (i=1 ; i<`RISCV_GPR_COUNT; ++i) begin
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         x[i] <= wen_onehot[i] ? wdata : x[i];
     end
 end

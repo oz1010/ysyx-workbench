@@ -11,8 +11,8 @@ module cache_block #(
     parameter N = 2,
     parameter M = 3
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     
     input   wire [ADDR_WIDTH-1:0]       addr,
     input   wire                        update_en,
@@ -62,8 +62,8 @@ generate
             .N(N),
             .M(M)
         ) line (
-            .clk(clk),
-            .rst(rst || line_reset_en[i]),
+            .clock(clock),
+            .reset(reset || line_reset_en[i]),
             .addr(addr),
             .update_en(line_update_en[i]),
             .write_en(write_en),
@@ -96,8 +96,8 @@ always @(*) begin
     if (update_en) line_update_en[line_update_index] = 1;
 end
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         for (integer i=0; i<line_count; ++i) begin
             line_read_flag[i] <= 0;
         end

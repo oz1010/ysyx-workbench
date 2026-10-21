@@ -176,7 +176,7 @@ module EF_PSRAM_CTRL_wb (
     assign mw_wr    = ( (state==ST_IDLE ) & wb_we );
 
     PSRAM_READER MR (
-        .clk(clk_i),
+        .clock(clk_i),
         .rst_n(~rst_i),
         .qpi_en(qpi_en),
         .addr({adr_i[23:2],2'b0}),
@@ -193,7 +193,7 @@ module EF_PSRAM_CTRL_wb (
     );
 
     PSRAM_WRITER MW (
-        .clk(clk_i),
+        .clock(clk_i),
         .rst_n(~rst_i),
         .qpi_en(qpi_en),
         .addr({adr_i[23:2], addr_offset}), // 已经4字节对齐，转换为spi命令需要恢复为非对齐地址；否则写入有问题
@@ -209,7 +209,7 @@ module EF_PSRAM_CTRL_wb (
     );
 
     PSRAM_SWITCHER SW (
-        .clk(clk_i),
+        .clock(clk_i),
         .rst_n(~rst_i),
         .sw((qpi_mode && ~qpi_en)),
         .done(sw_done),

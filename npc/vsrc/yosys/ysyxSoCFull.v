@@ -1,8 +1,8 @@
 `include "riscv32e_defines.v"
 
 module ysyxSoCFull (
-    input  wire         clk,
-    input  wire         rst,
+    input  wire         clock,
+    input  wire         reset,
     input  wire         io_interrupt,
     input  wire         io_master_awready,
     output wire         io_master_awvalid,
@@ -71,8 +71,8 @@ reg [31:0] gloabl_csr_write_value;
 reg [31:0] global_ret_pc;
 reg [31:0] global_pc;
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
     end else begin
         global_csrs[gloabl_csr_write_addr] <= gloabl_csr_write_value;
     end
@@ -198,7 +198,7 @@ reg [31:0]  r_slave_rdata;
 reg         r_slave_rlast;
 reg [3:0]   r_slave_rid;
 
-always @(posedge clk) begin
+always @(posedge clock) begin
     /* input */
     r_interrupt <= io_interrupt;
     r_master_awready <= io_master_awready;
@@ -328,8 +328,8 @@ assign io_slave_rid = r_slave_rid;
 `endif
 
 ysyx_23060295 m_core0(
-    .clock(clk),
-    .reset(rst),
+    .clock(clock),
+    .reset(reset),
     .io_interrupt(w_interrupt),
     .io_master_awready(w_master_awready),
     .io_master_awvalid(w_master_awvalid),

@@ -5,8 +5,8 @@ module load_store #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* req-resp总线master（连接dcache） */
     output  wire                        req_valid,
@@ -97,8 +97,8 @@ module load_store #(
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
     inner_con ls_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -147,7 +147,7 @@ module load_store #(
         s_write_len = 0;
         s_write_strb = 0;
         s_write_shift = 0;
-        if (!rst && r_write_enable) begin
+        if (!reset && r_write_enable) begin
             get_unalign_addr_parameter(write_size, write_addr, s_write_len, s_write_strb, s_write_shift);
         end
     end
@@ -160,7 +160,7 @@ module load_store #(
         s_read_len = 0;
         s_read_strb = 0;
         s_read_shift = 0;
-        if (!rst && r_read_enable) begin
+        if (!reset && r_read_enable) begin
             get_unalign_addr_parameter(read_size, read_addr, s_read_len, s_read_strb, s_read_shift);
         end
     end
@@ -188,13 +188,13 @@ module load_store #(
     assign resp_ready = r_req_busy;
 
     // 处理硬件监控信号
-    assign hw_monitor_ls_en = !rst && ls_enable && !fence_enable && !test_mode_enable && access_enable &&
+    assign hw_monitor_ls_en = !reset && ls_enable && !fence_enable && !test_mode_enable && access_enable &&
         ((r_write_enable || r_read_enable) && req_valid && req_ready && !r_req_second);
     assign hw_monitor_ls_iswrite = r_write_enable;
     assign hw_monitor_ls_data = req_addr;
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_result <= 0;
             r_result_update_gpr <= 0;
 

@@ -42,7 +42,7 @@
 `default_nettype        none
 
 module PSRAM_READER (
-    input   wire            clk,
+    input   wire            clock,
     input   wire            rst_n,
     input   wire            qpi_en,
     input   wire [23:0]     addr,
@@ -76,12 +76,12 @@ module PSRAM_READER (
             READ: if(done) nstate = IDLE; else nstate = READ;
         endcase
 
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n) state <= IDLE;
         else state <= nstate;
 
-    // Drive the Serial Clock (sck) @ clk/2
-    always @ (posedge clk or negedge rst_n)
+    // Drive the Serial Clock (sck) @ clock/2
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n)
             sck <= 1'b0;
         else if(~ce_n)
@@ -90,7 +90,7 @@ module PSRAM_READER (
             sck <= 1'b0;
 
     // ce_n logic
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n)
             ce_n <= 1'b1;
         else if(state == READ)
@@ -98,7 +98,7 @@ module PSRAM_READER (
         else
             ce_n <= 1'b1;
 
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n)
             counter <= 8'b0;
         else if(sck & ~done)
@@ -106,7 +106,7 @@ module PSRAM_READER (
         else if(state == IDLE)
             counter <= 8'b0;
 
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n)
             saddr <= 24'b0;
         else if((state == IDLE) && rd)
@@ -115,7 +115,7 @@ module PSRAM_READER (
 
     // Sample with the negedge of sck
     wire[1:0] byte_index = qpi_en ? {counter[7:1] - 8'd7}[1:0] : {counter[7:1] - 8'd10}[1:0];
-    always @ (posedge clk) begin
+    always @ (posedge clock) begin
         if (qpi_en && counter >= 14 && counter <= FINAL_COUNT) begin
             if (sck) begin
                 data[byte_index] <= {data[byte_index][3:0], din}; // Optimize!
@@ -166,7 +166,7 @@ endmodule
 
 // Using 38H Command
 module PSRAM_WRITER (
-    input   wire            clk,
+    input   wire            clock,
     input   wire            rst_n,
     input   wire            qpi_en,
     input   wire [23:0]     addr,
@@ -200,12 +200,12 @@ module PSRAM_WRITER (
             WRITE: if(done) nstate = IDLE; else nstate = WRITE;
         endcase
 
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n) state <= IDLE;
         else state <= nstate;
 
-    // Drive the Serial Clock (sck) @ clk/2
-    always @ (posedge clk or negedge rst_n) begin
+    // Drive the Serial Clock (sck) @ clock/2
+    always @ (posedge clock or negedge rst_n) begin
         if(!rst_n)
             sck <= 1'b0;
         else if(~ce_n)
@@ -217,7 +217,7 @@ module PSRAM_WRITER (
     end
 
     // ce_n logic
-    always @ (posedge clk or negedge rst_n) begin
+    always @ (posedge clock or negedge rst_n) begin
         if(!rst_n)
             ce_n <= 1'b1;
         else if(state == WRITE)
@@ -228,7 +228,7 @@ module PSRAM_WRITER (
             ce_n <= 1'b1;
     end
 
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n)
             counter <= 8'b0;
         else if(sck & ~done)
@@ -236,7 +236,7 @@ module PSRAM_WRITER (
         else if(state == IDLE || done)
             counter <= 8'b0;
 
-    always @ (posedge clk or negedge rst_n)
+    always @ (posedge clock or negedge rst_n)
         if(!rst_n)
             saddr <= 24'b0;
         else if((state == IDLE) && wr)
@@ -289,7 +289,7 @@ endmodule
 
 // Using 35H Command
 module PSRAM_SWITCHER (
-    input   wire            clk,
+    input   wire            clock,
     input   wire            rst_n,
     input   wire            sw,
     output  wire            done,
@@ -315,23 +315,23 @@ always @*
         SWITCH: if(done) nstate = IDLE; else nstate = SWITCH;
     endcase
 
-always @(posedge clk or negedge rst_n)
+always @(posedge clock or negedge rst_n)
     if(!rst_n) state <= IDLE;
     else state <= nstate;
 
-// Drive the Serial Clock (sck) @ clk/2
-always @(posedge clk or negedge rst_n)
+// Drive the Serial Clock (sck) @ clock/2
+always @(posedge clock or negedge rst_n)
     if(!rst_n) sck <= 0;
     else if(~ce_n) sck <= ~ sck;
     else if(state == IDLE) sck <= 0;
 
 // ce_n logic
-always @(posedge clk or negedge rst_n)
+always @(posedge clock or negedge rst_n)
     if(!rst_n) ce_n <= 1;
     else if(state == SWITCH) ce_n <= 0;
     else ce_n <= 1;
 
-always @(posedge clk or negedge rst_n)
+always @(posedge clock or negedge rst_n)
     if(!rst_n) counter <= 0;
     else if(sck & ~done) counter <= counter + 1;
     else if(state == IDLE) counter <= 0;

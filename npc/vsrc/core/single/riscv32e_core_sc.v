@@ -4,8 +4,8 @@ module riscv32e_core_sc #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
-    input  wire                         clk,
-    input  wire                         rst,
+    input  wire                         clock,
+    input  wire                         reset,
 
     // 复位与中断
     input  wire [ADDR_WIDTH-1:0]        reset_pc,
@@ -61,8 +61,8 @@ module riscv32e_core_sc #(
         .DATA_WIDTH(DATA_WIDTH),
         .REG_COUNT(`RISCV_GPR_COUNT)
     ) m_gprs (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .rs1(rs1),
         .src1(gpr_src1),
         .rs2(rs2),
@@ -88,8 +88,8 @@ module riscv32e_core_sc #(
     csrs #(
         .DATA_WIDTH(DATA_WIDTH)
     ) m_csrs (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         
         .raddr(csr_raddr),
         .rdata(csr_rdata),
@@ -106,10 +106,10 @@ module riscv32e_core_sc #(
 
     /* 取指，单周期一直取指 */
     reg [INST_WIDTH-1:0] inst;
-    assign io_if_req_valid = rst ? 0 : 1;
+    assign io_if_req_valid = reset ? 0 : 1;
     assign io_if_req_addr = core_pc;
     assign io_if_req_op = `MEMOP_FLAG_4B;
-    assign io_if_rsp_ready = rst ? 0 : 1;
+    assign io_if_rsp_ready = reset ? 0 : 1;
     assign inst = io_if_rsp_data;
     // 禁用写接口
     assign io_if_req_wdata = 0;
@@ -130,8 +130,8 @@ module riscv32e_core_sc #(
     write_back_sc #(
         .INST_WIDTH(INST_WIDTH)
     ) wbu(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
 
         .pc(core_pc),
         .inst(inst),
@@ -175,8 +175,8 @@ module riscv32e_core_sc #(
     assign core_dnpc = dnpc;
     assign pc = core_pc;
     assign inst_done = core_inst_done;
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             core_pc <= reset_pc;
             core_inst_done <= 0;
         end else begin

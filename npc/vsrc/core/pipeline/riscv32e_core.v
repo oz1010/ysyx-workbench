@@ -7,8 +7,8 @@ module riscv32e_core #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input  wire             clk,
-    input  wire             rst,
+    input  wire             clock,
+    input  wire             reset,
 
     /* 外部中断 */
     input  wire             io_interrupt,
@@ -104,8 +104,8 @@ wire                        hw_monitor_icache_hit = icache_stat==`CACHE_STAT_HIT
 wire                        hw_monitor_dcache_en;
 wire                        hw_monitor_dcache_hit = dcache_stat==`CACHE_STAT_HIT;
 /* 将模块信号和控制信号关联后输出，默认直接输出 */
-assign con_core_ready = !rst;
-assign con_core_valid = !rst & !core_stage_flush[`STAGE_INDEX_IFU];
+assign con_core_ready = !reset;
+assign con_core_valid = !reset & !core_stage_flush[`STAGE_INDEX_IFU];
 assign con_if_ready = mod_con_if_ready;
 assign con_if_valid = mod_con_if_valid & !core_stage_flush[`STAGE_INDEX_IDU] & !core_raw_wait;
 assign con_id_ready = mod_con_id_ready & !core_raw_wait;
@@ -338,8 +338,8 @@ assign valid = con_wb_valid;
 reg [INST_WIDTH-1:0] core_pc;
 reg [INST_WIDTH-1:0] core_dnpc;
 assign pc = core_pc;
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         core_pc <= func_get_reset_pc();
         core_dnpc <= core_pc;
     end else begin
@@ -352,8 +352,8 @@ always @(posedge clk) begin
 end
 
 /* 核心执行tick计数 */
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         execute_time <= 0;
     end else begin
         execute_time <= execute_time + 1;
@@ -368,8 +368,8 @@ gprs #(
     .DATA_WIDTH(DATA_WIDTH),
     .REG_COUNT(`RISCV_GPR_COUNT)
 ) m_gprs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .rs1(con_id_rs1[3:0]),
     .src1(gpr_src1),
     .rs2(con_id_rs2[3:0]),
@@ -399,8 +399,8 @@ wire [DATA_WIDTH-1:0] csr_rdata;
 csrs #(
     .DATA_WIDTH(DATA_WIDTH)
 ) m_csrs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .raddr(csr_raddr),
     .rdata(csr_rdata),
     .wen(wb_csr_wen),
@@ -421,8 +421,8 @@ wire [1:0] ls_cache_stat;
 wire ls_mem_access;
 wire [31:0] ls_mem_addr;
 perf_monitor m_perf_monitor (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .if_in_done(monitor_if_in_done),
     .if_out_done(monitor_if_out_done),
     .id_in_done(monitor_id_in_done),
@@ -458,8 +458,8 @@ perf_monitor m_perf_monitor (
 hw_monitor #(
     .INST_WIDTH(INST_WIDTH)
 ) m_hw_monitor(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .hw_monitor_icache_en(hw_monitor_icache_en),
     .hw_monitor_icache_hit(hw_monitor_icache_hit),
     .hw_monitor_dcache_en(hw_monitor_dcache_en),
@@ -483,8 +483,8 @@ icache #(
 `endif
     .INST_WIDTH(INST_WIDTH)
 ) m_icache (
-    .clk(clk),
-    .rst(rst||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
+    .clock(clock),
+    .reset(reset||fence_enable_trigger), // 采用方案3，执行fence指令，清空整个icache
 
     .m_req_ready(if_req_ready),
     .m_req_valid(if_req_valid),
@@ -542,8 +542,8 @@ dcache #(
 `endif
     .INST_WIDTH(INST_WIDTH)
 ) m_dcache (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .m_req_ready(ls_req_ready),
     .m_req_valid(ls_req_valid),
@@ -596,8 +596,8 @@ arbiter_axi4 #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_arbiter_axi4(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .u_awreadys(   {axi4_icache_awready,    axi4_dcache_awready   }),
     .u_awvalids(   {axi4_icache_awvalid,    axi4_dcache_awvalid   }),
     .u_awaddrs(    {axi4_icache_awaddr,     axi4_dcache_awaddr    }),
@@ -670,8 +670,8 @@ xbar_axi4 #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_xbar_axi4 (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(axi4_arbiter_awready),
     .awvalid(axi4_arbiter_awvalid),
     .awaddr(axi4_arbiter_awaddr),
@@ -747,8 +747,8 @@ clint #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_clint(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(axi4_s_awready[0]),
     .awvalid(axi4_s_awvalid[0]),
     .awaddr(axi4_s_awaddr[0]),
@@ -786,8 +786,8 @@ exter_dev #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_exter_dev(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(axi4_s_awready[1]),
     .awvalid(axi4_s_awvalid[1]),
     .awaddr(axi4_s_awaddr[1]),
@@ -836,8 +836,8 @@ risk_raw #(
     .INST_WIDTH(INST_WIDTH),
     .DATA_WIDTH(DATA_WIDTH)
 ) m_risk_raw (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .flush_en(|core_stage_flush),
     .stage_ready({mod_con_wb_ready, mod_con_ls_ready, mod_con_ex_ready, mod_con_id_ready, mod_con_if_ready}),
     .stage_valid({mod_con_wb_valid, mod_con_ls_valid, mod_con_ex_valid, mod_con_id_valid, mod_con_if_valid}),
@@ -860,8 +860,8 @@ risk_control #(
     .INST_WIDTH(INST_WIDTH),
     .DATA_WIDTH(DATA_WIDTH)
 ) m_risk_control (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .stage_valid({mod_con_wb_valid, mod_con_ls_valid, mod_con_ex_valid, mod_con_id_valid, mod_con_if_valid}),
     .stage_exception(0),
     .fetch_pc(core_fetch_pc),
@@ -878,8 +878,8 @@ static_predictor #(
     .INST_WIDTH(INST_WIDTH),
     .DATA_WIDTH(DATA_WIDTH)
 ) m_static_predictor (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .predict_en(con_core_valid&mod_con_if_ready),
     .fetch_en(mod_con_if_valid&mod_con_id_ready),
     .flush_type(core_flush_type),
@@ -911,8 +911,8 @@ inst_fetch #(
     .IN_DATA_W(IF_IN_DATA_W),
     .OUT_DATA_W(IF_OUT_DATA_W)
 ) ifu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .req_valid(if_req_valid),
     .req_ready(if_req_ready),
@@ -941,8 +941,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(IF_OUT_DATA_W)
 ) ifu_regs (
-    .clk(clk),
-    .rst(rst | core_flush_done),
+    .clock(clock),
+    .reset(reset | core_flush_done),
     .ready(con_id_ready),
     .valid(mod_con_if_valid),
     .bits(mod_con_if_bits),
@@ -950,8 +950,8 @@ stage_regs#(
 );
 // 记录上次取指地址
 reg  [ADDR_WIDTH-1:0]           con_if_last_pc;
-always @(posedge clk) con_if_last_pc <= 
-    (rst) ? 0 :
+always @(posedge clock) con_if_last_pc <= 
+    (reset) ? 0 :
     (mod_con_if_valid & con_id_ready) ? con_if_pc :
     con_if_last_pc;
 
@@ -982,8 +982,8 @@ inst_decode #(
     .IN_DATA_W(ID_IN_DATA_W),
     .OUT_DATA_W(ID_OUT_DATA_W)
 ) idu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .imm_rd(id_imm_rd),
     .imm_rs1(id_imm_rs1),
@@ -1004,8 +1004,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(ID_OUT_DATA_W)
 ) idu_regs (
-    .clk(clk),
-    .rst(rst | core_flush_done),
+    .clock(clock),
+    .reset(reset | core_flush_done),
     .ready(con_ex_ready),
     .valid(mod_con_id_valid),
     .bits(mod_con_id_bits),
@@ -1025,8 +1025,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(DATA_WIDTH*3)
 ) idu_gpr_regs (
-    .clk(clk),
-    .rst(rst | core_flush_done),
+    .clock(clock),
+    .reset(reset | core_flush_done),
     .ready(con_ex_ready),
     .valid(mod_con_id_valid),
     .bits({
@@ -1039,7 +1039,7 @@ stage_regs#(
 
 wire fence_enable = (con_id_inst_code == `INST_FENCE) || (con_id_inst_code == `INST_FENCE_I);
 reg last_fence_enable;
-always @(posedge clk ) last_fence_enable <= fence_enable;
+always @(posedge clock ) last_fence_enable <= fence_enable;
 wire fence_enable_trigger = fence_enable & !last_fence_enable;
 
 /* 执行ex */
@@ -1085,8 +1085,8 @@ execute #(
     .IN_DATA_W(EX_IN_DATA_W),
     .OUT_DATA_W(EX_OUT_DATA_W)
 ) exu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .csr_rdata(csr_rdata),
 
@@ -1109,8 +1109,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(EX_OUT_DATA_W)
 ) exu_regs (
-    .clk(clk),
-    .rst(rst | core_flush_done),
+    .clock(clock),
+    .reset(reset | core_flush_done),
     .ready(con_ls_ready),
     .valid(mod_con_ex_valid),
     .bits(mod_con_ex_bits),
@@ -1174,8 +1174,8 @@ load_store #(
     .IN_DATA_W(LS_IN_DATA_W),
     .OUT_DATA_W(LS_OUT_DATA_W)
 ) lsu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .req_valid(ls_req_valid),
     .req_ready(ls_req_ready),
@@ -1208,8 +1208,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(LS_OUT_DATA_W)
 ) lsu_regs (
-    .clk(clk),
-    .rst(rst | core_flush_done),
+    .clock(clock),
+    .reset(reset | core_flush_done),
     .ready(con_wb_ready),
     .valid(mod_con_ls_valid),
     .bits(mod_con_ls_bits),
@@ -1268,8 +1268,8 @@ write_back #(
     .IN_DATA_W(WB_IN_DATA_W),
     .OUT_DATA_W(WB_OUT_DATA_W)
 ) wbu(
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
 
     .gpr_wen(wb_gpr_wen),
     .gpr_windex(wb_gpr_windex),
@@ -1297,8 +1297,8 @@ stage_regs#(
     .DATA_STORAGE(1),
     .DATA_W(WB_OUT_DATA_W)
 ) wbu_regs (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .ready(con_core_ready),
     .valid(mod_con_wb_valid),
     .bits(mod_con_wb_bits),

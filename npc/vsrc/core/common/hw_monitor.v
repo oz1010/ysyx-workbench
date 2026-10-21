@@ -5,8 +5,8 @@ module hw_monitor #(
     parameter BRESP_WIDTH = 2,
     parameter RRESP_WIDTH = 2
 ) (
-    input  wire                         clk,
-    input  wire                         rst,
+    input  wire                         clock,
+    input  wire                         reset,
 
     input  wire                         hw_monitor_icache_en,
     input  wire                         hw_monitor_icache_hit,
@@ -21,16 +21,16 @@ module hw_monitor #(
 );
 
 // CORE TICK
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 0);
     end else begin
         func_cpu_stat_ctrl(`HW_CPU_STAT_TICK, 1);
     end
 end
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
     end else begin
         // LSU
         if (hw_monitor_ls_en) begin

@@ -4,8 +4,8 @@ module exter_dev #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     output  wire                        awready,
     input   wire                        awvalid,
@@ -67,8 +67,8 @@ axi4_salve_writer #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_axi4_salve_writer (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .awready(awready),
     .awvalid(awvalid),
     .awaddr(awaddr),
@@ -102,8 +102,8 @@ axi4_salve_reader #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_axi4_salve_reader (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .arready(arready),
     .arvalid(arvalid),
     .araddr(araddr),
@@ -144,8 +144,8 @@ always @(*) begin
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
     end else begin
         if (in_write_mode && wvalid && wready) begin
             `ifndef IN_YOSYS_STA

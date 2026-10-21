@@ -1,8 +1,8 @@
 module trigger #(
     parameter TRIGGER_TYPE = `TRIGGER_EDGE_POS
 ) (
-    input       clk,
-    input       rst,
+    input       clock,
+    input       reset,
 
     input       in,
     output      out
@@ -13,7 +13,7 @@ generate
         reg in_last;
         wire [1:0] in_edge = {in_last, in};
 
-        always @(posedge clk) begin
+        always @(posedge clock) begin
             in_last <= in;
         end
 

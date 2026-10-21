@@ -1,5 +1,5 @@
 module sdram(
-  input        clk,
+  input        clock,
   input        cke,
   input        cs,
   input        ras,
@@ -71,7 +71,7 @@ module sdram(
         wmask = 0;
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if (bsel) begin
             casez (input_cmd)
                 // COMMAND INHIBIT 无命令
@@ -154,7 +154,7 @@ module sdram(
         end
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         case(state)
             idle_t: counter <= 0;
             read_t, write_t: counter <= counter + 1;
@@ -162,7 +162,7 @@ module sdram(
         endcase
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         case(state)
             idle_t: ;
             active_t: ;

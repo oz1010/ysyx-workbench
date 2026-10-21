@@ -15,8 +15,8 @@ module dcache #(
     parameter N = 2,
     parameter M = 3
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* req-resp总线slave（连接LSU） */
     output  wire                        m_req_ready,
@@ -192,8 +192,8 @@ axi_master_reader #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) m_axi_master_reader (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .arready(c_s_arready),
     .arvalid(c_s_arvalid),
     .araddr(c_s_araddr),
@@ -231,8 +231,8 @@ cache #(
     .N(N),
     .M(M)
 ) dcache_impl (
-    .clk(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .addr(impl_addr_aligned),
     .update_en(impl_update_en),
     .reset_en(impl_reset_en),
@@ -250,8 +250,8 @@ assign impl_write_en = impl_update_en && c_s_rvalid && c_s_rready;
 assign impl_write_data = c_s_rdata;
 assign m_resp_data = (r_m_state==M_STATE_PTRD) ? s_rdata : impl_read_data;
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         r_m_state <= M_STATE_IDLE;
         r_m_addr <= 0;
         r_m_wdata <= 0;

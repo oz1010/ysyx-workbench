@@ -4,8 +4,8 @@ module clint #(
     parameter BRESP_WIDTH = 3,
     parameter RRESP_WIDTH = 3
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     output  wire                        awready,
     input   wire                        awvalid,
@@ -71,8 +71,8 @@ wire [31:0] read_size = 1<<arsize;    // 单个burst写入数据大小，2^n字�
 
 `ifdef IN_YOSYS_STA
 reg [31:0] rtc_ticks;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         rtc_ticks <= 0;
     end else begin
         rtc_ticks <= rtc_ticks + 1;
@@ -81,8 +81,8 @@ end
 `endif
 
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         r_awready <= 0;
         r_wready <= 0;
         r_bvalid <= 0;
