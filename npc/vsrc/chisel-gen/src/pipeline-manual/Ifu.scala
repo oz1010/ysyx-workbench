@@ -38,10 +38,12 @@ class Ifu(p: CoreParams) extends Module {
   io.cache.req.op    := MemOp.FLAG_4B
   io.cache.req.wdata := 0.U
   io.cache.rsp.ready := true.B
-  reqPend            := Mux(
-    io.cache.req.valid && io.cache.req.ready,
-    true.B,
-    Mux(io.out.fire, false.B, reqPend)
+  reqPend            := MuxCase(
+    reqPend,
+    Seq(
+      (io.cache.req.valid && io.cache.req.ready) -> true.B,
+      (io.out.fire)                              -> false.B
+    )
   )
 
   // 接收指令并做静态预测

@@ -1,6 +1,7 @@
 import chisel3._
 import circt.stage.ChiselStage
 
+import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import scala.collection.mutable
@@ -9,7 +10,7 @@ import scala.util.control.NonFatal
 import scala.util.matching.Regex
 
 /** 遍历指定 src 目录及 common，无需指定顶层：
-  *   - 发现 Module/RawModule/BlackBox 类并逐类生成，优先保留完整层级，按完整模块名全局去重；
+  *   - 发现 Module/RawModule 类并逐类生成，BlackBox 随所属模块处理，优先保留完整层级，按完整模块名全局去重；
   *   - 按类名拆分输出，参数化变体归入基类文件，辅助模块归入当前生成类的文件；
   *   - .v/.sv 手写 Verilog 保持相对路径原样拷贝，不编译、不改写；
   *   - 不对外设模块做特殊处理。
@@ -17,7 +18,7 @@ import scala.util.matching.Regex
   */
 object Generate {
   private val modulePattern: Regex =
-    "(?m)\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?:\\([^)]*\\))?\\s+extends\\s+((?:Raw)?Module|BlackBox)\\b".r
+    "(?m)\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?:\\([^)]*\\))?\\s+extends\\s+((?:Raw)?Module)\\b".r
 
   private val packagePattern: Regex =
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
@@ -75,9 +76,21 @@ object Generate {
   }
 
   private def instantiate(fqcn: String): RawModule = {
-    val cls  = Class.forName(fqcn)
-    val ctor = cls.getConstructors.maxBy(_.getParameterCount)
-    val args = ctor.getParameterTypes.map(defaultArg(_, fqcn))
+    val cls       = Class.forName(fqcn)
+    val ctor      = cls.getConstructors.maxBy(_.getParameterCount)
+    val companion = try {
+      Some(Class.forName(fqcn + "$").getField("MODULE$").get(null))
+    } catch {
+      case _: ClassNotFoundException => None
+    }
+    val args      = ctor.getParameterTypes.zipWithIndex.map { case (ptype, index) =>
+      val default = companion.flatMap { instance =>
+        instance.getClass.getMethods
+          .find(_.getName == s"$$lessinit$$greater$$default$$${index + 1}")
+          .map(_.invoke(instance))
+      }
+      default.getOrElse(defaultArg(ptype, fqcn))
+    }
     ctor.newInstance(args: _*).asInstanceOf[RawModule]
   }
 
@@ -207,6 +220,7 @@ object Generate {
     val routed    =
       mutable.LinkedHashMap.empty[Path, mutable.ArrayBuffer[(String, String)]]
 
+    val failures = mutable.ArrayBuffer.empty[(String, Throwable)]
     val emitted = modules.filterNot { case (_, fqcn) =>
       claimed(fqcn.substring(fqcn.lastIndexOf('.') + 1))
     }.flatMap { case (source, fqcn) =>
@@ -215,12 +229,21 @@ object Generate {
         Some((source, fqcn, preamble, chunks))
       } catch {
         case NonFatal(t) =>
+          val cause = t match {
+            case e: InvocationTargetException if e.getCause != null => e.getCause
+            case _ => t
+          }
+          failures += fqcn -> cause
           System.err.println(
-            s"[chisel] skip $source :: $fqcn (${t.getClass.getSimpleName}: ${t.getMessage})"
+            s"[chisel] failed $source :: $fqcn (${cause.getClass.getSimpleName}: ${cause.getMessage})"
           )
           None
       }
     }
+    require(
+      failures.isEmpty,
+      s"Verilog generation failed for: ${failures.map(_._1).mkString(", ")}"
+    )
 
     // 优先保留完整层级，避免独立生成的默认参数版本抢占层级内的同名子模块。
     emitted.sortBy { case (source, fqcn, _, chunks) =>

@@ -67,6 +67,7 @@ class Lsu(p: CoreParams) extends Module {
   io.out.bits.loadData  := loadData
   io.out.bits.rdAddr    := in.rdAddr
   io.out.bits.oldctrl   := in.oldctrl
+  io.out.bits.ctrl      := in.ctrl
   io.out.bits.csrAddr   := in.csrAddr
   io.out.bits.csrWdata  := in.csrWdata
   io.out.bits.csrRdata  := in.csrRdata

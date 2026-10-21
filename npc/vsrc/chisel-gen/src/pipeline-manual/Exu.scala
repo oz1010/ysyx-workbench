@@ -36,13 +36,11 @@ class Exu(p: CoreParams) extends Module {
       WbSel.PC_4 -> (io.lsStage.pc + 4.U) // JAL/JALR
     )
   )
-  def fwd(regAddr: UInt, regVal: UInt): UInt = Mux(
-    io.lsValid && io.lsStage.oldctrl.rdWen && io.lsStage.rdAddr =/= 0.U && io.lsStage.rdAddr === regAddr,
-    lsFwData,
-    Mux(
-      io.wbValid && io.wbStage.oldctrl.rdWen && io.wbStage.rdAddr =/= 0.U && io.wbStage.rdAddr === regAddr,
-      io.wbData,
-      regVal
+  def fwd(regAddr: UInt, regVal: UInt): UInt = MuxCase(
+    regVal,
+    Seq(
+      (io.lsValid && io.lsStage.oldctrl.rdWen && io.lsStage.rdAddr =/= 0.U && io.lsStage.rdAddr === regAddr) -> lsFwData,
+      (io.wbValid && io.wbStage.oldctrl.rdWen && io.wbStage.rdAddr =/= 0.U && io.wbStage.rdAddr === regAddr) -> io.wbData
     )
   )
 
@@ -144,6 +142,7 @@ class Exu(p: CoreParams) extends Module {
   io.out.bits.storeData := rs2f
   io.out.bits.rdAddr    := in.rdAddr
   io.out.bits.oldctrl   := in.oldctrl
+  io.out.bits.ctrl      := in.ctrl
   io.out.bits.csrAddr   := in.inst(31, 20)
   io.out.bits.csrWdata  := csrWdata
   io.out.bits.csrRdata  := io.csrRead.data
