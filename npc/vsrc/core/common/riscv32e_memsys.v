@@ -188,6 +188,58 @@ module riscv32e_memsys #(
             end
         end
     end
+
+    `elsif CONFIG_ISA_RISCV_PIPELINE_CHISEL // chisel版本
+    CacheRouter cache_router(
+        .clock(clock),
+        .reset(reset),
+        .io_if_req_valid(io_if_req_valid),
+        .io_if_req_ready(io_if_req_ready),
+        .io_if_req_addr(io_if_req_addr),
+        .io_if_req_op(io_if_req_op),
+        .io_if_req_wdata(io_if_req_wdata),
+        .io_if_rsp_valid(io_if_rsp_valid),
+        .io_if_rsp_ready(io_if_rsp_ready),
+        .io_if_rsp_data(io_if_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data),
+        .io_master_arvalid(io_master_arvalid),
+        .io_master_arready(io_master_arready),
+        .io_master_araddr(io_master_araddr),
+        .io_master_arid(io_master_arid),
+        .io_master_arlen(io_master_arlen),
+        .io_master_arsize(io_master_arsize),
+        .io_master_arburst(io_master_arburst),
+        .io_master_rvalid(io_master_rvalid),
+        .io_master_rready(io_master_rready),
+        .io_master_rdata(io_master_rdata),
+        .io_master_rresp(io_master_rresp),
+        .io_master_rlast(io_master_rlast),
+        .io_master_rid(io_master_rid),
+        .io_master_awvalid(io_master_awvalid),
+        .io_master_awready(io_master_awready),
+        .io_master_awaddr(io_master_awaddr),
+        .io_master_awid(io_master_awid),
+        .io_master_awlen(io_master_awlen),
+        .io_master_awsize(io_master_awsize),
+        .io_master_awburst(io_master_awburst),
+        .io_master_wvalid(io_master_wvalid),
+        .io_master_wready(io_master_wready),
+        .io_master_wdata(io_master_wdata),
+        .io_master_wstrb(io_master_wstrb),
+        .io_master_wlast(io_master_wlast),
+        .io_master_bvalid(io_master_bvalid),
+        .io_master_bready(io_master_bready),
+        .io_master_bresp(io_master_bresp),
+        .io_master_bid(io_master_bid)
+    );
+
     `else
     // TODO 非单周期取指，需要转换为axi4信号
     assign io_if_req_ready = 0;

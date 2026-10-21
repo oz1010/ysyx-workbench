@@ -118,7 +118,7 @@ class Redirect(p: CoreParams) extends Bundle {
   *
   * burst类型，0--FIXED 1--INCR 2--WRAP
   */
-class Axi4IO(p: CoreParams) extends Bundle {
+class Axi4IO()                 extends Bundle {
   // 读地址通道
   val arvalid = Output(Bool())
   val arready = Input(Bool())
@@ -165,7 +165,6 @@ class Axi4IO(p: CoreParams) extends Bundle {
   // 写响应通道握手判定
   def bFire: Bool  = bvalid && bready
 }
-
 // axi4-master默认赋值函数
 object Axi4MasterDefaults {
   def apply(io: Axi4IO): Unit = {
@@ -190,10 +189,97 @@ object Axi4MasterDefaults {
     io.bready  := false.B
   }
 }
-
 // axi4-slave默认赋值函数
 object Axi4SlaveDefaults {
   def apply(io: Axi4IO): Unit = {
+    io.arready := false.B
+    io.rvalid  := false.B
+    io.rdata   := 0.U
+    io.rresp   := 0.U
+    io.rlast   := false.B
+    io.rid     := 0.U
+
+    io.awready := false.B
+    io.wready  := false.B
+    io.bvalid  := false.B
+    io.bresp   := 0.U
+    io.bid     := 0.U
+  }
+}
+class OldAxi4IO(p: CoreParams) extends Bundle {
+  // 读地址通道
+  val arvalid = Output(Bool())
+  val arready = Input(Bool())
+  val araddr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
+  val arid    = Output(UInt(4.W))
+  val arlen   = Output(UInt(8.W)) // burst数量，2^n字节
+  val arsize  = Output(UInt(3.W)) // 单个burst数据大小，2^n字节
+  val arburst = Output(UInt(2.W))
+  // 读数据通道
+  val rvalid  = Input(Bool())
+  val rready  = Output(Bool())
+  val rdata   = Input(UInt(CONFIG_DATA_WIDTH.W))
+  val rresp   = Input(UInt(2.W))
+  val rlast   = Input(Bool())
+  val rid     = Input(UInt(4.W))
+  // 写地址通道
+  val awvalid = Output(Bool())
+  val awready = Input(Bool())
+  val awaddr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
+  val awid    = Output(UInt(4.W))
+  val awlen   = Output(UInt(8.W)) // burst数量，2^n字节
+  val awsize  = Output(UInt(3.W)) // 单个burst数据大小，2^n字节
+  val awburst = Output(UInt(2.W))
+  // 写数据通道
+  val wvalid  = Output(Bool())
+  val wready  = Input(Bool())
+  val wdata   = Output(UInt(CONFIG_DATA_WIDTH.W))
+  val wstrb   = Output(UInt((CONFIG_DATA_WIDTH / 8).W))
+  val wlast   = Output(Bool())
+  // 写响应通道
+  val bvalid  = Input(Bool())
+  val bready  = Output(Bool())
+  val bresp   = Input(UInt(2.W))
+  val bid     = Input(UInt(4.W))
+
+  // 读地址通道握手判定
+  def arFire: Bool = arvalid && arready
+  // 读数据通道握手判定
+  def rFire: Bool  = rvalid && rready
+  // 写地址通道握手判定
+  def awFire: Bool = awvalid && awready
+  // 写数据通道握手判定
+  def wFire: Bool  = wvalid && wready
+  // 写响应通道握手判定
+  def bFire: Bool  = bvalid && bready
+}
+// axi4-master默认赋值函数
+object OldAxi4MasterDefaults {
+  def apply(io: OldAxi4IO): Unit = {
+    io.arvalid := false.B
+    io.araddr  := 0.U
+    io.arid    := 0.U
+    io.arlen   := 0.U
+    io.arsize  := 0.U
+    io.arburst := 0.U
+    io.rready  := false.B
+
+    io.awvalid := false.B
+    io.awaddr  := 0.U
+    io.awid    := 0.U
+    io.awlen   := 0.U
+    io.awsize  := 0.U
+    io.awburst := 0.U
+    io.wvalid  := false.B
+    io.wdata   := 0.U
+    io.wstrb   := 0.U
+    io.wlast   := false.B
+    io.bready  := false.B
+  }
+}
+// axi4-slave默认赋值函数
+object OldAxi4SlaveDefaults {
+  def apply(io: OldAxi4IO): Unit = {
     io.arready := false.B
     io.rvalid  := false.B
     io.rdata   := 0.U
@@ -242,13 +328,20 @@ class CacheIO                   extends Bundle {
     def fire: Bool = valid && ready
   }
 }
-object CacheIODefaults {
+object CacheIOMasterDefaults {
   def apply(io: CacheIO): Unit = {
     io.req.valid := false.B
     io.req.addr  := 0.U
     io.req.op    := 0.U
     io.req.wdata := 0.U
     io.rsp.ready := false.B
+  }
+}
+object CacheIOSlaveDefaults {
+  def apply(io: CacheIO): Unit = {
+    io.req.ready := false.B
+    io.rsp.valid := false.B
+    io.rsp.data  := 0.U
   }
 }
 
