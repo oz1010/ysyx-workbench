@@ -5,13 +5,37 @@ export COURSIER_REPOSITORIES ?= https://repo1.maven.org/maven2
 GEN_PIPELINE_NAME ?= pipeline-manual
 TARGET_PIPELINE_DIR = $(NPC_HOME)/vsrc/core/pipeline-chisel
 OUT ?= build
+TARGET = $(OUT)/$(GEN_PIPELINE_NAME)
 
-.PHONY: all copy_to_npc verilog clean
+# 自动检测有效目标：src/ 下定义了 riscv32e_core 顶层类的子目录
+PIPELINES := $(sort $(patsubst src/%/,%,$(dir $(shell grep -rl --include='*.scala' 'class riscv32e_core' src/))))
+
+# 所有目录共用的源文件 + 生成器自身：任一变化都需要重新生成
+COMMON_SRCS := $(wildcard src/common/*.scala src/common/*.v src/common/*.sv)
+GEN_SRCS    := $(wildcard src/generator/*.scala) build.mill
+
+.PHONY: all verilog copy_to_npc clean $(PIPELINES)
 
 all: verilog
 
-verilog:
-	@$(MILL) -i chisel.runMain Generate $(OUT)
+# verilog 依赖具体生成目录；目录已是最新时不重复跑生成器
+verilog: $(TARGET)
+
+# 目录别名：make pipeline-manual 等价于 make build/pipeline-manual
+$(PIPELINES): %: $(OUT)/%
+
+# build/<名字> 只依赖 src/<名字> 与 src/common 下的源文件，
+# 改哪个目录就只重编哪个目录（wildcard 在二次展开时按目标收集依赖）
+.SECONDEXPANSION:
+$(OUT)/%: $$(wildcard src/$$*/*.scala src/$$*/*.v src/$$*/*.sv) $(COMMON_SRCS) $(GEN_SRCS)
+	@$(MILL) -i chisel.runMain Generate $(OUT) $*
+# 目标是目录：重写其中 .v 不会更新目录 mtime，显式 touch 使其新于源文件，避免下次重复重建
+	@touch "$@"
+
+# 无效目标直接报错并列出有效目标
+%::
+	@echo "Error: '$@' 不是有效目标，有效目标: $(PIPELINES)" >&2
+	@exit 2
 
 copy_to_npc: verilog
 	@-rm -rf $(TARGET_PIPELINE_DIR)
