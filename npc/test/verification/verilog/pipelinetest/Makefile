@@ -1,38 +1,62 @@
-# 流水线NPC形式化验证（验证要求见 https://ysyx.oscc.cc/docs/2607/b/4.html#%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81）
-# 执行 make verify 即可看到验证结果
-# DEPTH 指定BMC深度，默认15（约覆盖1条指令从取指到完成，含访存延迟），
-# CVR_DEPTH 指定覆盖检查的BMC深度（ecall/mret/csr等需要更深的轨迹），
-# 更大的深度可用 make verify DEPTH=30 CVR_DEPTH=30 覆盖（遍历更长的指令序列，求解时间显著增加）
-# 每日写代码测试：make verify （使用默认 DEPTH=15 CVR_DEPTH=20 快速验证 10^5+ 场景）
-# 彻底回归：make verify DEPTH=25 CVR_DEPTH=30 运行时间约几小时
-NPC_HOME := $(abspath ../../../..)
-DEPTH ?= 15
-CVR_DEPTH ?= 20
-SOLVER    ?= yices  # 可选：yices, z3, boolector
-CPU_NUM   ?= 4 # 当前后台有2个任务，同时使用2个求解器
-
-VERIFY_NAME := verify
+# Standalone Chisel pipeline formal harness; no RTL generation or source edits.
+PROJECT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+.DEFAULT_GOAL := verify
+PYTHON ?= python3
+YOSYS ?= yosys
+SBY ?= sby
+N ?= 5
+DEPTH ?= 40
+CVR_DEPTH ?= 120
+MAX_CYCLES ?= 96
+MAX_WAIT ?= 2
+MEM_BYTES ?= 16
+SOLVER ?= boolector
+CPU_NUM ?= 4
+SELFTEST_DEPTH ?= 16
 BUILD_PATH ?= build
-GEN_VERIFY_SBY ?= $(BUILD_PATH)/verify.sby
+BUILD_DIR := $(abspath $(if $(filter /%,$(BUILD_PATH)),$(BUILD_PATH),$(PROJECT_DIR)/$(BUILD_PATH)))
+TASKS ?= alu_bmc alu_progress alu_cvr
+SELFTEST_TASKS ?=
+
+configure:
+	$(PYTHON) $(PROJECT_DIR)/configure.py --build $(BUILD_DIR) --n $(N) \
+		--depth $(DEPTH) --cover-depth $(CVR_DEPTH) --max-cycles $(MAX_CYCLES) \
+		--max-wait $(MAX_WAIT) --mem-bytes $(MEM_BYTES) --solver $(SOLVER) \
+		--selftest-depth $(SELFTEST_DEPTH)
 
 all: verify
+verify: configure
+	cd $(PROJECT_DIR) && $(SBY) -f -j $(CPU_NUM) $(BUILD_DIR)/verify.sby $(TASKS)
 
-# 
-verify: $(GEN_VERIFY_SBY)
-	sby -f $(GEN_VERIFY_SBY) -j $(CPU_NUM)
+bmc: TASKS = alu_bmc
+progress: TASKS = alu_progress
+cover: TASKS = alu_cvr
+mem: TASKS = mem_bmc mem_progress mem_cvr
+stall: TASKS = stall_bmc stall_progress stall_cvr
+bmc progress cover mem stall: verify
 
-# verify.sby由模板生成，注入NPC_HOME绝对路径与BMC深度
-$(GEN_VERIFY_SBY): verify.sby FORCE
-	mkdir -p $(dir $@)
-	sed -e 's|@NPC_HOME@|$(NPC_HOME)|g' \
-		-e 's|@DEPTH@|$(DEPTH)|g' \
-		-e 's|@CVR_DEPTH@|$(CVR_DEPTH)|g' \
-		-e 's|@SOLVER@|$(SOLVER)|g' \
-		$< > $@
+# Read/elaborate/check all cores, monitors and protocol models, without a solver.
+check: configure
+	cd $(PROJECT_DIR) && $(YOSYS) -Q -T -l $(BUILD_DIR)/elaborate.log -s $(BUILD_DIR)/elaborate.ys
 
-FORCE:
+# Includes expected-failure mutations; ERROR/UNKNOWN are not acceptable results.
+selftest: configure
+	cd $(PROJECT_DIR) && $(SBY) -f -j $(CPU_NUM) $(BUILD_DIR)/selftest.sby $(SELFTEST_TASKS)
+
+report:
+	$(PYTHON) $(PROJECT_DIR)/report.py --build $(BUILD_DIR)
+
+help:
+	@printf '%s\n' 'make check       Elaborate complete harness (Slang required)' \
+	 'make verify      ALU safety + bounded progress + coverage' \
+	 'make bmc|progress|cover|mem|stall' \
+	 'make selftest    DUT-independent scoreboard regression' \
+	 'make report      Summarize existing task status files' \
+	 'make verify TASKS="mem_bmc stall_cvr" N=5 SOLVER=boolector' \
+	 'N DEPTH CVR_DEPTH MAX_CYCLES MAX_WAIT MEM_BYTES CPU_NUM BUILD_PATH are configurable'
 
 clean:
-	rm -rf $(VERIFY_NAME) $(VERIFY_NAME)_* $(BUILD_PATH)
+	$(PYTHON) -c 'from pathlib import Path; import shutil; p=Path("$(BUILD_DIR)").resolve(); root=Path("$(PROJECT_DIR)").resolve(); assert p != root and root in p.parents, "refuse to clean outside project"; shutil.rmtree(p) if p.exists() else None'
+	@rm -rf __pycache__
 
-.PHONY: all verify clean FORCE
+.PHONY: all configure verify bmc progress cover mem stall check selftest report help clean
