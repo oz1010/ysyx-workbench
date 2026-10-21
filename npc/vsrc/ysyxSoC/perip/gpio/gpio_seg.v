@@ -1,6 +1,6 @@
 module gpio_seg (
-    input                   clk,
-    input                   rst,
+    input                   clock,
+    input                   reset,
     input                   ce_n,
     input                   we_n,
     input  [31:0]           wdata,
@@ -49,8 +49,8 @@ initial begin
     update_ack = 0;
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         seg_value <= 0;
         update_ack <= 0;
     end else begin

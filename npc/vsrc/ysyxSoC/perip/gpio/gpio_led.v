@@ -1,6 +1,6 @@
 module gpio_led (
-    input                   clk,
-    input                   rst,
+    input                   clock,
+    input                   reset,
     input                   ce_n,
     input                   we_n,
     input  [LED_BITS-1:0]   wdata,
@@ -24,8 +24,8 @@ initial begin
     update_ack = 0;
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         led_value <= 0;
         update_ack <= 0;
     end else begin

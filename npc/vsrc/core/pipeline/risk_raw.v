@@ -8,8 +8,8 @@ module risk_raw #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 )(
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        flush_en,
     input   wire [`STAGE_COUNT-1:0]     stage_ready,
@@ -73,7 +73,7 @@ module risk_raw #(
                 idx==`STAGE_INDEX_WBU ||
                 0
             ) begin
-                always @(posedge clk) r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 0;
+                always @(posedge clock) r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 0;
             end else begin
                 /**
                  * 阻塞流水线时，标识某阶段是否可以释放阻塞（等待WBU完成后pc与wait_pc一致）
@@ -104,8 +104,8 @@ module risk_raw #(
                  * 等待RAW冒险结束，阶段wait_pc重置为0
                  * 其他场景保持不变
                  */
-                always @(posedge clk) begin
-                    if (rst | flush_en) begin
+                always @(posedge clock) begin
+                    if (reset | flush_en) begin
                         r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 0;
                     end else begin
                         r_stage_wait_pc[INST_WIDTH*idx +: INST_WIDTH] <= 
@@ -122,8 +122,8 @@ module risk_raw #(
         end
     endgenerate
 
-    always @(posedge clk) begin
-        if (rst | flush_en) begin
+    always @(posedge clock) begin
+        if (reset | flush_en) begin
             r_raw_wait <= 0;
         end else begin
             r_raw_wait <= 
@@ -136,8 +136,8 @@ module risk_raw #(
     /**
      * 转发需要通过时序逻辑实现，组合逻辑会出现循环依赖的问题
      */
-    always @(posedge clk) begin
-        if (rst | flush_en) begin
+    always @(posedge clock) begin
+        if (reset | flush_en) begin
             r_forward_result1_en <= 0;
             r_forward_result2_en <= 0;
         end else begin

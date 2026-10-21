@@ -13,8 +13,8 @@ module delayer #(
     parameter SKIP_DELAY_EN = 0,
     parameter K_BITS = 8 // 延时放大系数，对应移位项
 ) (
-    input               clk,
-    input               rst,
+    input               clock,
+    input               reset,
     input               enable,
     input               start,
     input               catch,
@@ -33,15 +33,15 @@ module delayer #(
     assign out_signal   = {SIGNAL_WIDTH{delay_signal}};
     
     // 转换为触发信号，类似捕捉上升沿
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         last_start <= start;
         last_catch <= catch;
     end
     wire start_trigger = enable && start && !last_start;
     wire catch_trigger = enable && catch && !last_catch;
 
-    always @(posedge clk or posedge rst) begin
-        if (rst || !enable) begin
+    always @(posedge clock or posedge reset) begin
+        if (reset || !enable) begin
             delay_cycle <= 0;
             delay_signal <= 0;
             delay_state <= idle_t;

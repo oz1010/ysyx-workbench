@@ -126,8 +126,8 @@ axi4_salve_burst_reader #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) sdram_reader (
-    .clk(clk_i),
-    .rst(rst_i),
+    .clock(clk_i),
+    .reset(rst_i),
     .arready(inport_arready_o),
     .arvalid(inport_arvalid_i),
     .araddr(inport_araddr_i),
@@ -218,8 +218,8 @@ axi4_salve_burst_writer #(
     .BRESP_WIDTH(BRESP_WIDTH),
     .RRESP_WIDTH(RRESP_WIDTH)
 ) sdram_writer (
-    .clk(clk_i),
-    .rst(rst_i),
+    .clock(clk_i),
+    .reset(rst_i),
     .awready(inport_awready_o),
     .awvalid(inport_awvalid_i),
     .awaddr(inport_awaddr_i),

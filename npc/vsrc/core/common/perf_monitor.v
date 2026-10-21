@@ -1,6 +1,6 @@
 module perf_monitor (
-    input  wire         clk,
-    input  wire         rst,
+    input  wire         clock,
+    input  wire         reset,
 
     input  wire         if_in_done,
     input  wire         if_out_done,
@@ -65,7 +65,7 @@ wire [31:0] ex_pc = ex_in_done ? in_ex_pc : in_done_ex_pc;
 wire [31:0] ls_pc = ls_in_done ? in_ls_pc : in_done_ls_pc;
 wire [31:0] wb_pc = wb_in_done ? in_wb_pc : in_done_wb_pc;
 
-wire core_valid = !rst;
+wire core_valid = !reset;
 reg last_core_valid;
 reg last_core_flush_done;
 
@@ -86,8 +86,8 @@ assign mon_csr_waddr_ext[0] = {1'b0, mon_csr_waddr[0]};
 assign mon_csr_waddr_ext[1] = {1'b0, mon_csr_waddr[1]};
 assign mon_csr_waddr_ext[2] = {1'b0, mon_csr_waddr[2]};
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         last_if_in_done <= 0;
         last_if_out_done <= 0;
         last_id_in_done <= 0;

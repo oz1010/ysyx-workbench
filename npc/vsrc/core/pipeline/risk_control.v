@@ -2,8 +2,8 @@ module risk_control #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 )(
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire [`STAGE_COUNT-1:0]     stage_valid,
     input   wire [`STAGE_COUNT-1:0]     stage_exception,
@@ -36,8 +36,8 @@ module risk_control #(
         fetch_rdnpc,
         fetch_rpc
     } = fetch_infos[fetch_rindex];
-    always @(posedge clk) begin
-        if (rst | (|stage_flush)) begin
+    always @(posedge clock) begin
+        if (reset | (|stage_flush)) begin
             for (int i=0; i<FETCH_ITEM_COUNT; ++i) begin
                 fetch_infos[i] <= 0;
                 fetch_windex <= 0;
@@ -56,8 +56,8 @@ module risk_control #(
         end
     end
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             stage_flush <= 0;
             flush_type <= 0;
         end else begin

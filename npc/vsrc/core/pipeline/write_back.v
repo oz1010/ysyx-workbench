@@ -7,8 +7,8 @@ module write_back #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     // gpr写入
     output  wire                        gpr_wen,
@@ -59,8 +59,8 @@ module write_back #(
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
     inner_con wb_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -102,8 +102,8 @@ module write_back #(
     assign csr_waddr = in_csr_waddr[0];
     assign csr_wdata = in_csr_wdata[0];
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_stage_out_valid <= 0;
         end else begin
             r_stage_out_valid <= stage_in_done ? 1 : 0;

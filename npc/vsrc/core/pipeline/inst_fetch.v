@@ -5,8 +5,8 @@ module inst_fetch #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* req-resp总线master（连接icache） */
     output  wire                        req_valid,
@@ -50,8 +50,8 @@ module inst_fetch #(
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
     inner_con if_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -66,8 +66,8 @@ module inst_fetch #(
 
     /* 触发式记录使能 */
     reg r_read_en;
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_read_en <= 0;
         end else begin
             r_read_en <=
@@ -87,8 +87,8 @@ module inst_fetch #(
     assign req_wstrb = 0;
     assign resp_ready = read_en;
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_stage_out_valid <= 0;
             r_cache_stat <= `CACHE_STAT_NONE;
         end else begin

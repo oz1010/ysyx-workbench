@@ -27,8 +27,8 @@ wire fb_sync_valid;
 wire fb_sync_ready;
 
 vga_regs m_vga_regs(
-  .clk(clock),
-  .rst(reset),
+  .clock(clock),
+  .reset(reset),
   .in_paddr(in_paddr),
   .in_psel(in_psel),
   .in_penable(in_penable),
@@ -47,8 +47,8 @@ vga_regs m_vga_regs(
 );
 
 vga_port m_vga_port(
-  .clk(clock),
-  .rst(reset),
+  .clock(clock),
+  .reset(reset),
   .vga_rgb(vga_rgb),
   .h_addr(h_addr),
   .v_addr(v_addr),

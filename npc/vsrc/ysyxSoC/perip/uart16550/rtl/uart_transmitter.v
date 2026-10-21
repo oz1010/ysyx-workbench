@@ -83,7 +83,7 @@
 //  It's disabled by default. Define UART_HAS_BAUDRATE_OUTPUT to use.
 //
 // Revision 1.16  2002/01/08 11:29:40  mohor
-// tf_pop was too wide. Now it is only 1 clk cycle width.
+// tf_pop was too wide. Now it is only 1 clock cycle width.
 //
 // Revision 1.15  2001/12/17 14:46:48  mohor
 // overrun signal was moved to separate block because many sequential lsr
@@ -154,10 +154,10 @@
 
 `include "uart_defines.v"
 
-module uart_transmitter (clk, wb_rst_i, lcr, tf_push, wb_dat_i, enable,
+module uart_transmitter (clock, wb_rst_i, lcr, tf_push, wb_dat_i, enable,
                          stx_pad_o, tstate, tf_count, tx_reset, lsr_mask);
 
-input                             clk;
+input                             clock;
 input                             wb_rst_i;
 input [7:0]                       lcr;
 input                             tf_push;
@@ -190,7 +190,7 @@ wire [`UART_FIFO_COUNTER_W-1:0] tf_count;
 assign tf_data_in = wb_dat_i;
 
 uart_tfifo fifo_tx(    // error bit signal is not used in transmitter FIFO
-    .clk         ( clk        ),
+    .clock         ( clock        ),
     .wb_rst_i    ( wb_rst_i    ),
     .data_in     ( tf_data_in    ),
     .data_out    ( tf_data_out    ),
@@ -211,7 +211,7 @@ parameter s_send_parity = 3'd3;
 parameter s_send_stop   = 3'd4;
 parameter s_pop_byte    = 3'd5;
 
-always @(posedge clk or posedge wb_rst_i) begin
+always @(posedge clock or posedge wb_rst_i) begin
   if (wb_rst_i) begin
     tstate      <= #1 s_idle;
     stx_o_tmp   <= #1 1'b1;
@@ -351,7 +351,7 @@ assign stx_pad_o = lcr[`UART_LC_BC] ? 1'b0 : stx_o_tmp;    // Break condition
 `ifdef VCD_DUMP_ON
    initial begin
            $dumpvars(1, enable);
-           $dumpvars(1, tstate, tf_count, clk);
+           $dumpvars(1, tstate, tf_count, clock);
            $dumpvars(1, wb_rst_i, tf_data_in, tf_data_out);
            $dumpvars(1, tf_push, tf_pop, tf_overrun, tx_reset, lsr_mask);
    end

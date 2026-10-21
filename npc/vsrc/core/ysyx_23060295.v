@@ -115,9 +115,6 @@ module ysyx_23060295 (
     assign io_slave_rlast = 0;
     assign io_slave_rid = 0;
 
-    wire clk = clock;
-    wire rst = reset;
-
     // 检测core是否陷入循环，默认但指令执行周期比较短暂
     wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
     wire [31:0] core_dnpc[`RISCV_CORE_NUM-1:0];
@@ -127,8 +124,8 @@ module ysyx_23060295 (
     reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
     generate
         for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
-            always @(posedge clk) begin
-                if (rst) begin
+            always @(posedge clock) begin
+                if (reset) begin
                     core_error[i] <= 0;
                     core_inst_stuck_tick[i] <= 0;
                 end else begin
@@ -180,8 +177,8 @@ module ysyx_23060295 (
     riscv32e_core_sc #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_CORE0(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
 
         .reset_pc(reset_pc),
         .io_interrupt(io_interrupt),
@@ -224,8 +221,8 @@ module ysyx_23060295 (
     riscv32e_core #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_CORE0(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
 
         .reset_pc(reset_pc),
         .io_interrupt(io_interrupt),
@@ -268,8 +265,8 @@ module ysyx_23060295 (
     riscv32e_core #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_CORE0(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
 
         .io_interrupt(io_interrupt),
         .io_master_awready(io_master_awready),
@@ -310,8 +307,8 @@ module ysyx_23060295 (
     riscv32e_memsys #(
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_memsys0(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
 
         .reset_pc(reset_pc),
 

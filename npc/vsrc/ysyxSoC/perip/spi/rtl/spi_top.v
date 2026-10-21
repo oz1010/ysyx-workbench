@@ -271,11 +271,11 @@ module spi_top
 
   assign ss_pad_o = ~((ss & {`SPI_SS_NB{tip & ass}}) | (ss & {`SPI_SS_NB{!ass}}));
 
-  spi_clgen clgen (.clk_in(wb_clk_i), .rst(wb_rst_i), .go(go), .enable(tip), .last_clk(last_bit),
+  spi_clgen clgen (.clk_in(wb_clk_i), .reset(wb_rst_i), .go(go), .enable(tip), .last_clk(last_bit),
                    .divider(divider), .clk_out(sclk_pad_o), .pos_edge(pos_edge),
                    .neg_edge(neg_edge));
 
-  spi_shift shift (.clk(wb_clk_i), .rst(wb_rst_i), .len(char_len[`SPI_CHAR_LEN_BITS-1:0]),
+  spi_shift shift (.clock(wb_clk_i), .reset(wb_rst_i), .len(char_len[`SPI_CHAR_LEN_BITS-1:0]),
                    .latch(spi_tx_sel[3:0] & {4{wb_we_i}}), .byte_sel(wb_sel_i), .lsb(lsb),
                    .go(go), .pos_edge(pos_edge), .neg_edge(neg_edge),
                    .rx_negedge(rx_negedge), .tx_negedge(tx_negedge),

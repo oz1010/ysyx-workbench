@@ -1,6 +1,6 @@
 module ps2_ctrl (
-    input                   clk,
-    input                   rst,
+    input                   clock,
+    input                   reset,
     input                   rd_n,
     input                   ps2_clk,
     input                   ps2_data,
@@ -45,16 +45,16 @@ initial begin
     key_widx = 0;
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         ps2_clk_queue <= 0;
     end else begin
         ps2_clk_queue <= {ps2_clk_queue[14:0], ps2_clk};
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         parity <= 0;
     end else begin
         if (data_bit_en) begin
@@ -65,8 +65,8 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         state <= idle_t;
     end else begin
         if (data_bit_en) begin
@@ -91,8 +91,8 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         data_bit_cnt <= 0;
     end else begin
         if (data_bit_en) begin
@@ -104,8 +104,8 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         data_bit <= 0;
         key_widx <= 0;
     end else begin
@@ -131,8 +131,8 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         key_value <= 0;
         key_ridx <= 0;
         key_ack <= 0;

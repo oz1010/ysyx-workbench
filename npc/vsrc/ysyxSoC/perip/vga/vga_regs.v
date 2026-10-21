@@ -1,6 +1,6 @@
 module vga_regs (
-    input                   clk,
-    input                   rst,
+    input                   clock,
+    input                   reset,
     input  [31:0]           in_paddr,
     input                   in_psel,
     input                   in_penable,
@@ -60,8 +60,8 @@ initial begin
     ctrl_regs[1] = 0;
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         r_pready <= 0;
         r_prdata <= 0;
         r_pslverr <= 0;
@@ -76,8 +76,8 @@ always @(posedge clk or posedge rst) begin
     end
 end
 
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
     end else begin
         if (vga_ctrl_sync) begin
             if (vga_ctrl_sync && fb_sync_ready) begin

@@ -3,8 +3,8 @@ module static_predictor #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        predict_en,
     input   wire                        fetch_en,
@@ -15,8 +15,8 @@ module static_predictor #(
     output  reg [INST_WIDTH-1:0]        predict_pc, // 记录预测的取指地址
     output  reg [INST_WIDTH-1:0]        fetch_pc // 记录本次取指地址
 );
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             predict_pc <= core_pc;
             fetch_pc <= predict_pc;
         end else begin

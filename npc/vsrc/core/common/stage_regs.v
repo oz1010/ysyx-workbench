@@ -2,8 +2,8 @@ module stage_regs #(
     parameter DATA_STORAGE = 1, // 输入数据存储模式，stage_bits可以维持多个周期，但会存在延时；若是直连模式，stage_bits只能维持一个周期；
     parameter DATA_W = 1
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        ready,
     input   wire                        valid,
@@ -18,8 +18,8 @@ module stage_regs #(
         if (DATA_STORAGE) begin : storage_mode
             reg [DATA_W-1:0] r_bits;
             assign stage_bits = stage_done ? bits : r_bits;
-            always @(posedge clk) begin
-                if (rst) begin
+            always @(posedge clock) begin
+                if (reset) begin
                     r_bits <= 0;
                 end else begin
                     if (stage_done) r_bits <= bits;

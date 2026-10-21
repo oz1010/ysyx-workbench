@@ -9,8 +9,8 @@ module inst_fetch #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* AXI4总线master */
     input   wire                        awready,
@@ -83,8 +83,8 @@ module inst_fetch #(
     wire                            stage_out_done;
 
     inner_con if_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -109,8 +109,8 @@ module inst_fetch #(
     reg [1:0] r_cache_stat = `CACHE_STAT_NONE;
     assign out_cache_stat = r_cache_stat;
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             pc <= func_get_reset_pc();
         end else begin
             pc <= stage_out_done ? snpc : 
@@ -121,8 +121,8 @@ module inst_fetch #(
 
     /* 触发式记录使能 */
     reg r_read_en;
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_read_en <= 0;
         end else begin
             r_read_en <=
@@ -148,8 +148,8 @@ module inst_fetch #(
                 .BRESP_WIDTH(BRESP_WIDTH),
                 .RRESP_WIDTH(RRESP_WIDTH)
             ) m_axi_master_reader (
-                .clk(clk),
-                .rst(rst),
+                .clock(clock),
+                .reset(reset),
                 .arready(arready),
                 .arvalid(arvalid),
                 .araddr(araddr),
@@ -172,8 +172,8 @@ module inst_fetch #(
                 .read_state()
             );
 
-            always @(posedge clk) begin
-                if (rst) begin
+            always @(posedge clock) begin
+                if (reset) begin
                     r_stage_out_valid <= 0;
                     r_read_inst <= 0;
                     r_cache_stat <= `CACHE_STAT_NONE;

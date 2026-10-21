@@ -7,7 +7,7 @@ module test_cache_block(
     localparam ADDR_WIDTH = 32;
     localparam DATA_WIDTH = 32;
 
-    reg clk, rst;
+    reg clock, reset;
 
     reg [ADDR_WIDTH-1:0]       addr;
     reg                        update_en;
@@ -21,8 +21,8 @@ module test_cache_block(
         .N(1),
         .M(4)
     ) dut (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .addr(addr),
         .update_en(update_en),
         .reset_en(0),
@@ -44,17 +44,17 @@ module test_cache_block(
 
     // 时钟生成
     initial begin
-        clk = 0;
-        forever #1 clk = ~clk;  // 每个时间单位变化一次
+        clock = 0;
+        forever #1 clock = ~clock;  // 每个时间单位变化一次
     end
     
     // Test procedure
     initial begin
         $display("Case%d: test_cache_block start", case_num);
 
-        rst = 1;
+        reset = 1;
         #10;
-        rst = 0;
+        reset = 0;
 
         update_en = 0;
         write_en = 0;
@@ -121,8 +121,8 @@ module test_cache_block(
         .N(1),
         .M(4)
     ) dut1 (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .addr(addr1),
         .update_en(update_en1),
         .reset_en(0),

@@ -1,6 +1,6 @@
 module vga_port(
-    input           clk,
-    input           rst,
+    input           clock,
+    input           reset,
     input  [23:0]   vga_rgb,
     output [9:0]    h_addr,
     output [9:0]    v_addr,
@@ -35,8 +35,8 @@ module vga_port(
 
   assign fb_sync_ready_o = fb_sync_ready;
 
-  always @(posedge clk or posedge rst)
-    if (rst) begin
+  always @(posedge clock or posedge reset)
+    if (reset) begin
       // fb_sync_en <= 0;
       fb_sync_ready <= 0;
     end else begin
@@ -54,8 +54,8 @@ module vga_port(
       end
     end
 
-  always @(posedge clk or posedge rst) //行像素计数
-      if (rst == 1'b1)
+  always @(posedge clock or posedge reset) //行像素计数
+      if (reset == 1'b1)
         x_cnt <= 1;
       else
       begin
@@ -69,8 +69,8 @@ module vga_port(
         end
       end
 
-  always @(posedge clk or posedge rst)  //列像素计数
-      if (rst == 1'b1)
+  always @(posedge clock or posedge reset)  //列像素计数
+      if (reset == 1'b1)
         y_cnt <= 1;
       else
       begin

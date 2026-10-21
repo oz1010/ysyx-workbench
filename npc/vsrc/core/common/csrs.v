@@ -3,8 +3,8 @@ module csrs #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     /* 读寄存器接口 */
     input   wire [`CSR_ADDR_W-1:0]      raddr,
@@ -49,8 +49,8 @@ module csrs #(
     `else
     assign csr_mstatus_data = DATA_WIDTH'('h000001800);
     `endif
-    always @(posedge clk ) begin
-        if (rst) begin
+    always @(posedge clock ) begin
+        if (reset) begin
             csrs[0] <= 0;
             csrs[func_get_csr_index(`CSR_MSTATUS)] <= csr_mstatus_data;
             csrs[func_get_csr_index(`CSR_MVENDORID)] <= csr_mvendorid_data;

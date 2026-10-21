@@ -40,12 +40,12 @@
 
 `include "spi_defines.v"
 
-module spi_clgen (clk_in, rst, go, enable, last_clk, divider, clk_out, pos_edge, neg_edge);
+module spi_clgen (clk_in, reset, go, enable, last_clk, divider, clk_out, pos_edge, neg_edge);
 
   parameter Tp = 1;
 
   input                            clk_in;   // input clock (system clock)
-  input                            rst;      // reset
+  input                            reset;      // reset
   input                            enable;   // clock enable
   input                            go;       // start transfer
   input                            last_clk; // last clock
@@ -67,9 +67,9 @@ module spi_clgen (clk_in, rst, go, enable, last_clk, divider, clk_out, pos_edge,
   assign cnt_one  = cnt == {{`SPI_DIVIDER_LEN-1{1'b0}}, 1'b1};
 
   // Counter counts half period
-  always @(posedge clk_in or posedge rst)
+  always @(posedge clk_in or posedge reset)
   begin
-    if(rst)
+    if(reset)
       cnt <= #Tp {`SPI_DIVIDER_LEN{1'b1}};
     else
       begin
@@ -81,18 +81,18 @@ module spi_clgen (clk_in, rst, go, enable, last_clk, divider, clk_out, pos_edge,
   end
 
   // clk_out is asserted every other half period
-  always @(posedge clk_in or posedge rst)
+  always @(posedge clk_in or posedge reset)
   begin
-    if(rst)
+    if(reset)
       clk_out <= #Tp 1'b0;
     else
       clk_out <= #Tp (enable && cnt_zero && (!last_clk || clk_out)) ? ~clk_out : clk_out;
   end
 
   // Pos and neg edge signals
-  always @(posedge clk_in or posedge rst)
+  always @(posedge clk_in or posedge reset)
   begin
-    if(rst)
+    if(reset)
       begin
         pos_edge  <= #Tp 1'b0;
         neg_edge  <= #Tp 1'b0;

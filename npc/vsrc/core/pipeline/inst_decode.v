@@ -5,8 +5,8 @@ module inst_decode #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input wire                          clk,
-    input wire                          rst,
+    input wire                          clock,
+    input wire                          reset,
 
     output  wire [4:0]                  imm_rd,
     output  wire [4:0]                  imm_rs1,
@@ -55,8 +55,8 @@ module inst_decode #(
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
     inner_con id_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -208,8 +208,8 @@ module inst_decode #(
         endcase
     end
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_stage_out_valid <= 0;
             r_expt <= 0;
             r_expt_cause <= 0;

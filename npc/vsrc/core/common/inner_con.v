@@ -1,7 +1,7 @@
 module inner_con #(
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        in_valid,
     output  wire                        in_ready,
@@ -22,8 +22,8 @@ assign out_valid = stage_out_valid;
 assign stage_in_done = in_valid && in_ready;
 assign stage_out_done = out_valid && out_ready;
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         r_in_ready <= 0;
         r_stage_state <= `INNER_CON_IDLE;
     end else begin

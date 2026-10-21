@@ -6,8 +6,8 @@ module arbiter_axi4 #(
     parameter RRESP_WIDTH = 2,
     parameter MASTER_COUNT = USER_M_COUNT + 1
 ) (
-    input wire clk,
-    input wire rst,
+    input wire clock,
+    input wire reset,
 
     output  wire [USER_M_COUNT-1:0]                     u_awreadys,
     input   wire [USER_M_COUNT-1:0]                     u_awvalids,
@@ -224,8 +224,8 @@ always @(*) begin
     end
 end
 assign wstate = widx_select == 0 ? idle_t : work_t;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         widx_last <= 0;
     end else begin
         if (widx_select != 0) begin
@@ -246,8 +246,8 @@ always @(*) begin
     end
 end
 assign rstate = ridx_select == 0 ? idle_t : work_t;
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
+always @(posedge clock or posedge reset) begin
+    if (reset) begin
         ridx_last <= 0;
     end else begin
         if (ridx_select != 0) begin

@@ -3,8 +3,8 @@ module write_back_sc #(
     parameter INST_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
-    input   wire                            clk,
-    input   wire                            rst,
+    input   wire                            clock,
+    input   wire                            reset,
     // 解码指令
     input   wire [INST_WIDTH-1:0]           pc,
     input   wire [INST_WIDTH-1:0]           inst,

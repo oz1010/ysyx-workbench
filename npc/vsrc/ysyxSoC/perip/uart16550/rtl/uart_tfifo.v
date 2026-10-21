@@ -144,7 +144,7 @@
 
 `include "uart_defines.v"
 
-module uart_tfifo (clk,
+module uart_tfifo (clock,
     wb_rst_i, data_in, data_out,
 // Control signals
     push, // push strobe, active high
@@ -163,7 +163,7 @@ parameter fifo_depth = `UART_FIFO_DEPTH;
 parameter fifo_pointer_w = `UART_FIFO_POINTER_W;
 parameter fifo_counter_w = `UART_FIFO_COUNTER_W;
 
-input                       clk;
+input                       clock;
 input                       wb_rst_i;
 input                       push;
 input                       pop;
@@ -186,7 +186,7 @@ reg                         overrun;
 wire [fifo_pointer_w-1:0] top_plus_1 = top + 1'b1;
 
 raminfr #(fifo_pointer_w,fifo_width,fifo_depth) tfifo
-        (   .clk (clk),
+        (   .clock (clock),
             .we  (push),
             .a   (top),
             .dpra(bottom),
@@ -195,7 +195,7 @@ raminfr #(fifo_pointer_w,fifo_width,fifo_depth) tfifo
         );
 
 
-always @(posedge clk or posedge wb_rst_i) // synchronous FIFO
+always @(posedge clock or posedge wb_rst_i) // synchronous FIFO
 begin
     if (wb_rst_i) begin
         top    <= #1 'b0;
@@ -228,7 +228,7 @@ begin
     end
 end   // always
 
-always @(posedge clk or posedge wb_rst_i) // synchronous FIFO
+always @(posedge clock or posedge wb_rst_i) // synchronous FIFO
 begin
   if (wb_rst_i)
     overrun   <= #1 1'b0;

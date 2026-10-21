@@ -198,10 +198,10 @@
 
 `include "uart_defines.v"
 
-module uart_receiver (clk, wb_rst_i, lcr, rf_pop, srx_pad_i, enable,
+module uart_receiver (clock, wb_rst_i, lcr, rf_pop, srx_pad_i, enable,
 	counter_t, rf_count, rf_data_out, rf_error_bit, rf_overrun, rx_reset, lsr_mask, rstate, rf_push_pulse);
 
-input				clk;
+input				clock;
 input				wb_rst_i;
 input	[7:0]	lcr;
 input				rf_pop;
@@ -243,7 +243,7 @@ wire 				break_error = (counter_b == 0);
 
 // RX FIFO instance
 uart_rfifo #(`UART_FIFO_REC_WIDTH) fifo_rx(
-	.clk(		clk		),
+	.clock(		clock		),
 	.wb_rst_i(	wb_rst_i	),
 	.data_in(	rf_data_in	),
 	.data_out(	rf_data_out	),
@@ -275,7 +275,7 @@ parameter  sr_wait1 					= 4'd9;
 parameter  sr_push 					= 4'd10;
 
 
-always @(posedge clk or posedge wb_rst_i)
+always @(posedge clock or posedge wb_rst_i)
 begin
   if (wb_rst_i)
   begin
@@ -422,7 +422,7 @@ begin
   end  // if (enable)
 end // always of receiver
 
-always @ (posedge clk or posedge wb_rst_i)
+always @ (posedge clock or posedge wb_rst_i)
 begin
   if(wb_rst_i)
     rf_push_q <= 0;
@@ -454,7 +454,7 @@ always @(lcr)
 wire [7:0] 	brc_value; // value to be set to break counter
 assign 		brc_value = toc_value[9:2]; // the same as timeout but 1 insead of 4 character times
 
-always @(posedge clk or posedge wb_rst_i)
+always @(posedge clock or posedge wb_rst_i)
 begin
 	if (wb_rst_i)
 		counter_b <= #1 8'd159;
@@ -470,7 +470,7 @@ end // always of break condition detection
 /// Timeout condition detection
 reg	[9:0]	counter_t;	// counts the timeout condition clocks
 
-always @(posedge clk or posedge wb_rst_i)
+always @(posedge clock or posedge wb_rst_i)
 begin
 	if (wb_rst_i)
 		counter_t <= #1 10'd639; // 10 bits for the default 8N1

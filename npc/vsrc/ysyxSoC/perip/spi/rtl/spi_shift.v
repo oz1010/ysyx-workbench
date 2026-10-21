@@ -40,15 +40,15 @@
 
 `include "spi_defines.v"
 
-module spi_shift (clk, rst, latch, byte_sel, len, lsb, go,
+module spi_shift (clock, reset, latch, byte_sel, len, lsb, go,
                   pos_edge, neg_edge, rx_negedge, tx_negedge,
                   tip, last,
                   p_in, p_out, s_clk, s_in, s_out);
 
   parameter Tp = 1;
 
-  input                          clk;          // system clock
-  input                          rst;          // reset
+  input                          clock;          // system clock
+  input                          reset;          // reset
   input                    [3:0] latch;        // latch signal for storing the data in shift register
   input                    [3:0] byte_sel;     // byte select signals for storing the data in shift register
   input [`SPI_CHAR_LEN_BITS-1:0] len;          // data len in bits (minus one)
@@ -88,9 +88,9 @@ module spi_shift (clk, rst, latch, byte_sel, len, lsb, go,
   assign tx_clk = (tx_negedge ? neg_edge : pos_edge) && !last;
 
   // Character bit counter
-  always @(posedge clk or posedge rst)
+  always @(posedge clock or posedge reset)
   begin
-    if(rst)
+    if(reset)
       cnt <= #Tp {`SPI_CHAR_LEN_BITS+1{1'b0}};
     else
       begin
@@ -102,9 +102,9 @@ module spi_shift (clk, rst, latch, byte_sel, len, lsb, go,
   end
 
   // Transfer in progress
-  always @(posedge clk or posedge rst)
+  always @(posedge clock or posedge reset)
   begin
-    if(rst)
+    if(reset)
       tip <= #Tp 1'b0;
   else if(go && ~tip)
     tip <= #Tp 1'b1;
@@ -113,18 +113,18 @@ module spi_shift (clk, rst, latch, byte_sel, len, lsb, go,
   end
 
   // Sending bits to the line
-  always @(posedge clk or posedge rst)
+  always @(posedge clock or posedge reset)
   begin
-    if (rst)
+    if (reset)
       s_out   <= #Tp 1'b0;
     else
       s_out <= #Tp (tx_clk || !tip) ? data[tx_bit_pos[`SPI_CHAR_LEN_BITS-1:0]] : s_out;
   end
 
   // Receiving bits from the line
-  always @(posedge clk or posedge rst)
+  always @(posedge clock or posedge reset)
   begin
-    if (rst)
+    if (reset)
       data   <= #Tp {`SPI_MAX_CHAR{1'b0}};
 `ifdef SPI_MAX_CHAR_128
     else if (latch[0] && !tip)

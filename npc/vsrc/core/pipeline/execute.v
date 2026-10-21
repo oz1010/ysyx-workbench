@@ -4,8 +4,8 @@ module execute #(
     parameter IN_DATA_W,
     parameter OUT_DATA_W
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire [DATA_WIDTH-1:0]       csr_rdata,
 
@@ -75,8 +75,8 @@ module execute #(
     reg                             r_stage_out_valid;
     wire                            stage_out_done;
     inner_con ex_con(
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .in_valid(in_valid),
         .in_ready(in_ready),
         .out_valid(out_valid),
@@ -113,8 +113,8 @@ module execute #(
     // ex_muldivrem #(
     //     .INST_WIDTH(INST_WIDTH)
     // ) m_muldivrem(
-    //     .clk(clk),
-    //     .rst(rst),
+    //     .clock(clock),
+    //     .reset(reset),
     //     .enable(r_mdr_enable),
     //     .inst_code(inst_code),
     //     .src1(src1),
@@ -177,8 +177,8 @@ module execute #(
         (inst_code==`INST_CSRRS) ? (csr_rdata|src1) :
         0;
 
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             r_jump_en <= 0;
             r_result <= 0;
             r_result_update_gpr <= 0;

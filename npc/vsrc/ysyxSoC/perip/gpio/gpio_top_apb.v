@@ -36,8 +36,8 @@ module gpio_top_apb(
   wire [7:0]   seg_values[0:7];
 
   gpio_led m_led(
-    .clk(clock),
-    .rst(reset),
+    .clock(clock),
+    .reset(reset),
     .ce_n(!led_sel),
     .we_n(!led_sel),
     .wdata(in_pwdata[15:0]),
@@ -46,8 +46,8 @@ module gpio_top_apb(
   );
 
   gpio_sw m_sw(
-    .clk(clock),
-    .rst(reset),
+    .clock(clock),
+    .reset(reset),
     .ce_n(!sw_sel),
     .rd_n(!sw_sel),
     .gpio_in(gpio_in),
@@ -56,8 +56,8 @@ module gpio_top_apb(
   );
 
   gpio_seg m_seg(
-    .clk(clock),
-    .rst(reset),
+    .clock(clock),
+    .reset(reset),
     .ce_n(!seg_sel),
     .we_n(!seg_sel),
     .wdata(in_pwdata),

@@ -11,8 +11,8 @@ module cache_line #(
     parameter N = 2,
     parameter M = 3
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     
     input   wire [ADDR_WIDTH-1:0]       addr,
     input   wire                        update_en,
@@ -47,8 +47,8 @@ reg  [write_offset_width:0] write_offset;
 assign read_en = valid && tag==line_tag;
 assign read_data = read_en ? line[8*offset +: DATA_WIDTH] : 0;
 
-always @(posedge clk) begin
-    if (rst) begin
+always @(posedge clock) begin
+    if (reset) begin
         valid <= 0;
         line <= 0;
         line_tag <= 0;

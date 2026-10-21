@@ -5,8 +5,8 @@
 module ex_muldivrem #(
     parameter INST_WIDTH = 32
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        enable,
     input   wire [`INST_CODE_W-1:0]     inst_code,
@@ -26,8 +26,8 @@ module ex_muldivrem #(
     ex_muldivrem_single #(
         .INST_WIDTH(INST_WIDTH)
     ) m_ex_muldivrem_single (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .enable(enable),
         .inst_code(inst_code),
         .src1(src1),
@@ -43,8 +43,8 @@ module ex_muldivrem #(
     ex_muldivrem_multi #(
         .INST_WIDTH(INST_WIDTH)
     ) m_ex_muldivrem_multi (
-        .clk(clk),
-        .rst(rst),
+        .clock(clock),
+        .reset(reset),
         .enable(enable),
         .inst_code(inst_code),
         .src1(src1),
@@ -56,8 +56,8 @@ module ex_muldivrem #(
     assign valid = single_valid & multi_valid;
     assign result = multi_result;
 
-    always @(posedge clk) begin
-        if (rst | !enable) begin
+    always @(posedge clock) begin
+        if (reset | !enable) begin
         end else begin
             if (valid) begin
                 `ifndef IN_YOSYS_STA
@@ -77,8 +77,8 @@ endmodule
 module ex_muldivrem_single #(
     parameter INST_WIDTH = 32
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        enable,
     input   wire [`INST_CODE_W-1:0]     inst_code,
@@ -101,8 +101,8 @@ module ex_muldivrem_single #(
     wire signed [2*W-1:0] mulhsu_ret = (s_src1_64 * $signed({1'b0, src2})) >> W;
     wire signed [2*W-1:0] mulhu_ret = (src1 * src2) >> W;
 
-    always @(posedge clk) begin
-        if (rst | !enable) begin
+    always @(posedge clock) begin
+        if (reset | !enable) begin
             valid <= 0;
             result <= 0;
         end else begin
@@ -133,8 +133,8 @@ endmodule
 module ex_muldivrem_multi #(
     parameter INST_WIDTH = 32
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
 
     input   wire                        enable,
     input   wire [`INST_CODE_W-1:0]     inst_code,
@@ -234,8 +234,8 @@ module ex_muldivrem_multi #(
     //--------------------------------------------------
     // main FSM
     //--------------------------------------------------
-    always @(posedge clk) begin
-        if (rst) begin
+    always @(posedge clock) begin
+        if (reset) begin
             state  <= S_IDLE;
             valid  <= 0;
             result <= 0;

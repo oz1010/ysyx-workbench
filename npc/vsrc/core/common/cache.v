@@ -11,8 +11,8 @@ module cache #(
     parameter N = 2,
     parameter M = 3
 ) (
-    input   wire                        clk,
-    input   wire                        rst,
+    input   wire                        clock,
+    input   wire                        reset,
     
     input   wire [ADDR_WIDTH-1:0]       addr,
     input   wire                        update_en,
@@ -66,8 +66,8 @@ generate
             .N(N),
             .M(M)
         ) block (
-            .clk(clk),
-            .rst(rst),
+            .clock(clock),
+            .reset(reset),
             .addr(addr),
             .update_en(block_update_en[i]),
             .reset_en(block_reset_en[i]),
