@@ -20,6 +20,7 @@
 !Kconfig
 !docs/
 !docs/*.md
+!docs/**/*.md
 # 保留所有文件夹
 !*/
 # 禁用文件夹
