@@ -5,19 +5,15 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
+import scala.util.control.NonFatal
 import scala.util.matching.Regex
 
-/** 顶层单次编译，按模块拆分输出：
-  *   - 先对顶层 riscv32e_core 做一次 emitSystemVerilog，整个层级只编译一次，
-  *     子模块（Cache/Lsu/...）不会因为逐类独立编译而在多个文件里重复定义， 保证 yosys (make sta-area) 读入全部
-  *     *.v 时不报 "Re-definition of module"；
-  *   - 按模块名把每个 module 拆到对应类的输出文件（Cache_1 这类参数化变体 归入基类文件），匿名辅助模块并入顶层文件；
-  *   - flash/sram/rom/sdram/psram 等外设存储器阵列改写到 srams.v，面积综合 （IN_YOSYS_STA）下只生成
-  *     (* blackbox *) 空壳，不计入芯片面积； cache 内部的 tagMem/dataMem
-  *     等核内存储阵列随核逻辑正常综合，计入芯片面积；
-  *   - 不在顶层层级中的其余类仍按原来的逐类独立编译输出；
-  *   - 目标目录（如 src/pipeline-manual）与 src/common 下遇到的 .v/.sv 手写 Verilog 不做编译，原样拷贝到生成目录
-  * 参数：args(0) 输出根目录（默认 build），args(1) 生成目录名（默认 pipeline-manual）。
+/** 遍历指定 src 目录及 common，无需指定顶层：
+  *   - 发现 Module/RawModule/BlackBox 类并逐类生成，优先保留完整层级，按完整模块名全局去重；
+  *   - 按类名拆分输出，参数化变体归入基类文件，辅助模块归入当前生成类的文件；
+  *   - .v/.sv 手写 Verilog 保持相对路径原样拷贝，不编译、不改写；
+  *   - 不对外设模块做特殊处理。
+  * 参数：args(0) 输出根目录（默认 build），args(1) 源目录名（默认 pipeline-manual）。
   */
 object Generate {
   private val modulePattern: Regex =
@@ -26,21 +22,16 @@ object Generate {
   private val packagePattern: Regex =
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
 
-  /** 顶层全层级编译的入口类（对外适配层，端口与手写核例化保持一致），
-    * 由命令行传入的生成目录名推导：目录 `pipeline-manual` 对应包 `pipeline_manual`。 */
-  private def topFqcnFor(genName: String): String =
-    genName.replace('-', '_') + ".riscv32e_core"
+  private def sourceFiles(roots: Seq[Path]): Seq[Path] =
+    roots.distinct.filter(Files.isDirectory(_)).flatMap { root =>
+      val stream = Files.walk(root)
+      try stream.iterator().asScala.filter(Files.isRegularFile(_)).toVector
+      finally stream.close()
+    }.distinct.sortBy(_.toString)
 
-  private def sourceModules(roots: Seq[Path]): Seq[(Path, String)] = {
-    roots
-      .flatMap(root =>
-        Files
-          .walk(root)
-          .iterator()
-          .asScala
-          .filter(p => Files.isRegularFile(p) && p.toString.endsWith(".scala"))
-          .toSeq
-      )
+  private def sourceModules(files: Seq[Path]): Seq[(Path, String)] = {
+    files
+      .filter(_.toString.endsWith(".scala"))
       .flatMap { file =>
         val text = Files.readString(file)
         val pkg  = packagePattern
@@ -53,22 +44,6 @@ object Generate {
           .toSeq
       }
       .sortBy { case (file, name) => (file.toString, name) }
-  }
-
-  private def sourceVerilogFiles(roots: Seq[Path]): Seq[Path] = {
-    roots
-      .flatMap(root =>
-        Files
-          .walk(root)
-          .iterator()
-          .asScala
-          .filter(p =>
-            Files.isRegularFile(p) && (p.toString.endsWith(".v") || p.toString
-              .endsWith(".sv"))
-          )
-          .toSeq
-      )
-      .sortBy(_.toString)
   }
 
   private def caseClassInstance(cls: Class[_]): AnyRef = {
@@ -145,12 +120,20 @@ object Generate {
       firtoolOpts = Array(
         "--disable-layers=Verification",
         "--lowering-options=disallowLocalVariables",
-        "--preserve-aggregate=all"
+        "--preserve-aggregate=all",
+        // 顶层端口会被展平，内部端口也采用相同形式，避免独立生成后接口不一致。
+        "--scalarize-internal-modules"
       )
     )
 
   private val moduleStart: Regex =
     "(?m)^module\\s+([A-Za-z_][A-Za-z0-9_]*)\\b".r
+
+  private val verilogComments: Regex =
+    "(?s)/\\*.*?\\*/|//[^\\r\\n]*|\"(?:\\\\.|[^\"\\\\])*\"".r
+
+  private val handwrittenModule: Regex =
+    "\\bmodule\\s+(?:(?:automatic|static)\\s+)?([A-Za-z_][A-Za-z0-9_$]*)".r
 
   /** 把一次编译出的 Verilog 切成 (文件头, [(模块名, 模块文本)])，文件头含宏定义，需写进每个文件。 */
   private def splitModules(verilog: String): (String, Seq[(String, String)]) = {
@@ -172,51 +155,21 @@ object Generate {
   /** Cache_1 这类带参数后缀的变体模块归入基类文件。 */
   private val paramSuffix: Regex = "_\\d+$".r
 
-  /** 外设存储器阵列模块（flash/sram/rom/sdram/psram）：经总线访问的片外存储， 不计入芯片面积。make sta-area 的
-    * tcl 定义了 IN_YOSYS_STA，此时只保留端口、 生成 (* blackbox *) 空壳交给
-    * yosys；其余流程（仿真等）仍使用原始行为级实现。 cache 内部的 tagMem/dataMem
-    * 等核内存储不在这里匹配，随核逻辑综合并计入面积。
-    */
-  private val sramModule: Regex = "(?i)^(flash|sram|rom|sdram|psram)(?:_|$)".r
-
-  private def isSramModule(name: String): Boolean =
-    sramModule.findFirstIn(name).nonEmpty
-
-  private def blackboxify(name: String, chunk: String): String = {
-    val headerEnd = chunk.indexOf(");")
-    require(
-      headerEnd >= 0,
-      s"fail to locate port list end of sram module $name"
-    )
-    val bodyEnd   = chunk.lastIndexOf("endmodule")
-    require(
-      bodyEnd > headerEnd,
-      s"fail to locate endmodule of sram module $name"
-    )
-    val header    = chunk.substring(0, headerEnd + 2)
-    val body      = chunk.substring(headerEnd + 2, bodyEnd)
-    s"`ifdef IN_YOSYS_STA\n(* blackbox *)\n`endif\n" +
-      header + "\n" +
-      "`ifndef IN_YOSYS_STA\n" + body + "`endif\n" +
-      "endmodule\n"
-  }
-
   def main(args: Array[String]): Unit = {
     val root       = Paths.get(".").toAbsolutePath.normalize()
     val sourceRoot = root.resolve("src")
     val outRoot    = root.resolve(if (args.nonEmpty) args(0) else "build")
     // 生成目标目录名（如 pipeline-manual）：只编译该目录 + common 下的源文件
     val genName    = if (args.length > 1) args(1) else "pipeline-manual"
-    Files.createDirectories(outRoot)
-
     val sourceDirs = Seq(sourceRoot.resolve(genName), sourceRoot.resolve("common"))
     require(
       Files.isDirectory(sourceDirs.head),
-      s"no such pipeline source dir: ${sourceDirs.head}"
+      s"source directory does not exist or is not a directory: ${sourceDirs.head}"
     )
-    val topFqcn = topFqcnFor(genName)
-    val modules = sourceModules(sourceDirs)
-    require(modules.nonEmpty, s"No Module classes found below $sourceDirs")
+    Files.createDirectories(outRoot)
+
+    val files   = sourceFiles(sourceDirs)
+    val modules = sourceModules(files)
 
     def targetFor(source: Path, fqcn: String): Path = {
       val relative  = sourceRoot.relativize(source)
@@ -227,93 +180,79 @@ object Generate {
       targetDir.resolve(s"$simple.v")
     }
 
-    def writeVerilog(
-      target: Path,
-      preamble: String,
-      chunks: Seq[(String, String)]
-    ): Unit = {
-      val sb = new StringBuilder(preamble)
-      chunks.foreach { case (_, body) => sb.append(body).append('\n') }
-      Files.writeString(target, sb.toString, StandardCharsets.UTF_8)
-    }
+    val claimed = mutable.Set.empty[String]
+    // 手写模块名也参与去重；文件本身不编译、不改写，不能被生成文件覆盖。
+    val copied = files
+      .filter(p => p.toString.endsWith(".v") || p.toString.endsWith(".sv"))
+      .map { source =>
+        val text = verilogComments.replaceAllIn(Files.readString(source), " ")
+        handwrittenModule.findAllMatchIn(text).foreach { m =>
+          require(
+            claimed.add(m.group(1)),
+            s"duplicate handwritten module ${m.group(1)} in $source"
+          )
+        }
+        val relative = sourceRoot.relativize(source)
+        val target   = outRoot.resolve(relative)
+        Option(target.getParent).foreach(Files.createDirectories(_))
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+        println(s"[chisel] $relative :: copy -> ${outRoot.relativize(target)}")
+        target
+      }
+      .toSet
 
-    // ---- 0) 手写 Verilog (.v/.sv) 原样拷贝，保持相对路径 ----
-    sourceVerilogFiles(sourceDirs).foreach { source =>
-      val relative = sourceRoot.relativize(source)
-      val target   = outRoot.resolve(relative)
-      Option(target.getParent).foreach(Files.createDirectories(_))
-      Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
-      println(s"[chisel] $relative :: copy -> ${outRoot.relativize(target)}")
-    }
-
-    // ---- 1) 顶层单次编译，整个层级只生成一份 ----
-    val (topSource, _) = modules
-      .find(_._2 == topFqcn)
-      .getOrElse(sys.error(s"top module $topFqcn not found below $sourceRoot"))
-    val topSimple      = topFqcn.substring(topFqcn.lastIndexOf('.') + 1)
-    val topTarget      = targetFor(topSource, topFqcn)
-
-    val (preamble, chunks)           = splitModules(
-      adaptTop(topSimple, emitVerilog(topFqcn))
-    )
-    val classFile: Map[String, Path] = modules.map { case (source, fqcn) =>
+    val classFile = modules.map { case (source, fqcn) =>
       fqcn.substring(fqcn.lastIndexOf('.') + 1) -> targetFor(source, fqcn)
     }.toMap
-
-    val sramTarget = topTarget.getParent.resolve("srams.v")
-
-    val routed =
+    val routed    =
       mutable.LinkedHashMap.empty[Path, mutable.ArrayBuffer[(String, String)]]
-    chunks.foreach { case (name, body) =>
-      val (target, chunk) =
-        if (isSramModule(name)) (sramTarget, blackboxify(name, body))
-        else
-          (
+
+    val emitted = modules.filterNot { case (_, fqcn) =>
+      claimed(fqcn.substring(fqcn.lastIndexOf('.') + 1))
+    }.flatMap { case (source, fqcn) =>
+      try {
+        val (preamble, chunks) = splitModules(emitVerilog(fqcn))
+        Some((source, fqcn, preamble, chunks))
+      } catch {
+        case NonFatal(t) =>
+          System.err.println(
+            s"[chisel] skip $source :: $fqcn (${t.getClass.getSimpleName}: ${t.getMessage})"
+          )
+          None
+      }
+    }
+
+    // 优先保留完整层级，避免独立生成的默认参数版本抢占层级内的同名子模块。
+    emitted.sortBy { case (source, fqcn, _, chunks) =>
+      (-chunks.size, source.toString, fqcn)
+    }.foreach { case (source, fqcn, preamble, chunks) =>
+      chunks.foreach { case (name, body) =>
+        if (claimed.add(name)) {
+          val target = classFile.getOrElse(
+            name,
             classFile.getOrElse(
-              name,
-              classFile
-                .getOrElse(paramSuffix.replaceFirstIn(name, ""), topTarget)
-            ),
-            body
-          )
-      routed.getOrElseUpdate(target, mutable.ArrayBuffer.empty) += name -> chunk
-    }
-    routed.getOrElseUpdate(topTarget, mutable.ArrayBuffer.empty)
-
-    routed.foreach { case (target, buf) =>
-      writeVerilog(target, preamble, buf.toSeq)
-      println(
-        s"[chisel] ${sourceRoot.relativize(topSource)} :: " +
-          s"${buf.map(_._1).mkString("+")} -> ${outRoot.relativize(target)}"
-      )
-    }
-
-    // ---- 2) 不在顶层层级中的其余类，仍逐类独立编译 ----
-    val covered = chunks
-      .map(_._1)
-      .flatMap(n => Seq(n, paramSuffix.replaceFirstIn(n, "")))
-      .toSet
-    modules.filterNot(_._2 == topFqcn).foreach { case (source, fqcn) =>
-      val simple = fqcn.substring(fqcn.lastIndexOf('.') + 1)
-      if (covered(simple)) {
-        println(
-          s"[chisel] ${sourceRoot.relativize(source)} :: $simple -> covered by ${topSimple}.v"
-        )
-      } else {
-        val target = targetFor(source, fqcn)
-        try {
-          val verilog = adaptTop(simple, emitVerilog(fqcn))
-          Files.writeString(target, verilog, StandardCharsets.UTF_8)
-          println(
-            s"[chisel] ${sourceRoot.relativize(source)} :: $simple -> ${outRoot.relativize(target)}"
-          )
-        } catch {
-          case t: Throwable =>
-            System.err.println(
-              s"[chisel] skip $source :: $simple (${t.getClass.getSimpleName}: ${t.getMessage})"
+              paramSuffix.replaceFirstIn(name, ""),
+              targetFor(source, fqcn)
             )
+          )
+          require(
+            !copied(target),
+            s"generated file would overwrite handwritten Verilog: $target"
+          )
+          routed.getOrElseUpdate(target, mutable.ArrayBuffer.empty) +=
+            preamble -> adaptTop(name, body)
+          println(
+            s"[chisel] ${sourceRoot.relativize(source)} :: $name -> ${outRoot.relativize(target)}"
+          )
         }
       }
+    }
+
+    // 每个文件保留其模块各次编译的文件头，不能借用某个固定顶层的文件头。
+    routed.foreach { case (target, chunks) =>
+      val preamble = chunks.map(_._1).distinct.mkString
+      val bodies   = chunks.map(_._2).mkString("\n")
+      Files.writeString(target, preamble + bodies, StandardCharsets.UTF_8)
     }
   }
 }

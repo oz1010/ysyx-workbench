@@ -106,8 +106,8 @@ VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
 VERILATOR_CFLAGS += --autoflush
 VERILATOR_CFLAGS += -y $(WORK_DIR)/vsrc/core
-# 禁用仿真无法优化的组合逻辑环路
-VERILATOR_CFLAGS += -Wno-UNOPTFLAT
+VERILATOR_CFLAGS += -Wno-UNOPTFLAT # 忽略仿真无法优化的组合逻辑环路
+VERILATOR_CFLAGS += -Wno-PINMISSING # 忽略未连接的引脚
 # # 使用多线程运行仿真
 # VERILATOR_CFLAGS += --threads $(THREADS)
 
