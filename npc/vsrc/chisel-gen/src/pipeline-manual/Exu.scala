@@ -29,7 +29,7 @@ class Exu(p: CoreParams) extends Module {
 
   // ---------------- 前递 ----------------
   // EX/MEM 级前递需用"真实写回值"：CSR 指令写回 csrRdata、JAL/JALR 写回 pc+4
-  val lsFwData                               = MuxLookup(io.lsStage.ctrl.wbSel, io.lsStage.aluResult)(
+  val lsFwData                               = MuxLookup(io.lsStage.oldctrl.wbSel, io.lsStage.aluResult)(
     Seq(
       WbSel.LOAD -> io.lsStage.aluResult, // load：相邻相关由 load-use stall 拦截
       WbSel.CSR  -> io.lsStage.csrRdata,  // CSR
@@ -37,10 +37,10 @@ class Exu(p: CoreParams) extends Module {
     )
   )
   def fwd(regAddr: UInt, regVal: UInt): UInt = Mux(
-    io.lsValid && io.lsStage.ctrl.rdWen && io.lsStage.rdAddr =/= 0.U && io.lsStage.rdAddr === regAddr,
+    io.lsValid && io.lsStage.oldctrl.rdWen && io.lsStage.rdAddr =/= 0.U && io.lsStage.rdAddr === regAddr,
     lsFwData,
     Mux(
-      io.wbValid && io.wbStage.ctrl.rdWen && io.wbStage.rdAddr =/= 0.U && io.wbStage.rdAddr === regAddr,
+      io.wbValid && io.wbStage.oldctrl.rdWen && io.wbStage.rdAddr =/= 0.U && io.wbStage.rdAddr === regAddr,
       io.wbData,
       regVal
     )
@@ -56,10 +56,10 @@ class Exu(p: CoreParams) extends Module {
 
   // ---------------- ALU ----------------
   val isLui     = in.inst(6, 0) === "b0110111".U
-  val opA       = Mux(in.ctrl.usePc, in.pc, Mux(isLui, 0.U, rs1f))
-  val opB       = Mux(in.ctrl.useImm, in.imm, rs2f)
+  val opA       = Mux(in.oldctrl.usePc, in.pc, Mux(isLui, 0.U, rs1f))
+  val opB       = Mux(in.oldctrl.useImm, in.imm, rs2f)
   val shamt     = opB(4, 0)
-  val aluResult = MuxLookup(in.ctrl.aluOp, opA + opB)(
+  val aluResult = MuxLookup(in.oldctrl.aluOp, opA + opB)(
     Seq(
       AluOp.ADD  -> (opA + opB),
       AluOp.SUB  -> (opA - opB),
@@ -80,7 +80,7 @@ class Exu(p: CoreParams) extends Module {
   val ltu        = rs1f < rs2f
   // TODO taken逻辑有问题
   val taken      = false.B
-  // val taken      = MuxLookup(in.ctrl.memOp, false.B)(
+  // val taken      = MuxLookup(in.oldctrl.memOp, false.B)(
   //   Seq( // memOp 复用 funct3
   //     0.U -> eq,
   //     1.U -> !eq,
@@ -94,43 +94,45 @@ class Exu(p: CoreParams) extends Module {
   val jalrTarget = (rs1f + in.imm) & (~1.U(CONFIG_ADDR_WIDTH.W)).asUInt
   // 预测修正：分支实际走向与预测不符；JALR 预测 not-taken 恒需修正
   val mispredict =
-    (in.ctrl.isBranch && (taken =/= in.predTaken)) || in.ctrl.isJalr
+    (in.oldctrl.isBranch && (taken =/= in.predTaken)) || in.oldctrl.isJalr
   val redirTgt   =
-    Mux(in.ctrl.isJalr, jalrTarget, Mux(taken, brTarget, in.pc + 4.U))
+    Mux(in.oldctrl.isJalr, jalrTarget, Mux(taken, brTarget, in.pc + 4.U))
 
   // ---------------- 异常检测 ----------------
   // 取指目标非对齐（JAL/分支 taken/JALR）
-  val fetchTgt = Mux(in.ctrl.isJalr, jalrTarget, brTarget)
+  val fetchTgt = Mux(in.oldctrl.isJalr, jalrTarget, brTarget)
   val fetchMis =
-    (in.ctrl.isJal || in.ctrl.isJalr || (in.ctrl.isBranch && taken)) && fetchTgt(
+    (in.oldctrl.isJal || in.oldctrl.isJalr || (in.oldctrl.isBranch && taken)) && fetchTgt(
       1,
       0
     ) =/= 0.U
   // load/store 地址非对齐（访存对齐要求已由 LSU 假定）
-  val ldMis    = in.ctrl.load && ((in.ctrl.memOp === OldMemOp.LH && aluResult(
-    0
-  ) =/= 0.U) || (in.ctrl.memOp === OldMemOp.LW && aluResult(1, 0) =/= 0.U))
-  val stMis    = in.ctrl.store && ((in.ctrl.memOp === OldMemOp.SH && aluResult(
-    0
-  ) =/= 0.U) || (in.ctrl.memOp === OldMemOp.SW && aluResult(1, 0) =/= 0.U))
+  val ldMis    =
+    in.oldctrl.load && ((in.oldctrl.memOp === OldMemOp.LH && aluResult(
+      0
+    ) =/= 0.U) || (in.oldctrl.memOp === OldMemOp.LW && aluResult(1, 0) =/= 0.U))
+  val stMis    =
+    in.oldctrl.store && ((in.oldctrl.memOp === OldMemOp.SH && aluResult(
+      0
+    ) =/= 0.U) || (in.oldctrl.memOp === OldMemOp.SW && aluResult(1, 0) =/= 0.U))
 
   val excValid =
-    v && (in.ctrl.illegal || in.ctrl.ecall || in.ctrl.ebreak || fetchMis || ldMis || stMis)
+    v && (in.oldctrl.illegal || in.oldctrl.ecall || in.oldctrl.ebreak || fetchMis || ldMis || stMis)
   val excCause = PriorityMux(
     Seq(
-      in.ctrl.illegal -> ExceptCode.INST_ILLEGAL,
-      in.ctrl.ecall   -> ExceptCode.INST_ECALL,
-      in.ctrl.ebreak  -> ExceptCode.INST_EBREAK,
-      fetchMis        -> ExceptCode.FETCH_MISS,
-      ldMis           -> ExceptCode.LOAD_MISS,
-      stMis           -> ExceptCode.STORE_MISS
+      in.oldctrl.illegal -> ExceptCode.INST_ILLEGAL,
+      in.oldctrl.ecall   -> ExceptCode.INST_ECALL,
+      in.oldctrl.ebreak  -> ExceptCode.INST_EBREAK,
+      fetchMis           -> ExceptCode.FETCH_MISS,
+      ldMis              -> ExceptCode.LOAD_MISS,
+      stMis              -> ExceptCode.STORE_MISS
     )
   )
 
   // ---------------- CSR 读 ----------------
   io.csrRead.en   := true.B
   io.csrRead.addr := in.inst(31, 20)
-  val csrWdata = Mux(in.ctrl.csrImm, Cat(0.U(27.W), in.inst(19, 15)), rs1f)
+  val csrWdata = Mux(in.oldctrl.csrImm, Cat(0.U(27.W), in.inst(19, 15)), rs1f)
 
   // ---------------- 流水线处理 ----------------
   // 不阻塞流水线，单周期处理单元
@@ -141,7 +143,7 @@ class Exu(p: CoreParams) extends Module {
   io.out.bits.aluResult := aluResult
   io.out.bits.storeData := rs2f
   io.out.bits.rdAddr    := in.rdAddr
-  io.out.bits.ctrl      := in.ctrl
+  io.out.bits.oldctrl   := in.oldctrl
   io.out.bits.csrAddr   := in.inst(31, 20)
   io.out.bits.csrWdata  := csrWdata
   io.out.bits.csrRdata  := io.csrRead.data

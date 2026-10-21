@@ -14,7 +14,7 @@ class HazardUnit(p: CoreParams) extends Module {
 
     // 来自 EX 级的信息（判断上一条指令是否是 Load）
     val exRd     = Input(UInt(4.W))
-    val exIsLoad = Input(Bool()) // 假设 ctrl 中有指示是否为 Load 的标志
+    val exIsLoad = Input(Bool()) // 假设 oldctrl 中有指示是否为 Load 的标志
     val exValid  = Input(Bool())
 
     // 重定向输入

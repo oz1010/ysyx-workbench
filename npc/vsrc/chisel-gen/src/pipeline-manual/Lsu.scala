@@ -17,11 +17,11 @@ class Lsu(p: CoreParams) extends Module {
   })
 
   val in        = io.in.bits
-  val isMemInst = in.ctrl.load || in.ctrl.store
+  val isMemInst = in.oldctrl.load || in.oldctrl.store
 
   // 字节使能
   val addr  = in.aluResult
-  val wstrb = MuxLookup(in.ctrl.memOp, 0.U)(
+  val wstrb = MuxLookup(in.oldctrl.memOp, 0.U)(
     Seq(
       OldMemOp.SB -> (1.U(4.W) << addr(1, 0)),                   // SB
       OldMemOp.SH -> Mux(addr(1) === 1.U, "b1100".U, "b0011".U), // SH
@@ -36,7 +36,7 @@ class Lsu(p: CoreParams) extends Module {
   io.cache.req.wdata := in.storeData
   io.cache.rsp.ready := true.B
   // io.cache.req.wstrb   := wstrb
-  // io.cache.req.iswrite := in.ctrl.store
+  // io.cache.req.iswrite := in.oldctrl.store
   val memWait = isMemInst && !io.cache.rsp.fire
 
   // load 数据抽取
@@ -48,7 +48,7 @@ class Lsu(p: CoreParams) extends Module {
     Mux(off(0), rdata(15, 8), rdata(7, 0))
   )
   val halfSel  = Mux(off(1), rdata(31, 16), rdata(15, 0))
-  val loadData = MuxLookup(in.ctrl.memOp, rdata)(
+  val loadData = MuxLookup(in.oldctrl.memOp, rdata)(
     Seq(
       OldMemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),  // LB
       OldMemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel), // LH
@@ -66,7 +66,7 @@ class Lsu(p: CoreParams) extends Module {
   io.out.bits.aluResult := in.aluResult
   io.out.bits.loadData  := loadData
   io.out.bits.rdAddr    := in.rdAddr
-  io.out.bits.ctrl      := in.ctrl
+  io.out.bits.oldctrl   := in.oldctrl
   io.out.bits.csrAddr   := in.csrAddr
   io.out.bits.csrWdata  := in.csrWdata
   io.out.bits.csrRdata  := in.csrRdata

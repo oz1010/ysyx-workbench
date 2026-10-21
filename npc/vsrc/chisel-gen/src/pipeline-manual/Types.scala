@@ -383,7 +383,7 @@ class CacheRefillIO(p: CoreParams) extends Bundle {
 /* ================= 流水线级间寄存器 ================= */
 
 /** 控制信号（ID 级译码产生，随流水线传递） */
-class Ctrl extends Bundle {
+class OldCtrl extends Bundle {
   val aluOp = UInt(
     4.W
   ) // 0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
@@ -424,7 +424,7 @@ class IdBundle(p: CoreParams) extends Bundle {
   val rs1Addr    = UInt(4.W) // RV32E：4bit 寄存器号
   val rs2Addr    = UInt(4.W)
   val rdAddr     = UInt(4.W)
-  val ctrl       = new Ctrl
+  val oldctrl    = new OldCtrl
   val predTaken  = Bool()
   val predTarget = UInt(CONFIG_ADDR_WIDTH.W)
 }
@@ -436,7 +436,7 @@ class ExBundle(p: CoreParams) extends Bundle {
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val storeData = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
-  val ctrl      = new Ctrl
+  val oldctrl   = new OldCtrl
   val csrAddr   = UInt(p.CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
@@ -451,7 +451,7 @@ class LsBundle(p: CoreParams) extends Bundle {
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val loadData  = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
-  val ctrl      = new Ctrl
+  val oldctrl   = new OldCtrl
   val csrAddr   = UInt(p.CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
