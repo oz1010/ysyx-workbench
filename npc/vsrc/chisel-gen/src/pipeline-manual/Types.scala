@@ -22,6 +22,8 @@ object ExceptCode {
   val FETCH_MISS   = 0.U(width)
   val LOAD_MISS    = 4.U(width)
   val STORE_MISS   = 6.U(width)
+
+  def apply(): UInt = UInt(width)
 }
 
 // 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
@@ -37,6 +39,8 @@ object AluOp {
   val SRA   = 7.U(width)
   val SLT   = 8.U(width)
   val SLTU  = 9.U(width)
+
+  def apply(): UInt = UInt(width)
 }
 
 // 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
@@ -50,6 +54,8 @@ object OldMemOp {
   val SB    = 0.U(width)
   val SH    = 1.U(width)
   val SW    = 2.U(width)
+
+  def apply(): UInt = UInt(width)
 }
 
 // 回写动作码，0:ALU 1:Load 2:CSR 3:PC+4
@@ -59,6 +65,8 @@ object WbSel {
   val LOAD  = 1.U(width)
   val CSR   = 2.U(width)
   val PC_4  = 3.U(width)
+
+  def apply(): UInt = UInt(width)
 }
 
 // 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
@@ -68,6 +76,8 @@ object CsrOp {
   val RW    = 1.U(width)
   val RS    = 2.U(width)
   val RC    = 3.U(width)
+
+  def apply(): UInt = UInt(width)
 }
 
 // axi4编号
@@ -92,6 +102,8 @@ object MemOp {
   val SH         = (FLAG_2B | FLAG_WRITE)
   val SW         = (FLAG_4B | FLAG_WRITE)
   val NONE       = 0b1111.U(width) // 无效标记
+
+  def apply(): UInt = UInt(width)
 }
 
 // CSR地址
@@ -106,6 +118,77 @@ object CSRAddr {
   val MVENDORID = 0xf11.U(width) // Vendor ID, ysyx的ASCII码, 即0x79737978
   val MARCHID   =
     0xf12.U(width) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
+}
+
+// 指令编码
+object Inst {
+  val width = 14
+
+  // 1. 控制标识位定义（前缀改为 F_）
+  val F_VALID   = (1 << 0).U(width.W)  // 有效指令标识
+  val F_JAL     = (1 << 1).U(width.W)  // JAL 标识
+  val F_JALR    = (1 << 2).U(width.W)  // JALR 标识
+  val F_BRANCH  = (1 << 3).U(width.W)  // 分支指令标识
+  val F_LOAD    = (1 << 4).U(width.W)  // Load 标识
+  val F_STORE   = (1 << 5).U(width.W)  // Store 标识
+  val F_FENCE   = (1 << 6).U(width.W)  // FENCE 标识
+  val F_ECALL   = (1 << 7).U(width.W)  // ECALL 标识
+  val F_EBREAK  = (1 << 8).U(width.W)  // EBREAK 标识
+  val F_MRET    = (1 << 9).U(width.W)  // MRET 标识
+  val F_USE_PC  = (1 << 10).U(width.W) // 是否使用 PC
+  val F_USE_IMM = (1 << 11).U(width.W) // 是否使用立即数
+  val F_RD_WEN  = (1 << 12).U(width.W) // 寄存器堆写使能
+  val F_CSR_IMM = (1 << 13).U(width.W) // CSR 立即数标识
+
+  // 2. 无效指令编码
+  val INVALID = 0.U(width.W)
+
+  // 3. 各指令通过特征位组合
+  val LUI     = F_VALID | F_USE_IMM | F_RD_WEN
+  val AUIPC   = F_VALID | F_USE_PC | F_USE_IMM | F_RD_WEN
+  val JAL     = F_VALID | F_JAL | F_RD_WEN
+  val JALR    = F_VALID | F_JALR | F_USE_IMM | F_RD_WEN
+  val BEQ     = F_VALID | F_BRANCH
+  val BNE     = F_VALID | F_BRANCH
+  val BLT     = F_VALID | F_BRANCH
+  val BGE     = F_VALID | F_BRANCH
+  val BLTU    = F_VALID | F_BRANCH
+  val BGEU    = F_VALID | F_BRANCH
+  val LB      = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
+  val LH      = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
+  val LW      = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
+  val LBU     = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
+  val LHU     = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
+  val SB      = F_VALID | F_STORE | F_USE_IMM
+  val SH      = F_VALID | F_STORE | F_USE_IMM
+  val SW      = F_VALID | F_STORE | F_USE_IMM
+  val ADDI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val SLTI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val SLTIU   = F_VALID | F_USE_IMM | F_RD_WEN
+  val XORI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val ORI     = F_VALID | F_USE_IMM | F_RD_WEN
+  val ANDI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val SLLI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val SRLI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val SRAI    = F_VALID | F_USE_IMM | F_RD_WEN
+  val ADD     = F_VALID | F_RD_WEN
+  val SUB     = F_VALID | F_RD_WEN
+  val SLL     = F_VALID | F_RD_WEN
+  val SLT     = F_VALID | F_RD_WEN
+  val SLTU    = F_VALID | F_RD_WEN
+  val XOR     = F_VALID | F_RD_WEN
+  val SRL     = F_VALID | F_RD_WEN
+  val SRA     = F_VALID | F_RD_WEN
+  val OR      = F_VALID | F_RD_WEN
+  val AND     = F_VALID | F_RD_WEN
+  val FENCE_I = F_VALID | F_FENCE
+  val ECALL   = F_VALID | F_ECALL
+  val EBREAK  = F_VALID | F_EBREAK
+  val CSRRW   = F_VALID | F_RD_WEN
+  val CSRRS   = F_VALID | F_RD_WEN
+  val MRET    = F_VALID | F_MRET
+
+  def apply(): UInt = UInt(width.W)
 }
 
 /** 重定向数据（冲刷流水线并修改取指 PC） */
@@ -404,6 +487,29 @@ class OldCtrl extends Bundle {
   val ebreak   = Bool()
   val mret     = Bool()
   val illegal  = Bool()
+}
+class Ctrl    extends Bundle {
+  val code  = Inst()
+  val aluOp = AluOp()
+  val memOp = MemOp()
+  val wbSel = WbSel()
+  val csrOp = CsrOp()
+
+  // 布尔函数直接判断对应标识位是否存在（按位与结果不为 0）
+  def illegal: Bool  = (code & Inst.F_VALID) === 0.U
+  def isJal: Bool    = (code & Inst.F_JAL) =/= 0.U
+  def isJalr: Bool   = (code & Inst.F_JALR) =/= 0.U
+  def isBranch: Bool = (code & Inst.F_BRANCH) =/= 0.U
+  def isLoad: Bool   = (code & Inst.F_LOAD) =/= 0.U
+  def isStore: Bool  = (code & Inst.F_STORE) =/= 0.U
+  def isFence: Bool  = (code & Inst.F_FENCE) =/= 0.U
+  def isEcall: Bool  = (code & Inst.F_ECALL) =/= 0.U
+  def isEbreak: Bool = (code & Inst.F_EBREAK) =/= 0.U
+  def isMret: Bool   = (code & Inst.F_MRET) =/= 0.U
+  def isUsePc: Bool  = (code & Inst.F_USE_PC) =/= 0.U
+  def isUseImm: Bool = (code & Inst.F_USE_IMM) =/= 0.U
+  def isRdWen: Bool  = (code & Inst.F_RD_WEN) =/= 0.U
+  def isCsrImm: Bool = (code & Inst.F_CSR_IMM) =/= 0.U
 }
 
 /** IF数据 */
