@@ -29,7 +29,7 @@ class Wbu(p: CoreParams) extends Module {
   val v  = io.in.valid
 
   // ---------------- 写回数据选择 ----------------
-  val wbData = MuxLookup(in.ctrl.wbSel, in.aluResult)(
+  val wbData = MuxLookup(in.oldctrl.wbSel, in.aluResult)(
     Seq(
       WbSel.ALU  -> in.aluResult,
       WbSel.LOAD -> in.loadData,
@@ -43,7 +43,7 @@ class Wbu(p: CoreParams) extends Module {
   val intTake = v && io.interrupt && io.csrMie && !exc
   val trap    = exc || intTake
   val cause   = Mux(exc, in.excCause, p.INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
-  val mret    = v && in.ctrl.mret && !trap
+  val mret    = v && in.oldctrl.mret && !trap
   val trapEn  = RegInit(false.B)
   trapEn             := Mux((trap || mret), true.B, false.B)
   io.redirect.valid  := trapEn
@@ -55,9 +55,9 @@ class Wbu(p: CoreParams) extends Module {
   io.csrTrap.epc   := in.pc
   io.csrTrap.tval  := 0.U // TODO 具体值应和cause相关
   // TODO 更新csr mret寄存器的值
-  io.csrWrite.en   := v && !trap && in.ctrl.csrOp =/= CsrOp.NONE
+  io.csrWrite.en   := v && !trap && in.oldctrl.csrOp =/= CsrOp.NONE
   io.csrWrite.addr := in.csrAddr
-  io.csrWrite.data := MuxLookup(in.ctrl.csrOp, in.csrWdata)(
+  io.csrWrite.data := MuxLookup(in.oldctrl.csrOp, in.csrWdata)(
     Seq(
       CsrOp.RW -> in.csrWdata,                 // RW: 直接写
       CsrOp.RS -> (in.csrRdata | in.csrWdata), // RS: 置位
@@ -66,7 +66,7 @@ class Wbu(p: CoreParams) extends Module {
   )
 
   // ---------------- 寄存器堆写口 ----------------
-  io.gprWrite.en   := v && !trap && in.ctrl.rdWen && in.rdAddr =/= 0.U
+  io.gprWrite.en   := v && !trap && in.oldctrl.rdWen && in.rdAddr =/= 0.U
   io.gprWrite.addr := in.rdAddr
   io.gprWrite.data := wbData
 

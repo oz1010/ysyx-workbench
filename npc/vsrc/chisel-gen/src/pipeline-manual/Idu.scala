@@ -26,47 +26,51 @@ class Idu(p: CoreParams) extends Module {
   val funct3 = inst(14, 12)
   val funct7 = inst(31, 25)
 
-  val ctrl = Wire(new Ctrl)
-  ctrl.aluOp    := 0.U
-  ctrl.usePc    := false.B
-  ctrl.useImm   := false.B
-  ctrl.isBranch := false.B
-  ctrl.isJal    := false.B
-  ctrl.isJalr   := false.B
-  ctrl.load     := false.B
-  ctrl.store    := false.B
-  ctrl.memOp    := 0.U
-  ctrl.wbSel    := WbSel.ALU
-  ctrl.rdWen    := false.B
-  ctrl.csrOp    := 0.U
-  ctrl.csrImm   := false.B
-  ctrl.fence    := false.B
-  ctrl.ecall    := false.B
-  ctrl.ebreak   := false.B
-  ctrl.mret     := false.B
-  ctrl.illegal  := true.B
+  val oldctrl = Wire(new OldCtrl)
+  oldctrl.aluOp    := 0.U
+  oldctrl.usePc    := false.B
+  oldctrl.useImm   := false.B
+  oldctrl.isBranch := false.B
+  oldctrl.isJal    := false.B
+  oldctrl.isJalr   := false.B
+  oldctrl.load     := false.B
+  oldctrl.store    := false.B
+  oldctrl.memOp    := 0.U
+  oldctrl.wbSel    := WbSel.ALU
+  oldctrl.rdWen    := false.B
+  oldctrl.csrOp    := 0.U
+  oldctrl.csrImm   := false.B
+  oldctrl.fence    := false.B
+  oldctrl.ecall    := false.B
+  oldctrl.ebreak   := false.B
+  oldctrl.mret     := false.B
+  oldctrl.illegal  := true.B
 
   switch(opcode) {
     is("b0110111".U) { // LUI
-      ctrl.illegal := false.B; ctrl.useImm := true.B; ctrl.rdWen := true.B
+      oldctrl.illegal := false.B; oldctrl.useImm := true.B;
+      oldctrl.rdWen   := true.B
     }
     is("b0010111".U) { // AUIPC
-      ctrl.illegal := false.B; ctrl.usePc := true.B; ctrl.useImm := true.B;
-      ctrl.rdWen   := true.B
+      oldctrl.illegal := false.B; oldctrl.usePc := true.B;
+      oldctrl.useImm  := true.B;
+      oldctrl.rdWen   := true.B
     }
     is("b1101111".U) { // JAL
-      ctrl.illegal := false.B; ctrl.isJal := true.B; ctrl.rdWen := true.B;
-      ctrl.wbSel   := WbSel.PC_4
+      oldctrl.illegal := false.B; oldctrl.isJal := true.B;
+      oldctrl.rdWen   := true.B;
+      oldctrl.wbSel   := WbSel.PC_4
     }
     is("b1100111".U) { // JALR
       when(funct3 === 0.U) {
-        ctrl.illegal := false.B; ctrl.isJalr := true.B; ctrl.rdWen := true.B
-        ctrl.useImm  := true.B; ctrl.wbSel   := WbSel.PC_4
+        oldctrl.illegal := false.B; oldctrl.isJalr := true.B;
+        oldctrl.rdWen   := true.B
+        oldctrl.useImm  := true.B; oldctrl.wbSel   := WbSel.PC_4
       }
     }
     is("b1100011".U) { // BRANCH：beq/bne/blt/bge/bltu/bgeu
       when(funct3 =/= 2.U && funct3 =/= 3.U) {
-        ctrl.illegal := false.B; ctrl.isBranch := true.B
+        oldctrl.illegal := false.B; oldctrl.isBranch := true.B
       }
     }
     is("b0000011".U) { // LOAD：lb/lh/lw/lbu/lhu
@@ -74,151 +78,158 @@ class Idu(p: CoreParams) extends Module {
         funct3 === 0.U || funct3 === 1.U || funct3 === 2.U ||
           funct3 === 4.U || funct3 === 5.U
       ) {
-        ctrl.illegal := false.B; ctrl.load := true.B; ctrl.useImm    := true.B
-        ctrl.rdWen   := true.B; ctrl.wbSel := WbSel.LOAD; ctrl.memOp := funct3
+        oldctrl.illegal := false.B; oldctrl.load := true.B;
+        oldctrl.useImm  := true.B
+        oldctrl.rdWen   := true.B; oldctrl.wbSel := WbSel.LOAD;
+        oldctrl.memOp   := funct3
       }
     }
     is("b0100011".U) { // STORE：sb/sh/sw
       when(funct3 === 0.U || funct3 === 1.U || funct3 === 2.U) {
-        ctrl.illegal := false.B; ctrl.store := true.B; ctrl.useImm := true.B
-        ctrl.memOp   := funct3
+        oldctrl.illegal := false.B; oldctrl.store := true.B;
+        oldctrl.useImm  := true.B
+        oldctrl.memOp   := funct3
       }
     }
     is("b0010011".U) { // OP-IMM
-      ctrl.illegal := false.B; ctrl.useImm := true.B; ctrl.rdWen := true.B
+      oldctrl.illegal := false.B; oldctrl.useImm := true.B;
+      oldctrl.rdWen   := true.B
       switch(funct3) {
-        is(0.U) { ctrl.aluOp := AluOp.ADD } // ADDI
-        is(1.U) { when(funct7 === 0.U) { ctrl.aluOp := AluOp.SLL } } // SLLI
-        is(2.U) { ctrl.aluOp := AluOp.SLT } // SLTI
-        is(3.U) { ctrl.aluOp := AluOp.SLTU } // SLTIU（立即数零扩展，见 imm 处理）
-        is(4.U) { ctrl.aluOp := AluOp.XOR } // XORI
+        is(0.U) { oldctrl.aluOp := AluOp.ADD } // ADDI
+        is(1.U) { when(funct7 === 0.U) { oldctrl.aluOp := AluOp.SLL } } // SLLI
+        is(2.U) { oldctrl.aluOp := AluOp.SLT } // SLTI
+        is(3.U) { oldctrl.aluOp := AluOp.SLTU } // SLTIU（立即数零扩展，见 imm 处理）
+        is(4.U) { oldctrl.aluOp := AluOp.XOR } // XORI
         is(5.U) { // SRLI / SRAI
-          when(funct7 === 0.U) { ctrl.aluOp := AluOp.SRL }
-            .elsewhen(funct7 === 0x20.U) { ctrl.aluOp := AluOp.SRA }
-            .otherwise { ctrl.illegal := true.B }
+          when(funct7 === 0.U) { oldctrl.aluOp := AluOp.SRL }
+            .elsewhen(funct7 === 0x20.U) { oldctrl.aluOp := AluOp.SRA }
+            .otherwise { oldctrl.illegal := true.B }
         }
-        is(6.U) { ctrl.aluOp := AluOp.OR } // ORI
-        is(7.U) { ctrl.aluOp := AluOp.AND } // ANDI
+        is(6.U) { oldctrl.aluOp := AluOp.OR } // ORI
+        is(7.U) { oldctrl.aluOp := AluOp.AND } // ANDI
       }
     }
     is("b0110011".U) { // OP
       switch(funct3) {
         is(0.U) { // ADD / SUB
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.ADD; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.ADD; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
             .elsewhen(funct7 === 0x20.U) {
-              ctrl.aluOp := AluOp.SUB; ctrl.illegal := false.B;
-              ctrl.rdWen := true.B
+              oldctrl.aluOp := AluOp.SUB; oldctrl.illegal := false.B;
+              oldctrl.rdWen := true.B
             }
         }
         is(1.U) {
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.SLL; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.SLL; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
         }
         is(2.U) {
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.SLT; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.SLT; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
         }
         is(3.U) {
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.SLTU; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.SLTU; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
         }
         is(4.U) {
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.XOR; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.XOR; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
         }
         is(5.U) { // SRL / SRA
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.SRL; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.SRL; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
             .elsewhen(funct7 === 0x20.U) {
-              ctrl.aluOp := AluOp.SRA; ctrl.illegal := false.B;
-              ctrl.rdWen := true.B
+              oldctrl.aluOp := AluOp.SRA; oldctrl.illegal := false.B;
+              oldctrl.rdWen := true.B
             }
         }
         is(6.U) {
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.OR; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.OR; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
         }
         is(7.U) {
           when(funct7 === 0.U) {
-            ctrl.aluOp := AluOp.AND; ctrl.illegal := false.B;
-            ctrl.rdWen := true.B
+            oldctrl.aluOp := AluOp.AND; oldctrl.illegal := false.B;
+            oldctrl.rdWen := true.B
           }
         }
       }
     }
     is("b0001111".U) { // FENCE：按 NOP 处理
-      ctrl.illegal := false.B; ctrl.fence := true.B
+      oldctrl.illegal := false.B; oldctrl.fence := true.B
     }
     is("b1110011".U) { // SYSTEM
       switch(funct3) {
         is(0.U) { // ECALL / EBREAK / MRET
           when(inst(31, 20) === 0x000.U) {
-            ctrl.illegal := false.B; ctrl.ecall := true.B
+            oldctrl.illegal := false.B; oldctrl.ecall := true.B
           }
             .elsewhen(inst(31, 20) === 0x001.U) {
-              ctrl.illegal := false.B; ctrl.ebreak := true.B
+              oldctrl.illegal := false.B; oldctrl.ebreak := true.B
             }
             .elsewhen(inst(31, 20) === 0x302.U) {
-              ctrl.illegal := false.B; ctrl.mret := true.B
+              oldctrl.illegal := false.B; oldctrl.mret := true.B
             }
         }
         is(1.U) {
-          ctrl.illegal := false.B; ctrl.csrOp := CsrOp.RW; ctrl.rdWen := true.B;
-          ctrl.wbSel   := WbSel.CSR
+          oldctrl.illegal := false.B; oldctrl.csrOp := CsrOp.RW;
+          oldctrl.rdWen   := true.B;
+          oldctrl.wbSel   := WbSel.CSR
         } // CSRRW
         is(2.U) {
-          ctrl.illegal := false.B; ctrl.csrOp := CsrOp.RS; ctrl.rdWen := true.B;
-          ctrl.wbSel   := WbSel.CSR
+          oldctrl.illegal := false.B; oldctrl.csrOp := CsrOp.RS;
+          oldctrl.rdWen   := true.B;
+          oldctrl.wbSel   := WbSel.CSR
         } // CSRRS
         is(3.U) {
-          ctrl.illegal := false.B; ctrl.csrOp := CsrOp.RC; ctrl.rdWen := true.B;
-          ctrl.wbSel   := WbSel.CSR
+          oldctrl.illegal := false.B; oldctrl.csrOp := CsrOp.RC;
+          oldctrl.rdWen   := true.B;
+          oldctrl.wbSel   := WbSel.CSR
         } // CSRRC
         is(5.U) {
-          ctrl.illegal := false.B; ctrl.csrOp := CsrOp.RW;
-          ctrl.csrImm  := true.B;
-          ctrl.rdWen   := true.B; ctrl.wbSel  := WbSel.CSR
+          oldctrl.illegal := false.B; oldctrl.csrOp := CsrOp.RW;
+          oldctrl.csrImm  := true.B;
+          oldctrl.rdWen   := true.B; oldctrl.wbSel  := WbSel.CSR
         }
         is(6.U) {
-          ctrl.illegal := false.B; ctrl.csrOp := CsrOp.RS;
-          ctrl.csrImm  := true.B;
-          ctrl.rdWen   := true.B; ctrl.wbSel  := WbSel.CSR
+          oldctrl.illegal := false.B; oldctrl.csrOp := CsrOp.RS;
+          oldctrl.csrImm  := true.B;
+          oldctrl.rdWen   := true.B; oldctrl.wbSel  := WbSel.CSR
         }
         is(7.U) {
-          ctrl.illegal := false.B; ctrl.csrOp := CsrOp.RC;
-          ctrl.csrImm  := true.B;
-          ctrl.rdWen   := true.B; ctrl.wbSel  := WbSel.CSR
+          oldctrl.illegal := false.B; oldctrl.csrOp := CsrOp.RC;
+          oldctrl.csrImm  := true.B;
+          oldctrl.rdWen   := true.B; oldctrl.wbSel  := WbSel.CSR
         }
       }
     }
   }
 
-  val usesRs1 = ctrl.usePc === false.B && (opcode === "b1100111".U || opcode === "b0000011".U || opcode === "b0100011".U ||
+  val usesRs1 = oldctrl.usePc === false.B && (opcode === "b1100111".U || opcode === "b0000011".U || opcode === "b0100011".U ||
     opcode === "b1100011".U || opcode === "b0010011".U || opcode === "b0110011".U ||
-    (opcode === "b1110011".U && ctrl.csrImm === false.B && ctrl.csrOp =/= 0.U))
+    (opcode === "b1110011".U && oldctrl.csrImm === false.B && oldctrl.csrOp =/= 0.U))
   val usesRs2 =
     opcode === "b0100011".U || opcode === "b1100011".U || opcode === "b0110011".U
-  val usesRd  = ctrl.rdWen
+  val usesRd  = oldctrl.rdWen
   when(
     (usesRs1 && inst(19) === 1.U) || (usesRs2 && inst(24) === 1.U) ||
       (usesRd && inst(11) === 1.U)
   ) {
-    ctrl.illegal := true.B
+    oldctrl.illegal := true.B
   }
 
   // ---------------- 立即数 ----------------
@@ -296,7 +307,7 @@ class Idu(p: CoreParams) extends Module {
   io.out.bits.rs1Addr    := rs1Addr
   io.out.bits.rs2Addr    := rs2Addr
   io.out.bits.rdAddr     := rdAddr
-  io.out.bits.ctrl       := ctrl
+  io.out.bits.oldctrl    := oldctrl
   io.out.bits.predTaken  := io.in.bits.predTaken
   io.out.bits.predTarget := io.in.bits.predTarget
 }
