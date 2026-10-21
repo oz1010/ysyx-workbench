@@ -127,80 +127,154 @@ module riscv32e_memsys #(
         .done()
     );    
 
-    generate
-        // if (`CONFIG_ISA_RISCV_SINGLE) begin // 单周期特有逻辑
-        if (0) begin // 单周期特有逻辑
-        // 组合取指
-        always @(*) begin
-            if (rst) begin
-                io_if_req_ready = 0;
-                io_if_rsp_valid = 0;
-                io_if_rsp_data = 0;
-            end else begin
-                io_if_req_ready = 1;
-                io_if_rsp_valid = 0;
-                io_if_rsp_data = 0;
-                if (io_if_req_valid && io_if_req_ready) begin
-                    io_if_rsp_valid = 1;
-                    io_if_rsp_data = func_vdev_read(io_if_req_addr, 4);
-                end
-            end
-        end
-
-        // 访存
-        assign io_mem_req_ready = 1;
-        assign io_mem_rsp_valid = 
-            io_mem_req_op==`MEMOP_LB || 
-            io_mem_req_op==`MEMOP_LH || 
-            io_mem_req_op==`MEMOP_LW || 
-            io_mem_req_op==`MEMOP_LBU || 
-            io_mem_req_op==`MEMOP_LHU || 
-            0;
-        always @(negedge clk) begin
-            if (rst) begin
-            end else begin
-                io_mem_rsp_data <= 0;
-                if (io_mem_req_valid && io_mem_req_ready) begin
-                    case (io_mem_req_op)
-                        `MEMOP_LB:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 1), 8); end
-                        `MEMOP_LH:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 2), 16); end
-                        `MEMOP_LW:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 4), 32); end
-                        `MEMOP_LBU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
-                        `MEMOP_LHU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
-                        default: ;
-                    endcase
-                end
-            end
-        end
-        always @(posedge clk) begin
-            if (rst) begin
-            end else begin
-                if (io_mem_req_valid && io_mem_req_ready) begin
-                    case (io_mem_req_op)
-                        `MEMOP_SB:          begin write_raw_mem(io_mem_req_addr, 1, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h0, 4'h1}, io_mem_req_wdata); end
-                        `MEMOP_SH:          begin write_raw_mem(io_mem_req_addr, 2, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h1, 4'h3}, io_mem_req_wdata); end
-                        `MEMOP_SW:          begin write_raw_mem(io_mem_req_addr, 4, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h2, 4'h7}, io_mem_req_wdata); end
-                        `MEMOP_LB:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
-                        `MEMOP_LH:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
-                        `MEMOP_LW:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h2, 4'h0}, io_mem_rsp_data); end
-                        `MEMOP_LBU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
-                        `MEMOP_LHU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
-                        default: ;
-                    endcase
-                end
-            end
-        end
-
+    `ifdef CONFIG_ISA_RISCV_SINGLE // 单周期特有逻辑
+    // 组合取指
+    always @(*) begin
+        if (rst) begin
+            io_if_req_ready = 0;
+            io_if_rsp_valid = 0;
+            io_if_rsp_data = 0;
         end else begin
-        // TODO 非单周期取指，需要转换为axi4信号
-        assign io_if_req_ready = 0;
-        assign io_if_rsp_valid = 0;
-        assign io_if_rsp_data = 0;
-
-        // TODO 非单周期访存取指，需要转换为axi4信号
-        assign io_mem_req_ready = 0;
-        assign io_mem_rsp_valid = 0;
-        assign io_mem_rsp_data = 0;
+            io_if_req_ready = 1;
+            io_if_rsp_valid = 0;
+            io_if_rsp_data = 0;
+            if (io_if_req_valid && io_if_req_ready) begin
+                io_if_rsp_valid = 1;
+                io_if_rsp_data = func_vdev_read(io_if_req_addr, 4);
+            end
         end
-    endgenerate
+    end
+
+    // 访存
+    assign io_mem_req_ready = 1;
+    assign io_mem_rsp_valid = 
+        io_mem_req_op==`MEMOP_LB || 
+        io_mem_req_op==`MEMOP_LH || 
+        io_mem_req_op==`MEMOP_LW || 
+        io_mem_req_op==`MEMOP_LBU || 
+        io_mem_req_op==`MEMOP_LHU || 
+        0;
+    always @(negedge clk) begin
+        if (rst) begin
+        end else begin
+            io_mem_rsp_data <= 0;
+            if (io_mem_req_valid && io_mem_req_ready) begin
+                case (io_mem_req_op)
+                    `MEMOP_LB:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 1), 8); end
+                    `MEMOP_LH:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 2), 16); end
+                    `MEMOP_LW:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 4), 32); end
+                    `MEMOP_LBU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
+                    `MEMOP_LHU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
+                    default: ;
+                endcase
+            end
+        end
+    end
+    always @(posedge clk) begin
+        if (rst) begin
+        end else begin
+            if (io_mem_req_valid && io_mem_req_ready) begin
+                case (io_mem_req_op)
+                    `MEMOP_SB:          begin write_raw_mem(io_mem_req_addr, 1, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h0, 4'h1}, io_mem_req_wdata); end
+                    `MEMOP_SH:          begin write_raw_mem(io_mem_req_addr, 2, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h1, 4'h3}, io_mem_req_wdata); end
+                    `MEMOP_SW:          begin write_raw_mem(io_mem_req_addr, 4, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h2, 4'h7}, io_mem_req_wdata); end
+                    `MEMOP_LB:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
+                    `MEMOP_LH:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
+                    `MEMOP_LW:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h2, 4'h0}, io_mem_rsp_data); end
+                    `MEMOP_LBU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
+                    `MEMOP_LHU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
+                    default: ;
+                endcase
+            end
+        end
+    end
+    `else
+    // TODO 非单周期取指，需要转换为axi4信号
+    assign io_if_req_ready = 0;
+    assign io_if_rsp_valid = 0;
+    assign io_if_rsp_data = 0;
+
+    // TODO 非单周期访存取指，需要转换为axi4信号
+    assign io_mem_req_ready = 0;
+    assign io_mem_rsp_valid = 0;
+    assign io_mem_rsp_data = 0;
+
+    `endif
+
+    // generate
+    //     // if (`CONFIG_ISA_RISCV_SINGLE) begin // 单周期特有逻辑
+    //     if (0) begin // 单周期特有逻辑
+    //     // 组合取指
+    //     always @(*) begin
+    //         if (rst) begin
+    //             io_if_req_ready = 0;
+    //             io_if_rsp_valid = 0;
+    //             io_if_rsp_data = 0;
+    //         end else begin
+    //             io_if_req_ready = 1;
+    //             io_if_rsp_valid = 0;
+    //             io_if_rsp_data = 0;
+    //             if (io_if_req_valid && io_if_req_ready) begin
+    //                 io_if_rsp_valid = 1;
+    //                 io_if_rsp_data = func_vdev_read(io_if_req_addr, 4);
+    //             end
+    //         end
+    //     end
+
+    //     // 访存
+    //     assign io_mem_req_ready = 1;
+    //     assign io_mem_rsp_valid = 
+    //         io_mem_req_op==`MEMOP_LB || 
+    //         io_mem_req_op==`MEMOP_LH || 
+    //         io_mem_req_op==`MEMOP_LW || 
+    //         io_mem_req_op==`MEMOP_LBU || 
+    //         io_mem_req_op==`MEMOP_LHU || 
+    //         0;
+    //     always @(negedge clk) begin
+    //         if (rst) begin
+    //         end else begin
+    //             io_mem_rsp_data <= 0;
+    //             if (io_mem_req_valid && io_mem_req_ready) begin
+    //                 case (io_mem_req_op)
+    //                     `MEMOP_LB:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 1), 8); end
+    //                     `MEMOP_LH:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 2), 16); end
+    //                     `MEMOP_LW:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 4), 32); end
+    //                     `MEMOP_LBU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
+    //                     `MEMOP_LHU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
+    //                     default: ;
+    //                 endcase
+    //             end
+    //         end
+    //     end
+    //     always @(posedge clk) begin
+    //         if (rst) begin
+    //         end else begin
+    //             if (io_mem_req_valid && io_mem_req_ready) begin
+    //                 case (io_mem_req_op)
+    //                     `MEMOP_SB:          begin write_raw_mem(io_mem_req_addr, 1, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h0, 4'h1}, io_mem_req_wdata); end
+    //                     `MEMOP_SH:          begin write_raw_mem(io_mem_req_addr, 2, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h1, 4'h3}, io_mem_req_wdata); end
+    //                     `MEMOP_SW:          begin write_raw_mem(io_mem_req_addr, 4, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h2, 4'h7}, io_mem_req_wdata); end
+    //                     `MEMOP_LB:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
+    //                     `MEMOP_LH:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
+    //                     `MEMOP_LW:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h2, 4'h0}, io_mem_rsp_data); end
+    //                     `MEMOP_LBU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
+    //                     `MEMOP_LHU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
+    //                     default: ;
+    //                 endcase
+    //             end
+    //         end
+    //     end
+
+    //     end else begin
+    //     // TODO 非单周期取指，需要转换为axi4信号
+    //     assign io_if_req_ready = 0;
+    //     assign io_if_rsp_valid = 0;
+    //     assign io_if_rsp_data = 0;
+
+    //     // TODO 非单周期访存取指，需要转换为axi4信号
+    //     assign io_mem_req_ready = 0;
+    //     assign io_mem_rsp_valid = 0;
+    //     assign io_mem_rsp_data = 0;
+    //     end
+    // endgenerate
 endmodule
