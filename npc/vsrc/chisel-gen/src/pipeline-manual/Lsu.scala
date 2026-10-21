@@ -10,7 +10,7 @@ import config.ManuConfig._
   */
 class Lsu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val cache = new OldCacheIO(p)
+    val cache = new CacheIO()
     val in    = Flipped(Decoupled(new ExBundle(p)))
     val out   = Decoupled(new LsBundle(p))
     val kill  = Input(Bool()) // WBU 陷阱/MRET：冲刷 EX/MEM 及其后
@@ -23,19 +23,21 @@ class Lsu(p: CoreParams) extends Module {
   val addr  = in.aluResult
   val wstrb = MuxLookup(in.ctrl.memOp, 0.U)(
     Seq(
-      MemOp.SB -> (1.U(4.W) << addr(1, 0)),                   // SB
-      MemOp.SH -> Mux(addr(1) === 1.U, "b1100".U, "b0011".U), // SH
-      MemOp.SW -> "b1111".U                                   // SW
+      OldMemOp.SB -> (1.U(4.W) << addr(1, 0)),                   // SB
+      OldMemOp.SH -> Mux(addr(1) === 1.U, "b1100".U, "b0011".U), // SH
+      OldMemOp.SW -> "b1111".U                                   // SW
     )
   )
 
   // dcache请求
-  io.cache.req.valid   := io.in.valid && isMemInst && !io.kill
-  io.cache.req.addr    := addr
-  io.cache.req.wdata   := in.storeData
-  io.cache.req.wstrb   := wstrb
-  io.cache.req.iswrite := in.ctrl.store
-  val memWait = isMemInst && !io.cache.rsp.valid
+  io.cache.req.valid := io.in.valid && isMemInst && !io.kill
+  io.cache.req.addr  := addr
+  io.cache.req.op    := MemOp.NONE
+  io.cache.req.wdata := in.storeData
+  io.cache.rsp.ready := true.B
+  // io.cache.req.wstrb   := wstrb
+  // io.cache.req.iswrite := in.ctrl.store
+  val memWait = isMemInst && !io.cache.rsp.fire
 
   // load 数据抽取
   val rdata    = io.cache.rsp.data
@@ -48,11 +50,11 @@ class Lsu(p: CoreParams) extends Module {
   val halfSel  = Mux(off(1), rdata(31, 16), rdata(15, 0))
   val loadData = MuxLookup(in.ctrl.memOp, rdata)(
     Seq(
-      MemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),  // LB
-      MemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel), // LH
-      MemOp.LW  -> rdata,                               // LW
-      MemOp.LBU -> Cat(0.U(24.W), byteSel),             // LBU
-      MemOp.LHU -> Cat(0.U(16.W), halfSel)              // LHU
+      OldMemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),  // LB
+      OldMemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel), // LH
+      OldMemOp.LW  -> rdata,                               // LW
+      OldMemOp.LBU -> Cat(0.U(24.W), byteSel),             // LBU
+      OldMemOp.LHU -> Cat(0.U(16.W), halfSel)              // LHU
     )
   )
 

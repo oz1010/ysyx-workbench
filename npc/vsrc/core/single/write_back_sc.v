@@ -105,7 +105,7 @@ module write_back_sc #(
         inst_code==`INST_SB ?   `MEMOP_SB : 
         inst_code==`INST_SH ?   `MEMOP_SH : 
         inst_code==`INST_SW ?   `MEMOP_SW : 
-        0;
+        `MEMOP_NONE;
     assign io_mem_req_wdata = 
         inst_code==`INST_SB ? src2&32'hFF : 
         inst_code==`INST_SH ? src2&32'hFFFF : 

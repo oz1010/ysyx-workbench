@@ -105,12 +105,12 @@ class Exu(p: CoreParams) extends Module {
       0
     ) =/= 0.U
   // load/store 地址非对齐（访存对齐要求已由 LSU 假定）
-  val ldMis    = in.ctrl.load && ((in.ctrl.memOp === MemOp.LH && aluResult(
+  val ldMis    = in.ctrl.load && ((in.ctrl.memOp === OldMemOp.LH && aluResult(
     0
-  ) =/= 0.U) || (in.ctrl.memOp === MemOp.LW && aluResult(1, 0) =/= 0.U))
-  val stMis    = in.ctrl.store && ((in.ctrl.memOp === MemOp.SH && aluResult(
+  ) =/= 0.U) || (in.ctrl.memOp === OldMemOp.LW && aluResult(1, 0) =/= 0.U))
+  val stMis    = in.ctrl.store && ((in.ctrl.memOp === OldMemOp.SH && aluResult(
     0
-  ) =/= 0.U) || (in.ctrl.memOp === MemOp.SW && aluResult(1, 0) =/= 0.U))
+  ) =/= 0.U) || (in.ctrl.memOp === OldMemOp.SW && aluResult(1, 0) =/= 0.U))
 
   val excValid =
     v && (in.ctrl.illegal || in.ctrl.ecall || in.ctrl.ebreak || fetchMis || ldMis || stMis)

@@ -45,11 +45,6 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     val regExLs    = Module(new PipelineReg(new ExBundle(p)))
     val regLsWb    = Module(new PipelineReg(new LsBundle(p)))
     val hazardUnit = Module(new HazardUnit(p))
-    // TODO 以下部分后面需要去掉
-    val io_master  = IO(new Axi4IO(p))
-    val arbiter    = Module(new Axi4IOArbiter(p, 2))
-    val icache     = Module(new ICache(p))
-    val dcache     = Module(new DCache(p))
 
     // ---------------- 全局控制信号收集 ----------------
     val exRedirect  = exu.io.redirect
@@ -67,7 +62,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     hazardUnit.io.wbRedirect := wbRedirect.valid
 
     // ---------------- IFU ----------------
-    ifu.io.cache <> icache.io.cpu
+    ifu.io.cache <> io_if
     ifu.io.exRedirect := exRedirect
     ifu.io.wbRedirect := wbRedirect
     // IFU->IDU
@@ -105,7 +100,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     regExLs.io.out <> lsu.io.in
 
     // ---------------- LSU ----------------
-    lsu.io.cache <> dcache.io.cpu
+    lsu.io.cache <> io_mem
     lsu.io.kill      := wbRedirect.valid // 异常时终止访存
     // LSU->WBU
     regLsWb.io.in <> lsu.io.out
@@ -122,11 +117,6 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     wbu.io.csrMie    := false.B
     wbu.io.csrMepc   := m_csrs.io.mepc
     wbu.io.csrMtvec  := m_csrs.io.mtvec
-
-    // ---------------- AXI4仲裁器 ----------------
-    arbiter.io.master <> io_master
-    arbiter.io.clients(0) <> icache.io.master
-    arbiter.io.clients(1) <> dcache.io.master
 
     // ---------------- 关键输出 ----------------
     val core_pc   = RegInit(0.U(CONFIG_ADDR_WIDTH.W))

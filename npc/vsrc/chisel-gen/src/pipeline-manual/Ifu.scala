@@ -15,7 +15,7 @@ import config.ManuConfig._
 
 class Ifu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
-    val cache      = new OldCacheIO(p)
+    val cache      = new CacheIO()
     val out        = Decoupled(new IfBundle(p))
     val exRedirect = Input(new Redirect(p)) // 预测失败/跳转修正（EX 级）
     val wbRedirect = Input(new Redirect(p)) // 陷阱/MRET（WBU 级，优先级最高）
@@ -41,12 +41,12 @@ class Ifu(p: CoreParams) extends Module {
   ready := true.B
 
   // icache 请求
-  io.cache.req.valid   := ready && !reqPend // 只要流水线没卡死，持续取指
-  io.cache.req.addr    := pc
-  io.cache.req.wdata   := 0.U
-  io.cache.req.wstrb   := 0.U
-  io.cache.req.iswrite := false.B
-  reqPend              := Mux(
+  io.cache.req.valid := ready && !reqPend // 只要流水线没卡死，持续取指
+  io.cache.req.addr  := pc
+  io.cache.req.op    := MemOp.FLAG_4B
+  io.cache.req.wdata := 0.U
+  io.cache.rsp.ready := true.B
+  reqPend            := Mux(
     io.cache.req.valid && io.cache.req.ready,
     true.B,
     Mux(io.out.fire, false.B, reqPend)
@@ -78,7 +78,7 @@ class Ifu(p: CoreParams) extends Module {
   }
 
   // 流水线处理
-  io.out.valid           := io.cache.rsp.valid && !io.wbRedirect.valid && !io.exRedirect.valid
+  io.out.valid           := io.cache.rsp.fire && !io.wbRedirect.valid && !io.exRedirect.valid
   io.out.bits.pc         := pc
   io.out.bits.inst       := io.cache.rsp.data
   io.out.bits.predTaken  := predT

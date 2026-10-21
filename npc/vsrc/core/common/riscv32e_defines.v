@@ -113,6 +113,7 @@
 `define MEMOP_SB            (`MEMOP_FLAG_1B|`MEMOP_FLAG_WRITE)
 `define MEMOP_SH            (`MEMOP_FLAG_2B|`MEMOP_FLAG_WRITE)
 `define MEMOP_SW            (`MEMOP_FLAG_4B|`MEMOP_FLAG_WRITE)
+`define MEMOP_NONE          (`MEMOP_W'b1111)
 
 `define STAGE_INDEX_IFU     0
 `define STAGE_INDEX_IDU     1
