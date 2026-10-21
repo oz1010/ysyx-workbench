@@ -113,13 +113,24 @@ VERILATOR_CFLAGS += -Wno-UNOPTFLAT
 
 VERILATOR_CFLAGS += $(INCLUDES)
 
-$(VGEN_DIR)/libV$(VMOD_NAME).a: $(VSRCS) $(WORK_DIR)/include/generated/autoconf.vh
-	@echo + CV $@
+CHISEL_PIPELINE_NAME = pipeline-manual
+ifeq ($(CONFIG_ISA_RISCV_PIPELINE_CHISEL), y)
+compile_chisel:
+	@echo "\033[42m--- Compile Chisel in $(CHISEL_PIPELINE_NAME) ---\033[0m"
+	@make copy_to_npc GEN_PIPELINE_NAME=$(CHISEL_PIPELINE_NAME) -C vsrc/chisel-gen
+else
+compile_chisel:
+	@echo "\033[42m--- Skip Compile Chisel ---\033[0m"
+endif
+
+ARCHIVES_DEPENDS = $(VSRCS) $(WORK_DIR)/include/generated/autoconf.vh
+$(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
+	@echo "\033[42m--- Generate $@ ---\033[0m"
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) $(VERILATOR_CFLAGS) \
 		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
-		$^
+		$(ARCHIVES_DEPENDS)
 
 convert2v: $(GEN_STA_FILE)
 $(GEN_STA_FILE): $(STA_FILES)

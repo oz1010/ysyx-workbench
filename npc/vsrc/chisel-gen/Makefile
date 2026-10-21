@@ -5,7 +5,7 @@ export COURSIER_REPOSITORIES ?= https://repo1.maven.org/maven2
 GEN_PIPELINE_NAME ?= pipeline-manual
 TARGET_PIPELINE_DIR = $(NPC_HOME)/vsrc/core/pipeline-chisel
 OUT ?= build
-TARGET = $(OUT)/$(GEN_PIPELINE_NAME)
+GEN_TARGET = $(OUT)/$(GEN_PIPELINE_NAME)
 
 # 自动检测有效目标：src/ 下定义了 riscv32e_core 顶层类的子目录
 PIPELINES := $(sort $(patsubst src/%/,%,$(dir $(shell grep -rl --include='*.scala' 'class riscv32e_core' src/))))
@@ -19,7 +19,7 @@ GEN_SRCS    := $(wildcard src/generator/*.scala) build.mill
 all: verilog
 
 # verilog 依赖具体生成目录；目录已是最新时不重复跑生成器
-verilog: $(TARGET)
+verilog: $(GEN_TARGET)
 
 # 目录别名：make pipeline-manual 等价于 make build/pipeline-manual
 $(PIPELINES): %: $(OUT)/%
@@ -37,9 +37,11 @@ $(OUT)/%: $$(wildcard src/$$*/*.scala src/$$*/*.v src/$$*/*.sv) $(COMMON_SRCS) $
 	@echo "Error: '$@' 不是有效目标，有效目标: $(PIPELINES)" >&2
 	@exit 2
 
-copy_to_npc: verilog
+copy_to_npc: verilog $(TARGET_PIPELINE_DIR)
+
+$(TARGET_PIPELINE_DIR): $(GEN_TARGET)
 	@-rm -rf $(TARGET_PIPELINE_DIR)
-	@cp -r $(OUT)/$(GEN_PIPELINE_NAME) $(TARGET_PIPELINE_DIR)
+	@cp -r $(GEN_TARGET) $(TARGET_PIPELINE_DIR)
 	@echo "[\033[32mDONE\033[0m] Copy to $(TARGET_PIPELINE_DIR)"
 
 clean:
