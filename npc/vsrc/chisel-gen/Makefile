@@ -2,10 +2,10 @@ MILL ?= /root/tools/mill/bin/mill
 export COURSIER_REPOSITORIES ?= https://repo1.maven.org/maven2
 # chisel 7.15.0 发布对应的 firtool 版本（环境里的 1.105.0 太旧，无法解析新版 FIRRTL）
 # export CHISEL_FIRTOOL_PATH = /root/tools/firtool-1.158.0/bin
-GEN_PIPELINE_NAME ?= pipeline-manual
+GEN_DIR_NAME ?= pipeline-manual
 TARGET_PIPELINE_DIR = $(NPC_HOME)/vsrc/core/pipeline-chisel
 OUT ?= build
-GEN_TARGET = $(OUT)/$(GEN_PIPELINE_NAME)
+GEN_TARGET = $(OUT)/$(GEN_DIR_NAME)
 
 # 自动检测有效目标：src/ 下定义了 riscv32e_core 顶层类的子目录
 PIPELINES := $(sort $(patsubst src/%/,%,$(dir $(shell grep -rl --include='*.scala' 'class riscv32e_core' src/))))

@@ -113,11 +113,10 @@ VERILATOR_CFLAGS += -Wno-UNOPTFLAT
 
 VERILATOR_CFLAGS += $(INCLUDES)
 
-CHISEL_PIPELINE_NAME = pipeline-manual
 ifeq ($(CONFIG_ISA_RISCV_PIPELINE_CHISEL), y)
 compile_chisel:
-	@echo "\033[42m--- Compile Chisel in $(CHISEL_PIPELINE_NAME) ---\033[0m"
-	@make copy_to_npc GEN_PIPELINE_NAME=$(CHISEL_PIPELINE_NAME) -C vsrc/chisel-gen
+	@echo "\033[42m--- Compile Chisel in $(CONFIG_CHISEL_DIR_NAME) ---\033[0m"
+	@make copy_to_npc GEN_DIR_NAME=$(CONFIG_CHISEL_DIR_NAME) -C vsrc/chisel-gen
 else
 compile_chisel:
 	@echo "\033[42m--- Skip Compile Chisel ---\033[0m"
