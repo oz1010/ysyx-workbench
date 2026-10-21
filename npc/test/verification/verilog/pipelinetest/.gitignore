@@ -1,0 +1,5 @@
+# Parent ignore rules hide generic headers and Markdown by default.
+!README.md
+!pipeline_types.svh
+/build/
+__pycache__/

@@ -1,0 +1,67 @@
+[tasks]
+bmc good
+cvr coverage
+bad_gpr_data fault
+bad_gpr_addr fault
+bad_gpr_wen fault
+bad_mem_addr fault
+bad_mem_op fault
+bad_mem_wdata fault
+bad_mem_rdata fault
+bad_csr_addr fault
+bad_csr_data fault
+bad_trap_epc fault
+bad_trap_cause fault
+bad_trap_tval fault
+bad_trap_status fault
+bad_seq fault
+bad_retire fault
+bad_missing_req fault
+bad_missing_rsp fault
+bad_extra_req fault
+bad_csr_wen fault
+bad_trap_en fault
+
+[options]
+good: mode bmc
+good: expect pass
+coverage: mode cover
+coverage: expect pass
+fault: mode bmc
+fault: expect fail
+depth @SELFTEST_DEPTH@
+
+[engines]
+smtbmc @SOLVER@
+
+[script]
+plugin -i slang
+good: read_slang --single-unit --top scoreboard_selftest -G FAULT=0 event_scoreboard.sv scoreboard_selftest.sv
+coverage: read_slang --single-unit --top scoreboard_selftest -G FAULT=0 event_scoreboard.sv scoreboard_selftest.sv
+bad_gpr_data: read_slang --single-unit --top scoreboard_selftest -G FAULT=1 event_scoreboard.sv scoreboard_selftest.sv
+bad_gpr_addr: read_slang --single-unit --top scoreboard_selftest -G FAULT=2 event_scoreboard.sv scoreboard_selftest.sv
+bad_gpr_wen: read_slang --single-unit --top scoreboard_selftest -G FAULT=3 event_scoreboard.sv scoreboard_selftest.sv
+bad_mem_addr: read_slang --single-unit --top scoreboard_selftest -G FAULT=4 event_scoreboard.sv scoreboard_selftest.sv
+bad_mem_op: read_slang --single-unit --top scoreboard_selftest -G FAULT=5 event_scoreboard.sv scoreboard_selftest.sv
+bad_mem_wdata: read_slang --single-unit --top scoreboard_selftest -G FAULT=6 event_scoreboard.sv scoreboard_selftest.sv
+bad_mem_rdata: read_slang --single-unit --top scoreboard_selftest -G FAULT=7 event_scoreboard.sv scoreboard_selftest.sv
+bad_csr_addr: read_slang --single-unit --top scoreboard_selftest -G FAULT=8 event_scoreboard.sv scoreboard_selftest.sv
+bad_csr_data: read_slang --single-unit --top scoreboard_selftest -G FAULT=9 event_scoreboard.sv scoreboard_selftest.sv
+bad_trap_epc: read_slang --single-unit --top scoreboard_selftest -G FAULT=10 event_scoreboard.sv scoreboard_selftest.sv
+bad_trap_cause: read_slang --single-unit --top scoreboard_selftest -G FAULT=11 event_scoreboard.sv scoreboard_selftest.sv
+bad_trap_tval: read_slang --single-unit --top scoreboard_selftest -G FAULT=12 event_scoreboard.sv scoreboard_selftest.sv
+bad_trap_status: read_slang --single-unit --top scoreboard_selftest -G FAULT=13 event_scoreboard.sv scoreboard_selftest.sv
+bad_seq: read_slang --single-unit --top scoreboard_selftest -G FAULT=14 event_scoreboard.sv scoreboard_selftest.sv
+bad_retire: read_slang --single-unit --top scoreboard_selftest -G FAULT=15 event_scoreboard.sv scoreboard_selftest.sv
+bad_missing_req: read_slang --single-unit --top scoreboard_selftest -G FAULT=16 event_scoreboard.sv scoreboard_selftest.sv
+bad_missing_rsp: read_slang --single-unit --top scoreboard_selftest -G FAULT=17 event_scoreboard.sv scoreboard_selftest.sv
+bad_extra_req: read_slang --single-unit --top scoreboard_selftest -G FAULT=18 event_scoreboard.sv scoreboard_selftest.sv
+bad_csr_wen: read_slang --single-unit --top scoreboard_selftest -G FAULT=19 event_scoreboard.sv scoreboard_selftest.sv
+bad_trap_en: read_slang --single-unit --top scoreboard_selftest -G FAULT=20 event_scoreboard.sv scoreboard_selftest.sv
+prep -top scoreboard_selftest
+check -assert
+
+[files]
+@PROJECT_DIR@/pipeline_types.svh
+@PROJECT_DIR@/event_scoreboard.sv
+@PROJECT_DIR@/scoreboard_selftest.sv

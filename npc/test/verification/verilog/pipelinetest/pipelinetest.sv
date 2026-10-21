@@ -1,327 +1,244 @@
-/*
- * 流水线形式化验证顶层（docs/pipeline_test.md）
- * DUT: 五级流水线 riscv32e_core   (vsrc/core/pipeline/riscv32e_core.v)
- * REF: 单周期处理器 riscv32e_core_sc (vsrc/core/single/riscv32e_core.v)
- *
- * 验证策略：
- *   - 指令与load数据作为验证顶层模块的输入（AXI从机模型返回任意数据），
- *     BMC在深度界内遍历各种指令序列及各种访存延迟的组合；
- *   - DUT每完成一条指令(WBU)，才将该指令同步送入REF执行；
- *   - 对比状态转移而非状态空间：pc、dnpc(PC的新值)、写回GPR的编号rd与结果res；
- *   - store不写GPR，其结果不作专门对比；CSR写入经后续的CSR读指令归约为GPR对比。
- */
-`include "riscv32e_defines.v"
+`include "pipeline_types.svh"
 
-module pipelinetest (
+// All matching is by accepted sequence slot and in-order retirement, never PC.
+// Tasks exclude redirects/flush, interrupts, CSR and traps.
+module pipelinetest #(
+    parameter integer N = 5,
+    parameter bit WITH_MEM = 0,
+    parameter bit STALL = 0,
+    parameter integer MAX_WAIT = 2,
+    parameter integer MAX_CYCLES = 96,
+    parameter integer MEM_BYTES = 16,
+    parameter [31:0] RESET_PC = 32'h30000000
+) (
     input wire clk,
-    input wire rst
+    input wire [N*32-1:0] symbolic_instructions,
+    input wire [MEM_BYTES*8-1:0] initial_mem,
+    input wire if_allow_request, mem_allow_request,
+    input wire [31:0] if_response_delay, mem_response_delay
 );
+    // Top-level inputs are unconstrained formal environment sources. Freeze
+    // instruction slots after reset without changing any DUT-internal state.
+    reg [N*32-1:0] sequence_bits;
+    always @(posedge clk) if (reset) sequence_bits <= symbolic_instructions;
+    reg [2:0] reset_count = 0;
+    wire reset = reset_count < 3;
+    reg [31:0] cycle_count;
+    always @(posedge clk) begin
+        if (reset) begin
+            reset_count <= reset_count + 1;
+            cycle_count <= 0;
+        end else if (cycle_count < MAX_CYCLES) cycle_count <= cycle_count + 1;
+    end
+    initial begin
+        assert(N > 0);
+        assert(MEM_BYTES >= 4 && MEM_BYTES % 4 == 0);
+        assert(MAX_CYCLES > N + 3);
+        assert(MAX_WAIT >= 0);
+    end
 
-/* 非确定性输入：AXI读数据(取指令/访存数据)与各通道握手延迟 */
-(* anyseq *) reg [31:0] fv_any_rdata;
-(* anyseq *) reg        fv_arready;
-(* anyseq *) reg        fv_rrespond;
-(* anyseq *) reg        fv_awready;
-(* anyseq *) reg        fv_wready;
-(* anyseq *) reg        fv_brespond;
+    wire [31:0] instr_seq [0:N-1];
+    wire is_mem [0:N-1];
+    instruction_sequence #(.N(N), .WITH_MEM(WITH_MEM), .MEM_BYTES(MEM_BYTES)) sequence_gen (
+        .sequence_bits(sequence_bits), .instr_seq(instr_seq), .is_mem(is_mem)
+    );
 
-/* 复位保持3拍：static_predictor复位链为core_pc→predict_pc→fetch_pc逐级锁存，
-   core_pc第1拍复位到func_get_reset_pc()，predict_pc第2拍才锁存到有效值，
-   fetch_pc需第3拍才能锁存到有效取指地址，复位释放后DUT才从确定的复位PC取指 */
-reg [1:0] f_rstcnt = 0;
-always @(posedge clk) begin
-    if (f_rstcnt != 3) f_rstcnt <= f_rstcnt + 1;
-    if (f_rstcnt != 3) assume(rst);
-    else assume(!rst);
-end
+    // Side 0 = independent single-cycle reference, side 1 = Chisel DUT.
+    wire [1:0] if_req_valid, if_req_ready, if_rsp_valid, if_rsp_ready;
+    wire [31:0] if_req_addr [0:1], if_req_wdata [0:1], if_rsp_data [0:1];
+    wire [3:0] if_req_op [0:1];
+    wire [1:0] mem_req_valid, mem_req_ready, mem_rsp_valid, mem_rsp_ready;
+    wire [31:0] mem_req_addr [0:1], mem_req_wdata [0:1], mem_rsp_data [0:1];
+    wire [31:0] mem_raw_data [0:1];
+    wire [3:0] mem_req_op [0:1];
+    wire [1:0] gpr_wen, csr_wen, trap_en, inst_done;
+    wire [3:0] gpr_waddr [0:1];
+    wire [11:0] csr_waddr [0:1];
+    wire [31:0] gpr_wdata [0:1], csr_wdata [0:1];
+    wire [31:0] trap_epc [0:1], trap_cause [0:1], trap_tval [0:1], trap_status [0:1];
+    wire [31:0] pc [0:1], dnpc [0:1];
 
-/* ------------------------------------------------------------------ */
-/* AXI从机模型：任意延迟的单拍读写，读数据任意（由assume约束取指合法）  */
-/* ------------------------------------------------------------------ */
-wire        m_awready;
-wire        m_awvalid;
-wire [31:0] m_awaddr;
-wire [3:0]  m_awid;
-wire [7:0]  m_awlen;
-wire [2:0]  m_awsize;
-wire [1:0]  m_awburst;
-wire        m_wready;
-wire        m_wvalid;
-wire [31:0] m_wdata;
-wire [3:0]  m_wstrb;
-wire        m_wlast;
-wire        m_bready;
-wire        m_bvalid;
-wire [1:0]  m_bresp;
-wire [3:0]  m_bid;
-wire        m_arready;
-wire        m_arvalid;
-wire [31:0] m_araddr;
-wire [3:0]  m_arid;
-wire [7:0]  m_arlen;
-wire [2:0]  m_arsize;
-wire [1:0]  m_arburst;
-wire        m_rready;
-wire        m_rvalid;
-wire [1:0]  m_rresp;
-wire [31:0] m_rdata;
-wire        m_rlast;
-wire [3:0]  m_rid;
+`define CORE_PORTS(S) \
+    .clock(clk), .reset(reset), .reset_pc(RESET_PC), .io_interrupt(1'b0), \
+    .io_if_req_valid(if_req_valid[S]), .io_if_req_ready(if_req_ready[S]), \
+    .io_if_req_addr(if_req_addr[S]), .io_if_req_op(if_req_op[S]), \
+    .io_if_req_wdata(if_req_wdata[S]), .io_if_rsp_valid(if_rsp_valid[S]), \
+    .io_if_rsp_ready(if_rsp_ready[S]), .io_if_rsp_data(if_rsp_data[S]), \
+    .io_mem_req_valid(mem_req_valid[S]), .io_mem_req_ready(mem_req_ready[S]), \
+    .io_mem_req_addr(mem_req_addr[S]), .io_mem_req_op(mem_req_op[S]), \
+    .io_mem_req_wdata(mem_req_wdata[S]), .io_mem_rsp_valid(mem_rsp_valid[S]), \
+    .io_mem_rsp_ready(mem_rsp_ready[S]), .io_mem_rsp_data(mem_rsp_data[S]), \
+    .gpr_wen(gpr_wen[S]), .gpr_waddr(gpr_waddr[S]), .gpr_wdata(gpr_wdata[S]), \
+    .csr_wen(csr_wen[S]), .csr_waddr(csr_waddr[S]), .csr_wdata(csr_wdata[S]), \
+    .trap_en(trap_en[S]), .trap_epc(trap_epc[S]), .trap_cause(trap_cause[S]), \
+    .trap_tval(trap_tval[S]), .trap_status(trap_status[S]), \
+    .pc(pc[S]), .dnpc(dnpc[S]), .inst_done(inst_done[S])
 
-/* 复用单周期核的译码器判断取指数据的合法性（assume(!isIllegal)） */
-wire [6:0]  dec_opcode;
-wire [4:0]  dec_rd;
-wire [2:0]  dec_funct3;
-wire [4:0]  dec_rs1;
-wire [4:0]  dec_rs2;
-wire [6:0]  dec_funct7;
-wire [31:0] dec_imm;
-wire [2:0]  dec_type;
-wire [`INST_CODE_W-1:0] dec_code;
-decoder fv_decoder(fv_any_rdata, dec_opcode, dec_rd, dec_funct3,
-    dec_rs1, dec_rs2, dec_funct7, dec_imm, dec_type, dec_code);
+    riscv32e_core_sc reference_core (`CORE_PORTS(0));
+    riscv32e_core dut (`CORE_PORTS(1));
+`undef CORE_PORTS
 
-/* CSR指令的地址限制在已实现的CSR范围内 */
-wire fv_csr_addr_ok =
-    (fv_any_rdata[31:20]==`CSR_MSTATUS) | (fv_any_rdata[31:20]==`CSR_MTVEC) |
-    (fv_any_rdata[31:20]==`CSR_MEPC) | (fv_any_rdata[31:20]==`CSR_MCAUSE) |
-    (fv_any_rdata[31:20]==`CSR_MVENDORID) | (fv_any_rdata[31:20]==`CSR_MARCHID);
-wire fv_inst_legal =
-    /* 排除非法指令及仿真结束的ebreak */
-    (dec_code!=`INST_INVALID)
-    & (dec_code!=`INST_EBREAK)
-    /* DUT未处理CSR写后读冒险，默认不生成CSRRW；CSRRS仅允许rs1=x0的纯读形式 */
-    & (dec_code!=`INST_CSRRW)
-    & ((dec_code!=`INST_CSRRS) | (dec_rs1==0))
-    & (((dec_code!=`INST_CSRRW) & (dec_code!=`INST_CSRRS)) | fv_csr_addr_ok)
-    /* DUT未实现RV32M扩展(pipeline的inst_decode将MUL/DIV/REM译码为非法指令)，
-       而REF的单周期译码器支持之，双方行为不一致，取指序列中排除MUL/DIV/REM */
-    & ((dec_opcode!=7'b0110011) | (dec_funct7!=7'b0000001))
-    /* RV32E仅实现x0-x15共16个GPR(DUT的gprs写索引截断为4bit,rd=31实际写x15,
-       而RAW检测按完整5bit rd比较会漏检该别名冒险)；x16-x31为规范保留编码，
-       按指令类型排除真正引用它们的寄存器字段(非寄存器用途的字段如立即数不受限) */
-    & ((dec_type!=`TYPE_R)&(dec_type!=`TYPE_I)&(dec_type!=`TYPE_U)&(dec_type!=`TYPE_J) | (dec_rd<16))
-    & ((dec_type!=`TYPE_R)&(dec_type!=`TYPE_I)&(dec_type!=`TYPE_S)&(dec_type!=`TYPE_B) | (dec_rs1<16))
-    & ((dec_type!=`TYPE_R)&(dec_type!=`TYPE_S)&(dec_type!=`TYPE_B) | (dec_rs2<16));
+    wire [31:0] ref_executed, ref_retired, dut_retired;
+    wire ref_execute = !reset && ref_executed < N;
+    // The REF has no execution-enable input. After the finite sequence feed NOPs;
+    // do not gate its clock or reset it before the last retirement is captured.
+    assign if_req_ready[0] = !reset;
+    assign if_rsp_valid[0] = !reset;
+    assign if_rsp_data[0] = ref_execute ? instr_seq[ref_executed] : 32'h00000013;
 
-/* 读通道 */
-reg        r_rpending;
-reg [3:0]  r_rid;
-reg        r_rvalid;
-reg [31:0] r_rdata;
-assign m_arready = fv_arready & !r_rpending & !r_rvalid;
-always @(posedge clk) begin
-    if (rst) begin
-        r_rpending <= 0;
-        r_rvalid <= 0;
-        r_rid <= 0;
-        r_rdata <= 0;
-    end else begin
-        if (m_arvalid && m_arready) begin
-            r_rpending <= 1;
-            r_rid <= m_arid;
-            r_rdata <= fv_any_rdata;
-            /* 取指数据必须是合法指令，从而排除指令序列中的非法指令 */
-            if (m_arid == `AXI4_ID_IFU) begin
-                assume(fv_inst_legal);
+    reg [31:0] if_accepted, if_returned;
+    reg [31:0] accepted_ids [0:N-1];
+    wire if_busy;
+    wire if_request = if_req_valid[1] && if_req_ready[1];
+    wire if_response = if_rsp_valid[1] && if_rsp_ready[1];
+    wire [31:0] next_instruction = if_accepted < N ? instr_seq[if_accepted] : 32'h00000013;
+    bounded_response #(.PIPELINED(1), .STALL(STALL), .MAX_WAIT(MAX_WAIT)) instruction_server (
+        .clk(clk), .reset(reset), .enable(if_accepted < N),
+        .allow_request(if_allow_request), .response_delay(if_response_delay),
+        .req_valid(if_req_valid[1]), .req_ready(if_req_ready[1]),
+        .response_payload(next_instruction), .rsp_valid(if_rsp_valid[1]),
+        .rsp_ready(if_rsp_ready[1]), .rsp_payload(if_rsp_data[1]), .busy(if_busy)
+    );
+    always @(posedge clk) begin
+        if (reset) begin
+            if_accepted <= 0;
+            if_returned <= 0;
+            for (integer i = 0; i < N; i = i + 1) accepted_ids[i] <= 0;
+        end else begin
+            if (if_request) begin
+                assert(if_accepted < N);
+                // Address is checked only as an independent straight-line IF
+                // contract. It is NOT used to pair architectural event records.
+                assert(if_req_addr[1] == RESET_PC + 4*if_accepted);
+                assert(if_req_op[1] == 4'h2);
+                assert(if_req_wdata[1] == 0);
+                if (if_accepted < N) accepted_ids[if_accepted] <= if_accepted;
+                if_accepted <= if_accepted + 1;
+            end
+            if (if_response) begin
+                assert(if_returned < if_accepted);
+                if (if_returned < N) assert(accepted_ids[if_returned] == if_returned);
+                if_returned <= if_returned + 1;
+            end
+            assert(if_returned <= if_accepted);
+            assert(if_accepted <= N);
+            // After N accepted fetches the environment stops serving. A held
+            // speculative fetch is allowed, but not additional side effects.
+        end
+    end
+
+    wire [1:0] mem_busy;
+    for (genvar s = 0; s < 2; s = s + 1) begin : memory_side
+        symbolic_memory #(.MEM_BYTES(MEM_BYTES), .ZERO_LATENCY(s == 0),
+                          .STALL(STALL), .MAX_WAIT(MAX_WAIT)) memory_model (
+            .clk(clk), .reset(reset), .initial_mem(initial_mem),
+            .allow_request(mem_allow_request), .response_delay(mem_response_delay),
+            .req_valid(mem_req_valid[s]), .req_ready(mem_req_ready[s]),
+            .req_addr(mem_req_addr[s]), .req_wdata(mem_req_wdata[s]), .req_op(mem_req_op[s]),
+            .rsp_valid(mem_rsp_valid[s]), .rsp_ready(mem_rsp_ready[s]),
+            .rsp_data(mem_rsp_data[s]), .raw_data(mem_raw_data[s]), .busy(mem_busy[s])
+        );
+    end
+    request_stability if_protocol (
+        .clk(clk), .reset(reset), .valid(if_req_valid[1]), .ready(if_req_ready[1]),
+        .payload({if_req_addr[1], if_req_op[1], if_req_wdata[1]})
+    );
+    request_stability mem_protocol (
+        .clk(clk), .reset(reset), .valid(mem_req_valid[1]), .ready(mem_req_ready[1]),
+        .payload({mem_req_addr[1], mem_req_op[1], mem_req_wdata[1]})
+    );
+
+    instruction_record_t ref_records [0:N-1], dut_records [0:N-1];
+    wire [31:0] mem_requests, mem_responses;
+    wire mem_pending;
+    ref_monitor #(.N(N)) reference_monitor (
+        .clk(clk), .reset(reset), .execute(ref_execute), .inst_done(inst_done[0]),
+        .gpr_wen(gpr_wen[0]), .gpr_waddr(gpr_waddr[0]), .gpr_wdata(gpr_wdata[0]),
+        .mem_req(mem_req_valid[0] && mem_req_ready[0]),
+        .mem_rsp(mem_rsp_valid[0] && mem_rsp_ready[0]),
+        .mem_addr(mem_req_addr[0]), .mem_op(mem_req_op[0]), .mem_wdata(mem_req_wdata[0]),
+        .mem_raw_data(mem_raw_data[0]), .csr_wen(csr_wen[0]), .trap_en(trap_en[0]),
+        .records(ref_records), .executed_count(ref_executed), .retired_count(ref_retired)
+    );
+    dut_monitor #(.N(N)) pipeline_monitor (
+        .clk(clk), .reset(reset), .is_mem(is_mem), .returned_count(if_returned),
+        .inst_done(inst_done[1]), .gpr_wen(gpr_wen[1]),
+        .gpr_waddr(gpr_waddr[1]), .gpr_wdata(gpr_wdata[1]),
+        .mem_req(mem_req_valid[1] && mem_req_ready[1]),
+        .mem_rsp(mem_rsp_valid[1] && mem_rsp_ready[1]),
+        .mem_addr(mem_req_addr[1]), .mem_op(mem_req_op[1]), .mem_wdata(mem_req_wdata[1]),
+        .mem_rdata(mem_rsp_data[1]), .csr_wen(csr_wen[1]), .trap_en(trap_en[1]),
+        .records(dut_records), .retired_count(dut_retired),
+        .mem_request_count(mem_requests), .mem_response_count(mem_responses),
+        .mem_pending(mem_pending)
+    );
+    wire [31:0] compared_count;
+    wire records_complete;
+    event_scoreboard #(.N(N)) scoreboard (
+        .clk(clk), .reset(reset), .ref_records(ref_records), .dut_records(dut_records),
+        .compared_count(compared_count), .complete(records_complete)
+    );
+    wire complete = records_complete && ref_retired == N && dut_retired == N &&
+                    if_accepted == N && if_returned == N && !if_busy &&
+                    !mem_busy[1] && !mem_pending && mem_requests == mem_responses;
+    reg previous_retire;
+    always @(posedge clk) begin
+        if (reset) previous_retire <= 0;
+        else begin
+            previous_retire <= inst_done[1];
+            // Explicit x0 diagnostic probes, not a substitute for port-event
+            // comparison. These two paths are the only GPR hierarchy dependency.
+            assert(reference_core.m_gprs.x[0] == 0);
+            assert(dut.m_gprs.x[0] == 0);
+            if (!WITH_MEM) assert(!mem_req_valid[0] && !mem_req_valid[1]);
+            if (!ref_execute) begin
+                assert(!(gpr_wen[0] && gpr_waddr[0] != 0));
+                assert(!mem_req_valid[0] && !csr_wen[0] && !trap_en[0]);
+            end
+            if (dut_retired == N) begin
+                assert(!inst_done[1]);
+                assert(!(gpr_wen[1] && gpr_waddr[1] != 0));
+                assert(!mem_req_valid[1] && !mem_pending && !mem_busy[1]);
+            end
+`ifdef CHECK_PROGRESS
+            if (cycle_count == MAX_CYCLES) assert(complete);
+`endif
+            cover(complete);
+            if (N >= 2) begin
+                cover(previous_retire && inst_done[1]);
+                cover(if_accepted > dut_retired + 1);
+            end
+            if (STALL && MAX_WAIT > 0) begin
+                cover(if_busy && !if_rsp_valid[1]);
+                cover(if_accepted < N && if_req_valid[1] && !if_req_ready[1]);
+            end
+            if (WITH_MEM) begin
+                if (STALL && MAX_WAIT > 0) begin
+                    cover(mem_req_valid[1] && !mem_req_ready[1]);
+                    cover(mem_busy[1] && !mem_rsp_valid[1]);
+                end
+                cover(complete && mem_requests != 0);
             end
         end
-        if (r_rpending && fv_rrespond) begin
-            r_rpending <= 0;
-            r_rvalid <= 1;
-        end
-        if (r_rvalid && m_rready) begin
-            r_rvalid <= 0;
+    end
+    for (genvar i = 1; i < N; i = i + 1) begin : dependency_coverage
+        always @(posedge clk) if (!reset) begin
+            cover(complete && instr_seq[i-1][6:0] != 7'h23 &&
+                  instr_seq[i-1][11:7] != 0 && instr_seq[i][6:0] != 7'h37 &&
+                  instr_seq[i][19:15] == instr_seq[i-1][11:7]);
+            cover(complete && instr_seq[i-1][6:0] != 7'h23 &&
+                  instr_seq[i][6:0] != 7'h23 && instr_seq[i][11:7] != 0 &&
+                  instr_seq[i][11:7] == instr_seq[i-1][11:7]);
         end
     end
-end
-assign m_rvalid = r_rvalid;
-assign m_rdata = r_rdata;
-assign m_rresp = 0;
-assign m_rlast = r_rvalid;
-assign m_rid = r_rid;
-
-/* 写通道：store结果不参与对比，从机只需保证协议正确完成 */
-reg       r_wgot;
-reg [3:0] r_bid;
-reg       r_bwait;
-reg       r_bvalid;
-assign m_awready = fv_awready & !r_wgot & !r_bwait & !r_bvalid;
-assign m_wready = fv_wready & r_wgot;
-always @(posedge clk) begin
-    if (rst) begin
-        r_wgot <= 0;
-        r_bwait <= 0;
-        r_bvalid <= 0;
-        r_bid <= 0;
-    end else begin
-        if (m_awvalid && m_awready) begin
-            r_wgot <= 1;
-            r_bid <= m_awid;
+    for (genvar op = 0; op < 8; op = op + 1) begin : memory_coverage
+        if (WITH_MEM && (op <= 2 || op == 4 || op == 5)) begin
+            always @(posedge clk) if (!reset)
+                cover(mem_req_valid[1] && mem_req_ready[1] && mem_req_op[1] == op);
         end
-        if (m_wvalid && m_wready) begin
-            r_wgot <= 0;
-            r_bwait <= 1;
-        end
-        if (r_bwait && fv_brespond) begin
-            r_bwait <= 0;
-            r_bvalid <= 1;
-        end
-        if (r_bvalid && m_bready) begin
-            r_bvalid <= 0;
+        if (WITH_MEM && op <= 2) begin
+            always @(posedge clk) if (!reset)
+                cover(mem_req_valid[1] && mem_req_ready[1] && mem_req_op[1] == op + 8);
         end
     end
-end
-assign m_bvalid = r_bvalid;
-assign m_bresp = 0;
-assign m_bid = r_bid;
-
-/* 访存约束：只允许对齐访问(单拍len=0)，排除不对齐访存；地址0被仲裁器视为无请求 */
-always @(*) begin
-    if (m_arvalid) begin
-        assume(m_arlen == 0);
-        assume(m_araddr != 0);
-    end
-    if (m_awvalid) begin
-        assume(m_awlen == 0);
-        assume(m_awaddr != 0);
-    end
-end
-
-/* ------------------------------------------------------------------ */
-/* DUT：流水线核（形式化配置下IFU/LSU经仲裁器直连io_master）            */
-/* ------------------------------------------------------------------ */
-wire [31:0] dut_wb_pc;
-wire [31:0] dut_wb_dnpc;
-wire [31:0] dut_wb_inst;
-wire [4:0]  dut_wb_rd;
-wire [31:0] dut_wb_result;
-wire        dut_wb_result_update_gpr;
-wire [31:0] dut_wb_ld_data;
-wire        dut_valid;
-
-riscv32e_core dut (
-    .clk(clk),
-    .rst(rst),
-
-    .io_interrupt(1'b0),
-    .io_master_awready(m_awready),
-    .io_master_awvalid(m_awvalid),
-    .io_master_awaddr(m_awaddr),
-    .io_master_awid(m_awid),
-    .io_master_awlen(m_awlen),
-    .io_master_awsize(m_awsize),
-    .io_master_awburst(m_awburst),
-    .io_master_wready(m_wready),
-    .io_master_wvalid(m_wvalid),
-    .io_master_wdata(m_wdata),
-    .io_master_wstrb(m_wstrb),
-    .io_master_wlast(m_wlast),
-    .io_master_bready(m_bready),
-    .io_master_bvalid(m_bvalid),
-    .io_master_bresp(m_bresp),
-    .io_master_bid(m_bid),
-    .io_master_arready(m_arready),
-    .io_master_arvalid(m_arvalid),
-    .io_master_araddr(m_araddr),
-    .io_master_arid(m_arid),
-    .io_master_arlen(m_arlen),
-    .io_master_arsize(m_arsize),
-    .io_master_arburst(m_arburst),
-    .io_master_rready(m_rready),
-    .io_master_rvalid(m_rvalid),
-    .io_master_rresp(m_rresp),
-    .io_master_rdata(m_rdata),
-    .io_master_rlast(m_rlast),
-    .io_master_rid(m_rid),
-
-    .pc(),
-    .valid(dut_valid),
-
-    .fv_wb_pc(dut_wb_pc),
-    .fv_wb_dnpc(dut_wb_dnpc),
-    .fv_wb_inst(dut_wb_inst),
-    .fv_wb_rd(dut_wb_rd),
-    .fv_wb_result(dut_wb_result),
-    .fv_wb_result_update_gpr(dut_wb_result_update_gpr),
-    .fv_wb_ld_data(dut_wb_ld_data)
-);
-
-/* ------------------------------------------------------------------ */
-/* REF：单周期核，DUT每完成一条指令才同步执行                           */
-/* ------------------------------------------------------------------ */
-wire [31:0] ref_pc;
-wire [31:0] ref_dnpc;
-wire [4:0]  ref_rd;
-wire [31:0] ref_res;
-wire        ref_wen;
-
-riscv32e_core_sc ref_core (
-    .clk(clk),
-    .rst(rst),
-
-    .i_valid(dut_valid),
-    .i_inst(dut_wb_inst),
-    .i_ld_data(dut_wb_ld_data),
-
-    .o_pc(ref_pc),
-    .o_dnpc(ref_dnpc),
-    .o_rd(ref_rd),
-    .o_res(ref_res),
-    .o_wen(ref_wen)
-);
-
-/* ------------------------------------------------------------------ */
-/* 验证条件：对比状态转移                                              */
-/* ------------------------------------------------------------------ */
-always @(posedge clk) begin
-    if (!rst && dut_valid) begin
-        /* 对比PC与PC的新值，检查控制流转移是否正确 */
-        assert(dut_wb_pc == ref_pc);
-        assert(dut_wb_dnpc == ref_dnpc);
-        /* 写回GPR的编号与结果一致；不写GPR的指令无需对比rd/res */
-        assert(dut_wb_result_update_gpr == ref_wen);
-        if (dut_wb_result_update_gpr) begin
-            assert(dut_wb_rd == ref_rd);
-            assert(dut_wb_result == ref_res);
-        end
-    end
-end
-
-/* ------------------------------------------------------------------ */
-/* 覆盖点：确认BMC确实遍历到了各类完成指令（防止空通过）                */
-/* ------------------------------------------------------------------ */
-wire [6:0]  wb_dec_opcode;
-wire [4:0]  wb_dec_rd;
-wire [2:0]  wb_dec_funct3;
-wire [4:0]  wb_dec_rs1;
-wire [4:0]  wb_dec_rs2;
-wire [6:0]  wb_dec_funct7;
-wire [31:0] wb_dec_imm;
-wire [2:0]  wb_dec_type;
-wire [`INST_CODE_W-1:0] wb_dec_code;
-decoder wb_decoder(dut_wb_inst, wb_dec_opcode, wb_dec_rd, wb_dec_funct3,
-    wb_dec_rs1, wb_dec_rs2, wb_dec_funct7, wb_dec_imm, wb_dec_type, wb_dec_code);
-
-always @(posedge clk) begin
-    if (!rst) begin
-        cover(dut_valid);                                                   // 有指令完成
-        cover(dut_valid && (wb_dec_code==`INST_ADD));                       // ALU R型
-        cover(dut_valid && (wb_dec_code==`INST_ADDI));                      // ALU I型
-        cover(dut_valid && (wb_dec_code==`INST_SLLI));                      // 移位
-        cover(dut_valid && (wb_dec_code==`INST_BEQ || wb_dec_code==`INST_BNE || wb_dec_code==`INST_BLT
-            || wb_dec_code==`INST_BGE || wb_dec_code==`INST_BLTU || wb_dec_code==`INST_BGEU)); // 条件分支
-        cover(dut_valid && (wb_dec_code==`INST_JAL));                       // jal
-        cover(dut_valid && (wb_dec_code==`INST_JALR));                      // jalr
-        cover(dut_valid && (wb_dec_code==`INST_LW));                        // load
-        cover(dut_valid && (wb_dec_code==`INST_LH));                        // load半字
-        cover(dut_valid && (wb_dec_code==`INST_SW));                        // store
-        cover(dut_valid && (wb_dec_code==`INST_CSRRS));                     // CSR指令
-        cover(dut_valid && (wb_dec_code==`INST_ECALL));                     // ecall
-        cover(dut_valid && (wb_dec_code==`INST_MRET));                      // mret
-        cover(dut_valid && (wb_dec_code==`INST_FENCE_I));                   // fence.i
-
-    end
-end
-
 endmodule
