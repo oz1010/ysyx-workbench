@@ -24,7 +24,7 @@ endef
 # 	-@sync $(LOCK_DIR)
 # endef
 define git_commit
-	-@echo "\33[1;42m------ STEP: $(1) ------ \33[0m"
+	-@echo "\33[1;42m++++++ STEP: $(1) ++++++ \33[0m"
 endef
 
 .git_commit:
@@ -45,3 +45,4 @@ _default:
 	@echo "Please run 'make' under subprojects."
 
 .PHONY: .git_commit .clean_index _default
+
