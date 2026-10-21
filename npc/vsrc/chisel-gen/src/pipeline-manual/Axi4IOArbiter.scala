@@ -10,7 +10,6 @@ import config.ManuConfig._
   */
 // TODO 2. 输入应该是一个axi4通道数组 3. 读写分离
 class Axi4IOArbiter(
-  p: CoreParams,
   ClientNum: Int
 ) extends Module {
 
@@ -18,8 +17,8 @@ class Axi4IOArbiter(
   require(ClientNum > 0, "ClientNum must be greater than 0")
 
   val io = IO(new Bundle {
-    val clients = Vec(ClientNum, Flipped(new OldAxi4IO(p))) // 将客户端请求分发到总线上
-    val master  = new OldAxi4IO(p)
+    val clients = Vec(ClientNum, Flipped(new Axi4IO())) // 将客户端请求分发到总线上
+    val master  = new Axi4IO()
   })
 
   val sIdle :: sRead :: Nil = Enum(2)

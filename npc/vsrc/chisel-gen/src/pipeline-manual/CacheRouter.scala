@@ -10,7 +10,13 @@ class CacheRouter() extends Module {
   val io_mem    = IO(Flipped(new CacheIO()))
   val io_master = IO(new Axi4IO())
 
-  CacheIOSlaveDefaults(io_if)
+  val arbiter = Module(new Axi4IOArbiter(1))
+  val icache  = Module(new ICache())
+
+  icache.io.cpu <> io_if
+
+  arbiter.io.master <> io_master
+  arbiter.io.clients(0) <> icache.io.master
+
   CacheIOSlaveDefaults(io_mem)
-  Axi4MasterDefaults(io_master)
 }
