@@ -16,7 +16,8 @@ import scala.util.matching.Regex
   *     (* blackbox *) 空壳，不计入芯片面积； cache 内部的 tagMem/dataMem
   *     等核内存储阵列随核逻辑正常综合，计入芯片面积；
   *   - 不在顶层层级中的其余类仍按原来的逐类独立编译输出；
-  *   - src 下遇到的 .v/.sv 手写 Verilog 不做编译，原样拷贝到生成目录
+  *   - 目标目录（如 src/pipeline-manual）与 src/common 下遇到的 .v/.sv 手写 Verilog 不做编译，原样拷贝到生成目录
+  * 参数：args(0) 输出根目录（默认 build），args(1) 生成目录名（默认 pipeline-manual）。
   */
 object Generate {
   private val modulePattern: Regex =
@@ -25,16 +26,21 @@ object Generate {
   private val packagePattern: Regex =
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
 
-  /** 顶层全层级编译的入口类（对外适配层，端口与手写核例化保持一致）。 */
-  private val topFqcn = "pipeline_manual.riscv32e_core"
+  /** 顶层全层级编译的入口类（对外适配层，端口与手写核例化保持一致），
+    * 由命令行传入的生成目录名推导：目录 `pipeline-manual` 对应包 `pipeline_manual`。 */
+  private def topFqcnFor(genName: String): String =
+    genName.replace('-', '_') + ".riscv32e_core"
 
-  private def sourceModules(root: Path): Seq[(Path, String)] = {
-    Files
-      .walk(root)
-      .iterator()
-      .asScala
-      .filter(p => Files.isRegularFile(p) && p.toString.endsWith(".scala"))
-      .toSeq
+  private def sourceModules(roots: Seq[Path]): Seq[(Path, String)] = {
+    roots
+      .flatMap(root =>
+        Files
+          .walk(root)
+          .iterator()
+          .asScala
+          .filter(p => Files.isRegularFile(p) && p.toString.endsWith(".scala"))
+          .toSeq
+      )
       .flatMap { file =>
         val text = Files.readString(file)
         val pkg  = packagePattern
@@ -49,16 +55,19 @@ object Generate {
       .sortBy { case (file, name) => (file.toString, name) }
   }
 
-  private def sourceVerilogFiles(root: Path): Seq[Path] = {
-    Files
-      .walk(root)
-      .iterator()
-      .asScala
-      .filter(p =>
-        Files.isRegularFile(p) && (p.toString.endsWith(".v") || p.toString
-          .endsWith(".sv"))
+  private def sourceVerilogFiles(roots: Seq[Path]): Seq[Path] = {
+    roots
+      .flatMap(root =>
+        Files
+          .walk(root)
+          .iterator()
+          .asScala
+          .filter(p =>
+            Files.isRegularFile(p) && (p.toString.endsWith(".v") || p.toString
+              .endsWith(".sv"))
+          )
+          .toSeq
       )
-      .toSeq
       .sortBy(_.toString)
   }
 
@@ -196,10 +205,18 @@ object Generate {
     val root       = Paths.get(".").toAbsolutePath.normalize()
     val sourceRoot = root.resolve("src")
     val outRoot    = root.resolve(if (args.nonEmpty) args(0) else "build")
+    // 生成目标目录名（如 pipeline-manual）：只编译该目录 + common 下的源文件
+    val genName    = if (args.length > 1) args(1) else "pipeline-manual"
     Files.createDirectories(outRoot)
 
-    val modules = sourceModules(sourceRoot)
-    require(modules.nonEmpty, s"No Module classes found below $sourceRoot")
+    val sourceDirs = Seq(sourceRoot.resolve(genName), sourceRoot.resolve("common"))
+    require(
+      Files.isDirectory(sourceDirs.head),
+      s"no such pipeline source dir: ${sourceDirs.head}"
+    )
+    val topFqcn = topFqcnFor(genName)
+    val modules = sourceModules(sourceDirs)
+    require(modules.nonEmpty, s"No Module classes found below $sourceDirs")
 
     def targetFor(source: Path, fqcn: String): Path = {
       val relative  = sourceRoot.relativize(source)
@@ -221,7 +238,7 @@ object Generate {
     }
 
     // ---- 0) 手写 Verilog (.v/.sv) 原样拷贝，保持相对路径 ----
-    sourceVerilogFiles(sourceRoot).foreach { source =>
+    sourceVerilogFiles(sourceDirs).foreach { source =>
       val relative = sourceRoot.relativize(source)
       val target   = outRoot.resolve(relative)
       Option(target.getParent).foreach(Files.createDirectories(_))
