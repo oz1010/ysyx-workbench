@@ -51,6 +51,11 @@ choice
         bool "pipeline-chisel"
 endchoice
 
+config CHISEL_DIR_NAME
+    string "Directory name for Chisel compilation"
+    depends on ISA_RISCV_PIPELINE_CHISEL
+    default pipeline-manual
+
 config ISA
   string
   default "x86" if ISA_x86
