@@ -15,6 +15,7 @@ import config.ManuConfig._
 
 class Ifu(p: CoreParams) extends Module {
   val io = IO(new Bundle {
+    val reset_pc   = Input(UInt(CONFIG_ADDR_WIDTH.W))
     val cache      = new CacheIO()
     val out        = Decoupled(new IfBundle(p))
     val exRedirect = Input(new Redirect(p)) // 预测失败/跳转修正（EX 级）
@@ -24,19 +25,10 @@ class Ifu(p: CoreParams) extends Module {
   val ready   = RegInit(false.B) // 模块就绪标识
   val reqPend = RegInit(false.B) // 已发出请求、等待 ICache 返回
 
-  // 真正的硬件pc应该直接内置默认值p.RESET_PC
+  // 复位重置pc值
   val pc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
-  if (p.RESET_PC_EN) {
-    when(reset.asBool) {
-      pc := p.RESET_PC.U
-    }
-  } else {
-    val resetPcGetter = Module(new ResetPcGetter(CONFIG_ADDR_WIDTH))
-    resetPcGetter.io.clk := clock
-    resetPcGetter.io.rst := reset.asBool
-    when(reset.asBool) {
-      pc := resetPcGetter.io.reset_pc
-    }
+  when(reset.asBool) {
+    pc := io.reset_pc
   }
   ready := true.B
 
