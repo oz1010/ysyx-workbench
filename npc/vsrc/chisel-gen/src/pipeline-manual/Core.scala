@@ -62,6 +62,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     hazardUnit.io.wbRedirect := wbRedirect.valid
 
     // ---------------- IFU ----------------
+    ifu.io.reset_pc   := reset_pc
     ifu.io.cache <> io_if
     ifu.io.exRedirect := exRedirect
     ifu.io.wbRedirect := wbRedirect
@@ -119,17 +120,20 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     wbu.io.csrMtvec  := m_csrs.io.mtvec
 
     // ---------------- 关键输出 ----------------
-    val core_pc   = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
-    val core_dnpc = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
-    core_pc   := wbu.io.out.bits.pc
+    val core_pc   = Reg(UInt(CONFIG_ADDR_WIDTH.W))
+    val core_dnpc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
+    core_pc   := Mux(
+      reset.asBool,
+      reset_pc,
+      Mux(wbu.io.out.fire, wbu.io.out.bits.dnpc, core_pc)
+    )
+    core_dnpc := Mux(
+      reset.asBool,
+      reset_pc,
+      Mux(lsu.io.out.fire, lsu.io.out.bits.dnpc, core_dnpc)
+    )
     pc        := core_pc
     dnpc      := core_dnpc
     inst_done := wbu.io.out.valid
-    when(wbu.io.out.valid) {
-      core_pc := wbu.io.out.bits.pc
-    }
-    when(lsu.io.out.valid) {
-      core_dnpc := lsu.io.out.bits.pc
-    }
   }
 }

@@ -78,16 +78,18 @@ class Exu(p: CoreParams) extends Module {
   val eq         = rs1f === rs2f
   val lt         = rs1f.asSInt < rs2f.asSInt
   val ltu        = rs1f < rs2f
-  val taken      = MuxLookup(in.ctrl.memOp, false.B)(
-    Seq( // memOp 复用 funct3
-      0.U -> eq,
-      1.U -> !eq,
-      4.U -> lt,
-      5.U -> !lt,
-      6.U -> ltu,
-      7.U -> !ltu
-    )
-  )
+  // TODO taken逻辑有问题
+  val taken      = false.B
+  // val taken      = MuxLookup(in.ctrl.memOp, false.B)(
+  //   Seq( // memOp 复用 funct3
+  //     0.U -> eq,
+  //     1.U -> !eq,
+  //     4.U -> lt,
+  //     5.U -> !lt,
+  //     6.U -> ltu,
+  //     7.U -> !ltu
+  //   )
+  // )
   val brTarget   = in.pc + in.imm
   val jalrTarget = (rs1f + in.imm) & (~1.U(CONFIG_ADDR_WIDTH.W)).asUInt
   // 预测修正：分支实际走向与预测不符；JALR 预测 not-taken 恒需修正
@@ -135,6 +137,7 @@ class Exu(p: CoreParams) extends Module {
   io.in.ready           := io.out.ready
   io.out.valid          := io.in.valid
   io.out.bits.pc        := in.pc
+  io.out.bits.dnpc      := redirTgt
   io.out.bits.aluResult := aluResult
   io.out.bits.storeData := rs2f
   io.out.bits.rdAddr    := in.rdAddr

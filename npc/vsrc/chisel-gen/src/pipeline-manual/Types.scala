@@ -432,6 +432,7 @@ class IdBundle(p: CoreParams) extends Bundle {
 /** EX数据 */
 class ExBundle(p: CoreParams) extends Bundle {
   val pc        = UInt(CONFIG_ADDR_WIDTH.W)
+  val dnpc      = UInt(CONFIG_ADDR_WIDTH.W)
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val storeData = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
@@ -446,6 +447,7 @@ class ExBundle(p: CoreParams) extends Bundle {
 /** LS数据 */
 class LsBundle(p: CoreParams) extends Bundle {
   val pc        = UInt(CONFIG_ADDR_WIDTH.W)
+  val dnpc      = UInt(CONFIG_ADDR_WIDTH.W)
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val loadData  = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
@@ -459,7 +461,8 @@ class LsBundle(p: CoreParams) extends Bundle {
 
 /** WB数据 */
 class WbBundle(p: CoreParams) extends Bundle {
-  val pc = UInt(CONFIG_ADDR_WIDTH.W)
+  val pc   = UInt(CONFIG_ADDR_WIDTH.W)
+  val dnpc = UInt(CONFIG_ADDR_WIDTH.W)
 }
 
 /** 寄存器读写取接口，master视角，支持GPR CSR */

@@ -62,6 +62,7 @@ class Lsu(p: CoreParams) extends Module {
   io.in.ready           := io.out.ready && !memWait
   io.out.valid          := io.in.valid && !memWait && !io.kill
   io.out.bits.pc        := in.pc
+  io.out.bits.dnpc      := in.dnpc
   io.out.bits.aluResult := in.aluResult
   io.out.bits.loadData  := loadData
   io.out.bits.rdAddr    := in.rdAddr

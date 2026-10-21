@@ -103,6 +103,7 @@ module riscv32e_memsys #(
         if (`RISCV_RESET_PC_EN) begin // 直接使用静态值
             assign reset_pc = `RISCV_RESET_PC;
         end else begin // 从镜像读取值
+            // TODO 这里从函数里面读取值需要经历多个周期才有效存在问题
             always @(posedge clock) begin
                 if (reset) begin
                     reset_pc <= func_get_reset_pc();

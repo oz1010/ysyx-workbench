@@ -71,7 +71,12 @@ class Wbu(p: CoreParams) extends Module {
   io.gprWrite.data := wbData
 
   // 流水线处理
-  io.in.ready    := true.B
-  io.out.valid   := v
-  io.out.bits.pc := io.in.bits.pc
+  io.in.ready      := true.B
+  io.out.valid     := v
+  io.out.bits.pc   := io.in.bits.pc
+  io.out.bits.dnpc := Mux(
+    trap,
+    io.csrMtvec,
+    Mux(mret, io.csrMepc, io.in.bits.dnpc)
+  )
 }
