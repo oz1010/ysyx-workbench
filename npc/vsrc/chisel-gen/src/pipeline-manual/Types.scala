@@ -40,7 +40,7 @@ object AluOp {
 }
 
 // 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
-object MemOp {
+object OldMemOp {
   val width = 3.W
   val LB    = 0.U(width)
   val LH    = 1.U(width)
@@ -73,6 +73,25 @@ object CsrOp {
 // axi4编号
 object Axi4ID extends ChiselEnum {
   val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
+}
+
+// 新访存操作码
+object MemOp {
+  val width      = 4.W
+  val FLAG_WRITE = 0b1000.U(width) // 写入标记
+  val FLAG_UNSIG = 0b0100.U(width) // 无符号标记
+  val FLAG_1B    = 0b0000.U(width) // 1字节标记
+  val FLAG_2B    = 0b0001.U(width) // 2字节标记
+  val FLAG_4B    = 0b0010.U(width) // 4字节标记
+  val LB         = (FLAG_1B)
+  val LH         = (FLAG_2B)
+  val LW         = (FLAG_4B)
+  val LBU        = (FLAG_1B | FLAG_UNSIG)
+  val LHU        = (FLAG_2B | FLAG_UNSIG)
+  val SB         = (FLAG_1B | FLAG_WRITE)
+  val SH         = (FLAG_2B | FLAG_WRITE)
+  val SW         = (FLAG_4B | FLAG_WRITE)
+  val NONE       = 0b1111.U(width) // 无效标记
 }
 
 // CSR地址
@@ -210,13 +229,17 @@ class CacheIO                   extends Bundle {
     val valid = Output(Bool())
     val ready = Input(Bool())
     val addr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
-    val op    = Output(UInt(MEMOP_W.W))
+    val op    = Output(UInt(MemOp.width))
     val wdata = Output(UInt(CONFIG_DATA_WIDTH.W))
+
+    def fire: Bool = valid && ready
   }
   val rsp = new Bundle {
     val valid = Input(Bool())
     val ready = Output(Bool())
     val data  = Input(UInt(CONFIG_DATA_WIDTH.W))
+
+    def fire: Bool = valid && ready
   }
 }
 object CacheIODefaults {
