@@ -35,14 +35,19 @@ private class BaseCacheArray(w: Int, n: Int, m: Int)
 class BaseCache(
   cacheEn: Boolean = true,
   writeEn: Boolean = true,
-  ways: Int = 2,
-  indexBits: Int = 2,
-  offsetBits: Int = 3
+  ways: Int = 2,      // W
+  indexBits: Int = 2, // N
+  offsetBits: Int = 3 // M
 ) extends Module {
   val io = IO(new Bundle {
     val cpu    = Flipped(new CacheIO())
     val master = new Axi4IO()
   })
+
+  if (cacheEn) {
+    require(ways > 0 && indexBits >= 0 && offsetBits > 2)
+    require(indexBits + offsetBits < 31)
+  }
 
   val Seq(idle, lookup, readAddr, readData, writeReq, writeResp, response) =
     Enum(7)
