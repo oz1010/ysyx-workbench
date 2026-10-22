@@ -47,7 +47,7 @@ class Idu(p: CoreParams) extends Module {
   oldctrl.illegal  := true.B
 
   val ctrl = Wire(new Ctrl)
-  ctrl.code  := Code.decode(inst)
+  ctrl.code  := InstCode.decode(inst)
   ctrl.aluOp := 0.U
   ctrl.memOp := 0.U
   ctrl.wbOp  := 0.U
