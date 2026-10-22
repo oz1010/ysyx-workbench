@@ -55,7 +55,8 @@ class Wbu(p: CoreParams) extends Module {
   io.csrTrap.epc   := in.pc
   io.csrTrap.tval  := 0.U // TODO 具体值应和cause相关
   // TODO 更新csr mret寄存器的值
-  io.csrWrite.en   := v && !trap && in.oldctrl.csrOp =/= CsrOp.NONE
+  // io.csrWrite.en   := v && !trap && in.oldctrl.csrOp =/= CsrOp.NONE
+  io.csrWrite.en   := false.B
   io.csrWrite.addr := in.csrAddr
   io.csrWrite.data := MuxLookup(in.oldctrl.csrOp, in.csrWdata)(
     Seq(

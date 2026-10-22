@@ -32,7 +32,7 @@ class Lsu(p: CoreParams) extends Module {
   // dcache请求
   io.cache.req.valid := io.in.valid && isMemInst && !io.kill
   io.cache.req.addr  := addr
-  io.cache.req.op    := MemOp.NONE
+  io.cache.req.op    := 0.U
   io.cache.req.wdata := in.storeData
   io.cache.rsp.ready := true.B
   // io.cache.req.wstrb   := wstrb
