@@ -69,6 +69,17 @@ object WbSel {
   def apply(): UInt = UInt(width)
 }
 
+// 回写操作码，0:ALU 1:Load 2:CSR 3:PC+4
+object WbOp {
+  val width = 2.W
+  val ALU   = 0.U(width)
+  val LOAD  = 1.U(width)
+  val CSR   = 2.U(width)
+  val PC_4  = 3.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
 // 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
 object CsrOp {
   val width = 2.W
@@ -121,74 +132,147 @@ object CSRAddr {
 }
 
 // 指令编码
-object Inst {
-  val width = 14
+object Code {
+  val width = 18
 
-  // 1. 控制标识位定义（前缀改为 F_）
-  val F_VALID   = (1 << 0).U(width.W)  // 有效指令标识
-  val F_JAL     = (1 << 1).U(width.W)  // JAL 标识
-  val F_JALR    = (1 << 2).U(width.W)  // JALR 标识
-  val F_BRANCH  = (1 << 3).U(width.W)  // 分支指令标识
-  val F_LOAD    = (1 << 4).U(width.W)  // Load 标识
-  val F_STORE   = (1 << 5).U(width.W)  // Store 标识
-  val F_FENCE   = (1 << 6).U(width.W)  // FENCE 标识
-  val F_ECALL   = (1 << 7).U(width.W)  // ECALL 标识
-  val F_EBREAK  = (1 << 8).U(width.W)  // EBREAK 标识
-  val F_MRET    = (1 << 9).U(width.W)  // MRET 标识
-  val F_USE_PC  = (1 << 10).U(width.W) // 是否使用 PC
-  val F_USE_IMM = (1 << 11).U(width.W) // 是否使用立即数
-  val F_RD_WEN  = (1 << 12).U(width.W) // 寄存器堆写使能
-  val F_CSR_IMM = (1 << 13).U(width.W) // CSR 立即数标识
+  // 1. 控制标识位定义
+  val F_INV     = (1 << 4)  // 无效指令标识
+  val F_JAL     = (1 << 5)  // JAL 标识
+  val F_JALR    = (1 << 6)  // JALR 标识
+  val F_BRANCH  = (1 << 7)  // 分支指令标识
+  val F_LOAD    = (1 << 8)  // Load 标识
+  val F_STORE   = (1 << 9)  // Store 标识
+  val F_FENCE   = (1 << 10) // FENCE 标识
+  val F_ECALL   = (1 << 11) // ECALL 标识
+  val F_EBREAK  = (1 << 12) // EBREAK 标识
+  val F_MRET    = (1 << 13) // MRET 标识
+  val F_USE_PC  = (1 << 14) // 是否使用 PC
+  val F_USE_IMM = (1 << 15) // 是否使用立即数
+  val F_RD_WEN  = (1 << 16) // 寄存器堆写使能
+  val F_CSR_IMM = (1 << 17) // CSR 立即数标识
 
   // 2. 无效指令编码
-  val INVALID = 0.U(width.W)
+  val INVALID = (F_INV | 0).U(width.W)
 
   // 3. 各指令通过特征位组合
-  val LUI     = F_VALID | F_USE_IMM | F_RD_WEN
-  val AUIPC   = F_VALID | F_USE_PC | F_USE_IMM | F_RD_WEN
-  val JAL     = F_VALID | F_JAL | F_RD_WEN
-  val JALR    = F_VALID | F_JALR | F_USE_IMM | F_RD_WEN
-  val BEQ     = F_VALID | F_BRANCH
-  val BNE     = F_VALID | F_BRANCH
-  val BLT     = F_VALID | F_BRANCH
-  val BGE     = F_VALID | F_BRANCH
-  val BLTU    = F_VALID | F_BRANCH
-  val BGEU    = F_VALID | F_BRANCH
-  val LB      = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
-  val LH      = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
-  val LW      = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
-  val LBU     = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
-  val LHU     = F_VALID | F_LOAD | F_USE_IMM | F_RD_WEN
-  val SB      = F_VALID | F_STORE | F_USE_IMM
-  val SH      = F_VALID | F_STORE | F_USE_IMM
-  val SW      = F_VALID | F_STORE | F_USE_IMM
-  val ADDI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val SLTI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val SLTIU   = F_VALID | F_USE_IMM | F_RD_WEN
-  val XORI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val ORI     = F_VALID | F_USE_IMM | F_RD_WEN
-  val ANDI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val SLLI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val SRLI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val SRAI    = F_VALID | F_USE_IMM | F_RD_WEN
-  val ADD     = F_VALID | F_RD_WEN
-  val SUB     = F_VALID | F_RD_WEN
-  val SLL     = F_VALID | F_RD_WEN
-  val SLT     = F_VALID | F_RD_WEN
-  val SLTU    = F_VALID | F_RD_WEN
-  val XOR     = F_VALID | F_RD_WEN
-  val SRL     = F_VALID | F_RD_WEN
-  val SRA     = F_VALID | F_RD_WEN
-  val OR      = F_VALID | F_RD_WEN
-  val AND     = F_VALID | F_RD_WEN
-  val FENCE_I = F_VALID | F_FENCE
-  val ECALL   = F_VALID | F_ECALL
-  val EBREAK  = F_VALID | F_EBREAK
-  val CSRRW   = F_VALID | F_RD_WEN
-  val CSRRS   = F_VALID | F_RD_WEN
-  val MRET    = F_VALID | F_MRET
+  val LUI     = (F_USE_IMM | F_RD_WEN | 0).U(width.W)
+  val AUIPC   = (F_USE_PC | F_USE_IMM | F_RD_WEN | 0).U(width.W)
+  val JAL     = (F_JAL | F_RD_WEN | 0).U(width.W)
+  val JALR    = (F_JALR | F_USE_IMM | F_RD_WEN | 0).U(width.W)
+  val BEQ     = (F_BRANCH | 0).U(width.W)
+  val BNE     = (F_BRANCH | 1).U(width.W)
+  val BLT     = (F_BRANCH | 2).U(width.W)
+  val BGE     = (F_BRANCH | 3).U(width.W)
+  val BLTU    = (F_BRANCH | 4).U(width.W)
+  val BGEU    = (F_BRANCH | 5).U(width.W)
+  val LB      = (F_LOAD | F_USE_IMM | F_RD_WEN | 0).U(width.W)
+  val LH      = (F_LOAD | F_USE_IMM | F_RD_WEN | 1).U(width.W)
+  val LW      = (F_LOAD | F_USE_IMM | F_RD_WEN | 2).U(width.W)
+  val LBU     = (F_LOAD | F_USE_IMM | F_RD_WEN | 3).U(width.W)
+  val LHU     = (F_LOAD | F_USE_IMM | F_RD_WEN | 4).U(width.W)
+  val SB      = (F_STORE | F_USE_IMM | 0).U(width.W)
+  val SH      = (F_STORE | F_USE_IMM | 1).U(width.W)
+  val SW      = (F_STORE | F_USE_IMM | 2).U(width.W)
+  val ADDI    = (F_USE_IMM | F_RD_WEN | 1).U(width.W)
+  val SLTI    = (F_USE_IMM | F_RD_WEN | 2).U(width.W)
+  val SLTIU   = (F_USE_IMM | F_RD_WEN | 3).U(width.W)
+  val XORI    = (F_USE_IMM | F_RD_WEN | 4).U(width.W)
+  val ORI     = (F_USE_IMM | F_RD_WEN | 5).U(width.W)
+  val ANDI    = (F_USE_IMM | F_RD_WEN | 6).U(width.W)
+  val SLLI    = (F_USE_IMM | F_RD_WEN | 7).U(width.W)
+  val SRLI    = (F_USE_IMM | F_RD_WEN | 8).U(width.W)
+  val SRAI    = (F_USE_IMM | F_RD_WEN | 9).U(width.W)
+  val ADD     = (F_RD_WEN | 0).U(width.W)
+  val SUB     = (F_RD_WEN | 1).U(width.W)
+  val SLL     = (F_RD_WEN | 2).U(width.W)
+  val SLT     = (F_RD_WEN | 3).U(width.W)
+  val SLTU    = (F_RD_WEN | 4).U(width.W)
+  val XOR     = (F_RD_WEN | 5).U(width.W)
+  val SRL     = (F_RD_WEN | 6).U(width.W)
+  val SRA     = (F_RD_WEN | 7).U(width.W)
+  val OR      = (F_RD_WEN | 8).U(width.W)
+  val AND     = (F_RD_WEN | 9).U(width.W)
+  val FENCE_I = (F_FENCE | 0).U(width.W)
+  val ECALL   = (F_ECALL | 0).U(width.W)
+  val EBREAK  = (F_EBREAK | 0).U(width.W)
+  val CSRRW   = (F_RD_WEN | 10).U(width.W)
+  val CSRRS   = (F_RD_WEN | 11).U(width.W)
+  val MRET    = (F_MRET | 0).U(width.W)
 
   def apply(): UInt = UInt(width.W)
+
+  def decode(inst: UInt): UInt = {
+    val code            = Lookup(
+      inst,
+      INVALID,
+      Seq(
+        BitPat("b???????_?????_?????_???_?????_01101_11") -> LUI,
+        BitPat("b???????_?????_?????_???_?????_00101_11") -> AUIPC,
+        BitPat("b???????_?????_?????_???_?????_11011_11") -> JAL,
+        BitPat("b???????_?????_?????_000_?????_11001_11") -> JALR,
+        BitPat("b???????_?????_?????_000_?????_11000_11") -> BEQ,
+        BitPat("b???????_?????_?????_001_?????_11000_11") -> BNE,
+        BitPat("b???????_?????_?????_100_?????_11000_11") -> BLT,
+        BitPat("b???????_?????_?????_101_?????_11000_11") -> BGE,
+        BitPat("b???????_?????_?????_110_?????_11000_11") -> BLTU,
+        BitPat("b???????_?????_?????_111_?????_11000_11") -> BGEU,
+        BitPat("b???????_?????_?????_000_?????_00000_11") -> LB,
+        BitPat("b???????_?????_?????_001_?????_00000_11") -> LH,
+        BitPat("b???????_?????_?????_010_?????_00000_11") -> LW,
+        BitPat("b???????_?????_?????_100_?????_00000_11") -> LBU,
+        BitPat("b???????_?????_?????_101_?????_00000_11") -> LHU,
+        BitPat("b???????_?????_?????_000_?????_01000_11") -> SB,
+        BitPat("b???????_?????_?????_001_?????_01000_11") -> SH,
+        BitPat("b???????_?????_?????_010_?????_01000_11") -> SW,
+        BitPat("b???????_?????_?????_000_?????_00100_11") -> ADDI,
+        BitPat("b???????_?????_?????_010_?????_00100_11") -> SLTI,
+        BitPat("b???????_?????_?????_011_?????_00100_11") -> SLTIU,
+        BitPat("b???????_?????_?????_100_?????_00100_11") -> XORI,
+        BitPat("b???????_?????_?????_110_?????_00100_11") -> ORI,
+        BitPat("b???????_?????_?????_111_?????_00100_11") -> ANDI,
+        BitPat("b0000000_?????_?????_001_?????_00100_11") -> SLLI,
+        BitPat("b0000000_?????_?????_101_?????_00100_11") -> SRLI,
+        BitPat("b0100000_?????_?????_101_?????_00100_11") -> SRAI,
+        BitPat("b0000000_?????_?????_000_?????_01100_11") -> ADD,
+        BitPat("b0100000_?????_?????_000_?????_01100_11") -> SUB,
+        BitPat("b0000000_?????_?????_001_?????_01100_11") -> SLL,
+        BitPat("b0000000_?????_?????_010_?????_01100_11") -> SLT,
+        BitPat("b0000000_?????_?????_011_?????_01100_11") -> SLTU,
+        BitPat("b0000000_?????_?????_100_?????_01100_11") -> XOR,
+        BitPat("b0000000_?????_?????_101_?????_01100_11") -> SRL,
+        BitPat("b0100000_?????_?????_101_?????_01100_11") -> SRA,
+        BitPat("b0000000_?????_?????_110_?????_01100_11") -> OR,
+        BitPat("b0000000_?????_?????_111_?????_01100_11") -> AND,
+        BitPat("b???????_?????_?????_001_?????_00011_11") -> FENCE_I,
+        BitPat("b0000000_00000_?????_000_?????_11100_11") -> ECALL,
+        BitPat("b0000000_00001_?????_000_?????_11100_11") -> EBREAK,
+        BitPat("b???????_?????_?????_001_?????_11100_11") -> CSRRW,
+        BitPat("b???????_?????_?????_010_?????_11100_11") -> CSRRS,
+        // Privileged Instructions ref. RISC-V开放架构设计之道-V1.0.0 p101
+        BitPat("b0011000_00010_?????_000_?????_11100_11") -> MRET
+      )
+    )
+    // 宽松译码fence_i ecall ebreak mret后，必须做保留字段0的检查
+    val fence_i_illegal =
+      (code === FENCE_I) && (inst(19, 15).orR || inst(11, 7).orR || inst(
+        31,
+        20
+      ).orR)
+    val ecall_illegal   =
+      (code === ECALL) && (inst(19, 15).orR || inst(11, 7).orR)
+    val ebreak_illegal  =
+      (code === EBREAK) && (inst(19, 15).orR || inst(11, 7).orR)
+    val mret_illegal    = (code === MRET) && (inst(19, 15).orR || inst(11, 7).orR)
+
+    Mux(
+      fence_i_illegal ||
+        ecall_illegal ||
+        ebreak_illegal ||
+        mret_illegal,
+      INVALID,
+      code
+    )
+  }
 }
 
 /** 重定向数据（冲刷流水线并修改取指 PC） */
@@ -489,27 +573,27 @@ class OldCtrl extends Bundle {
   val illegal  = Bool()
 }
 class Ctrl    extends Bundle {
-  val code  = Inst()
+  val code  = Code()
   val aluOp = AluOp()
   val memOp = MemOp()
-  val wbSel = WbSel()
+  val wbOp  = WbOp()
   val csrOp = CsrOp()
 
   // 布尔函数直接判断对应标识位是否存在（按位与结果不为 0）
-  def illegal: Bool  = (code & Inst.F_VALID) === 0.U
-  def isJal: Bool    = (code & Inst.F_JAL) =/= 0.U
-  def isJalr: Bool   = (code & Inst.F_JALR) =/= 0.U
-  def isBranch: Bool = (code & Inst.F_BRANCH) =/= 0.U
-  def isLoad: Bool   = (code & Inst.F_LOAD) =/= 0.U
-  def isStore: Bool  = (code & Inst.F_STORE) =/= 0.U
-  def isFence: Bool  = (code & Inst.F_FENCE) =/= 0.U
-  def isEcall: Bool  = (code & Inst.F_ECALL) =/= 0.U
-  def isEbreak: Bool = (code & Inst.F_EBREAK) =/= 0.U
-  def isMret: Bool   = (code & Inst.F_MRET) =/= 0.U
-  def isUsePc: Bool  = (code & Inst.F_USE_PC) =/= 0.U
-  def isUseImm: Bool = (code & Inst.F_USE_IMM) =/= 0.U
-  def isRdWen: Bool  = (code & Inst.F_RD_WEN) =/= 0.U
-  def isCsrImm: Bool = (code & Inst.F_CSR_IMM) =/= 0.U
+  def isInvalid: Bool = (code & Code.F_INV.U) =/= 0.U
+  def isJal: Bool     = (code & Code.F_JAL.U) =/= 0.U
+  def isJalr: Bool    = (code & Code.F_JALR.U) =/= 0.U
+  def isBranch: Bool  = (code & Code.F_BRANCH.U) =/= 0.U
+  def isLoad: Bool    = (code & Code.F_LOAD.U) =/= 0.U
+  def isStore: Bool   = (code & Code.F_STORE.U) =/= 0.U
+  def isFence: Bool   = (code & Code.F_FENCE.U) =/= 0.U
+  def isEcall: Bool   = (code & Code.F_ECALL.U) =/= 0.U
+  def isEbreak: Bool  = (code & Code.F_EBREAK.U) =/= 0.U
+  def isMret: Bool    = (code & Code.F_MRET.U) =/= 0.U
+  def isUsePc: Bool   = (code & Code.F_USE_PC.U) =/= 0.U
+  def isUseImm: Bool  = (code & Code.F_USE_IMM.U) =/= 0.U
+  def isRdWen: Bool   = (code & Code.F_RD_WEN.U) =/= 0.U
+  def isCsrImm: Bool  = (code & Code.F_CSR_IMM.U) =/= 0.U
 }
 
 /** IF数据 */
@@ -531,6 +615,7 @@ class IdBundle(p: CoreParams) extends Bundle {
   val rs2Addr    = UInt(4.W)
   val rdAddr     = UInt(4.W)
   val oldctrl    = new OldCtrl
+  val ctrl       = new Ctrl
   val predTaken  = Bool()
   val predTarget = UInt(CONFIG_ADDR_WIDTH.W)
 }
@@ -543,6 +628,7 @@ class ExBundle(p: CoreParams) extends Bundle {
   val storeData = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
   val oldctrl   = new OldCtrl
+  val ctrl      = new Ctrl
   val csrAddr   = UInt(p.CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
@@ -558,6 +644,7 @@ class LsBundle(p: CoreParams) extends Bundle {
   val loadData  = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
   val oldctrl   = new OldCtrl
+  val ctrl      = new Ctrl
   val csrAddr   = UInt(p.CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
