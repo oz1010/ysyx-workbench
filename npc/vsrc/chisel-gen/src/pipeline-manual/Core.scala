@@ -56,7 +56,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     hazardUnit.io.idRs2      := regIdEx.io.out.bits.rs2Addr
     hazardUnit.io.idValid    := regIdEx.io.out.valid
     hazardUnit.io.exRd       := regExLs.io.out.bits.rdAddr
-    hazardUnit.io.exIsLoad   := regExLs.io.out.bits.oldctrl.load
+    hazardUnit.io.exIsLoad   := regExLs.io.out.bits.ctrl.isLoad
     hazardUnit.io.exValid    := regExLs.io.out.valid
     hazardUnit.io.exRedirect := exRedirect.valid
     hazardUnit.io.wbRedirect := wbRedirect.valid

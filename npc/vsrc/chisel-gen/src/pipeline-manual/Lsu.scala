@@ -17,26 +17,24 @@ class Lsu(p: CoreParams) extends Module {
   })
 
   val in        = io.in.bits
-  val isMemInst = in.oldctrl.load || in.oldctrl.store
+  val isMemInst = in.ctrl.isLoad || in.ctrl.isStore
 
   // 字节使能
   val addr  = in.aluResult
-  val wstrb = MuxLookup(in.oldctrl.memOp, 0.U)(
+  val wstrb = MuxLookup(in.ctrl.memOp, 0.U)(
     Seq(
-      OldMemOp.SB -> (1.U(4.W) << addr(1, 0)),                   // SB
-      OldMemOp.SH -> Mux(addr(1) === 1.U, "b1100".U, "b0011".U), // SH
-      OldMemOp.SW -> "b1111".U                                   // SW
+      MemOp.SB -> (1.U(4.W) << addr(1, 0)),                   // SB
+      MemOp.SH -> Mux(addr(1) === 1.U, "b1100".U, "b0011".U), // SH
+      MemOp.SW -> "b1111".U                                   // SW
     )
   )
 
   // dcache请求
   io.cache.req.valid := io.in.valid && isMemInst && !io.kill
   io.cache.req.addr  := addr
-  io.cache.req.op    := 0.U
+  io.cache.req.op    := in.ctrl.memOp
   io.cache.req.wdata := in.storeData
   io.cache.rsp.ready := true.B
-  // io.cache.req.wstrb   := wstrb
-  // io.cache.req.iswrite := in.oldctrl.store
   val memWait = isMemInst && !io.cache.rsp.fire
 
   // load 数据抽取
@@ -48,13 +46,13 @@ class Lsu(p: CoreParams) extends Module {
     Mux(off(0), rdata(15, 8), rdata(7, 0))
   )
   val halfSel  = Mux(off(1), rdata(31, 16), rdata(15, 0))
-  val loadData = MuxLookup(in.oldctrl.memOp, rdata)(
+  val loadData = MuxLookup(in.ctrl.memOp, rdata)(
     Seq(
-      OldMemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),  // LB
-      OldMemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel), // LH
-      OldMemOp.LW  -> rdata,                               // LW
-      OldMemOp.LBU -> Cat(0.U(24.W), byteSel),             // LBU
-      OldMemOp.LHU -> Cat(0.U(16.W), halfSel)              // LHU
+      MemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),  // LB
+      MemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel), // LH
+      MemOp.LW  -> rdata,                               // LW
+      MemOp.LBU -> Cat(0.U(24.W), byteSel),             // LBU
+      MemOp.LHU -> Cat(0.U(16.W), halfSel)              // LHU
     )
   )
 
@@ -66,7 +64,6 @@ class Lsu(p: CoreParams) extends Module {
   io.out.bits.aluResult := in.aluResult
   io.out.bits.loadData  := loadData
   io.out.bits.rdAddr    := in.rdAddr
-  io.out.bits.oldctrl   := in.oldctrl
   io.out.bits.ctrl      := in.ctrl
   io.out.bits.csrAddr   := in.csrAddr
   io.out.bits.csrWdata  := in.csrWdata
