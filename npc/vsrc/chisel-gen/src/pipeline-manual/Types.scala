@@ -6,133 +6,8 @@ import config.AutoConfig._
 import config.ManuConfig._
 import pipeline_manual.Axi4MasterDefaults.apply
 
-/** 指令测试码 */
-object InstCodeTest {
-  // 以下数值仅为示例。
-  val INVALID = 0.U(8.W)
-  val LUI     = 1.U(8.W)
-}
-
-// 异常码
-object ExceptCode {
-  val width        = 32.W
-  val INST_ILLEGAL = 2.U(width)
-  val INST_ECALL   = 11.U(width)
-  val INST_EBREAK  = 3.U(width)
-  val FETCH_MISS   = 0.U(width)
-  val LOAD_MISS    = 4.U(width)
-  val STORE_MISS   = 6.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
-object AluOp {
-  val width = 4.W
-  val ADD   = 0.U(width)
-  val SUB   = 1.U(width)
-  val AND   = 2.U(width)
-  val OR    = 3.U(width)
-  val XOR   = 4.U(width)
-  val SLL   = 5.U(width)
-  val SRL   = 6.U(width)
-  val SRA   = 7.U(width)
-  val SLT   = 8.U(width)
-  val SLTU  = 9.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
-object OldMemOp {
-  val width = 3.W
-  val LB    = 0.U(width)
-  val LH    = 1.U(width)
-  val LW    = 2.U(width)
-  val LBU   = 4.U(width)
-  val LHU   = 5.U(width)
-  val SB    = 0.U(width)
-  val SH    = 1.U(width)
-  val SW    = 2.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 回写动作码，0:ALU 1:Load 2:CSR 3:PC+4
-object WbSel {
-  val width = 2.W
-  val ALU   = 0.U(width)
-  val LOAD  = 1.U(width)
-  val CSR   = 2.U(width)
-  val PC_4  = 3.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 回写操作码，0:ALU 1:Load 2:CSR 3:PC+4
-object WbOp {
-  val width = 2.W
-  val ALU   = 0.U(width)
-  val LOAD  = 1.U(width)
-  val CSR   = 2.U(width)
-  val PC_4  = 3.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
-object CsrOp {
-  val width = 2.W
-  val NONE  = 0.U(width)
-  val RW    = 1.U(width)
-  val RS    = 2.U(width)
-  val RC    = 3.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// axi4编号
-object Axi4ID extends ChiselEnum {
-  val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
-}
-
-// 新访存操作码
-object MemOp {
-  val width      = 4.W
-  val FLAG_WRITE = 0b1000.U(width) // 写入标记
-  val FLAG_UNSIG = 0b0100.U(width) // 无符号标记
-  val FLAG_1B    = 0b0000.U(width) // 1字节标记
-  val FLAG_2B    = 0b0001.U(width) // 2字节标记
-  val FLAG_4B    = 0b0010.U(width) // 4字节标记
-  val LB         = (FLAG_1B)
-  val LH         = (FLAG_2B)
-  val LW         = (FLAG_4B)
-  val LBU        = (FLAG_1B | FLAG_UNSIG)
-  val LHU        = (FLAG_2B | FLAG_UNSIG)
-  val SB         = (FLAG_1B | FLAG_WRITE)
-  val SH         = (FLAG_2B | FLAG_WRITE)
-  val SW         = (FLAG_4B | FLAG_WRITE)
-  val NONE       = 0b1111.U(width) // 无效标记
-
-  def apply(): UInt = UInt(width)
-}
-
-// CSR地址
-object CSRAddr {
-  val width     = 12.W
-  // 编号从1开始
-  val MSTATUS   = 0x300.U(width) // mstatus寄存器 - 存放处理器的状态
-  val MTVEC     = 0x305.U(width) // mtvec寄存器 - 存放trap-handler基地址
-  val MEPC      = 0x341.U(width) // mepc寄存器 - 存放触发异常的PC
-  val MCAUSE    = 0x342.U(width) // mcause寄存器 - 存放触发异常的原因
-  val MTVAL     = 0x343.U(width) // mtval寄存器 - 存放触发异常的辅助值
-  val MVENDORID = 0xf11.U(width) // Vendor ID, ysyx的ASCII码, 即0x79737978
-  val MARCHID   =
-    0xf12.U(width) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
-}
-
 // 指令编码
-object Code {
+object InstCode {
   val width = 18
 
   // 1. 控制标识位定义
@@ -273,6 +148,124 @@ object Code {
       code
     )
   }
+}
+
+// 异常码
+object ExceptCode {
+  val width        = 32.W
+  val INST_ILLEGAL = 2.U(width)
+  val INST_ECALL   = 11.U(width)
+  val INST_EBREAK  = 3.U(width)
+  val FETCH_MISS   = 0.U(width)
+  val LOAD_MISS    = 4.U(width)
+  val STORE_MISS   = 6.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
+// 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
+object AluOp {
+  val width = 4.W
+  val ADD   = 0.U(width)
+  val SUB   = 1.U(width)
+  val AND   = 2.U(width)
+  val OR    = 3.U(width)
+  val XOR   = 4.U(width)
+  val SLL   = 5.U(width)
+  val SRL   = 6.U(width)
+  val SRA   = 7.U(width)
+  val SLT   = 8.U(width)
+  val SLTU  = 9.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
+// 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
+object OldMemOp {
+  val width = 3.W
+  val LB    = 0.U(width)
+  val LH    = 1.U(width)
+  val LW    = 2.U(width)
+  val LBU   = 4.U(width)
+  val LHU   = 5.U(width)
+  val SB    = 0.U(width)
+  val SH    = 1.U(width)
+  val SW    = 2.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
+// 回写动作码，0:ALU 1:Load 2:CSR 3:PC+4
+object WbSel {
+  val width = 2.W
+  val ALU   = 0.U(width)
+  val LOAD  = 1.U(width)
+  val CSR   = 2.U(width)
+  val PC_4  = 3.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
+// 回写操作码，0:ALU 1:Load 2:CSR 3:PC+4
+object WbOp {
+  val width = 2.W
+  val ALU   = 0.U(width)
+  val LOAD  = 1.U(width)
+  val CSR   = 2.U(width)
+  val PC_4  = 3.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
+// 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
+object CsrOp {
+  val width = 2.W
+  val NONE  = 0.U(width)
+  val RW    = 1.U(width)
+  val RS    = 2.U(width)
+  val RC    = 3.U(width)
+
+  def apply(): UInt = UInt(width)
+}
+
+// axi4编号
+object Axi4ID extends ChiselEnum {
+  val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
+}
+
+// 新访存操作码
+object MemOp {
+  val width      = 4.W
+  val FLAG_WRITE = 0b1000.U(width) // 写入标记
+  val FLAG_UNSIG = 0b0100.U(width) // 无符号标记
+  val FLAG_1B    = 0b0000.U(width) // 1字节标记
+  val FLAG_2B    = 0b0001.U(width) // 2字节标记
+  val FLAG_4B    = 0b0010.U(width) // 4字节标记
+  val LB         = (FLAG_1B)
+  val LH         = (FLAG_2B)
+  val LW         = (FLAG_4B)
+  val LBU        = (FLAG_1B | FLAG_UNSIG)
+  val LHU        = (FLAG_2B | FLAG_UNSIG)
+  val SB         = (FLAG_1B | FLAG_WRITE)
+  val SH         = (FLAG_2B | FLAG_WRITE)
+  val SW         = (FLAG_4B | FLAG_WRITE)
+  val NONE       = 0b1111.U(width) // 无效标记
+
+  def apply(): UInt = UInt(width)
+}
+
+// CSR地址
+object CSRAddr {
+  val width     = 12.W
+  // 编号从1开始
+  val MSTATUS   = 0x300.U(width) // mstatus寄存器 - 存放处理器的状态
+  val MTVEC     = 0x305.U(width) // mtvec寄存器 - 存放trap-handler基地址
+  val MEPC      = 0x341.U(width) // mepc寄存器 - 存放触发异常的PC
+  val MCAUSE    = 0x342.U(width) // mcause寄存器 - 存放触发异常的原因
+  val MTVAL     = 0x343.U(width) // mtval寄存器 - 存放触发异常的辅助值
+  val MVENDORID = 0xf11.U(width) // Vendor ID, ysyx的ASCII码, 即0x79737978
+  val MARCHID   =
+    0xf12.U(width) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
 }
 
 /** 重定向数据（冲刷流水线并修改取指 PC） */
@@ -573,27 +566,27 @@ class OldCtrl extends Bundle {
   val illegal  = Bool()
 }
 class Ctrl    extends Bundle {
-  val code  = Code()
+  val code  = InstCode()
   val aluOp = AluOp()
   val memOp = MemOp()
   val wbOp  = WbOp()
   val csrOp = CsrOp()
 
   // 布尔函数直接判断对应标识位是否存在（按位与结果不为 0）
-  def isInvalid: Bool = (code & Code.F_INV.U) =/= 0.U
-  def isJal: Bool     = (code & Code.F_JAL.U) =/= 0.U
-  def isJalr: Bool    = (code & Code.F_JALR.U) =/= 0.U
-  def isBranch: Bool  = (code & Code.F_BRANCH.U) =/= 0.U
-  def isLoad: Bool    = (code & Code.F_LOAD.U) =/= 0.U
-  def isStore: Bool   = (code & Code.F_STORE.U) =/= 0.U
-  def isFence: Bool   = (code & Code.F_FENCE.U) =/= 0.U
-  def isEcall: Bool   = (code & Code.F_ECALL.U) =/= 0.U
-  def isEbreak: Bool  = (code & Code.F_EBREAK.U) =/= 0.U
-  def isMret: Bool    = (code & Code.F_MRET.U) =/= 0.U
-  def isUsePc: Bool   = (code & Code.F_USE_PC.U) =/= 0.U
-  def isUseImm: Bool  = (code & Code.F_USE_IMM.U) =/= 0.U
-  def isRdWen: Bool   = (code & Code.F_RD_WEN.U) =/= 0.U
-  def isCsrImm: Bool  = (code & Code.F_CSR_IMM.U) =/= 0.U
+  def isInvalid: Bool = (code & InstCode.F_INV.U) =/= 0.U
+  def isJal: Bool     = (code & InstCode.F_JAL.U) =/= 0.U
+  def isJalr: Bool    = (code & InstCode.F_JALR.U) =/= 0.U
+  def isBranch: Bool  = (code & InstCode.F_BRANCH.U) =/= 0.U
+  def isLoad: Bool    = (code & InstCode.F_LOAD.U) =/= 0.U
+  def isStore: Bool   = (code & InstCode.F_STORE.U) =/= 0.U
+  def isFence: Bool   = (code & InstCode.F_FENCE.U) =/= 0.U
+  def isEcall: Bool   = (code & InstCode.F_ECALL.U) =/= 0.U
+  def isEbreak: Bool  = (code & InstCode.F_EBREAK.U) =/= 0.U
+  def isMret: Bool    = (code & InstCode.F_MRET.U) =/= 0.U
+  def isUsePc: Bool   = (code & InstCode.F_USE_PC.U) =/= 0.U
+  def isUseImm: Bool  = (code & InstCode.F_USE_IMM.U) =/= 0.U
+  def isRdWen: Bool   = (code & InstCode.F_RD_WEN.U) =/= 0.U
+  def isCsrImm: Bool  = (code & InstCode.F_CSR_IMM.U) =/= 0.U
 }
 
 /** IF数据 */
