@@ -53,7 +53,7 @@ class BaseCache(
     Enum(7)
   val state                                                                = RegInit(idle)
   val addr                                                                 = RegInit(0.U(CONFIG_ADDR_WIDTH.W))
-  val op                                                                   = RegInit(0.U(MemOp.width))
+  val op                                                                   = RegInit(0.U(MemOp.width.W))
   val wdata                                                                = RegInit(0.U(CONFIG_DATA_WIDTH.W))
   val rspData                                                              = RegInit(0.U(CONFIG_DATA_WIDTH.W))
 

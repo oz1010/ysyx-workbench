@@ -8,71 +8,68 @@ import pipeline_manual.Axi4MasterDefaults.apply
 
 // 指令编码
 object InstCode {
-  val width = 18
+  val width = 15
 
-  // 1. 控制标识位定义
-  val F_INV     = (1 << 4)  // 无效指令标识
-  val F_JAL     = (1 << 5)  // JAL 标识
-  val F_JALR    = (1 << 6)  // JALR 标识
-  val F_BRANCH  = (1 << 7)  // 分支指令标识
-  val F_LOAD    = (1 << 8)  // Load 标识
-  val F_STORE   = (1 << 9)  // Store 标识
-  val F_FENCE   = (1 << 10) // FENCE 标识
-  val F_ECALL   = (1 << 11) // ECALL 标识
-  val F_EBREAK  = (1 << 12) // EBREAK 标识
-  val F_MRET    = (1 << 13) // MRET 标识
-  val F_USE_PC  = (1 << 14) // 是否使用 PC
-  val F_USE_IMM = (1 << 15) // 是否使用立即数
-  val F_RD_WEN  = (1 << 16) // 寄存器堆写使能
-  val F_CSR_IMM = (1 << 17) // CSR 立即数标识
+  // 控制标识位定义，bit[3,0]存放操作码（若有），其他位位标识位
+  val F_V    = (1 << 4).U(width.W)  // 有效指令标识
+  val F_UPC  = (1 << 5).U(width.W)  // 是否使用PC标识
+  val F_UIMM = (1 << 6).U(width.W)  // 是否使用立即数标识
+  val F_GWEN = (1 << 7).U(width.W)  // GPR寄存器堆写使能标识
+  val F_ALU  = (1 << 8).U(width.W)  // 运算操作标识
+  val F_MEM  = (1 << 9).U(width.W)  // 访存操作标识
+  val F_CSR  = (1 << 10).U(width.W) // CSR操作标识
+  val F_WB   = (1 << 11).U(width.W) // 回写操作标识
+  val F_JP   = (1 << 12).U(width.W) // 跳转操作标识
+  val F_BR   = (1 << 13).U(width.W) // 分支操作标识
+  val F_SYS  = (1 << 14).U(width.W) // 系统操作标识
 
-  // 2. 无效指令编码
-  val INVALID = (F_INV | 0).U(width.W)
+  // 无效指令编码
+  def INVALID = 0.U(width.W)
 
-  // 3. 各指令通过特征位组合
-  val LUI     = (F_USE_IMM | F_RD_WEN | 0).U(width.W)
-  val AUIPC   = (F_USE_PC | F_USE_IMM | F_RD_WEN | 0).U(width.W)
-  val JAL     = (F_JAL | F_RD_WEN | 0).U(width.W)
-  val JALR    = (F_JALR | F_USE_IMM | F_RD_WEN | 0).U(width.W)
-  val BEQ     = (F_BRANCH | 0).U(width.W)
-  val BNE     = (F_BRANCH | 1).U(width.W)
-  val BLT     = (F_BRANCH | 2).U(width.W)
-  val BGE     = (F_BRANCH | 3).U(width.W)
-  val BLTU    = (F_BRANCH | 4).U(width.W)
-  val BGEU    = (F_BRANCH | 5).U(width.W)
-  val LB      = (F_LOAD | F_USE_IMM | F_RD_WEN | 0).U(width.W)
-  val LH      = (F_LOAD | F_USE_IMM | F_RD_WEN | 1).U(width.W)
-  val LW      = (F_LOAD | F_USE_IMM | F_RD_WEN | 2).U(width.W)
-  val LBU     = (F_LOAD | F_USE_IMM | F_RD_WEN | 3).U(width.W)
-  val LHU     = (F_LOAD | F_USE_IMM | F_RD_WEN | 4).U(width.W)
-  val SB      = (F_STORE | F_USE_IMM | 0).U(width.W)
-  val SH      = (F_STORE | F_USE_IMM | 1).U(width.W)
-  val SW      = (F_STORE | F_USE_IMM | 2).U(width.W)
-  val ADDI    = (F_USE_IMM | F_RD_WEN | 1).U(width.W)
-  val SLTI    = (F_USE_IMM | F_RD_WEN | 2).U(width.W)
-  val SLTIU   = (F_USE_IMM | F_RD_WEN | 3).U(width.W)
-  val XORI    = (F_USE_IMM | F_RD_WEN | 4).U(width.W)
-  val ORI     = (F_USE_IMM | F_RD_WEN | 5).U(width.W)
-  val ANDI    = (F_USE_IMM | F_RD_WEN | 6).U(width.W)
-  val SLLI    = (F_USE_IMM | F_RD_WEN | 7).U(width.W)
-  val SRLI    = (F_USE_IMM | F_RD_WEN | 8).U(width.W)
-  val SRAI    = (F_USE_IMM | F_RD_WEN | 9).U(width.W)
-  val ADD     = (F_RD_WEN | 0).U(width.W)
-  val SUB     = (F_RD_WEN | 1).U(width.W)
-  val SLL     = (F_RD_WEN | 2).U(width.W)
-  val SLT     = (F_RD_WEN | 3).U(width.W)
-  val SLTU    = (F_RD_WEN | 4).U(width.W)
-  val XOR     = (F_RD_WEN | 5).U(width.W)
-  val SRL     = (F_RD_WEN | 6).U(width.W)
-  val SRA     = (F_RD_WEN | 7).U(width.W)
-  val OR      = (F_RD_WEN | 8).U(width.W)
-  val AND     = (F_RD_WEN | 9).U(width.W)
-  val FENCE_I = (F_FENCE | 0).U(width.W)
-  val ECALL   = (F_ECALL | 0).U(width.W)
-  val EBREAK  = (F_EBREAK | 0).U(width.W)
-  val CSRRW   = (F_RD_WEN | 10).U(width.W)
-  val CSRRS   = (F_RD_WEN | 11).U(width.W)
-  val MRET    = (F_MRET | 0).U(width.W)
+  // 各指令通过特征位组合
+  def LUI     = (F_V | F_UIMM | F_GWEN)
+  def AUIPC   = (F_V | F_UPC | F_UIMM | F_GWEN)
+  def JAL     = (F_V | F_JP | F_GWEN | F_WB | WbOp.PC_4 | JpOp.JAL)
+  def JALR    = (F_V | F_JP | F_UIMM | F_GWEN | F_WB | WbOp.PC_4 | JpOp.JALR)
+  def BEQ     = (F_V | F_BR | BrOp.BEQ)
+  def BNE     = (F_V | F_BR | BrOp.BNE)
+  def BLT     = (F_V | F_BR | BrOp.BLT)
+  def BGE     = (F_V | F_BR | BrOp.BGE)
+  def BLTU    = (F_V | F_BR | BrOp.BLTU)
+  def BGEU    = (F_V | F_BR | BrOp.BGEU)
+  def LB      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LB)
+  def LH      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LH)
+  def LW      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LW)
+  def LBU     = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LBU)
+  def LHU     = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LHU)
+  def SB      = (F_V | F_MEM | F_UIMM | MemOp.SB)
+  def SH      = (F_V | F_MEM | F_UIMM | MemOp.SH)
+  def SW      = (F_V | F_MEM | F_UIMM | MemOp.SW)
+  def ADDI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.ADD)
+  def SLTI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.SLT)
+  def SLTIU   = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.SLTU)
+  def XORI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.XOR)
+  def ORI     = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.OR)
+  def ANDI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.AND)
+  def SLLI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.SLL)
+  def SRLI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.SRL)
+  def SRAI    = (F_V | F_ALU | F_UIMM | F_GWEN | AluOp.SRA)
+  def ADD     = (F_V | F_ALU | F_GWEN | AluOp.ADD)
+  def SUB     = (F_V | F_ALU | F_GWEN | AluOp.SUB)
+  def SLL     = (F_V | F_ALU | F_GWEN | AluOp.SLL)
+  def SLT     = (F_V | F_ALU | F_GWEN | AluOp.SLT)
+  def SLTU    = (F_V | F_ALU | F_GWEN | AluOp.SLTU)
+  def XOR     = (F_V | F_ALU | F_GWEN | AluOp.XOR)
+  def SRL     = (F_V | F_ALU | F_GWEN | AluOp.SRL)
+  def SRA     = (F_V | F_ALU | F_GWEN | AluOp.SRA)
+  def OR      = (F_V | F_ALU | F_GWEN | AluOp.OR)
+  def AND     = (F_V | F_ALU | F_GWEN | AluOp.AND)
+  def FENCE_I = (F_V | F_SYS | SysOp.FENCE_I)
+  def ECALL   = (F_V | F_SYS | SysOp.ECALL)
+  def EBREAK  = (F_V | F_SYS | SysOp.EBREAK)
+  def CSRRW   = (F_V | F_CSR | F_GWEN | F_WB | WbOp.CSR | CsrOp.RW)
+  def CSRRS   = (F_V | F_CSR | F_GWEN | F_WB | WbOp.CSR | CsrOp.RS)
+  def MRET    = (F_V | F_SYS | SysOp.MRET)
 
   def apply(): UInt = UInt(width.W)
 
@@ -165,19 +162,87 @@ object ExceptCode {
 
 // 计算操作码，0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
 object AluOp {
-  val width = 4.W
-  val ADD   = 0.U(width)
-  val SUB   = 1.U(width)
-  val AND   = 2.U(width)
-  val OR    = 3.U(width)
-  val XOR   = 4.U(width)
-  val SLL   = 5.U(width)
-  val SRL   = 6.U(width)
-  val SRA   = 7.U(width)
-  val SLT   = 8.U(width)
-  val SLTU  = 9.U(width)
+  val width = 4
+  val ADD   = 0.U(width.W)
+  val SUB   = 1.U(width.W)
+  val AND   = 2.U(width.W)
+  val OR    = 3.U(width.W)
+  val XOR   = 4.U(width.W)
+  val SLL   = 5.U(width.W)
+  val SRL   = 6.U(width.W)
+  val SRA   = 7.U(width.W)
+  val SLT   = 8.U(width.W)
+  val SLTU  = 9.U(width.W)
 
-  def apply(): UInt = UInt(width)
+  def apply(): UInt = UInt(width.W)
+}
+// 访存操作码
+object MemOp {
+  val width      = 4
+  val FLAG_WRITE = (0b1000).U(width.W) // 写入标记
+  val FLAG_UNSIG = (0b0100).U(width.W) // 无符号标记
+  val FLAG_1B    = (0b0000).U(width.W) // 1字节标记
+  val FLAG_2B    = (0b0001).U(width.W) // 2字节标记
+  val FLAG_4B    = (0b0010).U(width.W) // 4字节标记
+  def LB         = (FLAG_1B)
+  def LH         = (FLAG_2B)
+  def LW         = (FLAG_4B)
+  def LBU        = (FLAG_1B | FLAG_UNSIG)
+  def LHU        = (FLAG_2B | FLAG_UNSIG)
+  def SB         = (FLAG_1B | FLAG_WRITE)
+  def SH         = (FLAG_2B | FLAG_WRITE)
+  def SW         = (FLAG_4B | FLAG_WRITE)
+
+  def apply(): UInt = UInt(width.W)
+}
+// 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
+object CsrOp {
+  val width = 2
+  val RW    = 0.U(width.W)
+  val RS    = 1.U(width.W)
+  val RC    = 2.U(width.W)
+
+  def apply(): UInt = UInt(width.W)
+}
+// 回写操作码，0:ALU 1:Load 2:CSR 3:PC+4
+object WbOp  {
+  val width = 2
+  val ALU   = 0.U(width.W)
+  val LOAD  = 1.U(width.W)
+  val CSR   = 2.U(width.W)
+  val PC_4  = 3.U(width.W)
+
+  def apply(): UInt = UInt(width.W)
+}
+// 跳转操作码
+object JpOp  {
+  val width = 1
+  val JAL   = 0.U(width.W)
+  val JALR  = 1.U(width.W)
+
+  def apply(): UInt = UInt(width.W)
+}
+// 分支操作码
+object BrOp  {
+  val width = 3
+  val BEQ   = 0.U(width.W)
+  val BNE   = 1.U(width.W)
+  val BLT   = 2.U(width.W)
+  val BGE   = 3.U(width.W)
+  val BLTU  = 4.U(width.W)
+  val BGEU  = 5.U(width.W)
+
+  def apply(): UInt = UInt(width.W)
+}
+// 系统操作码
+object SysOp {
+  val width   = 2
+  val FENCE_I = 0.U(width.W)
+  val ECALL   = 1.U(width.W)
+  val EBREAK  = 2.U(width.W)
+  val MRET    = 3.U(width.W)
+
+  def apply(): UInt = UInt(width.W)
 }
 
 // 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
@@ -206,52 +271,9 @@ object WbSel {
   def apply(): UInt = UInt(width)
 }
 
-// 回写操作码，0:ALU 1:Load 2:CSR 3:PC+4
-object WbOp {
-  val width = 2.W
-  val ALU   = 0.U(width)
-  val LOAD  = 1.U(width)
-  val CSR   = 2.U(width)
-  val PC_4  = 3.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 控制寄存器操作码，0 无 1 RW 2 RS 3 RC
-object CsrOp {
-  val width = 2.W
-  val NONE  = 0.U(width)
-  val RW    = 1.U(width)
-  val RS    = 2.U(width)
-  val RC    = 3.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
 // axi4编号
 object Axi4ID extends ChiselEnum {
   val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
-}
-
-// 新访存操作码
-object MemOp {
-  val width      = 4.W
-  val FLAG_WRITE = 0b1000.U(width) // 写入标记
-  val FLAG_UNSIG = 0b0100.U(width) // 无符号标记
-  val FLAG_1B    = 0b0000.U(width) // 1字节标记
-  val FLAG_2B    = 0b0001.U(width) // 2字节标记
-  val FLAG_4B    = 0b0010.U(width) // 4字节标记
-  val LB         = (FLAG_1B)
-  val LH         = (FLAG_2B)
-  val LW         = (FLAG_4B)
-  val LBU        = (FLAG_1B | FLAG_UNSIG)
-  val LHU        = (FLAG_2B | FLAG_UNSIG)
-  val SB         = (FLAG_1B | FLAG_WRITE)
-  val SH         = (FLAG_2B | FLAG_WRITE)
-  val SW         = (FLAG_4B | FLAG_WRITE)
-  val NONE       = 0b1111.U(width) // 无效标记
-
-  def apply(): UInt = UInt(width)
 }
 
 // CSR地址
@@ -475,7 +497,7 @@ class CacheIO                   extends Bundle {
     val valid = Output(Bool())
     val ready = Input(Bool())
     val addr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
-    val op    = Output(UInt(MemOp.width))
+    val op    = Output(UInt(MemOp.width.W))
     val wdata = Output(UInt(CONFIG_DATA_WIDTH.W))
 
     def fire: Bool = valid && ready
@@ -571,22 +593,41 @@ class Ctrl    extends Bundle {
   val memOp = MemOp()
   val wbOp  = WbOp()
   val csrOp = CsrOp()
+  val jpOp  = JpOp()
+  val brOp  = BrOp()
+  val sysOp = SysOp()
 
   // 布尔函数直接判断对应标识位是否存在（按位与结果不为 0）
-  def isInvalid: Bool = (code & InstCode.F_INV.U) =/= 0.U
-  def isJal: Bool     = (code & InstCode.F_JAL.U) =/= 0.U
-  def isJalr: Bool    = (code & InstCode.F_JALR.U) =/= 0.U
-  def isBranch: Bool  = (code & InstCode.F_BRANCH.U) =/= 0.U
-  def isLoad: Bool    = (code & InstCode.F_LOAD.U) =/= 0.U
-  def isStore: Bool   = (code & InstCode.F_STORE.U) =/= 0.U
-  def isFence: Bool   = (code & InstCode.F_FENCE.U) =/= 0.U
-  def isEcall: Bool   = (code & InstCode.F_ECALL.U) =/= 0.U
-  def isEbreak: Bool  = (code & InstCode.F_EBREAK.U) =/= 0.U
-  def isMret: Bool    = (code & InstCode.F_MRET.U) =/= 0.U
-  def isUsePc: Bool   = (code & InstCode.F_USE_PC.U) =/= 0.U
-  def isUseImm: Bool  = (code & InstCode.F_USE_IMM.U) =/= 0.U
-  def isRdWen: Bool   = (code & InstCode.F_RD_WEN.U) =/= 0.U
-  def isCsrImm: Bool  = (code & InstCode.F_CSR_IMM.U) =/= 0.U
+  def isValid: Bool  = (code & InstCode.F_V) =/= 0.U
+  def isLoad: Bool   = isMemOp && isWbOp
+  def isStore: Bool  = isMemOp && !isWbOp
+  def isUsePc: Bool  = (code & InstCode.F_UPC) =/= 0.U
+  def isUseImm: Bool = (code & InstCode.F_UIMM) =/= 0.U
+  def isRdWen: Bool  = (code & InstCode.F_GWEN) =/= 0.U
+  def isAluOp: Bool  = (code & InstCode.F_ALU) =/= 0.U
+  def isMemOp: Bool  = (code & InstCode.F_MEM) =/= 0.U
+  def isWbOp: Bool   = (code & InstCode.F_WB) =/= 0.U
+  def isCsrOp: Bool  = (code & InstCode.F_CSR) =/= 0.U
+  def isJpOp: Bool   = (code & InstCode.F_JP) =/= 0.U
+  def isBrOp: Bool   = (code & InstCode.F_BR) =/= 0.U
+  def isSysOp: Bool  = (code & InstCode.F_SYS) =/= 0.U
+}
+
+object Ctrl {
+  def decode(inst: UInt): Ctrl = {
+    val ctrl = Wire(new Ctrl)
+    val code = InstCode.decode(inst)
+    ctrl.code  := code
+    ctrl.aluOp := code(AluOp.width - 1, 0)
+    ctrl.memOp := code(MemOp.width - 1, 0)
+    ctrl.wbOp  := code(WbOp.width - 1, 0)
+    ctrl.csrOp := code(CsrOp.width - 1, 0)
+    ctrl.jpOp  := code(JpOp.width - 1, 0)
+    ctrl.brOp  := code(BrOp.width - 1, 0)
+    ctrl.sysOp := code(SysOp.width - 1, 0)
+
+    ctrl
+  }
 }
 
 /** IF数据 */
