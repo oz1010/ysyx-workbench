@@ -265,7 +265,7 @@ object CSRAddr {
 }
 
 /** 重定向数据（冲刷流水线并修改取指 PC） */
-class Redirect(p: CoreParams) extends Bundle {
+class Redirect() extends Bundle {
   val valid  = Bool()
   val target = UInt(CONFIG_ADDR_WIDTH.W)
 }
@@ -274,7 +274,7 @@ class Redirect(p: CoreParams) extends Bundle {
   *
   * burst类型，0--FIXED 1--INCR 2--WRAP
   */
-class Axi4IO()                 extends Bundle {
+class Axi4IO() extends Bundle {
   // 读地址通道
   val arvalid = Output(Bool())
   val arready = Input(Bool())
@@ -362,111 +362,9 @@ object Axi4SlaveDefaults {
     io.bid     := 0.U
   }
 }
-class OldAxi4IO(p: CoreParams) extends Bundle {
-  // 读地址通道
-  val arvalid = Output(Bool())
-  val arready = Input(Bool())
-  val araddr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
-  val arid    = Output(UInt(4.W))
-  val arlen   = Output(UInt(8.W)) // burst数量，2^n字节
-  val arsize  = Output(UInt(3.W)) // 单个burst数据大小，2^n字节
-  val arburst = Output(UInt(2.W))
-  // 读数据通道
-  val rvalid  = Input(Bool())
-  val rready  = Output(Bool())
-  val rdata   = Input(UInt(CONFIG_DATA_WIDTH.W))
-  val rresp   = Input(UInt(2.W))
-  val rlast   = Input(Bool())
-  val rid     = Input(UInt(4.W))
-  // 写地址通道
-  val awvalid = Output(Bool())
-  val awready = Input(Bool())
-  val awaddr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
-  val awid    = Output(UInt(4.W))
-  val awlen   = Output(UInt(8.W)) // burst数量，2^n字节
-  val awsize  = Output(UInt(3.W)) // 单个burst数据大小，2^n字节
-  val awburst = Output(UInt(2.W))
-  // 写数据通道
-  val wvalid  = Output(Bool())
-  val wready  = Input(Bool())
-  val wdata   = Output(UInt(CONFIG_DATA_WIDTH.W))
-  val wstrb   = Output(UInt((CONFIG_DATA_WIDTH / 8).W))
-  val wlast   = Output(Bool())
-  // 写响应通道
-  val bvalid  = Input(Bool())
-  val bready  = Output(Bool())
-  val bresp   = Input(UInt(2.W))
-  val bid     = Input(UInt(4.W))
-
-  // 读地址通道握手判定
-  def arFire: Bool = arvalid && arready
-  // 读数据通道握手判定
-  def rFire: Bool  = rvalid && rready
-  // 写地址通道握手判定
-  def awFire: Bool = awvalid && awready
-  // 写数据通道握手判定
-  def wFire: Bool  = wvalid && wready
-  // 写响应通道握手判定
-  def bFire: Bool  = bvalid && bready
-}
-// axi4-master默认赋值函数
-object OldAxi4MasterDefaults {
-  def apply(io: OldAxi4IO): Unit = {
-    io.arvalid := false.B
-    io.araddr  := 0.U
-    io.arid    := 0.U
-    io.arlen   := 0.U
-    io.arsize  := 0.U
-    io.arburst := 0.U
-    io.rready  := false.B
-
-    io.awvalid := false.B
-    io.awaddr  := 0.U
-    io.awid    := 0.U
-    io.awlen   := 0.U
-    io.awsize  := 0.U
-    io.awburst := 0.U
-    io.wvalid  := false.B
-    io.wdata   := 0.U
-    io.wstrb   := 0.U
-    io.wlast   := false.B
-    io.bready  := false.B
-  }
-}
-// axi4-slave默认赋值函数
-object OldAxi4SlaveDefaults {
-  def apply(io: OldAxi4IO): Unit = {
-    io.arready := false.B
-    io.rvalid  := false.B
-    io.rdata   := 0.U
-    io.rresp   := 0.U
-    io.rlast   := false.B
-    io.rid     := 0.U
-
-    io.awready := false.B
-    io.wready  := false.B
-    io.bvalid  := false.B
-    io.bresp   := 0.U
-    io.bid     := 0.U
-  }
-}
 
 /** Cache数据，master视角 */
-class OldCacheIO(p: CoreParams) extends Bundle {
-  val req = new Bundle {
-    val valid   = Output(Bool())
-    val ready   = Input(Bool())
-    val addr    = Output(UInt(CONFIG_ADDR_WIDTH.W))
-    val wdata   = Output(UInt(CONFIG_DATA_WIDTH.W))
-    val wstrb   = Output(UInt((CONFIG_DATA_WIDTH / 8).W))
-    val iswrite = Output(Bool())
-  }
-  val rsp = new Bundle {
-    val valid = Input(Bool())
-    val data  = Input(UInt(CONFIG_DATA_WIDTH.W))
-  }
-}
-class CacheIO                   extends Bundle {
+class CacheIO extends Bundle {
   val req = new Bundle {
     val valid = Output(Bool())
     val ready = Input(Bool())
@@ -501,67 +399,10 @@ object CacheIOSlaveDefaults {
   }
 }
 
-/** Cache refill（读行）数据，master视角 */
-class CacheRefillIO(p: CoreParams) extends Bundle {
-  val req = new Bundle {
-    val valid = Output(Bool())
-    val addr  = Output(UInt(CONFIG_ADDR_WIDTH.W)) // 行基地址
-  }
-  val gnt = Input(Bool()) // 仲裁器接受本次行读请求
-  val rsp = new Bundle {
-    val valid = Input(Bool())
-    val data  = Input(UInt(CONFIG_DATA_WIDTH.W))
-    val last  = Input(Bool())
-  }
-}
-
-// /** 仲裁器侧的 refill 从机视角（req 输入，gnt/rsp 输出） */
-// class RefillSlaveIO(p: CoreParams) extends Bundle {
-//   val req = new Bundle {
-//     val valid = Input(Bool())
-//     val addr  = Input(UInt(CONFIG_ADDR_WIDTH.W))
-//   }
-//   val gnt  = Output(Bool())
-//   val rsp = new Bundle {
-//     val valid = Output(Bool())
-//     val data  = Output(UInt(CONFIG_DATA_WIDTH.W))
-//     val last  = Output(Bool())
-//   }
-// }
-
-// /** Store Buffer 条目 */
-// class StoreReq(p: CoreParams) extends Bundle {
-//   val addr = UInt(CONFIG_ADDR_WIDTH.W)
-//   val data = UInt(CONFIG_DATA_WIDTH.W)
-//   val strb = UInt((CONFIG_DATA_WIDTH / 8).W)
-// }
-
 /* ================= 流水线级间寄存器 ================= */
 
 /** 控制信号（ID 级译码产生，随流水线传递） */
-class OldCtrl extends Bundle {
-  val aluOp = UInt(
-    4.W
-  ) // 0 add 1 sub 2 and 3 or 4 xor 5 sll 6 srl 7 sra 8 slt 9 sltu
-  val usePc    = Bool()    // 操作数 A 选择 PC（AUIPC）
-  val useImm   = Bool()    // 操作数 B 选择立即数
-  val isBranch = Bool()
-  val isJal    = Bool()
-  val isJalr   = Bool()
-  val load     = Bool()
-  val store    = Bool()
-  val memOp    = UInt(3.W) // funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
-  val wbSel    = UInt(2.W) // 0:ALU 1:Load 2:CSR 3:PC+4
-  val rdWen    = Bool()
-  val csrOp    = UInt(2.W) // 0 无 1 RW 2 RS 3 RC
-  val csrImm   = Bool()    // CSR 立即数形式
-  val fence    = Bool()    // 作为 NOP
-  val ecall    = Bool()
-  val ebreak   = Bool()
-  val mret     = Bool()
-  val illegal  = Bool()
-}
-class Ctrl    extends Bundle {
+class Ctrl extends Bundle {
   val code  = InstCode()
   val aluOp = AluOp()
   val memOp = MemOp()
@@ -612,7 +453,7 @@ object Ctrl {
 }
 
 /** IF数据 */
-class IfBundle(p: CoreParams) extends Bundle {
+class IfBundle() extends Bundle {
   val pc         = UInt(CONFIG_ADDR_WIDTH.W)
   val inst       = UInt(CONFIG_ADDR_WIDTH.W)
   val predTaken  = Bool()                    // 静态分支预测：是否预测跳转
@@ -620,7 +461,7 @@ class IfBundle(p: CoreParams) extends Bundle {
 }
 
 /** ID数据 */
-class IdBundle(p: CoreParams) extends Bundle {
+class IdBundle() extends Bundle {
   val pc         = UInt(CONFIG_ADDR_WIDTH.W)
   val inst       = UInt(CONFIG_ADDR_WIDTH.W)
   val rs1Val     = UInt(CONFIG_ADDR_WIDTH.W)
@@ -635,14 +476,14 @@ class IdBundle(p: CoreParams) extends Bundle {
 }
 
 /** EX数据 */
-class ExBundle(p: CoreParams) extends Bundle {
+class ExBundle() extends Bundle {
   val pc        = UInt(CONFIG_ADDR_WIDTH.W)
   val dnpc      = UInt(CONFIG_ADDR_WIDTH.W)
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val storeData = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
   val ctrl      = new Ctrl
-  val csrAddr   = UInt(p.CSR_ADDR_W.W)
+  val csrAddr   = UInt(CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val excValid  = Bool()
@@ -650,14 +491,14 @@ class ExBundle(p: CoreParams) extends Bundle {
 }
 
 /** LS数据 */
-class LsBundle(p: CoreParams) extends Bundle {
+class LsBundle() extends Bundle {
   val pc        = UInt(CONFIG_ADDR_WIDTH.W)
   val dnpc      = UInt(CONFIG_ADDR_WIDTH.W)
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val loadData  = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
   val ctrl      = new Ctrl
-  val csrAddr   = UInt(p.CSR_ADDR_W.W)
+  val csrAddr   = UInt(CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val excValid  = Bool()
@@ -665,23 +506,18 @@ class LsBundle(p: CoreParams) extends Bundle {
 }
 
 /** WB数据 */
-class WbBundle(p: CoreParams) extends Bundle {
+class WbBundle() extends Bundle {
   val pc   = UInt(CONFIG_ADDR_WIDTH.W)
   val dnpc = UInt(CONFIG_ADDR_WIDTH.W)
 }
 
 /** 寄存器读写取接口，master视角，支持GPR CSR */
-class OldRegReadIO(ADDR_WIDTH: Int, DATA_WIDTH: Int)  extends Bundle {
+class RegReadIO(ADDR_WIDTH: Int, DATA_WIDTH: Int)  extends Bundle {
   val en   = Output(Bool())
   val addr = Output(UInt(ADDR_WIDTH.W))
   val data = Input(UInt(DATA_WIDTH.W))
 }
-class OldRegWriteIO(ADDR_WIDTH: Int, DATA_WIDTH: Int) extends Bundle {
-  val en   = Output(Bool())
-  val addr = Output(UInt(ADDR_WIDTH.W))
-  val data = Output(UInt(DATA_WIDTH.W))
-}
-class RegWriteIO(ADDR_WIDTH: Int, DATA_WIDTH: Int)    extends Bundle {
+class RegWriteIO(ADDR_WIDTH: Int, DATA_WIDTH: Int) extends Bundle {
   val wen   = Output(Bool())
   val waddr = Output(UInt(ADDR_WIDTH.W))
   val wdata = Output(UInt(DATA_WIDTH.W))
@@ -695,13 +531,7 @@ object RegWriteIODefaults {
 }
 
 /** 陷阱接口，master视角 */
-class OldTrapIO(p: CoreParams) extends Bundle {
-  val en    = Output(Bool())
-  val epc   = Output(UInt(CONFIG_ADDR_WIDTH.W))
-  val cause = Output(UInt(CONFIG_ADDR_WIDTH.W))
-  val tval  = Output(UInt(CONFIG_ADDR_WIDTH.W))
-}
-class TrapIO()                 extends Bundle {
+class TrapIO() extends Bundle {
   val en     = Output(Bool())
   val epc    = Output(UInt(CONFIG_ADDR_WIDTH.W))
   val cause  = Output(UInt(CONFIG_ADDR_WIDTH.W))

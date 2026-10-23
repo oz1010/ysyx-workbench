@@ -10,7 +10,7 @@ import config.ManuConfig._
   * ICache/DCache 经仲裁器共用 AXI4 读通道，store 由 DCache 写直通 AXI4 写通道。
   * 框架：模块例化与信号连接已完成，各模块内部实现留空。
   */
-class riscv32e_core(p: CoreParams) extends RawModule {
+class riscv32e_core() extends RawModule {
   val clock        = IO(Input(Clock()))
   val reset        = IO(Input(Bool()))  // 同步复位，高有效
   val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
@@ -33,18 +33,18 @@ class riscv32e_core(p: CoreParams) extends RawModule {
 
   withClockAndReset(clock, reset) {
     // ---------------- 实例化模块 ----------------
-    val ifu        = Module(new Ifu(p))
-    val idu        = Module(new Idu(p))
-    val exu        = Module(new Exu(p))
-    val lsu        = Module(new Lsu(p))
-    val wbu        = Module(new Wbu(p))
-    val m_gprs     = Module(new GprFile(p))
-    val m_csrs     = Module(new CsrFile(p))
-    val regIfId    = Module(new PipelineReg(new IfBundle(p)))
-    val regIdEx    = Module(new PipelineReg(new IdBundle(p)))
-    val regExLs    = Module(new PipelineReg(new ExBundle(p)))
-    val regLsWb    = Module(new PipelineReg(new LsBundle(p)))
-    val hazardUnit = Module(new HazardUnit(p))
+    val ifu        = Module(new Ifu())
+    val idu        = Module(new Idu())
+    val exu        = Module(new Exu())
+    val lsu        = Module(new Lsu())
+    val wbu        = Module(new Wbu())
+    val m_gprs     = Module(new GprFile())
+    val m_csrs     = Module(new CsrFile())
+    val regIfId    = Module(new PipelineReg(new IfBundle()))
+    val regIdEx    = Module(new PipelineReg(new IdBundle()))
+    val regExLs    = Module(new PipelineReg(new ExBundle()))
+    val regLsWb    = Module(new PipelineReg(new LsBundle()))
+    val hazardUnit = Module(new HazardUnit())
 
     // ---------------- 全局控制信号收集 ----------------
     val exRedirect  = exu.io.redirect
@@ -91,7 +91,7 @@ class riscv32e_core(p: CoreParams) extends RawModule {
     exu.io.lsStage   := regExLs.io.in.bits
     exu.io.wbValid   := regLsWb.io.in.valid
     exu.io.wbStage   := regLsWb.io.in.bits
-    exu.io.wbData    := wbu.io.gprWrite.data
+    exu.io.wbData    := wbu.io.gprWrite.wdata
     // csr寄存器组
     exu.io.csrRead <> m_csrs.io.read
     // EXU->LSU

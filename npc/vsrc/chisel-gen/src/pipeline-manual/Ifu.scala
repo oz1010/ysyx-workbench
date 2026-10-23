@@ -13,13 +13,13 @@ import config.ManuConfig._
   *   - JALR：无法静态得知目标，预测 not-taken（在 EX 级修正）
   */
 
-class Ifu(p: CoreParams) extends Module {
+class Ifu() extends Module {
   val io = IO(new Bundle {
     val reset_pc   = Input(UInt(CONFIG_ADDR_WIDTH.W))
     val cache      = new CacheIO()
-    val out        = Decoupled(new IfBundle(p))
-    val exRedirect = Input(new Redirect(p)) // 预测失败/跳转修正（EX 级）
-    val wbRedirect = Input(new Redirect(p)) // 陷阱/MRET（WBU 级，优先级最高）
+    val out        = Decoupled(new IfBundle())
+    val exRedirect = Input(new Redirect()) // 预测失败/跳转修正（EX 级）
+    val wbRedirect = Input(new Redirect()) // 陷阱/MRET（WBU 级，优先级最高）
   })
 
   val ready   = RegInit(false.B) // 模块就绪标识

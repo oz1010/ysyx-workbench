@@ -8,11 +8,11 @@ import config.ManuConfig._
 /** GPR 文件：mstatus(mtvec/mepc/mcause/mvendorid/marchid) 仅实现 M
   * 模式最常用的位：mstatus.MIE(bit3)、mstatus.MPIE(bit7)。
   */
-class GprFile(p: CoreParams) extends Module {
+class GprFile() extends Module {
   val io = IO(new Bundle {
-    val read1 = Flipped(new OldRegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val read2 = Flipped(new OldRegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val write = Flipped(new OldRegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val read1 = Flipped(new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val read2 = Flipped(new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val write = Flipped(new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
   })
 
   /*
@@ -31,11 +31,11 @@ class GprFile(p: CoreParams) extends Module {
   a[0:5];
    */
   // ---------------- 寄存器堆（RV32E：16 x 32，x0 恒 0） ----------------
-  val x = RegInit(VecInit(Seq.fill(p.GPR_COUNT)(0.U(CONFIG_ADDR_WIDTH.W))))
+  val x = RegInit(VecInit(Seq.fill(GPR_COUNT)(0.U(CONFIG_ADDR_WIDTH.W))))
 
   // 读写逻辑
-  when(io.write.en && io.write.addr =/= 0.U) {
-    x(io.write.addr) := io.write.data
+  when(io.write.wen && io.write.waddr =/= 0.U) {
+    x(io.write.waddr) := io.write.wdata
   }
   io.read1.data := Mux(io.read1.addr === 0.U, 0.U, x(io.read1.addr))
   io.read2.data := Mux(io.read2.addr === 0.U, 0.U, x(io.read2.addr))
