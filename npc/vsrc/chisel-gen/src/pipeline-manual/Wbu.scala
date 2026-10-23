@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
@@ -44,10 +45,14 @@ class Wbu() extends Module {
   val trap    = exptEn || intTake
   val cause   = Mux(exptEn, in.expt.cause, INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
   val mret    = v && in.ctrl.isMret && !trap
-  val trapEn  = RegInit(false.B)
-  trapEn             := Mux((trap || mret), true.B, false.B)
-  io.redirect.valid  := trapEn
-  io.redirect.target := Mux(trap, io.csrMtvec, io.csrMepc)
+  // 与 EX 相同：接受指令时同步锁存事件和目标，下一拍冲刷年轻指令。
+  val redirectFire = io.in.fire && (trap || mret)
+  val redirect     = RegInit(0.U.asTypeOf(new Redirect()))
+  redirect.valid := redirectFire
+  when(redirectFire) {
+    redirect.target := Mux(trap, io.csrMtvec, io.csrMepc)
+  }
+  io.redirect := redirect
 
   // CSR 更新（同周期冲突时：MRET < 陷阱 < CSR 写，WBU 单点仲裁）
   io.csrTrap.en     := trap

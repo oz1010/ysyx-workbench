@@ -95,7 +95,8 @@ class riscv32e_core() extends RawModule {
     exu.io.csrRead <> m_csrs.io.read
     // EXU->LSU
     regExLs.io.in <> exu.io.out
-    regExLs.io.flush := globalFlush
+    // EX 修正时保留跳转指令自身和更老指令；只有 WB 陷阱/MRET 冲刷后端。
+    regExLs.io.flush := wbRedirect.valid
     regExLs.io.stall := false.B
     regExLs.io.out <> lsu.io.in
 
@@ -104,7 +105,7 @@ class riscv32e_core() extends RawModule {
     lsu.io.kill      := wbRedirect.valid // 异常时终止访存
     // LSU->WBU
     regLsWb.io.in <> lsu.io.out
-    regLsWb.io.flush := globalFlush
+    regLsWb.io.flush := wbRedirect.valid
     regLsWb.io.stall := false.B
     regLsWb.io.out <> wbu.io.in
 

@@ -26,7 +26,7 @@ class Exu() extends Module {
 
   val in   = io.in.bits
   val v    = io.in.valid
-  val expt = Reg(new Expt)
+  val expt = Wire(new Expt)
   ExptDefaults(expt);
 
   // ---------------- 前递 ----------------
@@ -103,14 +103,14 @@ class Exu() extends Module {
   )
   val brTarget   = in.pc + in.imm
   val jalrTarget = (rs1f + in.imm) & (~1.U(CONFIG_ADDR_WIDTH.W)).asUInt
-  // 预测修正：分支实际走向与预测不符；JALR需要读取rs1而无法预测；
+  // 条件分支修正走向，JALR 等待 rs1 后修正；JAL 已在 IF 预测，不应误报。
   val mispredict =
-    (brTaken =/= in.predTaken) || in.ctrl.isJalr
+    (in.ctrl.isBrOp && (brTaken =/= in.predTaken)) || in.ctrl.isJalr
   val redirTgt   = MuxCase(
     in.pc + 4.U,
     Seq(
-      in.ctrl.isJalr -> jalrTarget,
-      brTaken        -> brTarget
+      in.ctrl.isJalr            -> jalrTarget,
+      (in.ctrl.isJal || brTaken) -> brTarget
     )
   )
 
@@ -163,9 +163,13 @@ class Exu() extends Module {
   io.out.bits.expt      := Mux(io.in.bits.expt.en, io.in.bits.expt, expt)
 
   // ---------------- 重定向（异常时不重定向，交由 WBU 走 mtvec） ----------------
-  // TODO 这里因为成环而改用寄存器来处理
-  val trapEn = RegInit(false.B)
-  trapEn             := io.in.fire && !in.expt.en && !expt.en && mispredict
-  io.redirect.valid  := trapEn
-  io.redirect.target := redirTgt
+  // EX 接受指令时同步锁存事件和目标，下一拍仅冲刷前端，保留 EX/MEM 中的自身。
+  // valid 每拍更新，反压或 load-use 等待时不发请求；寄存器隔断 flush 的组合反馈。
+  val redirectFire = io.in.fire && !in.expt.en && !expt.en && mispredict
+  val redirect     = RegInit(0.U.asTypeOf(new Redirect()))
+  redirect.valid := redirectFire
+  when(redirectFire) {
+    redirect.target := redirTgt
+  }
+  io.redirect := redirect
 }
