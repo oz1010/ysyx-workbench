@@ -6,10 +6,8 @@ import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
-/** WBU（WB 级）：写回 + CSR 提交 + 陷阱/中断/MRET 处理。
-  *   - 异常：指令自带的异常（illegal/ecall/ebreak/非对齐）在提交时进 mtvec
-  *   - 中断：io.interrupt 且 mstatus.MIE=1，在指令边界接收（mepc=当前提交 PC）
-  *   - MRET：跳回 mepc，恢复 mstatus.MIE
+/** WBU：同步异常不退休；中断在当前指令完成后接收，mepc 保存下一 PC。
+  * io.interrupt 是平台已限定的机器外部中断电平，由 mstatus.MIE 全局屏蔽。
   */
 class Wbu() extends Module {
   val io = IO(new Bundle {
@@ -17,19 +15,19 @@ class Wbu() extends Module {
     val out       = Decoupled(new WbBundle())
     val csrWrite  = new RegWriteIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH)
     val csrTrap   = new TrapIO()
-    val redirect  = Output(new Redirect()) // 陷阱/MRET（→ IFU）
+    val redirect  = Output(new Redirect())
+    val blockMem  = Output(Bool()) // 接受陷阱/MRET 当拍即禁止年轻访存
     val gprWrite  = new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
-    val interrupt = Input(Bool())          // TODO 暂时忽略中断的影响
-    // TODO 暂时忽略csr值输入
-    val csrMie    = Input(Bool())
+    val interrupt = Input(Bool())
+    val csrStatus = Input(UInt(CONFIG_ADDR_WIDTH.W))
     val csrMepc   = Input(UInt(CONFIG_ADDR_WIDTH.W))
     val csrMtvec  = Input(UInt(CONFIG_ADDR_WIDTH.W))
   })
 
   val in = io.in.bits
-  val v  = io.in.valid
+  val v = io.in.valid && !reset.asBool
+  val commit = v && io.out.ready
 
-  // ---------------- 写回数据选择 ----------------
   val wbData = MuxLookup(in.ctrl.wbOp, in.aluResult)(
     Seq(
       WbOp.ALU  -> in.aluResult,
@@ -38,52 +36,61 @@ class Wbu() extends Module {
       WbOp.PC_4 -> (in.pc + 4.U)
     )
   )
-
-  // ---------------- 陷阱仲裁 ----------------
-  val exptEn  = v && in.expt.en
-  val intTake = v && io.interrupt && io.csrMie && !exptEn
-  val trap    = exptEn || intTake
-  val cause   = Mux(exptEn, in.expt.cause, INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
-  val mret    = v && in.ctrl.isMret && !trap
-  // 与 EX 相同：接受指令时同步锁存事件和目标，下一拍冲刷年轻指令。
-  val redirectFire = io.in.fire && (trap || mret)
-  val redirect     = RegInit(0.U.asTypeOf(new Redirect()))
-  redirect.valid := redirectFire
-  when(redirectFire) {
-    redirect.target := Mux(trap, io.csrMtvec, io.csrMepc)
-  }
-  io.redirect := redirect
-
-  // CSR 更新（同周期冲突时：MRET < 陷阱 < CSR 写，WBU 单点仲裁）
-  io.csrTrap.en     := trap
-  io.csrTrap.cause  := cause
-  io.csrTrap.epc    := in.pc
-  io.csrTrap.tval   := 0.U // TODO 具体值应和cause相关
-  io.csrTrap.status := 0.U // 暂时不需要修改状态值
-  io.csrWrite.wen   := v && !trap && in.ctrl.isCsrOp
-  io.csrWrite.waddr := in.csrAddr
-  io.csrWrite.wdata := MuxLookup(in.ctrl.csrOp, in.csrWdata)(
+  val csrData = MuxLookup(in.ctrl.csrOp, in.csrWdata)(
     Seq(
-      CsrOp.RW -> in.csrWdata,                 // RW: 直接写
-      CsrOp.RS -> (in.csrRdata | in.csrWdata), // RS: 置位
-      CsrOp.RC -> (in.csrRdata & ~in.csrWdata) // RC：清位
+      CsrOp.RW -> in.csrWdata,
+      CsrOp.RS -> (in.csrRdata | in.csrWdata),
+      CsrOp.RC -> (in.csrRdata & ~in.csrWdata)
     )
   )
 
-  // ---------------- 寄存器堆写口 ----------------
-  io.gprWrite.wen   := v && !trap && in.ctrl.isRdWen && in.rdAddr =/= 0.U
+  val csrWriteData = MuxCase(csrData, Seq(
+    (in.csrAddr === CSRAddr.MSTATUS) -> CsrStatus.normalize(csrData),
+    (in.csrAddr === CSRAddr.MEPC) -> Cat(csrData(31, 2), 0.U(2.W)),
+    (in.csrAddr === CSRAddr.MTVEC) ->
+      Cat(csrData(31, 2), 0.U(1.W), csrData(1, 0) === 1.U)
+  ))
+
+  // 中断看到本条 CSR 写之后的状态/向量，避免启用、屏蔽及改向量错拍。
+  val exptEn = v && in.expt.en
+  val csrWen = in.ctrl.isCsrOp && !exptEn
+  val status = Mux(csrWen && in.csrAddr === CSRAddr.MSTATUS,
+    csrWriteData, io.csrStatus)
+  val mtvec = Mux(csrWen && in.csrAddr === CSRAddr.MTVEC, csrWriteData, io.csrMtvec)
+  val mret = v && in.ctrl.isMret && !exptEn
+  val intTake = v && io.interrupt && status(3) && !exptEn && !mret
+  val trap = exptEn || intTake
+  val trapBase = Cat(mtvec(31, 2), 0.U(2.W))
+  // MODE=1 时仅中断使用向量；不支持的 MODE 按 Direct 处理。
+  val trapTarget = trapBase + Mux(intTake && mtvec(1, 0) === 1.U, 44.U, 0.U)
+  val returnTarget = Cat(io.csrMepc(31, 2), 0.U(2.W))
+  // 提交轨迹和重定向共用最终架构下一 PC，不各自重算陷阱目标。
+  val nextPc = Mux(trap, trapTarget, Mux(mret, returnTarget, in.dnpc))
+  val redirectFire = commit && (trap || mret)
+  val redirect = RegInit(0.U.asTypeOf(new Redirect()))
+  redirect.valid := redirectFire
+  when(redirectFire) {
+    redirect.target := nextPc
+  }
+  io.redirect := redirect
+  io.blockMem := redirectFire
+
+  io.csrTrap.en     := commit && trap
+  io.csrTrap.cause  := Mux(exptEn, in.expt.cause, INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
+  io.csrTrap.epc    := Mux(exptEn, in.pc, in.dnpc)
+  io.csrTrap.tval   := Mux(exptEn, in.expt.tval, 0.U)
+  io.csrTrap.status := CsrStatus.enter(status)
+
+  // 普通写先完成，再进入中断。MRET 复用公开 CSR 写口镜像 mstatus 更新。
+  io.csrWrite.wen   := commit && !exptEn && (in.ctrl.isCsrOp || mret)
+  io.csrWrite.waddr := Mux(mret, CSRAddr.MSTATUS, in.csrAddr)
+  io.csrWrite.wdata := Mux(mret, CsrStatus.leave(io.csrStatus), csrWriteData)
+  io.gprWrite.wen   := commit && !exptEn && in.ctrl.isRdWen && in.rdAddr =/= 0.U
   io.gprWrite.waddr := in.rdAddr
   io.gprWrite.wdata := wbData
 
-  // 流水线处理
-  io.in.ready      := true.B
+  io.in.ready      := io.out.ready && !reset.asBool
   io.out.valid     := v
-  io.out.bits.pc   := io.in.bits.pc
-  // TODO 先透传dnpc
-  // io.out.bits.dnpc := Mux(
-  //   trap,
-  //   io.csrMtvec,
-  //   Mux(mret, io.csrMepc, io.in.bits.dnpc)
-  // )
-  io.out.bits.dnpc := io.in.bits.dnpc
+  io.out.bits.pc   := in.pc
+  io.out.bits.dnpc := nextPc
 }

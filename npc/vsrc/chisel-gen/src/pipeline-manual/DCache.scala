@@ -1,36 +1,18 @@
 package pipeline_manual
 
 import chisel3._
-import chisel3.util._
-import config.AutoConfig._
-import config.ManuConfig._
+import scala.language.reflectiveCalls
 
+/** 数据端先采用无缓存桥接：BaseCache 锁存请求、单拍读、写直通并等待 B。
+  * 返回完整对齐字，load 抽取由 LSU 完成；数据移位和字节使能仅在桥内处理。
+  */
 class DCache() extends Module {
   val io = IO(new Bundle {
     val cpu    = Flipped(new CacheIO())
     val master = new Axi4IO()
   })
 
-  // TODO 临时关闭功能
-  CacheIOSlaveDefaults(io.cpu)
-  // TODO 临时禁用读
-  io.master.arvalid := false.B
-  io.master.araddr  := 0.U
-  io.master.arid    := 0.U
-  io.master.arlen   := 0.U
-  io.master.arsize  := 0.U
-  io.master.arburst := 0.U
-  io.master.rready  := false.B
-  // TODO 禁用写
-  io.master.awvalid := false.B
-  io.master.awaddr  := 0.U
-  io.master.awid    := 0.U
-  io.master.awlen   := 0.U
-  io.master.awsize  := 0.U
-  io.master.awburst := 0.U
-  io.master.wvalid  := false.B
-  io.master.wdata   := 0.U
-  io.master.wstrb   := 0.U
-  io.master.wlast   := 0.U
-  io.master.bready  := false.B
+  val bridge = Module(new BaseCache(cacheEn = false, writeEn = true))
+  bridge.io.cpu <> io.cpu
+  io.master <> bridge.io.master
 }

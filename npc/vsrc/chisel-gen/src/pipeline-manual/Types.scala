@@ -265,6 +265,16 @@ object CSRAddr {
     0xf12.U(width) // Architecture ID, 学号数字部分（23060295）的十进制表示，即0x15FDF47
 }
 
+/** 仅实现 M 模式：MPP 固定为 M，MIE/MPIE 随陷阱和返回更新。 */
+object CsrStatus {
+  private val mask = BigInt("ffffe7ff", 16)
+  def normalize(status: UInt): UInt = (status & mask.U(32.W)) | "h1800".U
+  def enter(status: UInt): UInt =
+    normalize((status & "hffffff77".U(32.W)) | (status(3).asUInt << 7))
+  def leave(status: UInt): UInt =
+    normalize((status & "hffffff77".U(32.W)) | (status(7).asUInt << 3) | "h80".U)
+}
+
 /** 重定向数据（冲刷流水线并修改取指 PC） */
 class Redirect() extends Bundle {
   val valid  = Bool()
