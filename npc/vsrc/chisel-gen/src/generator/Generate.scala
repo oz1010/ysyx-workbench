@@ -14,7 +14,8 @@ import scala.util.matching.Regex
   *   - 按类名拆分输出，参数化变体归入基类文件，辅助模块归入当前生成类的文件；
   *   - .v/.sv 手写 Verilog 保持相对路径原样拷贝，不编译、不改写；
   *   - 不对外设模块做特殊处理。
-  * 参数：args(0) 输出根目录（默认 build），args(1) 源目录名（默认 pipeline-manual）。
+  * 参数：args(0) 输出根目录（默认 build），args(1) 源目录名（默认 pipeline-manual）， args(2) 生成模式（默认
+  * normal，可选 synthesis）。
   */
 object Generate {
   private val modulePattern: Regex =
@@ -24,11 +25,15 @@ object Generate {
     "(?m)^\\s*package\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*$".r
 
   private def sourceFiles(roots: Seq[Path]): Seq[Path] =
-    roots.distinct.filter(Files.isDirectory(_)).flatMap { root =>
-      val stream = Files.walk(root)
-      try stream.iterator().asScala.filter(Files.isRegularFile(_)).toVector
-      finally stream.close()
-    }.distinct.sortBy(_.toString)
+    roots.distinct
+      .filter(Files.isDirectory(_))
+      .flatMap { root =>
+        val stream = Files.walk(root)
+        try stream.iterator().asScala.filter(Files.isRegularFile(_)).toVector
+        finally stream.close()
+      }
+      .distinct
+      .sortBy(_.toString)
 
   private def sourceModules(files: Seq[Path]): Seq[(Path, String)] = {
     files
@@ -123,21 +128,35 @@ object Generate {
     }
   }
 
-  private def emitVerilog(fqcn: String): String =
+  private def emitVerilog(fqcn: String, mode: String): String = {
+    // --disable-layers=Verification: 禁用验证层
+    // --lowering-options=disallowLocalVariables: 不在 always 块内生成 automatic 局部变量，
+    // --preserve-aggregate=all: 保持 Vec/Bundle 等聚合数据类型结构，不被打平为独立的 x_0, x_1 标量信号
+    // --scalarize-internal-modules: 顶层端口会被展平，内部端口也采用相同形式，避免独立生成后接口不一致。
+    val firtoolOpts = mode match {
+      case "normal"    =>
+        Array(
+          "--disable-layers=Verification",
+          "--lowering-options=disallowLocalVariables",
+          "--preserve-aggregate=all",
+          "--scalarize-internal-modules"
+        )
+      case "synthesis" =>
+        Array(
+          "--disable-layers=Verification",
+          "--lowering-options=disallowLocalVariables"
+        )
+      case other       =>
+        sys.error(
+          s"unsupported generation mode: $other (expected normal or synthesis)"
+        )
+    }
+
     ChiselStage.emitSystemVerilog(
       instantiate(fqcn),
-      // disallowLocalVariables: 不在 always 块内生成 automatic 局部变量，
-      // 保证 yosys (make sta-area) 能解析生成代码。
-      // --preserve-aggregate=all: 保持 Vec/Bundle 等聚合数据类型结构，不被打平为独立的 x_0, x_1 标量信号
-      // TODO 计算面积时，不能将聚合数据展开；或改用Verilog主动推送修改项；
-      firtoolOpts = Array(
-        "--disable-layers=Verification",
-        "--lowering-options=disallowLocalVariables",
-        "--preserve-aggregate=all",
-        // 顶层端口会被展平，内部端口也采用相同形式，避免独立生成后接口不一致。
-        "--scalarize-internal-modules"
-      )
+      firtoolOpts = firtoolOpts
     )
+  }
 
   private val moduleStart: Regex =
     "(?m)^module\\s+([A-Za-z_][A-Za-z0-9_]*)\\b".r
@@ -174,7 +193,9 @@ object Generate {
     val outRoot    = root.resolve(if (args.nonEmpty) args(0) else "build")
     // 生成目标目录名（如 pipeline-manual）：只编译该目录 + common 下的源文件
     val genName    = if (args.length > 1) args(1) else "pipeline-manual"
-    val sourceDirs = Seq(sourceRoot.resolve(genName), sourceRoot.resolve("common"))
+    val mode       = if (args.length > 2) args(2) else "normal"
+    val sourceDirs =
+      Seq(sourceRoot.resolve(genName), sourceRoot.resolve("common"))
     require(
       Files.isDirectory(sourceDirs.head),
       s"source directory does not exist or is not a directory: ${sourceDirs.head}"
@@ -195,10 +216,10 @@ object Generate {
 
     val claimed = mutable.Set.empty[String]
     // 手写模块名也参与去重；文件本身不编译、不改写，不能被生成文件覆盖。
-    val copied = files
+    val copied  = files
       .filter(p => p.toString.endsWith(".v") || p.toString.endsWith(".sv"))
       .map { source =>
-        val text = verilogComments.replaceAllIn(Files.readString(source), " ")
+        val text     = verilogComments.replaceAllIn(Files.readString(source), " ")
         handwrittenModule.findAllMatchIn(text).foreach { m =>
           require(
             claimed.add(m.group(1)),
@@ -221,55 +242,60 @@ object Generate {
       mutable.LinkedHashMap.empty[Path, mutable.ArrayBuffer[(String, String)]]
 
     val failures = mutable.ArrayBuffer.empty[(String, Throwable)]
-    val emitted = modules.filterNot { case (_, fqcn) =>
-      claimed(fqcn.substring(fqcn.lastIndexOf('.') + 1))
-    }.flatMap { case (source, fqcn) =>
-      try {
-        val (preamble, chunks) = splitModules(emitVerilog(fqcn))
-        Some((source, fqcn, preamble, chunks))
-      } catch {
-        case NonFatal(t) =>
-          val cause = t match {
-            case e: InvocationTargetException if e.getCause != null => e.getCause
-            case _ => t
-          }
-          failures += fqcn -> cause
-          System.err.println(
-            s"[chisel] failed $source :: $fqcn (${cause.getClass.getSimpleName}: ${cause.getMessage})"
-          )
-          None
+    val emitted  = modules
+      .filterNot { case (_, fqcn) =>
+        claimed(fqcn.substring(fqcn.lastIndexOf('.') + 1))
       }
-    }
+      .flatMap { case (source, fqcn) =>
+        try {
+          val (preamble, chunks) = splitModules(emitVerilog(fqcn, mode))
+          Some((source, fqcn, preamble, chunks))
+        } catch {
+          case NonFatal(t) =>
+            val cause = t match {
+              case e: InvocationTargetException if e.getCause != null =>
+                e.getCause
+              case _                                                  => t
+            }
+            failures += fqcn -> cause
+            System.err.println(
+              s"[chisel] failed $source :: $fqcn (${cause.getClass.getSimpleName}: ${cause.getMessage})"
+            )
+            None
+        }
+      }
     require(
       failures.isEmpty,
       s"Verilog generation failed for: ${failures.map(_._1).mkString(", ")}"
     )
 
     // 优先保留完整层级，避免独立生成的默认参数版本抢占层级内的同名子模块。
-    emitted.sortBy { case (source, fqcn, _, chunks) =>
-      (-chunks.size, source.toString, fqcn)
-    }.foreach { case (source, fqcn, preamble, chunks) =>
-      chunks.foreach { case (name, body) =>
-        if (claimed.add(name)) {
-          val target = classFile.getOrElse(
-            name,
-            classFile.getOrElse(
-              paramSuffix.replaceFirstIn(name, ""),
-              targetFor(source, fqcn)
+    emitted
+      .sortBy { case (source, fqcn, _, chunks) =>
+        (-chunks.size, source.toString, fqcn)
+      }
+      .foreach { case (source, fqcn, preamble, chunks) =>
+        chunks.foreach { case (name, body) =>
+          if (claimed.add(name)) {
+            val target = classFile.getOrElse(
+              name,
+              classFile.getOrElse(
+                paramSuffix.replaceFirstIn(name, ""),
+                targetFor(source, fqcn)
+              )
             )
-          )
-          require(
-            !copied(target),
-            s"generated file would overwrite handwritten Verilog: $target"
-          )
-          routed.getOrElseUpdate(target, mutable.ArrayBuffer.empty) +=
-            preamble -> adaptTop(name, body)
-          println(
-            s"[chisel] ${sourceRoot.relativize(source)} :: $name -> ${outRoot.relativize(target)}"
-          )
+            require(
+              !copied(target),
+              s"generated file would overwrite handwritten Verilog: $target"
+            )
+            routed.getOrElseUpdate(target, mutable.ArrayBuffer.empty) +=
+              preamble -> adaptTop(name, body)
+            println(
+              s"[chisel] ${sourceRoot.relativize(source)} :: $name -> ${outRoot.relativize(target)}"
+            )
+          }
         }
       }
-    }
 
     // 每个文件保留其模块各次编译的文件头，不能借用某个固定顶层的文件头。
     routed.foreach { case (target, chunks) =>

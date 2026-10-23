@@ -19,6 +19,16 @@ VMOD_NAME	= ysyxSoCFull
 VERILATOR   = verilator
 THREADS ?= $(shell nproc)
 
+# Chisel gen directory
+CHISEL_GEN_DIR_NAME = $(CONFIG_CHISEL_DIR_NAME)
+CHISEL_GEN_OUT = build
+CHISEL_GEN_MODE = normal
+ifneq ($(filter sta sta-area,$(MAKECMDGOALS)),)
+	CHISEL_GEN_OUT = build-sta
+	CHISEL_GEN_MODE = synthesis
+endif
+CHISEL_BUILD = ./vsrc/chisel-gen/$(CHISEL_GEN_OUT)/$(CHISEL_GEN_DIR_NAME)
+
 # VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull.v
 VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull_axi.v
 VSRCS-y += ./vsrc/core/ysyx_23060295.v
@@ -27,7 +37,7 @@ VDIRS_CORE-y							+= ./vsrc/device
 VDIRS_CORE-$(CONFIG_ISA_RISCV_SINGLE)	+= ./vsrc/core/single
 VDIRS_CORE-$(CONFIG_ISA_RISCV_MULTIPLE)	+= ./vsrc/core/multiple
 VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE)	+= ./vsrc/core/pipeline
-VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL)	+= ./vsrc/core/pipeline-chisel
+VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL)	+= $(CHISEL_BUILD)
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/amba
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/bitrev
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/flash
@@ -115,8 +125,12 @@ VERILATOR_CFLAGS += $(INCLUDES)
 
 ifeq ($(CONFIG_ISA_RISCV_PIPELINE_CHISEL), y)
 compile_chisel:
-	@echo "\033[42m--- Compile Chisel in $(CONFIG_CHISEL_DIR_NAME) ---\033[0m"
-	@make copy_to_npc GEN_DIR_NAME=$(CONFIG_CHISEL_DIR_NAME) -C vsrc/chisel-gen
+	@echo "\033[42m--- Compile Chisel in $(CHISEL_GEN_DIR_NAME) ---\033[0m"
+	@make verilog \
+		GEN_DIR_NAME=$(CHISEL_GEN_DIR_NAME) \
+		GEN_OUT=$(CHISEL_GEN_OUT) \
+		GEN_MODE=$(CHISEL_GEN_MODE) \
+		-C vsrc/chisel-gen
 else
 compile_chisel:
 	@echo "\033[42m--- Skip Compile Chisel ---\033[0m"
@@ -143,19 +157,19 @@ $(GEN_STA_FILE): $(STA_FILES)
 		$^ > $@
 
 # sta: $(GEN_STA_FILE)
-sta: $(STA_FILES)
+sta: $(STA_FILES) compile_chisel
 	@echo start yosys-sta
 	@make -C $(YOSYS_STA_HOME) sta \
 		DESIGN=$(VMOD_NAME) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
 		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(STA_OUTPUT_DIR) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
-		RTL_FILES="$^"
+		RTL_FILES="$(STA_FILES)"
 
 # 层级化面积统计: 不 flatten, stat 按模块分别报告面积, 用于定位流水线各模块占比
 YOSYS_PDK		?= nangate45
 YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/$(YOSYS_PDK)/lib/Nangate45_typ.lib
 
-sta-area: $(STA_FILES) | $(WORK_DIR)/scripts/yosys_area_hier.tcl
+sta-area: $(STA_FILES) | $(WORK_DIR)/scripts/yosys_area_hier.tcl compile_chisel
 	@echo start yosys-area-hier
 	@mkdir -p $(STA_OUTPUT_DIR)/area-hier
 	@yosys -l $(STA_OUTPUT_DIR)/area-hier/yosys.log -p \
