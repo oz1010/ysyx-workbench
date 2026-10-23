@@ -121,13 +121,11 @@ class Exu() extends Module {
     (in.ctrl.isJal || in.ctrl.isJalr || brTaken) && fetchTgt(1, 0) =/= 0.U
   // load/store 地址非对齐（访存对齐要求已由 LSU 假定）
   val ldMis    =
-    in.ctrl.isLoad && ((in.ctrl.memOp === MemOp.LH && aluResult(
-      0
-    ) =/= 0.U) || (in.ctrl.memOp === MemOp.LW && aluResult(1, 0) =/= 0.U))
+    in.ctrl.isLoad && (((in.ctrl.memOp === MemOp.LH || in.ctrl.memOp === MemOp.LHU) &&
+      aluResult(0) =/= 0.U) || (in.ctrl.memOp === MemOp.LW && aluResult(1, 0) =/= 0.U))
   val stMis    =
-    in.ctrl.isStore && ((in.ctrl.memOp === MemOp.SH && aluResult(
-      0
-    ) =/= 0.U) || (in.ctrl.memOp === MemOp.SW && aluResult(1, 0) =/= 0.U))
+    in.ctrl.isStore && ((in.ctrl.memOp === MemOp.SH && aluResult(0) =/= 0.U) ||
+      (in.ctrl.memOp === MemOp.SW && aluResult(1, 0) =/= 0.U))
 
   expt.en    :=
     v && (in.ctrl.isIllegal || in.ctrl.isEcall || in.ctrl.isEbreak || fetchMis || ldMis || stMis)
@@ -141,6 +139,15 @@ class Exu() extends Module {
       stMis             -> ExptCode.STORE_MISS
     )
   )
+
+  // 与 cause 使用相同优先级；上游异常在输出处连同 tval 一起优先透传。
+  expt.tval := MuxCase(0.U, Seq(
+    in.ctrl.isIllegal -> in.inst,
+    in.ctrl.isEcall   -> 0.U,
+    in.ctrl.isEbreak  -> in.pc,
+    fetchMis         -> fetchTgt,
+    (ldMis || stMis) -> aluResult
+  ))
 
   // ---------------- CSR读写 ----------------
   io.csrRead.en   := true.B

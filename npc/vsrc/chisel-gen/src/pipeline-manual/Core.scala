@@ -25,13 +25,6 @@ class riscv32e_core() extends RawModule {
   val dnpc         = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
   val inst_done    = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
 
-  // TODO 临时赋值
-  CacheIOMasterDefaults(io_if)
-  CacheIOMasterDefaults(io_mem)
-  RegWriteIODefaults(gpr)
-  RegWriteIODefaults(csr)
-  TrapIODefaults(trap)
-
   withClockAndReset(clock, reset) {
     // ---------------- 实例化模块 ----------------
     val ifu        = Module(new Ifu())
@@ -68,7 +61,7 @@ class riscv32e_core() extends RawModule {
     // IFU->IDU
     regIfId.io.in <> ifu.io.out
     regIfId.io.flush <> globalFlush
-    regIfId.io.stall := false.B
+    regIfId.io.stall  := false.B
     regIfId.io.out <> idu.io.in
 
     // ---------------- IDU ----------------
@@ -85,12 +78,15 @@ class riscv32e_core() extends RawModule {
 
     // ---------------- EXU ----------------
     // 前递只跨真实级间边界：MEM 优先于 WB，不能连接 EXU 自己的输出
-    exu.io.lsValid   := regExLs.io.out.valid
-    exu.io.lsStage   := regExLs.io.out.bits
-    exu.io.wbValid   := wbu.io.gprWrite.wen
-    exu.io.wbStage   := regLsWb.io.out.bits
-    exu.io.wbData    := wbu.io.gprWrite.wdata
-    exu.io.loadStall := loadStall
+    exu.io.lsValid := regExLs.io.out.valid
+    exu.io.lsStage := regExLs.io.out.bits
+    exu.io.wbValid := wbu.io.gprWrite.wen
+    exu.io.wbStage := regLsWb.io.out.bits
+    exu.io.wbData  := wbu.io.gprWrite.wdata
+    // CSR 在 EX 读旧值前等待更老指令提交，避免 CSR RAW 和 trap 状态错拍。
+    val csrStall = regIdEx.io.out.bits.ctrl.isCsrOp &&
+      (regExLs.io.out.valid || regLsWb.io.out.valid)
+    exu.io.loadStall := loadStall || csrStall
     // csr寄存器组
     exu.io.csrRead <> m_csrs.io.read
     // EXU->LSU
@@ -102,7 +98,7 @@ class riscv32e_core() extends RawModule {
 
     // ---------------- LSU ----------------
     lsu.io.cache <> io_mem
-    lsu.io.kill      := wbRedirect.valid // 异常时终止访存
+    lsu.io.kill      := wbRedirect.valid || wbu.io.blockMem // 陷阱接受当拍即阻止年轻访存
     // LSU->WBU
     regLsWb.io.in <> lsu.io.out
     regLsWb.io.flush := wbRedirect.valid
@@ -114,26 +110,28 @@ class riscv32e_core() extends RawModule {
     wbu.io.gprWrite <> m_gprs.io.write
     wbu.io.csrWrite <> m_csrs.io.write
     wbu.io.csrTrap <> m_csrs.io.trap
+    wbu.io.csrStatus := m_csrs.io.status
+    // 对外接口镜像内部同拍提交事件，不另行寄存或产生写使能。
+    gpr              := wbu.io.gprWrite
+    csr              := wbu.io.csrWrite
+    trap             := wbu.io.csrTrap
     wbu.io.out.ready := true.B
-    wbu.io.csrMie    := false.B
     wbu.io.csrMepc   := m_csrs.io.mepc
     wbu.io.csrMtvec  := m_csrs.io.mtvec
 
     // ---------------- 关键输出 ----------------
     val core_pc   = Reg(UInt(CONFIG_ADDR_WIDTH.W))
     val core_dnpc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
-    core_pc   := Mux(
-      reset.asBool,
-      reset_pc,
-      Mux(wbu.io.out.fire, wbu.io.out.bits.dnpc, core_pc)
-    )
-    core_dnpc := Mux(
-      reset.asBool,
-      reset_pc,
-      Mux(lsu.io.out.fire, lsu.io.out.bits.dnpc, core_dnpc)
-    )
-    pc        := core_pc
-    dnpc      := core_dnpc
-    inst_done := wbu.io.out.valid
+    when(reset.asBool) {
+      core_pc   := reset_pc
+      core_dnpc := reset_pc
+    }.elsewhen(wbu.io.out.fire) {
+      core_pc   := wbu.io.out.bits.pc
+      core_dnpc := wbu.io.out.bits.dnpc
+    }
+    // inst_done 与 GPR/CSR/trap 同拍时给出同一条指令的 PC 对；空闲时保持最后记录。
+    pc := Mux(wbu.io.out.fire, wbu.io.out.bits.pc, core_pc)
+    dnpc      := Mux(wbu.io.out.fire, wbu.io.out.bits.dnpc, core_dnpc)
+    inst_done := wbu.io.out.fire
   }
 }

@@ -3,6 +3,7 @@ package pipeline_manual
 import chisel3._
 import chisel3.util._
 import config.AutoConfig._
+import scala.language.reflectiveCalls
 
 private class BaseCacheArray(w: Int, n: Int, m: Int)
     extends ExtModule(

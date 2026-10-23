@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
@@ -13,15 +14,14 @@ class CsrFile() extends Module {
     val read  = Flipped(new RegReadIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH))
     val write = Flipped(new RegWriteIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH))
     val trap  = Flipped(new TrapIO())
-    // // MRET 返回
-    // val mret   = Input(Bool())
-    // // 状态输出
-    // val mie      = Output(Bool())       // mstatus.MIE
+    // MRET 由 WBU 通过普通 CSR 写口更新，外部也能观察到同一事件。
+    val status = Output(UInt(CONFIG_ADDR_WIDTH.W))
     val mepc  = Output(UInt(CONFIG_ADDR_WIDTH.W))
     val mtvec = Output(UInt(CONFIG_ADDR_WIDTH.W))
   })
 
-  val csrs = RegInit(VecInit(Seq.fill(CSR_COUNT)(0.U(CONFIG_ADDR_WIDTH.W))))
+  val csrs = RegInit(VecInit((0 until CSR_COUNT).map(i =>
+    (if (i == 1) "h1800".U(CONFIG_ADDR_WIDTH.W) else 0.U(CONFIG_ADDR_WIDTH.W)))))
 
   def getCsrIdx(addr: UInt): UInt = {
     MuxLookup(addr(CSR_ADDR_W - 1, 0), 0.U)(
@@ -40,14 +40,17 @@ class CsrFile() extends Module {
   val readIdx  = getCsrIdx(io.read.addr)
   val writeIdx = getCsrIdx(io.write.waddr)
 
-  // CSR 更新（同周期冲突时：MRET < 陷阱 < CSR 写）
+  // 当前指令写 CSR 后可接收中断：先普通写，再由 trap 覆盖陷阱状态。
+  io.status    := csrs(getCsrIdx(CSRAddr.MSTATUS))
   io.read.data := csrs(readIdx)
   io.mepc      := csrs(getCsrIdx(CSRAddr.MEPC))
   io.mtvec     := csrs(getCsrIdx(CSRAddr.MTVEC))
   when(io.write.wen) {
     csrs(writeIdx) := io.write.wdata
-  }.elsewhen(io.trap.en) {
-    csrs(getCsrIdx(CSRAddr.MEPC))   := io.trap.epc
+  }
+  when(io.trap.en) {
+    csrs(getCsrIdx(CSRAddr.MSTATUS)) := io.trap.status
+    csrs(getCsrIdx(CSRAddr.MEPC))   := Cat(io.trap.epc(31, 2), 0.U(2.W))
     csrs(getCsrIdx(CSRAddr.MCAUSE)) := io.trap.cause
     csrs(getCsrIdx(CSRAddr.MTVAL))  := io.trap.tval
   }

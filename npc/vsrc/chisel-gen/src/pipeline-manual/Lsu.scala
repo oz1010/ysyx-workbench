@@ -2,64 +2,78 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
-/** LSU（MEM 级）：封装 DCache，完成 load 数据抽取/符号扩展，
-  *   - 产生 MEM/WB 寄存器；store 经 Cache 写直通到 Store Buffer。
+/** LSU：单笔 CacheIO 访存，锁存响应以承受 WB 反压，load 按原始字节 lane 抽取。
+  * 冲刷后排空已接受请求的响应，不将旧响应交给新指令；已发出的 store 无法撤销。
   */
 class Lsu() extends Module {
   val io = IO(new Bundle {
     val cache = new CacheIO()
     val in    = Flipped(Decoupled(new ExBundle()))
     val out   = Decoupled(new LsBundle())
-    val kill  = Input(Bool()) // WBU 陷阱/MRET：冲刷 EX/MEM 及其后
+    val kill  = Input(Bool())
   })
 
-  val in        = io.in.bits
-  val isMemInst = in.ctrl.isLoad || in.ctrl.isStore
-  val expt      = Reg(new Expt)
-  ExptDefaults(expt);
+  val in = io.in.bits
+  val isMemInst = (in.ctrl.isLoad || in.ctrl.isStore) && !in.expt.en
+  val pending = RegInit(false.B)
+  val discard = RegInit(false.B)
+  val responseValid = RegInit(false.B)
+  val responseData = Reg(UInt(CONFIG_DATA_WIDTH.W))
 
-  // 字节使能
-  val addr  = in.aluResult
-  val wstrb = MuxLookup(in.ctrl.memOp, 0.U)(
-    Seq(
-      MemOp.SB -> (1.U(4.W) << addr(1, 0)),                   // SB
-      MemOp.SH -> Mux(addr(1) === 1.U, "b1100".U, "b0011".U), // SH
-      MemOp.SW -> "b1111".U                                   // SW
-    )
-  )
-
-  // dcache请求
-  io.cache.req.valid := io.in.valid && isMemInst && !io.kill
-  io.cache.req.addr  := addr
+  // 每条访存只接受一次请求；响应与下游消费解耦，不因反压重发 store。
+  io.cache.req.valid := io.in.valid && isMemInst && !io.kill && !reset.asBool &&
+    !pending && !responseValid && !discard
+  io.cache.req.addr  := in.aluResult
   io.cache.req.op    := in.ctrl.memOp
   io.cache.req.wdata := in.storeData
-  io.cache.rsp.ready := true.B
-  val memWait = isMemInst && !io.cache.rsp.fire
+  io.cache.rsp.ready := pending || io.cache.req.fire
+  when(io.cache.req.fire) {
+    pending := true.B
+  }
+  when(io.cache.rsp.fire) {
+    pending := false.B
+    discard := false.B
+    when(!discard && !io.kill) {
+      responseValid := true.B
+      responseData  := io.cache.rsp.data
+    }
+  }
+  when(io.out.fire) {
+    responseValid := false.B
+  }
+  when(io.kill) {
+    responseValid := false.B
+    when(pending && !io.cache.rsp.fire) {
+      discard := true.B
+    }
+  }
 
-  // load 数据抽取
-  val rdata    = io.cache.rsp.data
-  val off      = addr(1, 0)
-  val byteSel  = Mux(
+  val addr = in.aluResult
+  val rdata = responseData
+  val off = addr(1, 0)
+  val byteSel = Mux(
     off(1),
     Mux(off(0), rdata(31, 24), rdata(23, 16)),
     Mux(off(0), rdata(15, 8), rdata(7, 0))
   )
-  val halfSel  = Mux(off(1), rdata(31, 16), rdata(15, 0))
+  val halfSel = Mux(off(1), rdata(31, 16), rdata(15, 0))
   val loadData = MuxLookup(in.ctrl.memOp, rdata)(
     Seq(
-      MemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),  // LB
-      MemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel), // LH
-      MemOp.LW  -> rdata,                               // LW
-      MemOp.LBU -> Cat(0.U(24.W), byteSel),             // LBU
-      MemOp.LHU -> Cat(0.U(16.W), halfSel)              // LHU
+      MemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),
+      MemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel),
+      MemOp.LW  -> rdata,
+      MemOp.LBU -> Cat(0.U(24.W), byteSel),
+      MemOp.LHU -> Cat(0.U(16.W), halfSel)
     )
   )
 
-  // 流水线处理
-  io.in.ready           := io.out.ready && !memWait
+  // 带异常的访存不访问 Cache，直接把完整异常信息送往 WB。
+  val memWait = isMemInst && !responseValid
+  io.in.ready           := io.out.ready && !memWait && !io.kill
   io.out.valid          := io.in.valid && !memWait && !io.kill
   io.out.bits.pc        := in.pc
   io.out.bits.dnpc      := in.dnpc
@@ -70,5 +84,5 @@ class Lsu() extends Module {
   io.out.bits.csrAddr   := in.csrAddr
   io.out.bits.csrWdata  := in.csrWdata
   io.out.bits.csrRdata  := in.csrRdata
-  io.out.bits.expt      := Mux(io.in.bits.expt.en, io.in.bits.expt, expt)
+  io.out.bits.expt      := in.expt
 }
