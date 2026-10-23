@@ -148,7 +148,7 @@ object InstCode {
 }
 
 // 异常码
-object ExceptCode {
+object ExptCode {
   val width        = 32.W
   val INST_ILLEGAL = 2.U(width)
   val INST_ECALL   = 11.U(width)
@@ -452,12 +452,28 @@ object Ctrl {
   }
 }
 
+/** 异常接口，主要应用于流水线 */
+class Expt() extends Bundle {
+  val en    = Bool()
+  // val epc   = UInt(CONFIG_ADDR_WIDTH.W) // 不需要传递，流水线有值
+  val cause = UInt(CONFIG_ADDR_WIDTH.W)
+  val tval  = UInt(CONFIG_ADDR_WIDTH.W)
+}
+object ExptDefaults {
+  def apply(io: Expt): Unit = {
+    io.en    := false.B
+    io.cause := 0.U
+    io.tval  := 0.U
+  }
+}
+
 /** IF数据 */
 class IfBundle() extends Bundle {
   val pc         = UInt(CONFIG_ADDR_WIDTH.W)
   val inst       = UInt(CONFIG_ADDR_WIDTH.W)
   val predTaken  = Bool()                    // 静态分支预测：是否预测跳转
   val predTarget = UInt(CONFIG_ADDR_WIDTH.W) // 预测目标
+  val expt       = new Expt
 }
 
 /** ID数据 */
@@ -473,6 +489,7 @@ class IdBundle() extends Bundle {
   val ctrl       = new Ctrl
   val predTaken  = Bool()
   val predTarget = UInt(CONFIG_ADDR_WIDTH.W)
+  val expt       = new Expt
 }
 
 /** EX数据 */
@@ -486,8 +503,7 @@ class ExBundle() extends Bundle {
   val csrAddr   = UInt(CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
-  val excValid  = Bool()
-  val excCause  = UInt(CONFIG_ADDR_WIDTH.W)
+  val expt      = new Expt
 }
 
 /** LS数据 */
@@ -501,8 +517,7 @@ class LsBundle() extends Bundle {
   val csrAddr   = UInt(CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
   val csrRdata  = UInt(CONFIG_ADDR_WIDTH.W)
-  val excValid  = Bool()
-  val excCause  = UInt(CONFIG_ADDR_WIDTH.W)
+  val expt      = new Expt
 }
 
 /** WB数据 */
@@ -530,7 +545,7 @@ object RegWriteIODefaults {
   }
 }
 
-/** 陷阱接口，master视角 */
+/** 陷阱接口，支持异常（同步）和中断（异步），master视角 */
 class TrapIO() extends Bundle {
   val en     = Output(Bool())
   val epc    = Output(UInt(CONFIG_ADDR_WIDTH.W))

@@ -18,6 +18,8 @@ class Lsu() extends Module {
 
   val in        = io.in.bits
   val isMemInst = in.ctrl.isLoad || in.ctrl.isStore
+  val expt      = Reg(new Expt)
+  ExptDefaults(expt);
 
   // 字节使能
   val addr  = in.aluResult
@@ -68,6 +70,5 @@ class Lsu() extends Module {
   io.out.bits.csrAddr   := in.csrAddr
   io.out.bits.csrWdata  := in.csrWdata
   io.out.bits.csrRdata  := in.csrRdata
-  io.out.bits.excValid  := in.excValid
-  io.out.bits.excCause  := in.excCause
+  io.out.bits.expt      := Mux(io.in.bits.expt.en, io.in.bits.expt, expt)
 }

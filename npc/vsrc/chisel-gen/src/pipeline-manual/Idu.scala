@@ -20,6 +20,9 @@ class Idu() extends Module {
     val wbRedirect = Input(new Redirect())
   })
 
+  val expt = Reg(new Expt)
+  ExptDefaults(expt);
+
   // ---------------- 译码 ----------------
   val inst   = io.in.bits.inst
   val opcode = inst(6, 0)
@@ -105,4 +108,5 @@ class Idu() extends Module {
   io.out.bits.ctrl       := ctrl
   io.out.bits.predTaken  := io.in.bits.predTaken
   io.out.bits.predTarget := io.in.bits.predTarget
+  io.out.bits.expt       := Mux(io.in.bits.expt.en, io.in.bits.expt, expt)
 }

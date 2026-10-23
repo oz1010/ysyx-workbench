@@ -24,8 +24,10 @@ class Exu() extends Module {
     val redirect = Output(new Redirect())           // 预测修正/跳转（→ IFU）
   })
 
-  val in = io.in.bits
-  val v  = io.in.valid
+  val in   = io.in.bits
+  val v    = io.in.valid
+  val expt = Reg(new Expt)
+  ExptDefaults(expt);
 
   // ---------------- 前递 ----------------
   // EX/MEM 级前递需用"真实写回值"：CSR 指令写回 csrRdata、JAL/JALR 写回 pc+4
@@ -114,16 +116,16 @@ class Exu() extends Module {
       0
     ) =/= 0.U) || (in.ctrl.memOp === MemOp.SW && aluResult(1, 0) =/= 0.U))
 
-  val excValid =
+  expt.en    :=
     v && (in.ctrl.isIllegal || in.ctrl.isEcall || in.ctrl.isEbreak || fetchMis || ldMis || stMis)
-  val excCause = PriorityMux(
+  expt.cause := PriorityMux(
     Seq(
-      in.ctrl.isIllegal -> ExceptCode.INST_ILLEGAL,
-      in.ctrl.isEcall   -> ExceptCode.INST_ECALL,
-      in.ctrl.isEbreak  -> ExceptCode.INST_EBREAK,
-      fetchMis          -> ExceptCode.FETCH_MISS,
-      ldMis             -> ExceptCode.LOAD_MISS,
-      stMis             -> ExceptCode.STORE_MISS
+      in.ctrl.isIllegal -> ExptCode.INST_ILLEGAL,
+      in.ctrl.isEcall   -> ExptCode.INST_ECALL,
+      in.ctrl.isEbreak  -> ExptCode.INST_EBREAK,
+      fetchMis          -> ExptCode.FETCH_MISS,
+      ldMis             -> ExptCode.LOAD_MISS,
+      stMis             -> ExptCode.STORE_MISS
     )
   )
 
@@ -145,13 +147,12 @@ class Exu() extends Module {
   io.out.bits.csrAddr   := in.inst(31, 20)
   io.out.bits.csrWdata  := csrWdata
   io.out.bits.csrRdata  := io.csrRead.data
-  io.out.bits.excValid  := excValid
-  io.out.bits.excCause  := excCause
+  io.out.bits.expt      := Mux(io.in.bits.expt.en, io.in.bits.expt, expt)
 
   // ---------------- 重定向（异常时不重定向，交由 WBU 走 mtvec） ----------------
   // TODO 这里因为成环而改用寄存器来处理
   val trapEn = RegInit(false.B)
-  trapEn             := Mux((v && !excValid && mispredict), true.B, false.B)
+  trapEn             := Mux((v && !expt.en && mispredict), true.B, false.B)
   io.redirect.valid  := trapEn
   io.redirect.target := redirTgt
 }
