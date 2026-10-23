@@ -25,28 +25,7 @@ class Idu(p: CoreParams) extends Module {
   val opcode = inst(6, 0)
   val funct3 = inst(14, 12)
   val funct7 = inst(31, 25)
-
-  val oldctrl = Wire(new OldCtrl)
-  oldctrl.aluOp    := 0.U
-  oldctrl.usePc    := false.B
-  oldctrl.useImm   := false.B
-  oldctrl.isBranch := false.B
-  oldctrl.isJal    := false.B
-  oldctrl.isJalr   := false.B
-  oldctrl.load     := false.B
-  oldctrl.store    := false.B
-  oldctrl.memOp    := 0.U
-  oldctrl.wbSel    := WbSel.ALU
-  oldctrl.rdWen    := false.B
-  oldctrl.csrOp    := 0.U
-  oldctrl.csrImm   := false.B
-  oldctrl.fence    := false.B
-  oldctrl.ecall    := false.B
-  oldctrl.ebreak   := false.B
-  oldctrl.mret     := false.B
-  oldctrl.illegal  := true.B
-
-  val ctrl = Ctrl.decode(inst)
+  val ctrl   = Ctrl.decode(inst)
 
   // ---------------- 立即数 ----------------
   val immI   = Cat(Fill(20, inst(31)), inst(31, 20))
@@ -123,7 +102,6 @@ class Idu(p: CoreParams) extends Module {
   io.out.bits.rs1Addr    := rs1Addr
   io.out.bits.rs2Addr    := rs2Addr
   io.out.bits.rdAddr     := rdAddr
-  io.out.bits.oldctrl    := oldctrl
   io.out.bits.ctrl       := ctrl
   io.out.bits.predTaken  := io.in.bits.predTaken
   io.out.bits.predTarget := io.in.bits.predTarget

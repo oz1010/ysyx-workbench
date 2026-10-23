@@ -245,32 +245,6 @@ object SysOp {
   def apply(): UInt = UInt(width.W)
 }
 
-// 存储操作码，funct3：lb/lh/lw/lbu/lhu、sb/sh/sw
-object OldMemOp {
-  val width = 3.W
-  val LB    = 0.U(width)
-  val LH    = 1.U(width)
-  val LW    = 2.U(width)
-  val LBU   = 4.U(width)
-  val LHU   = 5.U(width)
-  val SB    = 0.U(width)
-  val SH    = 1.U(width)
-  val SW    = 2.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
-// 回写动作码，0:ALU 1:Load 2:CSR 3:PC+4
-object WbSel {
-  val width = 2.W
-  val ALU   = 0.U(width)
-  val LOAD  = 1.U(width)
-  val CSR   = 2.U(width)
-  val PC_4  = 3.U(width)
-
-  def apply(): UInt = UInt(width)
-}
-
 // axi4编号
 object Axi4ID extends ChiselEnum {
   val IFU, IDU, EXU, LSU, WBU, ICACHE, DCACHE = Value
@@ -598,19 +572,26 @@ class Ctrl    extends Bundle {
   val sysOp = SysOp()
 
   // 布尔函数直接判断对应标识位是否存在（按位与结果不为 0）
-  def isValid: Bool  = (code & InstCode.F_V) =/= 0.U
-  def isLoad: Bool   = isMemOp && isWbOp
-  def isStore: Bool  = isMemOp && !isWbOp
-  def isUsePc: Bool  = (code & InstCode.F_UPC) =/= 0.U
-  def isUseImm: Bool = (code & InstCode.F_UIMM) =/= 0.U
-  def isRdWen: Bool  = (code & InstCode.F_GWEN) =/= 0.U
-  def isAluOp: Bool  = (code & InstCode.F_ALU) =/= 0.U
-  def isMemOp: Bool  = (code & InstCode.F_MEM) =/= 0.U
-  def isWbOp: Bool   = (code & InstCode.F_WB) =/= 0.U
-  def isCsrOp: Bool  = (code & InstCode.F_CSR) =/= 0.U
-  def isJpOp: Bool   = (code & InstCode.F_JP) =/= 0.U
-  def isBrOp: Bool   = (code & InstCode.F_BR) =/= 0.U
-  def isSysOp: Bool  = (code & InstCode.F_SYS) =/= 0.U
+  def isValid: Bool   = (code & InstCode.F_V) =/= 0.U
+  def isIllegal: Bool = !isValid
+  def isLoad: Bool    = isMemOp && isWbOp
+  def isStore: Bool   = isMemOp && !isWbOp
+  def isUsePc: Bool   = (code & InstCode.F_UPC) =/= 0.U
+  def isUseImm: Bool  = (code & InstCode.F_UIMM) =/= 0.U
+  def isRdWen: Bool   = (code & InstCode.F_GWEN) =/= 0.U
+  def isAluOp: Bool   = (code & InstCode.F_ALU) =/= 0.U
+  def isMemOp: Bool   = (code & InstCode.F_MEM) =/= 0.U
+  def isWbOp: Bool    = (code & InstCode.F_WB) =/= 0.U
+  def isCsrOp: Bool   = (code & InstCode.F_CSR) =/= 0.U
+  def isJpOp: Bool    = (code & InstCode.F_JP) =/= 0.U
+  def isBrOp: Bool    = (code & InstCode.F_BR) =/= 0.U
+  def isSysOp: Bool   = (code & InstCode.F_SYS) =/= 0.U
+  def isJalr: Bool    = isJpOp && jpOp === JpOp.JALR
+  def isJal: Bool     = isJpOp && jpOp === JpOp.JAL
+  def isEcall: Bool   = isSysOp && sysOp === SysOp.ECALL
+  def isEbreak: Bool  = isSysOp && sysOp === SysOp.EBREAK
+  def isMret: Bool    = isSysOp && sysOp === SysOp.MRET
+  def isCsrImm: Bool  = false.B // 暂时没有实现 CSRRWI CSRRSI CSRRCI
 }
 
 object Ctrl {
@@ -648,7 +629,6 @@ class IdBundle(p: CoreParams) extends Bundle {
   val rs1Addr    = UInt(4.W) // RV32E：4bit 寄存器号
   val rs2Addr    = UInt(4.W)
   val rdAddr     = UInt(4.W)
-  val oldctrl    = new OldCtrl
   val ctrl       = new Ctrl
   val predTaken  = Bool()
   val predTarget = UInt(CONFIG_ADDR_WIDTH.W)
@@ -661,7 +641,6 @@ class ExBundle(p: CoreParams) extends Bundle {
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val storeData = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
-  val oldctrl   = new OldCtrl
   val ctrl      = new Ctrl
   val csrAddr   = UInt(p.CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
@@ -677,7 +656,6 @@ class LsBundle(p: CoreParams) extends Bundle {
   val aluResult = UInt(CONFIG_ADDR_WIDTH.W)
   val loadData  = UInt(CONFIG_ADDR_WIDTH.W)
   val rdAddr    = UInt(4.W)
-  val oldctrl   = new OldCtrl
   val ctrl      = new Ctrl
   val csrAddr   = UInt(p.CSR_ADDR_W.W)
   val csrWdata  = UInt(CONFIG_ADDR_WIDTH.W)
