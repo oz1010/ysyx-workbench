@@ -144,7 +144,7 @@ object Generate {
       case "synthesis" =>
         Array(
           "--disable-layers=Verification",
-          "--lowering-options=disallowLocalVariables"
+          "--lowering-options=disallowLocalVariables,disallowPackedArrays"
         )
       case other       =>
         sys.error(

@@ -20,7 +20,7 @@ VERILATOR   = verilator
 THREADS ?= $(shell nproc)
 
 # Chisel gen directory
-CHISEL_GEN_DIR_NAME = $(CONFIG_CHISEL_DIR_NAME)
+CHISEL_GEN_DIR_NAME = $(patsubst "%",%,$(CONFIG_CHISEL_DIR_NAME))
 CHISEL_GEN_OUT = build
 CHISEL_GEN_MODE = normal
 ifneq ($(filter sta sta-area,$(MAKECMDGOALS)),)
