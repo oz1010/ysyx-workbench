@@ -2,12 +2,11 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
-/** EXU：ALU、分支解析与静态预测修正、 CSR 读（返回旧值）、异常检测（含访存/跳转地址非对齐）。
-  *   - 暂时不实现：前递（EX/MEM、MEM/WB）
-  */
+/** EXU：ALU、分支解析与静态预测修正、CSR 读（返回旧值）、异常检测及 MEM/WB 数据前递。 */
 class Exu() extends Module {
   val io = IO(new Bundle {
     val in       = Flipped(Decoupled(new IdBundle()))
@@ -18,6 +17,7 @@ class Exu() extends Module {
     val wbStage  = Input(new LsBundle())
     val wbValid  = Input(Bool())
     val wbData   = Input(UInt(CONFIG_ADDR_WIDTH.W)) // WBU 最终写回数据（含 load 数据）
+    val loadStall = Input(Bool()) // MEM load 的结果尚未进入 WB
     // CSR读口（读旧值）
     val csrRead  = new RegReadIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH)
     // 预测失败 / 跳转修正重定向
@@ -33,26 +33,39 @@ class Exu() extends Module {
   // EX/MEM 级前递需用"真实写回值"：CSR 指令写回 csrRdata、JAL/JALR 写回 pc+4
   val lsFwData                               = MuxLookup(io.lsStage.ctrl.wbOp, io.lsStage.aluResult)(
     Seq(
-      WbOp.LOAD -> io.lsStage.aluResult, // load：相邻相关由 load-use stall 拦截
       WbOp.CSR  -> io.lsStage.csrRdata,  // CSR
       WbOp.PC_4 -> (io.lsStage.pc + 4.U) // JAL/JALR
     )
   )
-  def fwd(regAddr: UInt, regVal: UInt): UInt = MuxCase(
-    regVal,
-    Seq(
-      (io.lsValid && io.lsStage.ctrl.isRdWen && io.lsStage.rdAddr =/= 0.U && io.lsStage.rdAddr === regAddr) -> lsFwData,
-      (io.wbValid && io.wbStage.ctrl.isRdWen && io.wbStage.rdAddr =/= 0.U && io.wbStage.rdAddr === regAddr) -> io.wbData
+  val lsCanForward = io.lsValid && io.lsStage.ctrl.isRdWen &&
+    !io.lsStage.ctrl.isLoad && !io.lsStage.expt.en && io.lsStage.rdAddr =/= 0.U
+  val wbCanForward = io.wbValid && io.wbStage.ctrl.isRdWen &&
+    !io.wbStage.expt.en && io.wbStage.rdAddr =/= 0.U
+  def fwd(regAddr: UInt, regVal: UInt): UInt = Mux(
+    regAddr === 0.U,
+    0.U,
+    MuxCase(
+      regVal,
+      Seq(
+        (lsCanForward && io.lsStage.rdAddr === regAddr) -> lsFwData,
+        (wbCanForward && io.wbStage.rdAddr === regAddr) -> io.wbData
+      )
     )
   )
 
-  // 注：load 相邻相关由 IDU 的 load-use stall 保证不会用到错误前递；
-  //     间隔一条的 load 相关由 MEM/WB 前递（此时 load 数据已就绪）。
-  // TODO 暂时不实现前递
-  // val rs1f = fwd(in.rs1Addr, in.rs1Val)
-  // val rs2f = fwd(in.rs2Addr, in.rs2Val)
-  val rs1f = in.rs1Val
-  val rs2f = in.rs2Val
+  // EX 被反压时保存已经看到的前递值，避免生产者离开 WB 后退回 ID 的旧操作数。
+  val operandsHeld = RegInit(false.B)
+  val heldRs1      = Reg(UInt(CONFIG_DATA_WIDTH.W))
+  val heldRs2      = Reg(UInt(CONFIG_DATA_WIDTH.W))
+  val rs1f = fwd(in.rs1Addr, Mux(operandsHeld, heldRs1, in.rs1Val))
+  val rs2f = fwd(in.rs2Addr, Mux(operandsHeld, heldRs2, in.rs2Val))
+  when(io.in.valid && !io.in.ready) {
+    operandsHeld := true.B
+    heldRs1      := rs1f
+    heldRs2      := rs2f
+  }.otherwise {
+    operandsHeld := false.B
+  }
 
   // ---------------- ALU ----------------
   val isLui     = in.inst(6, 0) === "b0110111".U
@@ -135,9 +148,9 @@ class Exu() extends Module {
   val csrWdata = Mux(in.ctrl.isCsrImm, Cat(0.U(27.W), in.inst(19, 15)), rs1f)
 
   // ---------------- 流水线处理 ----------------
-  // 不阻塞流水线，单周期处理单元
-  io.in.ready           := io.out.ready
-  io.out.valid          := io.in.valid
+  // load-use 时保持 EX 指令，等 load 进入 WB 后使用真实写回数据。
+  io.in.ready           := io.out.ready && !io.loadStall
+  io.out.valid          := io.in.valid && !io.loadStall
   io.out.bits.pc        := in.pc
   io.out.bits.dnpc      := redirTgt
   io.out.bits.aluResult := aluResult
@@ -152,7 +165,7 @@ class Exu() extends Module {
   // ---------------- 重定向（异常时不重定向，交由 WBU 走 mtvec） ----------------
   // TODO 这里因为成环而改用寄存器来处理
   val trapEn = RegInit(false.B)
-  trapEn             := Mux((v && !expt.en && mispredict), true.B, false.B)
+  trapEn             := io.in.fire && !in.expt.en && !expt.en && mispredict
   io.redirect.valid  := trapEn
   io.redirect.target := redirTgt
 }

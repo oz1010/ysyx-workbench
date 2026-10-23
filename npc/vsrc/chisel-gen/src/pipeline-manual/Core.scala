@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
@@ -50,16 +51,14 @@ class riscv32e_core() extends RawModule {
     val exRedirect  = exu.io.redirect
     val wbRedirect  = wbu.io.redirect
     val globalFlush = exRedirect.valid || wbRedirect.valid
-    val loadStall   = hazardUnit.io.stallIfId
-    // 将控制信号连接至 Hazard 单元
-    hazardUnit.io.idRs1      := regIdEx.io.out.bits.rs1Addr
-    hazardUnit.io.idRs2      := regIdEx.io.out.bits.rs2Addr
-    hazardUnit.io.idValid    := regIdEx.io.out.valid
-    hazardUnit.io.exRd       := regExLs.io.out.bits.rdAddr
-    hazardUnit.io.exIsLoad   := regExLs.io.out.bits.ctrl.isLoad
-    hazardUnit.io.exValid    := regExLs.io.out.valid
-    hazardUnit.io.exRedirect := exRedirect.valid
-    hazardUnit.io.wbRedirect := wbRedirect.valid
+    val loadStall   = hazardUnit.io.stallEx
+    // load 留在 MEM 等待响应，相关指令保持在 EX，不能 flush 丢弃
+    hazardUnit.io.exRs1    := regIdEx.io.out.bits.rs1Addr
+    hazardUnit.io.exRs2    := regIdEx.io.out.bits.rs2Addr
+    hazardUnit.io.exValid  := regIdEx.io.out.valid
+    hazardUnit.io.lsRd     := regExLs.io.out.bits.rdAddr
+    hazardUnit.io.lsIsLoad := regExLs.io.out.bits.ctrl.isLoad && regExLs.io.out.bits.ctrl.isRdWen
+    hazardUnit.io.lsValid  := regExLs.io.out.valid && !regExLs.io.out.bits.expt.en
 
     // ---------------- IFU ----------------
     ifu.io.reset_pc   := reset_pc
@@ -69,11 +68,10 @@ class riscv32e_core() extends RawModule {
     // IFU->IDU
     regIfId.io.in <> ifu.io.out
     regIfId.io.flush <> globalFlush
-    regIfId.io.stall <> loadStall
+    regIfId.io.stall := false.B
     regIfId.io.out <> idu.io.in
 
     // ---------------- IDU ----------------
-    idu.io.loadStall  := loadStall
     idu.io.exRedirect := exRedirect
     idu.io.wbRedirect := wbRedirect
     idu.io.gprWrite   := wbu.io.gprWrite
@@ -81,17 +79,18 @@ class riscv32e_core() extends RawModule {
     idu.io.gprRead2 <> m_gprs.io.read2
     // IDU->EXU
     regIdEx.io.in <> idu.io.out
-    regIdEx.io.flush  := globalFlush || loadStall // Load-Use 时向 EX 级注入气泡
+    regIdEx.io.flush  := globalFlush
     regIdEx.io.stall  := false.B
     regIdEx.io.out <> exu.io.in
 
     // ---------------- EXU ----------------
-    // EXU的前递(Forwarding)数据源
-    exu.io.lsValid   := regExLs.io.in.valid
-    exu.io.lsStage   := regExLs.io.in.bits
-    exu.io.wbValid   := regLsWb.io.in.valid
-    exu.io.wbStage   := regLsWb.io.in.bits
+    // 前递只跨真实级间边界：MEM 优先于 WB，不能连接 EXU 自己的输出
+    exu.io.lsValid   := regExLs.io.out.valid
+    exu.io.lsStage   := regExLs.io.out.bits
+    exu.io.wbValid   := wbu.io.gprWrite.wen
+    exu.io.wbStage   := regLsWb.io.out.bits
     exu.io.wbData    := wbu.io.gprWrite.wdata
+    exu.io.loadStall := loadStall
     // csr寄存器组
     exu.io.csrRead <> m_csrs.io.read
     // EXU->LSU
