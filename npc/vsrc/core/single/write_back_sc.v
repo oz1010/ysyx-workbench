@@ -43,7 +43,8 @@ module write_back_sc #(
     output  reg  [DATA_WIDTH-1:0]           trap_tval,
     output  reg  [DATA_WIDTH-1:0]           trap_status,
 
-    output wire [INST_WIDTH-1:0]            dnpc
+    output  reg [INST_WIDTH-1:0]            out_pc,
+    output  reg [INST_WIDTH-1:0]            out_dnpc
 );
     wire [INST_WIDTH-1:0] src1 = gpr_src1;
     wire [INST_WIDTH-1:0] src2 = gpr_src2;
@@ -51,7 +52,7 @@ module write_back_sc #(
     wire signed [INST_WIDTH-1:0] s_src2 = src2;
     wire [INST_WIDTH-1:0] snpc = pc + 4;
     wire [INST_WIDTH-1:0] pc_plus_imm = pc + imm;
-    assign dnpc = 
+    wire [INST_WIDTH-1:0] dnpc = 
         (inst_code==`INST_JAL) ? pc_plus_imm :
         (inst_code==`INST_JALR) ? ((src1 + imm)&~1) :
         ((inst_code==`INST_BEQ)&(src1==src2)) ? pc_plus_imm :
@@ -160,5 +161,10 @@ module write_back_sc #(
             default: ;
         endcase
     end
+
+    always @(posedge clock) begin
+        out_pc <= pc;
+    end
+    assign out_dnpc = dnpc;
 
 endmodule

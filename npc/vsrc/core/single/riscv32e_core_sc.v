@@ -163,7 +163,8 @@ module riscv32e_core_sc #(
         .trap_cause(trap_cause),
         .trap_tval(trap_tval),
         .trap_status(trap_status),
-        .dnpc(dnpc)
+        .out_pc(pc),
+        .out_dnpc(dnpc)
     );
 
     /** 
@@ -173,7 +174,6 @@ module riscv32e_core_sc #(
     reg [INST_WIDTH-1:0] core_dnpc;
     reg                  core_inst_done;
     assign core_dnpc = dnpc;
-    assign pc = core_pc;
     assign inst_done = core_inst_done;
     always @(posedge clock) begin
         if (reset) begin
