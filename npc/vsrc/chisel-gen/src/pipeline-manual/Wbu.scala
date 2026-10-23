@@ -10,15 +10,15 @@ import config.ManuConfig._
   *   - 中断：io.interrupt 且 mstatus.MIE=1，在指令边界接收（mepc=当前提交 PC）
   *   - MRET：跳回 mepc，恢复 mstatus.MIE
   */
-class Wbu(p: CoreParams) extends Module {
+class Wbu() extends Module {
   val io = IO(new Bundle {
-    val in        = Flipped(Decoupled(new LsBundle(p)))
-    val out       = Decoupled(new WbBundle(p))
-    val csrWrite  = new OldRegWriteIO(p.CSR_ADDR_W, CONFIG_ADDR_WIDTH)
-    val csrTrap   = new OldTrapIO(p)
-    val redirect  = Output(new Redirect(p)) // 陷阱/MRET（→ IFU）
-    val gprWrite  = new OldRegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
-    val interrupt = Input(Bool())           // TODO 暂时忽略中断的影响
+    val in        = Flipped(Decoupled(new LsBundle()))
+    val out       = Decoupled(new WbBundle())
+    val csrWrite  = new RegWriteIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val csrTrap   = new TrapIO()
+    val redirect  = Output(new Redirect()) // 陷阱/MRET（→ IFU）
+    val gprWrite  = new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val interrupt = Input(Bool())          // TODO 暂时忽略中断的影响
     // TODO 暂时忽略csr值输入
     val csrMie    = Input(Bool())
     val csrMepc   = Input(UInt(CONFIG_ADDR_WIDTH.W))
@@ -42,7 +42,7 @@ class Wbu(p: CoreParams) extends Module {
   val exc     = v && in.excValid
   val intTake = v && io.interrupt && io.csrMie && !exc
   val trap    = exc || intTake
-  val cause   = Mux(exc, in.excCause, p.INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
+  val cause   = Mux(exc, in.excCause, INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
   val mret    = v && in.ctrl.isMret && !trap
   val trapEn  = RegInit(false.B)
   trapEn             := Mux((trap || mret), true.B, false.B)
@@ -50,13 +50,14 @@ class Wbu(p: CoreParams) extends Module {
   io.redirect.target := Mux(trap, io.csrMtvec, io.csrMepc)
 
   // CSR 更新（同周期冲突时：MRET < 陷阱 < CSR 写，WBU 单点仲裁）
-  io.csrTrap.en    := trap
-  io.csrTrap.cause := cause
-  io.csrTrap.epc   := in.pc
-  io.csrTrap.tval  := 0.U // TODO 具体值应和cause相关
-  io.csrWrite.en   := v && !trap && in.ctrl.isCsrOp
-  io.csrWrite.addr := in.csrAddr
-  io.csrWrite.data := MuxLookup(in.ctrl.csrOp, in.csrWdata)(
+  io.csrTrap.en     := trap
+  io.csrTrap.cause  := cause
+  io.csrTrap.epc    := in.pc
+  io.csrTrap.tval   := 0.U // TODO 具体值应和cause相关
+  io.csrTrap.status := 0.U // 暂时不需要修改状态值
+  io.csrWrite.wen   := v && !trap && in.ctrl.isCsrOp
+  io.csrWrite.waddr := in.csrAddr
+  io.csrWrite.wdata := MuxLookup(in.ctrl.csrOp, in.csrWdata)(
     Seq(
       CsrOp.RW -> in.csrWdata,                 // RW: 直接写
       CsrOp.RS -> (in.csrRdata | in.csrWdata), // RS: 置位
@@ -65,9 +66,9 @@ class Wbu(p: CoreParams) extends Module {
   )
 
   // ---------------- 寄存器堆写口 ----------------
-  io.gprWrite.en   := v && !trap && in.ctrl.isRdWen && in.rdAddr =/= 0.U
-  io.gprWrite.addr := in.rdAddr
-  io.gprWrite.data := wbData
+  io.gprWrite.wen   := v && !trap && in.ctrl.isRdWen && in.rdAddr =/= 0.U
+  io.gprWrite.waddr := in.rdAddr
+  io.gprWrite.wdata := wbData
 
   // 流水线处理
   io.in.ready      := true.B

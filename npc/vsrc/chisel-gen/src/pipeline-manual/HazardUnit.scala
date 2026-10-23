@@ -5,7 +5,7 @@ import chisel3.util._
 import config.AutoConfig._
 import config.ManuConfig._
 
-class HazardUnit(p: CoreParams) extends Module {
+class HazardUnit() extends Module {
   val io = IO(new Bundle {
     // 来自 ID 级的信息（用于检测 Load-Use）
     val idRs1   = Input(UInt(4.W))

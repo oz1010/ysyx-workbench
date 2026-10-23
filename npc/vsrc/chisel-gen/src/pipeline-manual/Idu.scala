@@ -8,16 +8,16 @@ import config.ManuConfig._
 /** IDU：译码。
   *   - RV32I(RV32E) 基础指令集，SYSTEM 支持 ECALL/EBREAK/MRET/CSR 指令。
   */
-class Idu(p: CoreParams) extends Module {
+class Idu() extends Module {
   val io = IO(new Bundle {
-    val in         = Flipped(Decoupled(new IfBundle(p)))
-    val out        = Decoupled(new IdBundle(p))
-    val gprRead1   = new OldRegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
-    val gprRead2   = new OldRegReadIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH)
-    val gprWrite   = Flipped(new OldRegWriteIO(p.GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val in         = Flipped(Decoupled(new IfBundle()))
+    val out        = Decoupled(new IdBundle())
+    val gprRead1   = new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val gprRead2   = new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val gprWrite   = Flipped(new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
     val loadStall  = Input(Bool()) // load-use RAW 冒险，请求 stall
-    val exRedirect = Input(new Redirect(p))
-    val wbRedirect = Input(new Redirect(p))
+    val exRedirect = Input(new Redirect())
+    val wbRedirect = Input(new Redirect())
   })
 
   // ---------------- 译码 ----------------
@@ -75,8 +75,8 @@ class Idu(p: CoreParams) extends Module {
     rs1Addr === 0.U,
     0.U,
     Mux(
-      io.gprWrite.en && io.gprWrite.addr === rs1Addr,
-      io.gprWrite.data,
+      io.gprWrite.wen && io.gprWrite.waddr === rs1Addr,
+      io.gprWrite.wdata,
       io.gprRead1.data
     )
   )
@@ -84,8 +84,8 @@ class Idu(p: CoreParams) extends Module {
     rs2Addr === 0.U,
     0.U,
     Mux(
-      io.gprWrite.en && io.gprWrite.addr === rs2Addr,
-      io.gprWrite.data,
+      io.gprWrite.wen && io.gprWrite.waddr === rs2Addr,
+      io.gprWrite.wdata,
       io.gprRead2.data
     )
   )
