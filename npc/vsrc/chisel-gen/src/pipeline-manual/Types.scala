@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 import pipeline_manual.Axi4MasterDefaults.apply
@@ -29,19 +30,19 @@ object InstCode {
   // 各指令通过特征位组合
   def LUI     = (F_V | F_UIMM | F_GWEN)
   def AUIPC   = (F_V | F_UPC | F_UIMM | F_GWEN)
-  def JAL     = (F_V | F_JP | F_GWEN | F_WB | WbOp.PC_4 | JpOp.JAL)
-  def JALR    = (F_V | F_JP | F_UIMM | F_GWEN | F_WB | WbOp.PC_4 | JpOp.JALR)
+  def JAL     = (F_V | F_JP | F_GWEN | F_WB | JpOp.JAL)
+  def JALR    = (F_V | F_JP | F_UIMM | F_GWEN | F_WB | JpOp.JALR)
   def BEQ     = (F_V | F_BR | BrOp.BEQ)
   def BNE     = (F_V | F_BR | BrOp.BNE)
   def BLT     = (F_V | F_BR | BrOp.BLT)
   def BGE     = (F_V | F_BR | BrOp.BGE)
   def BLTU    = (F_V | F_BR | BrOp.BLTU)
   def BGEU    = (F_V | F_BR | BrOp.BGEU)
-  def LB      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LB)
-  def LH      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LH)
-  def LW      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LW)
-  def LBU     = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LBU)
-  def LHU     = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | WbOp.LOAD | MemOp.LHU)
+  def LB      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | MemOp.LB)
+  def LH      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | MemOp.LH)
+  def LW      = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | MemOp.LW)
+  def LBU     = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | MemOp.LBU)
+  def LHU     = (F_V | F_MEM | F_UIMM | F_GWEN | F_WB | MemOp.LHU)
   def SB      = (F_V | F_MEM | F_UIMM | MemOp.SB)
   def SH      = (F_V | F_MEM | F_UIMM | MemOp.SH)
   def SW      = (F_V | F_MEM | F_UIMM | MemOp.SW)
@@ -67,8 +68,8 @@ object InstCode {
   def FENCE_I = (F_V | F_SYS | SysOp.FENCE_I)
   def ECALL   = (F_V | F_SYS | SysOp.ECALL)
   def EBREAK  = (F_V | F_SYS | SysOp.EBREAK)
-  def CSRRW   = (F_V | F_CSR | F_GWEN | F_WB | WbOp.CSR | CsrOp.RW)
-  def CSRRS   = (F_V | F_CSR | F_GWEN | F_WB | WbOp.CSR | CsrOp.RS)
+  def CSRRW   = (F_V | F_CSR | F_GWEN | F_WB | CsrOp.RW)
+  def CSRRS   = (F_V | F_CSR | F_GWEN | F_WB | CsrOp.RS)
   def MRET    = (F_V | F_SYS | SysOp.MRET)
 
   def apply(): UInt = UInt(width.W)
@@ -440,9 +441,17 @@ object Ctrl {
     val ctrl = Wire(new Ctrl)
     val code = InstCode.decode(inst)
     ctrl.code  := code
-    ctrl.aluOp := code(AluOp.width - 1, 0)
+    // 低位只保存所属类别的操作码；写回类型由特征位独立生成。
+    ctrl.aluOp := Mux(ctrl.isAluOp, code(AluOp.width - 1, 0), AluOp.ADD)
     ctrl.memOp := code(MemOp.width - 1, 0)
-    ctrl.wbOp  := code(WbOp.width - 1, 0)
+    ctrl.wbOp  := MuxCase(
+      WbOp.ALU,
+      Seq(
+        ctrl.isLoad  -> WbOp.LOAD,
+        ctrl.isCsrOp -> WbOp.CSR,
+        ctrl.isJpOp  -> WbOp.PC_4
+      )
+    )
     ctrl.csrOp := code(CsrOp.width - 1, 0)
     ctrl.jpOp  := code(JpOp.width - 1, 0)
     ctrl.brOp  := code(BrOp.width - 1, 0)

@@ -15,7 +15,6 @@ class Idu() extends Module {
     val gprRead1   = new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
     val gprRead2   = new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
     val gprWrite   = Flipped(new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
-    val loadStall  = Input(Bool()) // load-use RAW 冒险，请求 stall
     val exRedirect = Input(new Redirect())
     val wbRedirect = Input(new Redirect())
   })
@@ -94,9 +93,8 @@ class Idu() extends Module {
   )
 
   // ---------------- 流水线处理 ----------------
-  val stalled = io.loadStall
-  io.in.ready            := io.out.ready && !stalled
-  io.out.valid           := io.in.valid && !stalled
+  io.in.ready            := io.out.ready
+  io.out.valid           := io.in.valid
   io.out.bits.pc         := io.in.bits.pc
   io.out.bits.inst       := io.in.bits.inst
   io.out.bits.rs1Val     := rs1Val

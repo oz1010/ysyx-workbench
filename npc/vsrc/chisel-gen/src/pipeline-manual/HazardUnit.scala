@@ -2,38 +2,26 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
 class HazardUnit() extends Module {
   val io = IO(new Bundle {
-    // 来自 ID 级的信息（用于检测 Load-Use）
-    val idRs1   = Input(UInt(4.W))
-    val idRs2   = Input(UInt(4.W))
-    val idValid = Input(Bool())
+    // EX 级等待使用的源寄存器
+    val exRs1   = Input(UInt(GPR_ADDR_W.W))
+    val exRs2   = Input(UInt(GPR_ADDR_W.W))
+    val exValid = Input(Bool())
 
-    // 来自 EX 级的信息（判断上一条指令是否是 Load）
-    val exRd     = Input(UInt(4.W))
-    val exIsLoad = Input(Bool())
-    val exValid  = Input(Bool())
+    // MEM 级尚未进入 WB 的 load，不能前递其地址作为结果
+    val lsRd     = Input(UInt(GPR_ADDR_W.W))
+    val lsIsLoad = Input(Bool())
+    val lsValid  = Input(Bool())
 
-    // 重定向输入
-    val exRedirect = Input(Bool())
-    val wbRedirect = Input(Bool())
-
-    // 输出控制信号
-    val stallIfId = Output(Bool()) // 暂停 IF/ID 寄存器和 PC
-    val flushAll  = Output(Bool()) // 全局冲刷流水线
+    val stallEx = Output(Bool()) // 保持 EX 指令，由 ready 反压上游
   })
 
-  // 1. Load-Use 冒险检测逻辑
-  // 条件：EX 级是 Load 指令，且其 rd 与 ID 级的 rs1 或 rs2 冲突（且非 x0 寄存器）
-  val loadUseHazard = io.exValid && io.exIsLoad && (
-    ((io.exRd === io.idRs1) && (io.idRs1 =/= 0.U)) ||
-      ((io.exRd === io.idRs2) && (io.idRs2 =/= 0.U))
+  io.stallEx := io.exValid && io.lsValid && io.lsIsLoad && io.lsRd =/= 0.U && (
+    io.lsRd === io.exRs1 || io.lsRd === io.exRs2
   )
-
-  // 2. 输出赋值
-  io.stallIfId := loadUseHazard
-  io.flushAll  := io.exRedirect || io.wbRedirect
 }

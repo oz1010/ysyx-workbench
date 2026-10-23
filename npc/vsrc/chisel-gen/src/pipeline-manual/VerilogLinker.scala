@@ -6,9 +6,8 @@ import config.AutoConfig._
 import config.ManuConfig._
 
 class ResetPcGetter(addrWidth: Int)
-    extends BlackBox(Map("ADDR_WIDTH" -> addrWidth))
-    with HasBlackBoxInline {
-  val io = IO(new Bundle {
+    extends ExtModule(Map("ADDR_WIDTH" -> addrWidth)) {
+  val io = FlatIO(new Bundle {
     val clk      = Input(Clock())
     val rst      = Input(Bool())
     val reset_pc = Output(UInt(addrWidth.W))

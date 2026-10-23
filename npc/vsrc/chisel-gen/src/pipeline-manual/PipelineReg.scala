@@ -2,6 +2,7 @@ package pipeline_manual
 
 import chisel3._
 import chisel3.util._
+import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
@@ -33,14 +34,14 @@ class PipelineReg[T <: Data](gen: T) extends Module {
 
   when(io.flush) {
     valid_reg := false.B
-  }.elsewhen(!io.stall) {
+  }.elsewhen(io.in.ready) {
     valid_reg := io.in.valid
     when(io.in.valid) {
       data_reg := io.in.bits
     }
   }
 
-  io.in.ready  := !io.stall && (io.out.ready || !valid_reg)
-  io.out.valid := valid_reg && !io.flush
+  io.in.ready  := !io.flush && !io.stall && (io.out.ready || !valid_reg)
+  io.out.valid := valid_reg && !io.flush && !io.stall
   io.out.bits  := data_reg
 }

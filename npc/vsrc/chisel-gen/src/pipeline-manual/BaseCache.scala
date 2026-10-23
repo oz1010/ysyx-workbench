@@ -5,7 +5,7 @@ import chisel3.util._
 import config.AutoConfig._
 
 private class BaseCacheArray(w: Int, n: Int, m: Int)
-    extends BlackBox(
+    extends ExtModule(
       Map(
         "ADDR_WIDTH" -> CONFIG_ADDR_WIDTH,
         "DATA_WIDTH" -> CONFIG_DATA_WIDTH,
@@ -16,7 +16,7 @@ private class BaseCacheArray(w: Int, n: Int, m: Int)
     ) {
   override def desiredName: String = "cache"
 
-  val io = IO(new Bundle {
+  val io = FlatIO(new Bundle {
     val clock      = Input(Clock())
     val reset      = Input(Bool())
     val addr       = Input(UInt(CONFIG_ADDR_WIDTH.W))
