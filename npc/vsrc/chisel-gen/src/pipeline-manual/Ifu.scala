@@ -24,6 +24,8 @@ class Ifu() extends Module {
 
   val ready   = RegInit(false.B) // 模块就绪标识
   val reqPend = RegInit(false.B) // 已发出请求、等待 ICache 返回
+  val expt    = Reg(new Expt)
+  ExptDefaults(expt);
 
   // 复位重置pc值
   val pc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
@@ -77,4 +79,5 @@ class Ifu() extends Module {
   io.out.bits.inst       := io.cache.rsp.data
   io.out.bits.predTaken  := predT
   io.out.bits.predTarget := predTgt
+  io.out.bits.expt       := expt
 }

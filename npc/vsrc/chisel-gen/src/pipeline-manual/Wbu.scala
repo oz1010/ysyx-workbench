@@ -39,10 +39,10 @@ class Wbu() extends Module {
   )
 
   // ---------------- 陷阱仲裁 ----------------
-  val exc     = v && in.excValid
-  val intTake = v && io.interrupt && io.csrMie && !exc
-  val trap    = exc || intTake
-  val cause   = Mux(exc, in.excCause, INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
+  val exptEn  = v && in.expt.en
+  val intTake = v && io.interrupt && io.csrMie && !exptEn
+  val trap    = exptEn || intTake
+  val cause   = Mux(exptEn, in.expt.cause, INT_CAUSE.U(CONFIG_ADDR_WIDTH.W))
   val mret    = v && in.ctrl.isMret && !trap
   val trapEn  = RegInit(false.B)
   trapEn             := Mux((trap || mret), true.B, false.B)
