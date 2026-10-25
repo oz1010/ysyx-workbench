@@ -5,137 +5,120 @@ import chisel3.util._
 import config.AutoConfig._
 import config.ManuConfig._
 
-/** 总线仲裁器：仲裁 ICache / DCache 的行填充请求，共用 AXI4 读通道。 主设备单一，ID 恒为 0；写通道由 DCache 写直通直连
-  * io_master，不经仲裁器。 框架：端口与连接已定义，内部实现留空。
+/** 通用 AXI4 仲裁器：读写独立轮询，每个方向最多一笔在途事务，ID 原样透传。
+  * 读授权保持到最后一拍 R 握手，写授权保持到 B 握手；AW / W 可独立握手。
   */
-// TODO 2. 输入应该是一个axi4通道数组 3. 读写分离
 class Axi4IOArbiter(
   ClientNum: Int
 ) extends Module {
-
-  val indexWidth = log2Ceil(ClientNum)
   require(ClientNum > 0, "ClientNum must be greater than 0")
+  val indexWidth = math.max(1, log2Ceil(ClientNum))
 
   val io = IO(new Bundle {
-    val clients = Vec(ClientNum, Flipped(new Axi4IO())) // 将客户端请求分发到总线上
+    val clients = Vec(ClientNum, Flipped(new Axi4IO()))
     val master  = new Axi4IO()
   })
 
-  val sIdle :: sRead :: Nil = Enum(2)
-  val state                 = RegInit(sIdle)
-  val grantID               = RegInit(0.U(log2Ceil(ClientNum).W)) // 当前获得总线仲裁权的客户端 ID
-  val rrPtr                 = RegInit(
-    0.U(log2Ceil(ClientNum).W)
-  ) // 轮询指针寄存器：记录上一次获得授权的客户端编号，公平调度的核心
+  val rIdle :: rAddr :: rData :: Nil = Enum(3)
+  val readState                     = RegInit(rIdle)
+  val readGrant                     = RegInit(0.U(indexWidth.W))
+  val wIdle :: wRequest :: wResponse :: Nil = Enum(3)
+  val writeState                          = RegInit(wIdle)
+  val writeGrant                          = RegInit(0.U(indexWidth.W))
+  val awDone                              = RegInit(false.B)
+  val wDone                               = RegInit(false.B)
 
-  // -------------------------------------------------------------------------
-  // 1. 默认驱动赋值（避免组合逻辑锁存器与默认高阻）
-  // -------------------------------------------------------------------------
+  Axi4MasterDefaults(io.master)
+  for (client <- io.clients) {
+    Axi4SlaveDefaults(client)
+  }
 
-  // 默认对所有客户端的读通道反馈
+  // 先锁定客户端，再驱动总线，保证地址背压期间授权不会随新请求变化。
+  val readArbiter  = Module(new RRArbiter(UInt(indexWidth.W), ClientNum))
+  val writeArbiter = Module(new RRArbiter(UInt(indexWidth.W), ClientNum))
   for (i <- 0 until ClientNum) {
-    io.clients(i).arready := io.master.arready
-    io.clients(i).rvalid  := false.B
-    io.clients(i).rdata   := io.master.rdata
-    io.clients(i).rresp   := io.master.rresp
-    io.clients(i).rlast   := io.master.rlast
-    io.clients(i).rid     := io.master.rid
+    readArbiter.io.in(i).valid  := io.clients(i).arvalid
+    readArbiter.io.in(i).bits   := i.U
+    writeArbiter.io.in(i).valid := io.clients(i).awvalid || io.clients(i).wvalid
+    writeArbiter.io.in(i).bits  := i.U
+  }
+  readArbiter.io.out.ready  := readState === rIdle
+  writeArbiter.io.out.ready := writeState === wIdle
+
+  when(readArbiter.io.out.fire) {
+    readGrant := readArbiter.io.out.bits
+    readState := rAddr
+  }
+  when(writeArbiter.io.out.fire) {
+    writeGrant := writeArbiter.io.out.bits
+    writeState := wRequest
+    awDone     := false.B
+    wDone      := false.B
   }
 
-  // 默认Master读通道信号
-  io.master.arvalid := false.B
-  io.master.araddr  := 0.U
-  io.master.arid    := 0.U
-  io.master.arlen   := 0.U
-  io.master.arsize  := 0.U
-  io.master.arburst := 0.U
-  io.master.rready  := false.B
+  val readClient  = if (ClientNum == 1) io.clients(0) else io.clients(readGrant)
+  val writeClient = if (ClientNum == 1) io.clients(0) else io.clients(writeGrant)
 
-  // TODO 临时禁用客户端写
-  for (i <- 0 until ClientNum) {
-    io.clients(i).awready := false.B
-    io.clients(i).wready  := false.B
-    io.clients(i).bvalid  := false.B
-    io.clients(i).bresp   := 0.U
-    io.clients(i).bid     := 0.U
-  }
+  io.master.araddr  := readClient.araddr
+  io.master.arid    := readClient.arid
+  io.master.arlen   := readClient.arlen
+  io.master.arsize  := readClient.arsize
+  io.master.arburst := readClient.arburst
 
-  // TODO 临时禁用写
-  io.master.awvalid := false.B
-  io.master.awaddr  := 0.U
-  io.master.awid    := 0.U
-  io.master.awlen   := 0.U
-  io.master.awsize  := 0.U
-  io.master.awburst := 0.U
-  io.master.wvalid  := false.B
-  io.master.wdata   := 0.U
-  io.master.wstrb   := 0.U
-  io.master.wlast   := 0.U
-  io.master.bready  := false.B
-
-  // -------------------------------------------------------------------------
-  // 2. 仲裁逻辑与状态机实现
-  // -------------------------------------------------------------------------
-  val anyArvalid = io.clients.map(_.arvalid).reduce(_ || _)
-  // 轮询仲裁：从 rrPtr 的下一个客户端开始优先查找，rrPtr 本身最后检查
-  // candidates中是一个元组(arvalid,idx)...
-  val candidates = (1 to ClientNum).map { offset =>
-    val idx = (rrPtr +& offset.U) % ClientNum.U(indexWidth - 1, 0)
-    io.clients(idx).arvalid -> idx
-  }
-  val chosenId   =
-    Mux(anyArvalid, PriorityMux(candidates), 0.U(indexWidth - 1, 0))
-
-  // -------------------------------------------------------------------------
-  // 3. 状态机与指针更新
-  // -------------------------------------------------------------------------
-  switch(state) {
-    is(sIdle) {
-      when(anyArvalid) {
-        grantID := chosenId
-        state   := sRead
-      }
+  when(readState === rAddr) {
+    io.master.arvalid  := readClient.arvalid
+    readClient.arready := io.master.arready
+    when(io.master.arFire) {
+      readState := rData
     }
-    is(sRead) {
-      when(io.master.rvalid && io.master.rready && io.master.rlast) {
-        rrPtr := ((grantID + 1.U) % ClientNum.U)(indexWidth - 1, 0)
-        state := sIdle
-      }
+  }
+  when(readState === rData) {
+    readClient.rvalid := io.master.rvalid
+    readClient.rdata  := io.master.rdata
+    readClient.rresp  := io.master.rresp
+    readClient.rlast  := io.master.rlast
+    readClient.rid    := io.master.rid
+    io.master.rready  := readClient.rready
+    when(io.master.rFire && io.master.rlast) {
+      readState := rIdle
     }
   }
 
-  // -------------------------------------------------------------------------
-  // 4. 信号多路复用绑定master
-  // -------------------------------------------------------------------------
-  val currentClient = io.clients(grantID)
-  switch(state) {
-    is(sIdle) {
-      when(anyArvalid) {
-        // 条件是所有客户端arvalid逻辑综合，必须手动设置值
-        io.master.arvalid := true.B
-        io.master.araddr  := io.clients(chosenId).araddr
-        io.master.arid    := io.clients(chosenId).arid
-        io.master.arlen   := io.clients(chosenId).arlen
-        io.master.arsize  := io.clients(chosenId).arsize
-        io.master.arburst := io.clients(chosenId).arburst
-      }
-    }
-    is(sRead) {
-      // 在读突发传输中，保持当前 grantID 对应的 AR 信号（如果 AR 已经握手成功，arvalid 可以拉低，但地址总线可以保持稳定）
-      io.master.arvalid := false.B
-      io.master.araddr  := currentClient.araddr
-      io.master.arid    := currentClient.arid
-      io.master.arlen   := currentClient.arlen
-      io.master.arsize  := currentClient.arsize
-      io.master.arburst := currentClient.arburst
+  io.master.awaddr  := writeClient.awaddr
+  io.master.awid    := writeClient.awid
+  io.master.awlen   := writeClient.awlen
+  io.master.awsize  := writeClient.awsize
+  io.master.awburst := writeClient.awburst
+  io.master.wdata   := writeClient.wdata
+  io.master.wstrb   := writeClient.wstrb
+  io.master.wlast   := writeClient.wlast
 
-      // 将 Master 的读数据原封不动分发给当前获得仲裁权的客户端
-      currentClient.rvalid := io.master.rvalid
-      currentClient.rdata  := io.master.rdata
-      currentClient.rresp  := io.master.rresp
-      currentClient.rlast  := io.master.rlast
-      currentClient.rid    := io.master.rid
-      io.master.rready     := currentClient.rready
+  when(writeState === wRequest) {
+    io.master.awvalid   := writeClient.awvalid && !awDone
+    writeClient.awready := io.master.awready && !awDone
+    io.master.wvalid    := writeClient.wvalid && !wDone
+    writeClient.wready  := io.master.wready && !wDone
+
+    when(io.master.awFire) {
+      awDone := true.B
+    }
+    when(io.master.wFire && io.master.wlast) {
+      wDone := true.B
+    }
+    when(
+      (awDone || io.master.awFire) &&
+        (wDone || (io.master.wFire && io.master.wlast))
+    ) {
+      writeState := wResponse
+    }
+  }
+  when(writeState === wResponse) {
+    writeClient.bvalid := io.master.bvalid
+    writeClient.bresp  := io.master.bresp
+    writeClient.bid    := io.master.bid
+    io.master.bready   := writeClient.bready
+    when(io.master.bFire) {
+      writeState := wIdle
     }
   }
 }

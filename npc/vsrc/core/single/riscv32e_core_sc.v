@@ -49,9 +49,9 @@ module riscv32e_core_sc #(
     output wire [DATA_WIDTH-1:0]        trap_status,
 
     // 关键信息
-    output wire [INST_WIDTH-1:0]        pc, // 退休指令的PC
-    output wire [INST_WIDTH-1:0]        dnpc, // 退休指令的下一条指令PC
-    output wire                         inst_done // 退休指令已经完成
+    output wire [INST_WIDTH-1:0]        pc,         // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
+    output wire [INST_WIDTH-1:0]        inst_pc,    // 指向执行完的指令对应的地址
+    output wire                         inst_done   // 指示是否完成一条指令
 );
     /* gpr寄存器组 */
     wire [DATA_WIDTH-1:0] gpr_src1;
@@ -163,17 +163,17 @@ module riscv32e_core_sc #(
         .trap_cause(trap_cause),
         .trap_tval(trap_tval),
         .trap_status(trap_status),
-        .out_pc(pc),
+        .out_inst_pc(inst_pc),
         .out_dnpc(dnpc)
     );
 
     /** 
     * 关键信号处理
     */
+    wire [INST_WIDTH-1:0] dnpc;
     reg [INST_WIDTH-1:0] core_pc;
-    reg [INST_WIDTH-1:0] core_dnpc;
     reg                  core_inst_done;
-    assign core_dnpc = dnpc;
+    assign pc = core_pc;
     assign inst_done = core_inst_done;
     always @(posedge clock) begin
         if (reset) begin
