@@ -6,8 +6,9 @@ import scala.language.reflectiveCalls
 import config.AutoConfig._
 import config.ManuConfig._
 
-/** LSU：单笔 CacheIO 访存，锁存响应以承受 WB 反压，load 按原始字节 lane 抽取。
-  * 冲刷后排空已接受请求的响应，不将旧响应交给新指令；已发出的 store 无法撤销。
+/** LSU：通过 CacheIO 完成访存，锁存响应以承受 WB 反压；跨字 load 读取两个字拼接，
+  * 跨字 store 拆成字节写。冲刷后排空已接受请求的响应，不将旧响应交给新指令；
+  * 已发出的 store 无法撤销。
   */
 class Lsu() extends Module {
   val io = IO(new Bundle {
@@ -23,13 +24,25 @@ class Lsu() extends Module {
   val discard = RegInit(false.B)
   val responseValid = RegInit(false.B)
   val responseData = Reg(UInt(CONFIG_DATA_WIDTH.W))
+  val beatIndex = RegInit(0.U(2.W))
+  val firstData = Reg(UInt(CONFIG_DATA_WIDTH.W))
 
-  // 每条访存只接受一次请求；响应与下游消费解耦，不因反压重发 store。
+  val addr = in.aluResult
+  val off = addr(1, 0)
+  val accessBytes = MuxLookup(in.ctrl.memOp(1, 0), 1.U)(
+    Seq(0.U -> 1.U, 1.U -> 2.U, 2.U -> 4.U)
+  )
+  val split = (off +& accessBytes) > 4.U
+  val splitStore = split && in.ctrl.isStore
+  val totalBeats = Mux(splitStore, accessBytes, Mux(split, 2.U, 1.U))
+
+  // 跨字 load 读两个字后拼接；跨字 store 逐字节提交，避免改写相邻字节。
   io.cache.req.valid := io.in.valid && isMemInst && !io.kill && !reset.asBool &&
     !pending && !responseValid && !discard
-  io.cache.req.addr  := in.aluResult
-  io.cache.req.op    := in.ctrl.memOp
-  io.cache.req.wdata := in.storeData
+  io.cache.req.addr  := addr + beatIndex
+  io.cache.req.op    := Mux(splitStore, MemOp.SB, in.ctrl.memOp)
+  io.cache.req.wdata := Mux(splitStore,
+    in.storeData >> Cat(beatIndex, 0.U(3.W)), in.storeData)
   io.cache.rsp.ready := pending || io.cache.req.fire
   when(io.cache.req.fire) {
     pending := true.B
@@ -38,34 +51,40 @@ class Lsu() extends Module {
     pending := false.B
     discard := false.B
     when(!discard && !io.kill) {
-      responseValid := true.B
-      responseData  := io.cache.rsp.data
+      when(beatIndex +& 1.U < totalBeats) {
+        firstData := io.cache.rsp.data
+        beatIndex := beatIndex + 1.U
+      }.otherwise {
+        responseValid := true.B
+        responseData  := io.cache.rsp.data
+      }
+    }.otherwise {
+      beatIndex := 0.U
     }
   }
   when(io.out.fire) {
     responseValid := false.B
+    beatIndex := 0.U
   }
   when(io.kill) {
     responseValid := false.B
     when(pending && !io.cache.rsp.fire) {
       discard := true.B
+    }.otherwise {
+      beatIndex := 0.U
     }
   }
 
-  val addr = in.aluResult
   val rdata = responseData
-  val off = addr(1, 0)
-  val byteSel = Mux(
-    off(1),
-    Mux(off(0), rdata(31, 24), rdata(23, 16)),
-    Mux(off(0), rdata(15, 8), rdata(7, 0))
-  )
-  val halfSel = Mux(off(1), rdata(31, 16), rdata(15, 0))
-  val loadData = MuxLookup(in.ctrl.memOp, rdata)(
+  val loadWord = Mux(beatIndex =/= 0.U, Cat(rdata, firstData) >> Cat(off, 0.U(3.W)),
+    Cat(0.U(32.W), rdata) >> Cat(off, 0.U(3.W)))(31, 0)
+  val byteSel = loadWord(7, 0)
+  val halfSel = loadWord(15, 0)
+  val loadData = MuxLookup(in.ctrl.memOp, loadWord)(
     Seq(
       MemOp.LB  -> Cat(Fill(24, byteSel(7)), byteSel),
       MemOp.LH  -> Cat(Fill(16, halfSel(15)), halfSel),
-      MemOp.LW  -> rdata,
+      MemOp.LW  -> loadWord,
       MemOp.LBU -> Cat(0.U(24.W), byteSel),
       MemOp.LHU -> Cat(0.U(16.W), halfSel)
     )
