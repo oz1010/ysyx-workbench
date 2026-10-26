@@ -12,6 +12,7 @@ class GprFile() extends Module {
   val io = IO(new Bundle {
     val read1 = Flipped(new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
     val read2 = Flipped(new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
+    val a0    = Output(UInt(CONFIG_ADDR_WIDTH.W))
     val write = Flipped(new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
   })
 
@@ -39,4 +40,5 @@ class GprFile() extends Module {
   }
   io.read1.data := Mux(io.read1.addr === 0.U, 0.U, x(io.read1.addr))
   io.read2.data := Mux(io.read2.addr === 0.U, 0.U, x(io.read2.addr))
+  io.a0         := x(10)
 }

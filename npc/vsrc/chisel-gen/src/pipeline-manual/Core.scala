@@ -107,6 +107,7 @@ class riscv32e_core() extends RawModule {
 
     // ---------------- WBU ----------------
     wbu.io.interrupt := io_interrupt
+    wbu.io.gprA0 <> m_gprs.io.a0
     wbu.io.gprWrite <> m_gprs.io.write
     wbu.io.csrWrite <> m_csrs.io.write
     wbu.io.csrTrap <> m_csrs.io.trap
@@ -120,8 +121,18 @@ class riscv32e_core() extends RawModule {
     wbu.io.csrMtvec  := m_csrs.io.mtvec
 
     // ---------------- 关键输出 ----------------
-    pc        := wbu.io.out.bits.dnpc // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
-    inst_pc   := wbu.io.out.bits.pc   // 指向执行完的指令对应的地址
-    inst_done := wbu.io.out.fire      // 指示是否完成一条指令
+    // 与 GPR/CSR 写回在同一上升沿更新；done 有效时 PC 对属于已完成的指令。
+    val corePc     = Reg(UInt(CONFIG_ADDR_WIDTH.W))
+    val coreInstPc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
+    when(reset.asBool) {
+      corePc     := reset_pc
+      coreInstPc := reset_pc
+    }.elsewhen(wbu.io.out.fire) {
+      corePc     := wbu.io.out.bits.dnpc
+      coreInstPc := wbu.io.out.bits.pc
+    }
+    pc := corePc // 下一条待执行指令的架构 PC，空闲时保持
+    inst_pc   := coreInstPc // 最近完成指令的 PC
+    inst_done := RegNext(wbu.io.out.fire, false.B)
   }
 }

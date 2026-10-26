@@ -191,6 +191,30 @@ module riscv32e_memsys #(
     end
 
     `elsif CONFIG_ISA_RISCV_PIPELINE_CHISEL // chisel版本
+    `ifndef IN_YOSYS_STA
+    // Chisel CSR 文件不调用 DPI，在相同提交沿镜像公开写口和陷阱事件。
+    always @(posedge clock) begin
+        if (reset) begin
+            func_write_raw_csr({20'h0, `CSR_MSTATUS}, 32'h1800);
+            func_write_raw_csr({20'h0, `CSR_MTVEC}, 0);
+            func_write_raw_csr({20'h0, `CSR_MEPC}, 0);
+            func_write_raw_csr({20'h0, `CSR_MCAUSE}, 0);
+            func_write_raw_csr({20'h0, `CSR_MTVAL}, 0);
+            func_write_raw_csr({20'h0, `CSR_MVENDORID}, 0);
+            func_write_raw_csr({20'h0, `CSR_MARCHID}, 0);
+        end else begin
+            if (csr_wen) begin
+                func_write_raw_csr({20'h0, csr_waddr}, csr_wdata);
+            end
+            if (trap_en) begin
+                func_write_raw_csr({20'h0, `CSR_MSTATUS}, trap_status);
+                func_write_raw_csr({20'h0, `CSR_MEPC}, {trap_epc[31:2], 2'b0});
+                func_write_raw_csr({20'h0, `CSR_MCAUSE}, trap_cause);
+                func_write_raw_csr({20'h0, `CSR_MTVAL}, trap_tval);
+            end
+        end
+    end
+    `endif
     CacheRouter cache_router(
         .clock(clock),
         .reset(reset),
