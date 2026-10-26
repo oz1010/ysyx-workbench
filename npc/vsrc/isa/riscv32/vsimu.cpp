@@ -125,7 +125,6 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
     if (type == SYNC_TO_SIMU)
     {
         memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], gpr_bytes);
-        _simu->rootp->TOP_S_PC = _cpu->pc;
     }
     else
     {
@@ -188,10 +187,7 @@ int exec_vsimu(Decode* s)
         {
             if (top->rootp->TOP_S_CORE_INST_DONE[idx])
             {
-#ifndef CONFIG_ISA_RISCV_SINGLE // 非单周期，done命令刚触发，可以再运行一个周期采集完整的数据
-                IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
-                TOP_RUN_TICK(top);
-#endif
+                // done、PC 和寄存器状态均为本次上升沿写回完成后的结果。
                 simu_continue = false;
                 break;
             }

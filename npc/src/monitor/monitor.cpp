@@ -291,6 +291,23 @@ void init_monitor(int argc, char *argv[])
     /* Parse arguments. */
     parse_args(argc, argv);
 
+    // init_isa() starts the performance recorder before load_img(); seed its
+    // description with the same image path load_img() will resolve.
+    if (cfg_img_file != NULL)
+    {
+        if (cfg_img_file[0] == '/')
+        {
+            snprintf(g_image_file_path, sizeof(g_image_file_path), "%s", cfg_img_file);
+        }
+        else
+        {
+            const char* npc_home = getenv("NPC_HOME");
+            Assert(npc_home, "Miss set NPC_HOME");
+            snprintf(g_image_file_path, sizeof(g_image_file_path), "%s/../%s", npc_home,
+                     cfg_img_file);
+        }
+    }
+
     /* Set random seed. */
     init_rand();
 

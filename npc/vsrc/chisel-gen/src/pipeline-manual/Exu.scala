@@ -9,19 +9,19 @@ import config.ManuConfig._
 /** EXU：ALU、分支解析与静态预测修正、CSR 读（返回旧值）、异常检测及 MEM/WB 数据前递。 */
 class Exu() extends Module {
   val io = IO(new Bundle {
-    val in       = Flipped(Decoupled(new IdBundle()))
-    val out      = Decoupled(new ExBundle())
+    val in        = Flipped(Decoupled(new IdBundle()))
+    val out       = Decoupled(new ExBundle())
     // 前递数据
-    val lsStage  = Input(new ExBundle())
-    val lsValid  = Input(Bool())
-    val wbStage  = Input(new LsBundle())
-    val wbValid  = Input(Bool())
-    val wbData   = Input(UInt(CONFIG_ADDR_WIDTH.W)) // WBU 最终写回数据（含 load 数据）
-    val loadStall = Input(Bool()) // MEM load 的结果尚未进入 WB
+    val lsStage   = Input(new ExBundle())
+    val lsValid   = Input(Bool())
+    val wbStage   = Input(new LsBundle())
+    val wbValid   = Input(Bool())
+    val wbData    = Input(UInt(CONFIG_ADDR_WIDTH.W)) // WBU 最终写回数据（含 load 数据）
+    val loadStall = Input(Bool())                    // MEM load 的结果尚未进入 WB
     // CSR读口（读旧值）
-    val csrRead  = new RegReadIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH)
+    val csrRead   = new RegReadIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH)
     // 预测失败 / 跳转修正重定向
-    val redirect = Output(new Redirect())           // 预测修正/跳转（→ IFU）
+    val redirect  = Output(new Redirect())           // 预测修正/跳转（→ IFU）
   })
 
   val in   = io.in.bits
@@ -37,9 +37,9 @@ class Exu() extends Module {
       WbOp.PC_4 -> (io.lsStage.pc + 4.U) // JAL/JALR
     )
   )
-  val lsCanForward = io.lsValid && io.lsStage.ctrl.isRdWen &&
+  val lsCanForward                           = io.lsValid && io.lsStage.ctrl.isRdWen &&
     !io.lsStage.ctrl.isLoad && !io.lsStage.expt.en && io.lsStage.rdAddr =/= 0.U
-  val wbCanForward = io.wbValid && io.wbStage.ctrl.isRdWen &&
+  val wbCanForward                           = io.wbValid && io.wbStage.ctrl.isRdWen &&
     !io.wbStage.expt.en && io.wbStage.rdAddr =/= 0.U
   def fwd(regAddr: UInt, regVal: UInt): UInt = Mux(
     regAddr === 0.U,
@@ -57,8 +57,8 @@ class Exu() extends Module {
   val operandsHeld = RegInit(false.B)
   val heldRs1      = Reg(UInt(CONFIG_DATA_WIDTH.W))
   val heldRs2      = Reg(UInt(CONFIG_DATA_WIDTH.W))
-  val rs1f = fwd(in.rs1Addr, Mux(operandsHeld, heldRs1, in.rs1Val))
-  val rs2f = fwd(in.rs2Addr, Mux(operandsHeld, heldRs2, in.rs2Val))
+  val rs1f         = fwd(in.rs1Addr, Mux(operandsHeld, heldRs1, in.rs1Val))
+  val rs2f         = fwd(in.rs2Addr, Mux(operandsHeld, heldRs2, in.rs2Val))
   when(io.in.valid && !io.in.ready) {
     operandsHeld := true.B
     heldRs1      := rs1f
@@ -109,7 +109,7 @@ class Exu() extends Module {
   val redirTgt   = MuxCase(
     in.pc + 4.U,
     Seq(
-      in.ctrl.isJalr            -> jalrTarget,
+      in.ctrl.isJalr             -> jalrTarget,
       (in.ctrl.isJal || brTaken) -> brTarget
     )
   )
@@ -122,7 +122,10 @@ class Exu() extends Module {
   // load/store 地址非对齐（访存对齐要求已由 LSU 假定）
   val ldMis    =
     in.ctrl.isLoad && (((in.ctrl.memOp === MemOp.LH || in.ctrl.memOp === MemOp.LHU) &&
-      aluResult(0) =/= 0.U) || (in.ctrl.memOp === MemOp.LW && aluResult(1, 0) =/= 0.U))
+      aluResult(0) =/= 0.U) || (in.ctrl.memOp === MemOp.LW && aluResult(
+      1,
+      0
+    ) =/= 0.U))
   val stMis    =
     in.ctrl.isStore && ((in.ctrl.memOp === MemOp.SH && aluResult(0) =/= 0.U) ||
       (in.ctrl.memOp === MemOp.SW && aluResult(1, 0) =/= 0.U))
@@ -141,13 +144,16 @@ class Exu() extends Module {
   )
 
   // 与 cause 使用相同优先级；上游异常在输出处连同 tval 一起优先透传。
-  expt.tval := MuxCase(0.U, Seq(
-    in.ctrl.isIllegal -> in.inst,
-    in.ctrl.isEcall   -> 0.U,
-    in.ctrl.isEbreak  -> in.pc,
-    fetchMis         -> fetchTgt,
-    (ldMis || stMis) -> aluResult
-  ))
+  expt.tval := MuxCase(
+    0.U,
+    Seq(
+      in.ctrl.isIllegal -> in.inst,
+      in.ctrl.isEcall   -> 0.U,
+      in.ctrl.isEbreak  -> in.pc,
+      fetchMis          -> fetchTgt,
+      (ldMis || stMis)  -> aluResult
+    )
+  )
 
   // ---------------- CSR读写 ----------------
   io.csrRead.en   := true.B
@@ -178,5 +184,5 @@ class Exu() extends Module {
   when(redirectFire) {
     redirect.target := redirTgt
   }
-  io.redirect := redirect
+  io.redirect    := redirect
 }
