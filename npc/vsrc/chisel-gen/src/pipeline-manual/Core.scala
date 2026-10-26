@@ -13,7 +13,7 @@ import config.ManuConfig._
   */
 class riscv32e_core() extends RawModule {
   val clock        = IO(Input(Clock()))
-  val reset        = IO(Input(Bool()))  // 同步复位，高有效
+  val reset        = IO(Input(Bool())) // 同步复位，高有效
   val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
   val io_interrupt = IO(Input(Bool()))
   val io_if        = IO(new CacheIO())
@@ -22,8 +22,8 @@ class riscv32e_core() extends RawModule {
   val csr          = IO(new RegWriteIO(CSR_ADDR_W, CONFIG_DATA_WIDTH))
   val trap         = IO(new TrapIO())
   val pc           = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
-  val dnpc         = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
-  val inst_done    = IO(Output(Bool())) // 完成一条指令（单周期脉冲）
+  val inst_pc      = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val inst_done    = IO(Output(Bool()))
 
   withClockAndReset(clock, reset) {
     // ---------------- 实例化模块 ----------------
@@ -120,18 +120,8 @@ class riscv32e_core() extends RawModule {
     wbu.io.csrMtvec  := m_csrs.io.mtvec
 
     // ---------------- 关键输出 ----------------
-    val core_pc   = Reg(UInt(CONFIG_ADDR_WIDTH.W))
-    val core_dnpc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
-    when(reset.asBool) {
-      core_pc   := reset_pc
-      core_dnpc := reset_pc
-    }.elsewhen(wbu.io.out.fire) {
-      core_pc   := wbu.io.out.bits.pc
-      core_dnpc := wbu.io.out.bits.dnpc
-    }
-    // inst_done 与 GPR/CSR/trap 同拍时给出同一条指令的 PC 对；空闲时保持最后记录。
-    pc := Mux(wbu.io.out.fire, wbu.io.out.bits.pc, core_pc)
-    dnpc      := Mux(wbu.io.out.fire, wbu.io.out.bits.dnpc, core_dnpc)
-    inst_done := wbu.io.out.fire
+    pc        := wbu.io.out.bits.dnpc // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
+    inst_pc   := wbu.io.out.bits.pc   // 指向执行完的指令对应的地址
+    inst_done := wbu.io.out.fire      // 指示是否完成一条指令
   }
 }

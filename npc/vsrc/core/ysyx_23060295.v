@@ -116,9 +116,9 @@ module ysyx_23060295 (
     assign io_slave_rid = 0;
 
     // 检测core是否陷入循环，默认但指令执行周期比较短暂
-    wire [31:0] core_pc[`RISCV_CORE_NUM-1:0];
-    wire [31:0] core_dnpc[`RISCV_CORE_NUM-1:0];
-    wire core_inst_done[`RISCV_CORE_NUM-1:0];
+    wire [31:0] core_pc[`RISCV_CORE_NUM-1:0]; // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
+    wire [31:0] core_inst_pc[`RISCV_CORE_NUM-1:0]; // 指向执行完的指令对应的地址
+    wire core_inst_done[`RISCV_CORE_NUM-1:0]; // 指示是否完成一条指令
     `ifndef IN_YOSYS_STA
     reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
     reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
@@ -175,134 +175,49 @@ module ysyx_23060295 (
     `ifdef CONFIG_ISA_RISCV_SINGLE
     // 单周期版本的核心连接逻辑
     riscv32e_core_sc #(
-        .INST_WIDTH(`RISCV_INST_WIDTH)
-    ) ysyx_23060295_CORE0(
-        .clock(clock),
-        .reset(reset),
-
-        .reset_pc(reset_pc),
-        .io_interrupt(io_interrupt),
-
-        .io_if_req_valid(io_if_req_valid),
-        .io_if_req_ready(io_if_req_ready),
-        .io_if_req_addr(io_if_req_addr),
-        .io_if_req_op(io_if_req_op),
-        .io_if_req_wdata(io_if_req_wdata),
-        .io_if_rsp_valid(io_if_rsp_valid),
-        .io_if_rsp_ready(io_if_rsp_ready),
-        .io_if_rsp_data(io_if_rsp_data),
-        .io_mem_req_valid(io_mem_req_valid),
-        .io_mem_req_ready(io_mem_req_ready),
-        .io_mem_req_addr(io_mem_req_addr),
-        .io_mem_req_op(io_mem_req_op),
-        .io_mem_req_wdata(io_mem_req_wdata),
-        .io_mem_rsp_valid(io_mem_rsp_valid),
-        .io_mem_rsp_ready(io_mem_rsp_ready),
-        .io_mem_rsp_data(io_mem_rsp_data),
-        .gpr_wen(gpr_wen),
-        .gpr_waddr(gpr_waddr),
-        .gpr_wdata(gpr_wdata),
-        .csr_wen(csr_wen),
-        .csr_waddr(csr_waddr),
-        .csr_wdata(csr_wdata),
-        .trap_en(trap_en),
-        .trap_epc(trap_epc),
-        .trap_cause(trap_cause),
-        .trap_tval(trap_tval),
-        .trap_status(trap_status),
-
-        .pc(core_pc[0]),
-        .dnpc(core_dnpc[0]),
-        .inst_done(core_inst_done[0])
-    );
-
-    `elsif CONFIG_ISA_RISCV_PIPELINE_CHISEL
-    // chisel流水线版本
-    riscv32e_core #(
-        .INST_WIDTH(`RISCV_INST_WIDTH)
-    ) ysyx_23060295_CORE0(
-        .clock(clock),
-        .reset(reset),
-
-        .reset_pc(reset_pc),
-        .io_interrupt(io_interrupt),
-
-        .io_if_req_valid(io_if_req_valid),
-        .io_if_req_ready(io_if_req_ready),
-        .io_if_req_addr(io_if_req_addr),
-        .io_if_req_op(io_if_req_op),
-        .io_if_req_wdata(io_if_req_wdata),
-        .io_if_rsp_valid(io_if_rsp_valid),
-        .io_if_rsp_ready(io_if_rsp_ready),
-        .io_if_rsp_data(io_if_rsp_data),
-        .io_mem_req_valid(io_mem_req_valid),
-        .io_mem_req_ready(io_mem_req_ready),
-        .io_mem_req_addr(io_mem_req_addr),
-        .io_mem_req_op(io_mem_req_op),
-        .io_mem_req_wdata(io_mem_req_wdata),
-        .io_mem_rsp_valid(io_mem_rsp_valid),
-        .io_mem_rsp_ready(io_mem_rsp_ready),
-        .io_mem_rsp_data(io_mem_rsp_data),
-        .gpr_wen(gpr_wen),
-        .gpr_waddr(gpr_waddr),
-        .gpr_wdata(gpr_wdata),
-        .csr_wen(csr_wen),
-        .csr_waddr(csr_waddr),
-        .csr_wdata(csr_wdata),
-        .trap_en(trap_en),
-        .trap_epc(trap_epc),
-        .trap_cause(trap_cause),
-        .trap_tval(trap_tval),
-        .trap_status(trap_status),
-
-        .pc(core_pc[0]),
-        .dnpc(core_dnpc[0]),
-        .inst_done(core_inst_done[0])
-    );
-
     `else
-    // 其他类型版本
     riscv32e_core #(
+    `endif
         .INST_WIDTH(`RISCV_INST_WIDTH)
     ) ysyx_23060295_CORE0(
         .clock(clock),
         .reset(reset),
 
+        .reset_pc(reset_pc),
         .io_interrupt(io_interrupt),
-        .io_master_awready(io_master_awready),
-        .io_master_awvalid(io_master_awvalid),
-        .io_master_awaddr(io_master_awaddr),
-        .io_master_awid(io_master_awid),
-        .io_master_awlen(io_master_awlen),
-        .io_master_awsize(io_master_awsize),
-        .io_master_awburst(io_master_awburst),
-        .io_master_wready(io_master_wready),
-        .io_master_wvalid(io_master_wvalid),
-        .io_master_wdata(io_master_wdata),
-        .io_master_wstrb(io_master_wstrb),
-        .io_master_wlast(io_master_wlast),
-        .io_master_bready(io_master_bready),
-        .io_master_bvalid(io_master_bvalid),
-        .io_master_bresp(io_master_bresp),
-        .io_master_bid(io_master_bid),
-        .io_master_arready(io_master_arready),
-        .io_master_arvalid(io_master_arvalid),
-        .io_master_araddr(io_master_araddr),
-        .io_master_arid(io_master_arid),
-        .io_master_arlen(io_master_arlen),
-        .io_master_arsize(io_master_arsize),
-        .io_master_arburst(io_master_arburst),
-        .io_master_rready(io_master_rready),
-        .io_master_rvalid(io_master_rvalid),
-        .io_master_rresp(io_master_rresp),
-        .io_master_rdata(io_master_rdata),
-        .io_master_rlast(io_master_rlast),
-        .io_master_rid(io_master_rid),
+
+        .io_if_req_valid(io_if_req_valid),
+        .io_if_req_ready(io_if_req_ready),
+        .io_if_req_addr(io_if_req_addr),
+        .io_if_req_op(io_if_req_op),
+        .io_if_req_wdata(io_if_req_wdata),
+        .io_if_rsp_valid(io_if_rsp_valid),
+        .io_if_rsp_ready(io_if_rsp_ready),
+        .io_if_rsp_data(io_if_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data),
+        .gpr_wen(gpr_wen),
+        .gpr_waddr(gpr_waddr),
+        .gpr_wdata(gpr_wdata),
+        .csr_wen(csr_wen),
+        .csr_waddr(csr_waddr),
+        .csr_wdata(csr_wdata),
+        .trap_en(trap_en),
+        .trap_epc(trap_epc),
+        .trap_cause(trap_cause),
+        .trap_tval(trap_tval),
+        .trap_status(trap_status),
 
         .pc(core_pc[0]),
-        .valid(core_inst_done[0])
+        .inst_pc(core_inst_pc[0]),
+        .inst_done(core_inst_done[0])
     );
-    `endif
 
     riscv32e_memsys #(
         .INST_WIDTH(`RISCV_INST_WIDTH)

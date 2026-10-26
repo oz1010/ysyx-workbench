@@ -43,7 +43,7 @@ module write_back_sc #(
     output  reg  [DATA_WIDTH-1:0]           trap_tval,
     output  reg  [DATA_WIDTH-1:0]           trap_status,
 
-    output  reg [INST_WIDTH-1:0]            out_pc,
+    output  reg [INST_WIDTH-1:0]            out_inst_pc,
     output  reg [INST_WIDTH-1:0]            out_dnpc
 );
     wire [INST_WIDTH-1:0] src1 = gpr_src1;
@@ -163,7 +163,7 @@ module write_back_sc #(
     end
 
     always @(posedge clock) begin
-        out_pc <= pc;
+        out_inst_pc <= pc;
     end
     assign out_dnpc = dnpc;
 
