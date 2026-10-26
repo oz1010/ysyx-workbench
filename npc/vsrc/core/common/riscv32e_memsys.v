@@ -78,26 +78,6 @@ module riscv32e_memsys #(
 
     wire core_ready = !reset;
 
-    // 单周期不需要通过axi4总线访问外部设备
-    assign io_master_awvalid = 0;
-    assign io_master_awaddr = 0;
-    assign io_master_awid = 0;
-    assign io_master_awlen = 0;
-    assign io_master_awsize = 4;
-    assign io_master_awburst = 0;
-    assign io_master_wvalid = 0;
-    assign io_master_wdata = 0;
-    assign io_master_wstrb = 0;
-    assign io_master_wlast = 0;
-    assign io_master_bready = 0;
-    assign io_master_arvalid = 0;
-    assign io_master_araddr = 0;
-    assign io_master_arid = 0;
-    assign io_master_arlen = 0;
-    assign io_master_arsize = 0;
-    assign io_master_arburst = 0;
-    assign io_master_rready = 0;
-
     // 复位逻辑
     generate
         if (`RISCV_RESET_PC_EN) begin // 直接使用静态值
@@ -129,6 +109,26 @@ module riscv32e_memsys #(
     );    
 
     `ifdef CONFIG_ISA_RISCV_SINGLE // 单周期特有逻辑
+    // 单周期不需要通过axi4总线访问外部设备
+    assign io_master_awvalid = 0;
+    assign io_master_awaddr = 0;
+    assign io_master_awid = 0;
+    assign io_master_awlen = 0;
+    assign io_master_awsize = 4;
+    assign io_master_awburst = 0;
+    assign io_master_wvalid = 0;
+    assign io_master_wdata = 0;
+    assign io_master_wstrb = 0;
+    assign io_master_wlast = 0;
+    assign io_master_bready = 0;
+    assign io_master_arvalid = 0;
+    assign io_master_araddr = 0;
+    assign io_master_arid = 0;
+    assign io_master_arlen = 0;
+    assign io_master_arsize = 0;
+    assign io_master_arburst = 0;
+    assign io_master_rready = 0;
+
     // 组合取指
     always @(*) begin
         if (reset) begin
@@ -276,6 +276,18 @@ module riscv32e_memsys #(
     assign io_mem_rsp_valid = 0;
     assign io_mem_rsp_data = 0;
 
+    `endif
+
+    // 避免启动diff时，没有跳过外设
+    `ifndef IN_YOSYS_STA
+    `ifndef FORMAL_VERIFY
+    always @(posedge clock) begin
+        if (!reset && io_master_arvalid && io_master_arready)
+            func_dev_skip(0, io_master_araddr, {21'h0, io_master_arsize, io_master_arlen}, 0);
+        if (!reset && io_master_awvalid && io_master_awready)
+            func_dev_skip(1, io_master_awaddr, {25'h0, io_master_awsize, io_master_wstrb}, 0);
+    end
+    `endif
     `endif
 
     // generate

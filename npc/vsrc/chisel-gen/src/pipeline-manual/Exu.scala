@@ -119,27 +119,13 @@ class Exu() extends Module {
   val fetchTgt = Mux(in.ctrl.isJalr, jalrTarget, brTarget)
   val fetchMis =
     (in.ctrl.isJal || in.ctrl.isJalr || brTaken) && fetchTgt(1, 0) =/= 0.U
-  // load/store 地址非对齐（访存对齐要求已由 LSU 假定）
-  val ldMis    =
-    in.ctrl.isLoad && (((in.ctrl.memOp === MemOp.LH || in.ctrl.memOp === MemOp.LHU) &&
-      aluResult(0) =/= 0.U) || (in.ctrl.memOp === MemOp.LW && aluResult(
-      1,
-      0
-    ) =/= 0.U))
-  val stMis    =
-    in.ctrl.isStore && ((in.ctrl.memOp === MemOp.SH && aluResult(0) =/= 0.U) ||
-      (in.ctrl.memOp === MemOp.SW && aluResult(1, 0) =/= 0.U))
-
-  expt.en    :=
-    v && (in.ctrl.isIllegal || in.ctrl.isEcall || in.ctrl.isEbreak || fetchMis || ldMis || stMis)
+  expt.en    := v && (in.ctrl.isIllegal || in.ctrl.isEcall || in.ctrl.isEbreak || fetchMis)
   expt.cause := PriorityMux(
     Seq(
       in.ctrl.isIllegal -> ExptCode.INST_ILLEGAL,
       in.ctrl.isEcall   -> ExptCode.INST_ECALL,
       in.ctrl.isEbreak  -> ExptCode.INST_EBREAK,
-      fetchMis          -> ExptCode.FETCH_MISS,
-      ldMis             -> ExptCode.LOAD_MISS,
-      stMis             -> ExptCode.STORE_MISS
+      fetchMis          -> ExptCode.FETCH_MISS
     )
   )
 
@@ -150,8 +136,7 @@ class Exu() extends Module {
       in.ctrl.isIllegal -> in.inst,
       in.ctrl.isEcall   -> 0.U,
       in.ctrl.isEbreak  -> in.pc,
-      fetchMis          -> fetchTgt,
-      (ldMis || stMis)  -> aluResult
+      fetchMis          -> fetchTgt
     )
   )
 
