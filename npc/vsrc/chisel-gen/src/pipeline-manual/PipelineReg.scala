@@ -30,6 +30,7 @@ class PipelineReg[T <: Data](gen: T) extends Module {
   })
 
   val data_reg  = Reg(gen)
+  addAttribute(data_reg, "fsm_encoding = \"none\"")
   val valid_reg = RegInit(false.B)
 
   when(io.flush) {
