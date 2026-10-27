@@ -120,6 +120,19 @@ class riscv32e_core() extends RawModule {
     wbu.io.csrMepc   := m_csrs.io.mepc
     wbu.io.csrMtvec  := m_csrs.io.mtvec
 
+    // ---------------- 性能监控 ----------------
+    val perfMonitor = Module(new PerfMonitor())
+    perfMonitor.io.ifReq := io_if.req
+    perfMonitor.io.ifOut := ifu.io.out
+    perfMonitor.io.idOut := idu.io.out
+    perfMonitor.io.exOut := exu.io.out
+    perfMonitor.io.lsOut := lsu.io.out
+    perfMonitor.io.wbOut := wbu.io.out
+    perfMonitor.io.gprWrite <> wbu.io.gprWrite
+    perfMonitor.io.csrWrite <> wbu.io.csrWrite
+    perfMonitor.io.exRedirect <> exRedirect
+    perfMonitor.io.wbRedirect <> wbRedirect
+
     // ---------------- 关键输出 ----------------
     // 与 GPR/CSR 写回在同一上升沿更新；done 有效时 PC 对属于已完成的指令。
     val corePc     = Reg(UInt(CONFIG_ADDR_WIDTH.W))

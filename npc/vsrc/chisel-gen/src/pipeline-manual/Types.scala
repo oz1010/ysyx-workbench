@@ -374,17 +374,19 @@ object Axi4SlaveDefaults {
   }
 }
 
+class CacheReqIO extends Bundle {
+  val valid = Output(Bool())
+  val ready = Input(Bool())
+  val addr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
+  val op    = Output(UInt(MemOp.width.W))
+  val wdata = Output(UInt(CONFIG_DATA_WIDTH.W))
+
+  def fire: Bool = valid && ready
+}
+
 /** Cache数据，master视角 */
 class CacheIO extends Bundle {
-  val req = new Bundle {
-    val valid = Output(Bool())
-    val ready = Input(Bool())
-    val addr  = Output(UInt(CONFIG_ADDR_WIDTH.W))
-    val op    = Output(UInt(MemOp.width.W))
-    val wdata = Output(UInt(CONFIG_DATA_WIDTH.W))
-
-    def fire: Bool = valid && ready
-  }
+  val req = new CacheReqIO()
   val rsp = new Bundle {
     val valid = Input(Bool())
     val ready = Output(Bool())
