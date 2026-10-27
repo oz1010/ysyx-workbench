@@ -18,13 +18,19 @@ module perf_monitor (
     input  wire [31:0]  in_ex_pc, // 阶段in_done有效时需要存储下来
     input  wire [31:0]  in_ls_pc, // 阶段in_done有效时需要存储下来
     input  wire [31:0]  in_wb_pc, // 阶段in_done有效时需要存储下来
+    input  wire [31:0]  out_if_pc,
+    input  wire [31:0]  out_id_pc,
+    input  wire [31:0]  out_ex_pc,
+    input  wire [31:0]  out_ls_pc,
+    input  wire [31:0]  out_wb_pc,
     input  wire [31:0]  predict_pc,
     input  wire [`INST_CODE_W-1:0]  inst_code,
 
-    input  wire         wb_gpr_wen,    // WBU进入时的GPR写使能
-    input  wire [4:0]   wb_gpr_windex, // WBU进入时的GPR写索引
-    input  wire [31:0]  wb_gpr_wdata,  // WBU进入时的GPR写数据
-    input  wire [`CSR_WCH_W-1:0] wb_csr_wch, // WBU进入时的CSR写通道（2组{en,addr,data}）
+    input  wire         wb_write_done,
+    input  wire         wb_gpr_wen,    // WBU写回时的GPR写使能
+    input  wire [4:0]   wb_gpr_windex, // WBU写回时的GPR写索引
+    input  wire [31:0]  wb_gpr_wdata,  // WBU写回时的GPR写数据
+    input  wire [`CSR_WCH_W-1:0] wb_csr_wch, // WBU写回时的CSR写通道（2组{en,addr,data}）
 
     input  wire [1:0]   if_cache_stat, // IFU取指对应的icache命中状态（NONE/HIT/MISS）
     input  wire [1:0]   ls_cache_stat, // LSU访存对应的dcache命中状态（NONE/HIT/MISS，写为NONE）
@@ -42,17 +48,6 @@ initial begin
     // $display("Enable perf monitor");
 end
 
-reg last_if_in_done;
-reg last_if_out_done;
-reg last_id_in_done;
-reg last_id_out_done;
-reg last_ex_in_done;
-reg last_ex_out_done;
-reg last_ls_in_done;
-reg last_ls_out_done;
-reg last_wb_in_done;
-reg last_wb_out_done;
-
 reg [31:0] in_done_if_pc;
 reg [31:0] in_done_id_pc;
 reg [31:0] in_done_ex_pc;
@@ -69,7 +64,7 @@ wire core_valid = !reset;
 reg last_core_valid;
 reg last_core_flush_done;
 
-/* WBU进入时的CSR写通道拆分：多组{en(1), addr(CSR_ADDR_W), data(32)} */
+/* WBU写回时的CSR写通道拆分：多组{en(1), addr(CSR_ADDR_W), data(32)} */
 wire                        mon_csr_wen[0:`CSR_WCH_ITEM_COUNT-1];
 wire [`CSR_ADDR_W-1:0]      mon_csr_waddr[0:`CSR_WCH_ITEM_COUNT-1];
 wire [31:0]                 mon_csr_wdata[0:`CSR_WCH_ITEM_COUNT-1];
@@ -88,16 +83,6 @@ assign mon_csr_waddr_ext[2] = {1'b0, mon_csr_waddr[2]};
 
 always @(posedge clock) begin
     if (reset) begin
-        last_if_in_done <= 0;
-        last_if_out_done <= 0;
-        last_id_in_done <= 0;
-        last_id_out_done <= 0;
-        last_ex_in_done <= 0;
-        last_ex_out_done <= 0;
-        last_ls_in_done <= 0;
-        last_ls_out_done <= 0;
-        last_wb_in_done <= 0;
-        last_wb_out_done <= 0;
         in_done_if_pc <= 0;
         in_done_id_pc <= 0;
         in_done_ex_pc <= 0;
@@ -106,16 +91,6 @@ always @(posedge clock) begin
         last_core_valid <= 0;
         last_core_flush_done <= 0;
     end else begin
-        last_if_in_done <= if_in_done;
-        last_if_out_done <= if_out_done;
-        last_id_in_done <= id_in_done;
-        last_id_out_done <= id_out_done;
-        last_ex_in_done <= ex_in_done;
-        last_ex_out_done <= ex_out_done;
-        last_ls_in_done <= ls_in_done;
-        last_ls_out_done <= ls_out_done;
-        last_wb_in_done <= wb_in_done;
-        last_wb_out_done <= wb_out_done;
         last_core_valid <= core_valid;
         last_core_flush_done <= core_flush_done;
         in_done_if_pc <= if_in_done ? in_if_pc : in_done_if_pc;
@@ -126,26 +101,8 @@ always @(posedge clock) begin
 
         if (!last_core_valid & core_valid) func_add_monitor_item(-1, 0, 0);
 
-        // 刷新完成，清理记录数据
-        if (!last_core_flush_done & core_flush_done) func_add_monitor_item({28'h0, 4'hF}, if_pc, {25'h0, core_stage_flush, core_flush_type});
-
-        // IFU
-        if (!last_if_in_done & if_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IFU}, if_pc, 0);
-        if (!last_if_out_done & if_out_done) func_add_monitor_item({24'h0, 1'b0, if_cache_stat, 1'b1, 4'h`STAGE_INDEX_IFU}, if_pc, predict_pc);
-        // IDU
-        if (!last_id_in_done & id_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IDU}, id_pc, 0);
-        if (!last_id_out_done & id_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IDU}, id_pc, {16'h0, inst_code});
-        // EXU
-        if (!last_ex_in_done & ex_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_EXU}, ex_pc, 0);
-        if (!last_ex_out_done & ex_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_EXU}, ex_pc, 0);
-        // LSU
-        if (!last_ls_in_done & ls_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_LSU}, ls_pc, 0);
-        // LSU结束：mid.kind携带dcache访问状态（0无 1命中 2未命中，写为0），mid.wen为访存标识，
-        // wen为1（有访存，含写）时arg为访存目标地址，据此获取数据存储索引
-        if (!last_ls_out_done & ls_out_done) func_add_monitor_item({11'h0, 13'h0, ls_mem_access, ls_cache_stat, 1'b1, 4'h`STAGE_INDEX_LSU}, ls_pc, ls_mem_addr);
-        // WBU
-        if (!last_wb_in_done & wb_in_done) begin
-            func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
+        // WBU写回和退休先于下一条指令进入，确保寄存器写记录归属当前退休指令
+        if (wb_write_done) begin
             // 寄存器写数据：mid扩展数据类型/使能/地址，arg携带写数据
             // kind编码：1=CSR写（两个写通道共用），2=GPR写；寄存器记录不需要携带pc，
             // 处理时取最近进入WBU且未完成的指令记录即可
@@ -153,10 +110,30 @@ always @(posedge clock) begin
             if (mon_csr_wen[0]) func_add_monitor_item({11'h0, mon_csr_waddr_ext[0], mon_csr_wen[0], 2'h1, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, mon_csr_wdata[0]);
             if (mon_csr_wen[1]) func_add_monitor_item({11'h0, mon_csr_waddr_ext[1], mon_csr_wen[1], 2'h1, 1'b0, 4'h`STAGE_INDEX_WBU}, 0, mon_csr_wdata[1]);
         end
-        if (!last_wb_out_done & wb_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
+        if (wb_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_WBU}, out_wb_pc, 0);
+
+        // 退休之后、新目标事件之前处理flush
+        if (!last_core_flush_done & core_flush_done) func_add_monitor_item({28'h0, 4'hF}, if_pc, {25'h0, core_stage_flush, core_flush_type});
+
+        // 每个done有效周期都是一次独立握手，连续有效时也需要逐拍记录
+        // IFU
+        if (if_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IFU}, if_pc, 0);
+        if (if_out_done) func_add_monitor_item({24'h0, 1'b0, if_cache_stat, 1'b1, 4'h`STAGE_INDEX_IFU}, out_if_pc, predict_pc);
+        // IDU
+        if (id_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_IDU}, id_pc, 0);
+        if (id_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_IDU}, out_id_pc, {16'h0, inst_code});
+        // EXU
+        if (ex_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_EXU}, ex_pc, 0);
+        if (ex_out_done) func_add_monitor_item({28'h1, 4'h`STAGE_INDEX_EXU}, out_ex_pc, 0);
+        // LSU
+        if (ls_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_LSU}, ls_pc, 0);
+        // LSU结束：mid.kind携带dcache访问状态（0无 1命中 2未命中，写为0），mid.wen为访存标识，
+        // wen为1（有访存，含写）时arg为访存目标地址，据此获取数据存储索引
+        if (ls_out_done) func_add_monitor_item({11'h0, 13'h0, ls_mem_access, ls_cache_stat, 1'b1, 4'h`STAGE_INDEX_LSU}, out_ls_pc, ls_mem_addr);
+        if (wb_in_done) func_add_monitor_item({28'h0, 4'h`STAGE_INDEX_WBU}, wb_pc, 0);
 
         // 硬件统计
-        if (!last_wb_out_done & wb_out_done) func_cpu_stat_ctrl(`HW_CPU_STAT_INST, if_pc);
+        if (wb_out_done) func_cpu_stat_ctrl(`HW_CPU_STAT_INST, if_pc);
     end
 end
 
