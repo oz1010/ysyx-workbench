@@ -630,7 +630,7 @@ function automatic [31:0] func_get_reset_pc;
 `ifdef FORMAL_VERIFY
         func_get_reset_pc = 32'h3000_0000;
 `elsif IN_YOSYS_STA
-        func_get_reset_pc = global_pc + 4;
+        func_get_reset_pc = `RISCV_RESET_PC;
 `else
         func_get_reset_pc = get_reset_pc();
 `endif
