@@ -566,41 +566,6 @@ function void func_write_raw_csr;
     end
 endfunction
 
-function automatic [31:0] func_get_csr_index;
-    input [`CSR_ADDR_W-1:0] addr;
-    begin
-`ifdef FORMAL_VERIFY
-        logic [2:0] csr_idx;
-        case (addr)
-            `CSR_MSTATUS: csr_idx = 1;
-            `CSR_MTVEC: csr_idx = 2;
-            `CSR_MEPC: csr_idx = 3;
-            `CSR_MCAUSE: csr_idx = 4;
-            `CSR_MTVAL: csr_idx = 5;
-            `CSR_MVENDORID: csr_idx = 6;
-            `CSR_MARCHID: csr_idx = 7;
-            default: csr_idx = 0; // Invalid
-        endcase
-        func_get_csr_index = csr_idx;
-`elsif IN_YOSYS_STA
-        logic [2:0] csr_idx;
-        case (addr)
-            `CSR_MSTATUS: csr_idx = 1;
-            `CSR_MTVEC: csr_idx = 2;
-            `CSR_MEPC: csr_idx = 3;
-            `CSR_MCAUSE: csr_idx = 4;
-            `CSR_MTVAL: csr_idx = 5;
-            `CSR_MVENDORID: csr_idx = 6;
-            `CSR_MARCHID: csr_idx = 7;
-            default: csr_idx = 0; // Invalid
-        endcase
-        func_get_csr_index = csr_idx;
-`else
-        func_get_csr_index = dpi_get_csr_index({(32-`CSR_ADDR_W)'('h0), addr});
-`endif
-    end
-endfunction
-
 function void func_query_intr;
     begin
         logic [31:0] ret_pc;

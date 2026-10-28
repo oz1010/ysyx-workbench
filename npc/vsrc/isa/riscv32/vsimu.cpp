@@ -55,7 +55,6 @@ extern bool cfg_hw_trace;
 
 std::unordered_map<uint32_t, uint32_t> write_csr_history;  // 写csr记录
 
-uint32_t get_csr_index(paddr_t addr);
 void set_vsimu_csr(paddr_t addr, uint32_t data);
 uint32_t get_vsimu_csr(paddr_t addr);
 
@@ -131,20 +130,20 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
 
     if (type == SYNC_COLLECT)
     {
-        if (_simu->rootp->TOP_S_GPR_WEN && _simu->rootp->TOP_S_GPR_WADDR != 0)
+        if (_simu->rootp->TOP_SIGNAL(gpr_wen) && _simu->rootp->TOP_SIGNAL(gpr_waddr) != 0)
         {
 #ifndef CONFIG_ISA_RISCV_SINGLE
-            gpr_write_queue.push_back({_simu->rootp->TOP_S_INST_PC, _simu->rootp->TOP_S_GPR_WADDR,
-                                       _simu->rootp->TOP_S_GPR_WDATA});
+            gpr_write_queue.push_back({_simu->rootp->TOP_SIGNAL(core_inst_pc)[0], _simu->rootp->TOP_SIGNAL(gpr_waddr),
+                                       _simu->rootp->TOP_SIGNAL(gpr_wdata)});
 #else
-            gpr_write_queue.push_back({_simu->rootp->TOP_S_PC, _simu->rootp->TOP_S_GPR_WADDR,
-                                       _simu->rootp->TOP_S_GPR_WDATA});
+            gpr_write_queue.push_back({_simu->rootp->TOP_SIGNAL(core_pc)[0], _simu->rootp->TOP_SIGNAL(gpr_waddr),
+                                       _simu->rootp->TOP_SIGNAL(gpr_wdata)});
 #endif
         }
     }
     else if (type == SYNC_COMMIT)
     {
-        const paddr_t inst_pc = _simu->rootp->TOP_S_INST_PC;
+        const paddr_t inst_pc = _simu->rootp->TOP_SIGNAL(core_inst_pc)[0];
         auto item =
             std::find_if(gpr_write_queue.begin(), gpr_write_queue.end(),
                          [inst_pc](const gpr_write_t& write) { return write.inst_pc == inst_pc; });
@@ -153,7 +152,7 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
             _cpu->gpr[item->waddr] = item->wdata;
             gpr_write_queue.erase(gpr_write_queue.begin(), std::next(item));
         }
-        _cpu->pc = _simu->rootp->TOP_S_PC;
+        _cpu->pc = _simu->rootp->TOP_SIGNAL(core_pc)[0];
     }
     else
     {
@@ -212,13 +211,13 @@ int exec_vsimu(Decode* s)
             (npc_ctx.state == NPC_RUNNING || npc_ctx.state == NPC_END || npc_ctx.state == NPC_QUIT);
         for (int idx = 0; idx < CONFIG_CORE_NUM; ++idx)
         {
-            if (top->rootp->TOP_S_CORE_INST_DONE[idx])
+            if (top->rootp->TOP_SIGNAL(core_inst_done)[idx])
             {
                 sync_simu_cpu(top.get(), &cpu, SYNC_COMMIT);
                 simu_continue = false;
                 break;
             }
-            if (top->rootp->TOP_S_CORE_ERROR[idx])
+            if (top->rootp->TOP_SIGNAL(core_error)[idx])
             {
                 printf(ANSI_FMT("Found error in core%d", ANSI_BG_RED) "\n", idx);
                 set_npc_state(NPC_ABORT, get_vsimu_pc(), -4);
@@ -320,49 +319,17 @@ uint32_t* get_vsimu_vga_ctrl_regs_addr()
         ->ysyxSoCFull__DOT__asic__DOT__lvga__DOT__mvga__DOT__m_vga_regs__DOT__ctrl_regs[0];
 }
 
-void set_vsimu_pc(paddr_t addr)
-{
-    top->rootp->TOP_S_PC = addr;
-}
-
 paddr_t get_vsimu_pc(void)
 {
-    return top->rootp->TOP_S_PC;
+    return top->rootp->TOP_SIGNAL(core_pc)[0];
 }
 
-// paddr_t get_vsimu_dnpc(void)
-// {
-//     return top->rootp->TOP_S_DNPC;
-// }
-
-uint32_t get_csr_index(paddr_t addr)
-{
-    static const auto csr_addrs = []
-    {
-        std::array<uint32_t, CSR_COUNT + 1> a{};
-        a[CSR_MSTATUS] = 1;
-        a[CSR_MTVEC] = 2;
-        a[CSR_MEPC] = 3;
-        a[CSR_MCAUSE] = 4;
-        a[CSR_MTVAL] = 5;
-        a[CSR_MVENDORID] = 6;
-        a[CSR_MARCHID] = 7;
-        return a;
-    }();
-    // 需要保持和vsrc/core/common/csrs.v get_csr_index一致的逻辑，否则容易出问题
-
-    uint32_t csr_index = csr_addrs[addr & 0xfff];
-    return csr_index;
-}
 void set_vsimu_csr(paddr_t addr, uint32_t data)
 {
 #if CONFIG_DIFFTEST
     // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
     cpu.csr[addr] = data;
 #endif
-    // printf("====== pc %x addr %x verilog %x data %x\n", cpu.pc, addr,
-    // top->rootp->TOP_S_CSR[get_csr_index(addr)], data); top->rootp->TOP_S_CSR[get_csr_index(addr)]
-    // = data;
     write_csr_history[addr] = data;
 }
 uint32_t get_vsimu_csr(paddr_t addr)
