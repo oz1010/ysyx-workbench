@@ -116,9 +116,9 @@ module ysyx_23060295 (
     assign io_slave_rid = 0;
 
     // 检测core是否陷入循环，默认但指令执行周期比较短暂
-    wire [31:0] core_pc[`RISCV_CORE_NUM-1:0]; // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
-    wire [31:0] core_inst_pc[`RISCV_CORE_NUM-1:0]; // 指向执行完的指令对应的地址
-    wire core_inst_done[`RISCV_CORE_NUM-1:0]; // 指示是否完成一条指令
+    wire [31:0] core_pc[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
+    wire [31:0] core_inst_pc[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指向执行完的指令对应的地址
+    wire core_inst_done[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指示是否完成一条指令
     `ifndef IN_YOSYS_STA
     reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
     reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
@@ -160,9 +160,9 @@ module ysyx_23060295 (
     wire                            io_mem_rsp_valid;
     wire                            io_mem_rsp_ready;
     wire [DATA_WIDTH-1:0]           io_mem_rsp_data;
-    wire                            gpr_wen;
-    wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr;
-    wire [DATA_WIDTH-1:0]           gpr_wdata;
+    wire                            gpr_wen /* verilator public_flat_rd */;
+    wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr /* verilator public_flat_rd */;
+    wire [DATA_WIDTH-1:0]           gpr_wdata /* verilator public_flat_rd */;
     wire                            csr_wen;
     wire [`CSR_ADDR_W-1:0]          csr_waddr;
     wire [DATA_WIDTH-1:0]           csr_wdata;
