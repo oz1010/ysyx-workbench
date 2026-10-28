@@ -1,13 +1,9 @@
 package pipeline_manual
 
 import chisel3._
-import chisel3.util._
 import config.AutoConfig._
 import config.ManuConfig._
 
-/** GPR 文件：mstatus(mtvec/mepc/mcause/mvendorid/marchid) 仅实现 M
-  * 模式最常用的位：mstatus.MIE(bit3)、mstatus.MPIE(bit7)。
-  */
 class GprFile() extends Module {
   val io = IO(new Bundle {
     val read1 = Flipped(new RegReadIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
@@ -16,29 +12,17 @@ class GprFile() extends Module {
     val write = Flipped(new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH))
   })
 
-  /*
-  寄存器别名，register alias, ch2.3
-  zero = x[0];
-  ra = x[1];
-  sp = x[2];
-  gp = x[3];
-  tp = x[4];
-  t0 = x[5];
-  t1 = x[6];
-  t2 = x[7];
-  s0 = x[8];
-  fp = x[8];
-  s1 = x[9];
-  a[0:5];
-   */
-  // ---------------- 寄存器堆（RV32E：16 x 32，x0 恒 0） ----------------
-  val x = RegInit(VecInit(Seq.fill(GPR_COUNT)(0.U(CONFIG_ADDR_WIDTH.W))))
+  val gprs = Module(new GprsExt())
+  gprs.clock := clock
+  gprs.reset := reset
 
-  // 读写逻辑
-  when(io.write.wen && io.write.waddr =/= 0.U) {
-    x(io.write.waddr) := io.write.wdata
-  }
-  io.read1.data := Mux(io.read1.addr === 0.U, 0.U, x(io.read1.addr))
-  io.read2.data := Mux(io.read2.addr === 0.U, 0.U, x(io.read2.addr))
-  io.a0         := x(10)
+  gprs.rs1      := io.read1.addr
+  io.read1.data := gprs.src1
+  gprs.rs2      := io.read2.addr
+  io.read2.data := gprs.src2
+  io.a0         := gprs.a0
+
+  gprs.wen   := io.write.wen
+  gprs.waddr := io.write.waddr
+  gprs.wdata := io.write.wdata
 }
