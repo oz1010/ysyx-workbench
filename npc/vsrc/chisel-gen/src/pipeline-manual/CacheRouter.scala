@@ -12,8 +12,28 @@ class CacheRouter() extends Module {
   val io_master = IO(new Axi4IO())
 
   val arbiter = Module(new Axi4IOArbiter(2))
-  val icache  = Module(new BaseCache(cacheEn = CONFIG_ICACHE, writeEn = false))
-  val dcache  = Module(new BaseCache(cacheEn = CONFIG_DCACHE, writeEn = true))
+  val icache  = Module(if (CONFIG_ICACHE) {
+    new BaseCache(
+      cacheEn = true,
+      writeEn = false,
+      W = CONFIG_ICACHE_PARAMETER_W,
+      N = CONFIG_ICACHE_PARAMETER_N,
+      M = CONFIG_ICACHE_PARAMETER_M
+    )
+  } else {
+    new BaseCache(cacheEn = false, writeEn = false)
+  })
+  val dcache  = Module(if (CONFIG_DCACHE) {
+    new BaseCache(
+      cacheEn = true,
+      writeEn = true,
+      W = CONFIG_DCACHE_PARAMETER_W,
+      N = CONFIG_DCACHE_PARAMETER_N,
+      M = CONFIG_DCACHE_PARAMETER_M
+    )
+  } else {
+    new BaseCache(cacheEn = false, writeEn = true)
+  })
 
   icache.io.cpu <> io_if
   dcache.io.cpu <> io_mem
