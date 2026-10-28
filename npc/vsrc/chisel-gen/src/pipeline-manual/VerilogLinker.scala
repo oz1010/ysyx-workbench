@@ -5,6 +5,27 @@ import chisel3.util._
 import config.AutoConfig._
 import config.ManuConfig._
 
+class GprsExt
+    extends ExtModule(
+      Map(
+        "DATA_WIDTH" -> CONFIG_ADDR_WIDTH,
+        "REG_COUNT"  -> GPR_COUNT
+      )
+    ) {
+  override def desiredName = "gprs"
+
+  val clock = IO(Input(Clock()))
+  val reset = IO(Input(Bool()))
+  val rs1   = IO(Input(UInt(GPR_ADDR_W.W)))
+  val src1  = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val rs2   = IO(Input(UInt(GPR_ADDR_W.W)))
+  val src2  = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val a0    = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val wen   = IO(Input(Bool()))
+  val waddr = IO(Input(UInt(GPR_ADDR_W.W)))
+  val wdata = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
+}
+
 class CsrsExt
     extends ExtModule(
       Map(
