@@ -26,7 +26,6 @@ import "DPI-C" function int dpi_query_intr();
 // 辅助函数，让硬件和软件行为保持一致
 import "DPI-C" function int sext(input int x, input int len);
 import "DPI-C" function int dpi_check_dev_addr(input int addr, input int attr);
-import "DPI-C" function int dpi_get_csr_index(input int addr);
 `endif
 
 `include "riscv32e_defines.v"
