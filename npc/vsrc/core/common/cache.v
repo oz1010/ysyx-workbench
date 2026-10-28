@@ -23,8 +23,6 @@ module cache #(
     output  wire [DATA_WIDTH-1:0]       read_data
 );
 
-`ifndef IN_YOSYS_STA
-
 /*
  31    m+n m+n-1   m m-1    0
 +---------+---------+--------+
@@ -85,7 +83,4 @@ always @(*) begin
     if (update_en) block_update_en[block_index] = 1;
 end
 
-`endif
-
 endmodule
-

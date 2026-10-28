@@ -5,14 +5,14 @@ import chisel3.util._
 import config.AutoConfig._
 import scala.language.reflectiveCalls
 
-private class BaseCacheArray(w: Int, n: Int, m: Int)
+private class BaseCacheArray(W: Int, N: Int, M: Int)
     extends ExtModule(
       Map(
         "ADDR_WIDTH" -> CONFIG_ADDR_WIDTH,
         "DATA_WIDTH" -> CONFIG_DATA_WIDTH,
-        "W"          -> w,
-        "N"          -> n,
-        "M"          -> m
+        "W"          -> W,
+        "N"          -> N,
+        "M"          -> M
       )
     ) {
   override def desiredName: String = "cache"
@@ -36,9 +36,9 @@ private class BaseCacheArray(w: Int, n: Int, m: Int)
 class BaseCache(
   cacheEn: Boolean = true,
   writeEn: Boolean = true,
-  ways: Int = 2,      // W
-  indexBits: Int = 2, // N
-  offsetBits: Int = 3 // M
+  W: Int = 2, // ways
+  N: Int = 2, // indexBits
+  M: Int = 3  // offsetBits
 ) extends Module {
   val io = IO(new Bundle {
     val cpu    = Flipped(new CacheIO())
@@ -46,8 +46,8 @@ class BaseCache(
   })
 
   if (cacheEn) {
-    require(ways > 0 && indexBits >= 0 && offsetBits > 2)
-    require(indexBits + offsetBits < 31)
+    require(W > 0 && N >= 0 && M > 2)
+    require(N + M < 31)
   }
 
   val Seq(idle, lookup, readAddr, readData, writeReq, writeResp, response) =
@@ -80,13 +80,13 @@ class BaseCache(
   io.master.rready  := state === readData
 
   if (cacheEn) {
-    val cache       = Module(new BaseCacheArray(ways, indexBits, offsetBits))
+    val cache       = Module(new BaseCacheArray(W, N, M))
     val filling     = RegInit(false.B)
-    val fillOffset  = RegInit(0.U(offsetBits.W))
+    val fillOffset  = RegInit(0.U(M.W))
     val refillError = RegInit(false.B)
     val lineBase    =
-      Cat(addr(CONFIG_ADDR_WIDTH - 1, offsetBits), 0.U(offsetBits.W))
-    val lastOffset  = ((BigInt(1) << offsetBits) - 4).U(offsetBits.W)
+      Cat(addr(CONFIG_ADDR_WIDTH - 1, M), 0.U(M.W))
+    val lastOffset  = ((BigInt(1) << M) - 4).U(M.W)
     val fillDone    = filling && io.master.rFire && refillLast
 
     // MMIO 不缓存；与现有 cache 一致，仅缓存这些存储区域。
@@ -115,7 +115,7 @@ class BaseCache(
     refill       := filling
     refillAddr   := lineBase | fillOffset
     refillLast   := fillOffset === lastOffset
-    refillTarget := fillOffset === Cat(addr(offsetBits - 1, 2), 0.U(2.W))
+    refillTarget := fillOffset === Cat(addr(M - 1, 2), 0.U(2.W))
 
     when(state === lookup && !op(3) && cacheable && !hit) {
       filling     := true.B
