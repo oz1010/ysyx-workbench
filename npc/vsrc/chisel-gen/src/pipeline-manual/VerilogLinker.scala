@@ -5,6 +5,32 @@ import chisel3.util._
 import config.AutoConfig._
 import config.ManuConfig._
 
+class CsrsExt
+    extends ExtModule(
+      Map(
+        "INST_WIDTH" -> CONFIG_ADDR_WIDTH,
+        "DATA_WIDTH" -> CONFIG_ADDR_WIDTH
+      )
+    ) {
+  override def desiredName = "csrs"
+
+  val clock       = IO(Input(Clock()))
+  val reset       = IO(Input(Bool()))
+  val raddr       = IO(Input(UInt(CSR_ADDR_W.W)))
+  val rdata       = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val status      = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val mepc        = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val mtvec       = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val wen         = IO(Input(Bool()))
+  val waddr       = IO(Input(UInt(CSR_ADDR_W.W)))
+  val wdata       = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
+  val trap_en     = IO(Input(Bool()))
+  val trap_epc    = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
+  val trap_cause  = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
+  val trap_tval   = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
+  val trap_status = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
+}
+
 class PerfMonitorExt extends ExtModule {
   override def desiredName = "perf_monitor"
 

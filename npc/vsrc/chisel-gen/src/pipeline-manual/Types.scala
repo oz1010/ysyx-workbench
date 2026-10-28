@@ -254,7 +254,6 @@ object Axi4ID extends ChiselEnum {
 // CSR地址
 object CSRAddr {
   val width     = 12.W
-  // 编号从1开始
   val MSTATUS   = 0x300.U(width) // mstatus寄存器 - 存放处理器的状态
   val MTVEC     = 0x305.U(width) // mtvec寄存器 - 存放trap-handler基地址
   val MEPC      = 0x341.U(width) // mepc寄存器 - 存放触发异常的PC

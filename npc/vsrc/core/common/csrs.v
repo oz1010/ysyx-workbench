@@ -8,8 +8,11 @@ module csrs #(
 
     /* 读寄存器接口 */
     input   wire [`CSR_ADDR_W-1:0]      raddr,
-    output  wire [DATA_WIDTH-1:0]       rdata,
-    
+    output  reg  [DATA_WIDTH-1:0]       rdata,
+    output  wire [DATA_WIDTH-1:0]       status,
+    output  wire [DATA_WIDTH-1:0]       mepc,
+    output  wire [DATA_WIDTH-1:0]       mtvec,
+
     // 普通csr写入
     input   wire                        wen,
     input   wire [`CSR_ADDR_W-1:0]      waddr,
@@ -23,15 +26,12 @@ module csrs #(
     input   wire [DATA_WIDTH-1:0]       trap_status
 );
 
-    localparam CSR_INDEX_COUNT = `CSR_RO_COUNT + `CSR_WRITE_COUNT + 1;
-    localparam CSR_INDEX_W = log2up(CSR_INDEX_COUNT);
-
-    /* 寄存器组 */
-    // TODO 增加一个寄存器读写权限数组，避免映射地址
-    reg [DATA_WIDTH-1:0] csrs[0:CSR_INDEX_COUNT-1];
-
-    /* 访问读取 */
-    assign rdata = csrs[func_get_csr_index(raddr)];
+    /* 稀疏寄存器组 */
+    reg [DATA_WIDTH-1:0] csr_mstatus;
+    reg [DATA_WIDTH-1:0] csr_mtvec;
+    reg [DATA_WIDTH-1:0] csr_mepc;
+    reg [DATA_WIDTH-1:0] csr_mcause;
+    reg [DATA_WIDTH-1:0] csr_mtval;
 
     /* 常量数据 */
     /**
@@ -49,15 +49,40 @@ module csrs #(
     `else
     assign csr_mstatus_data = DATA_WIDTH'('h000001800);
     `endif
-    always @(posedge clock ) begin
+
+    /* 未实现的地址读零，只读寄存器忽略写入 */
+    always @(*) begin
+        case (raddr)
+            `CSR_MSTATUS:   rdata = csr_mstatus;
+            `CSR_MTVEC:     rdata = csr_mtvec;
+            `CSR_MEPC:      rdata = csr_mepc;
+            `CSR_MCAUSE:    rdata = csr_mcause;
+            `CSR_MTVAL:     rdata = csr_mtval;
+            `CSR_MVENDORID: rdata = csr_mvendorid_data;
+            `CSR_MARCHID:   rdata = csr_marchid_data;
+            default:        rdata = {DATA_WIDTH{1'b0}};
+        endcase
+    end
+
+    assign status = csr_mstatus;
+    assign mepc   = csr_mepc;
+    assign mtvec  = csr_mtvec;
+
+    wire csr_wen = wen && (
+        (waddr == `CSR_MSTATUS) ||
+        (waddr == `CSR_MTVEC) ||
+        (waddr == `CSR_MEPC) ||
+        (waddr == `CSR_MCAUSE) ||
+        (waddr == `CSR_MTVAL)
+    );
+
+    always @(posedge clock) begin
         if (reset) begin
-            csrs[0] <= 0;
-            csrs[func_get_csr_index(`CSR_MSTATUS)] <= csr_mstatus_data;
-            csrs[func_get_csr_index(`CSR_MVENDORID)] <= csr_mvendorid_data;
-            csrs[func_get_csr_index(`CSR_MARCHID)] <= csr_marchid_data;
-            csrs[func_get_csr_index(`CSR_MTVEC)] <= 0;
-            csrs[func_get_csr_index(`CSR_MEPC)] <= 0;
-            csrs[func_get_csr_index(`CSR_MCAUSE)] <= 0;
+            csr_mstatus <= csr_mstatus_data;
+            csr_mtvec   <= 0;
+            csr_mepc    <= 0;
+            csr_mcause  <= 0;
+            csr_mtval   <= 0;
 
             // TODO 后面需要改为一个通知接口，用于同步更新cpu中数据，包含gpr csr pc dnpc等等
             // 开diff后，需要将初始数据写入cpu.csr
@@ -66,38 +91,40 @@ module csrs #(
             func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVEC}, 0);
             func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MEPC}, 0);
             func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MCAUSE}, 0);
+            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVAL}, 0);
             func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MVENDORID}, csr_mvendorid_data);
             func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MARCHID}, csr_marchid_data);
             `endif
         end else begin
-            // 响应异常写（在普通写之后执行，若普通写未覆盖则生效
-            if (trap_en) begin
-                csrs[func_get_csr_index(`CSR_MEPC)] <= trap_epc;
-                csrs[func_get_csr_index(`CSR_MCAUSE)] <= trap_cause;
-                csrs[func_get_csr_index(`CSR_MTVAL)] <= trap_tval;
+            if (csr_wen) begin
+                case (waddr)
+                    `CSR_MSTATUS: csr_mstatus <= wdata;
+                    `CSR_MTVEC:   csr_mtvec   <= wdata;
+                    `CSR_MEPC:    csr_mepc    <= wdata;
+                    `CSR_MCAUSE:  csr_mcause  <= wdata;
+                    `CSR_MTVAL:   csr_mtval   <= wdata;
+                    default: ;
+                endcase
 
                 `ifdef CONFIG_DIFFTEST
-                // 开diff后，需要将数据同步写入cpu.csr
+                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), waddr}, wdata);
+                `endif
+            end
+
+            // 普通写之后响应陷阱，同一拍写同一寄存器时陷阱值优先
+            if (trap_en) begin
+                csr_mstatus <= trap_status;
+                csr_mepc    <= trap_epc;
+                csr_mcause  <= trap_cause;
+                csr_mtval   <= trap_tval;
+
+                `ifdef CONFIG_DIFFTEST
+                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MSTATUS}, trap_status);
                 func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MEPC}, trap_epc);
                 func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MCAUSE}, trap_cause);
                 func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVAL}, trap_tval);
                 `endif
             end
-
-            // 优先响应普通 CSR 写，异常写入后，相同寄存器会被覆盖
-            if (wen) begin
-                csrs[func_get_csr_index(waddr)] <= wdata;
-
-                `ifdef CONFIG_DIFFTEST
-                // 开diff后，需要将数据同步写入cpu.csr
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), waddr}, wdata);
-                `endif
-            end
-
-            /* 只读寄存器赋值 */
-            csrs[0] <= 0;
-            csrs[func_get_csr_index(`CSR_MVENDORID)] <= csr_mvendorid_data;
-            csrs[func_get_csr_index(`CSR_MARCHID)] <= csr_marchid_data;
         end
     end
 endmodule
