@@ -155,17 +155,18 @@ module riscv32e_memsys #(
         io_mem_req_op==`MEMOP_LBU || 
         io_mem_req_op==`MEMOP_LHU || 
         0;
-    always @(negedge clock) begin
+    always @(*) begin
         if (reset) begin
+            io_mem_rsp_data = 0;
         end else begin
-            io_mem_rsp_data <= 0;
+            io_mem_rsp_data = 0;
             if (io_mem_req_valid && io_mem_req_ready) begin
                 case (io_mem_req_op)
-                    `MEMOP_LB:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 1), 8); end
-                    `MEMOP_LH:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 2), 16); end
-                    `MEMOP_LW:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 4), 32); end
-                    `MEMOP_LBU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
-                    `MEMOP_LHU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
+                    `MEMOP_LB:          begin io_mem_rsp_data = sext(read_raw_mem(io_mem_req_addr, 1), 8); end
+                    `MEMOP_LH:          begin io_mem_rsp_data = sext(read_raw_mem(io_mem_req_addr, 2), 16); end
+                    `MEMOP_LW:          begin io_mem_rsp_data = sext(read_raw_mem(io_mem_req_addr, 4), 32); end
+                    `MEMOP_LBU:         begin io_mem_rsp_data = read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
+                    `MEMOP_LHU:         begin io_mem_rsp_data = read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
                     default: ;
                 endcase
             end

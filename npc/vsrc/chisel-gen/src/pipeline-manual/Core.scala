@@ -134,18 +134,8 @@ class riscv32e_core() extends RawModule {
     perfMonitor.io.wbRedirect <> wbRedirect
 
     // ---------------- 关键输出 ----------------
-    // 与 GPR/CSR 写回在同一上升沿更新；done 有效时 PC 对属于已完成的指令。
-    val corePc     = Reg(UInt(CONFIG_ADDR_WIDTH.W))
-    val coreInstPc = Reg(UInt(CONFIG_ADDR_WIDTH.W))
-    when(reset.asBool) {
-      corePc     := reset_pc
-      coreInstPc := reset_pc
-    }.elsewhen(wbu.io.out.fire) {
-      corePc     := wbu.io.out.bits.dnpc
-      coreInstPc := wbu.io.out.bits.pc
-    }
-    pc := corePc // 下一条待执行指令的架构 PC，空闲时保持
-    inst_pc   := coreInstPc // 最近完成指令的 PC
-    inst_done := RegNext(wbu.io.out.fire, false.B)
+    pc        := wbu.io.out.bits.dnpc // 下一条待执行指令的架构 PC，空闲时保持
+    inst_pc   := wbu.io.out.bits.pc   // 最近完成指令的 PC
+    inst_done := wbu.io.out.fire
   }
 }
