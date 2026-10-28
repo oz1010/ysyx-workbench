@@ -17,6 +17,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
+#include <algorithm>
+#include <deque>
+#include <iterator>
 #include <memory>
 #include <unordered_map>
 
@@ -50,7 +53,7 @@ void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
 extern std::string cfg_output;
 extern bool cfg_hw_trace;
 
-std::unordered_map<uint32_t, uint32_t> write_csr_history; // 写csr记录
+std::unordered_map<uint32_t, uint32_t> write_csr_history;  // 写csr记录
 
 uint32_t get_csr_index(paddr_t addr);
 void set_vsimu_csr(paddr_t addr, uint32_t data);
@@ -112,24 +115,48 @@ VerilatedContext* g_trace_contextp = nullptr;
 
 typedef enum
 {
-    SYNC_TO_SIMU,
-    SYNC_TO_CPU
+    SYNC_COLLECT,
+    SYNC_COMMIT
 } sync_type_t;
 
 static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t type)
 {
-    // RV32E GPR只有16个
-    static size_t gpr_bytes = 16 * sizeof(_cpu->gpr[0]);
-    // TOP_S_X
-    // _simu->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060295_CORE0__DOT__m_reg_group__DOT__x
-    if (type == SYNC_TO_SIMU)
+    typedef struct
     {
-        memcpy(&_simu->rootp->TOP_S_X.m_storage[0], &_cpu->gpr[0], gpr_bytes);
+        paddr_t inst_pc;
+        uint32_t waddr;
+        uint32_t wdata;
+    } gpr_write_t;
+    static std::deque<gpr_write_t> gpr_write_queue = {};
+
+    if (type == SYNC_COLLECT)
+    {
+        if (_simu->rootp->TOP_S_GPR_WEN && _simu->rootp->TOP_S_GPR_WADDR != 0)
+        {
+#ifndef CONFIG_ISA_RISCV_SINGLE
+            gpr_write_queue.push_back({_simu->rootp->TOP_S_INST_PC, _simu->rootp->TOP_S_GPR_WADDR,
+                                       _simu->rootp->TOP_S_GPR_WDATA});
+#else
+            gpr_write_queue.push_back({_simu->rootp->TOP_S_PC, _simu->rootp->TOP_S_GPR_WADDR,
+                                       _simu->rootp->TOP_S_GPR_WDATA});
+#endif
+        }
+    }
+    else if (type == SYNC_COMMIT)
+    {
+        const paddr_t inst_pc = _simu->rootp->TOP_S_INST_PC;
+        auto item =
+            std::find_if(gpr_write_queue.begin(), gpr_write_queue.end(),
+                         [inst_pc](const gpr_write_t& write) { return write.inst_pc == inst_pc; });
+        if (item != gpr_write_queue.end())
+        {
+            _cpu->gpr[item->waddr] = item->wdata;
+            gpr_write_queue.erase(gpr_write_queue.begin(), std::next(item));
+        }
+        _cpu->pc = _simu->rootp->TOP_S_PC;
     }
     else
     {
-        memcpy(&_cpu->gpr[0], &_simu->rootp->TOP_S_X.m_storage[0], gpr_bytes);
-        _cpu->pc = _simu->rootp->TOP_S_PC;
     }
 
     return 0;
@@ -142,14 +169,12 @@ int exec_vsimu(Decode* s)
 
     write_csr_history.clear();
 
-    // 同步cpu到模拟处理器
-    sync_simu_cpu(top.get(), &cpu, SYNC_TO_SIMU);
-
     do
     {
         // 电路仿真
         IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
         TOP_RUN_TICK(top);
+        sync_simu_cpu(top.get(), &cpu, SYNC_COLLECT);
 
         // if (top->contextp()->time() >= 1000000) {
         //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
@@ -158,13 +183,14 @@ int exec_vsimu(Decode* s)
 
         // 先判断是否写入过mcause，再进行逻辑判断
         // 这里不能直接读取cpu的信息，可能已经更新到下一地址了
-        if (write_csr_history.find(CSR_MCAUSE) != write_csr_history.end()) {
+        if (write_csr_history.find(CSR_MCAUSE) != write_csr_history.end())
+        {
             uint32_t mcause = get_vsimu_csr(CSR_MCAUSE);
             uint32_t mepc = get_vsimu_csr(CSR_MEPC);
             uint32_t mtval = get_vsimu_csr(CSR_MTVAL);
             switch (mcause)
             {
-                case EXPT_CAUSE_ILL: // Illegal instruction
+                case EXPT_CAUSE_ILL:  // Illegal instruction
                     invalid_inst(mepc, mtval);
                     break;
 
@@ -172,11 +198,12 @@ int exec_vsimu(Decode* s)
                     exit_simu(mtval);
                     break;
 
-                case EXPT_CAUSE_MEC: // ecall from M-mode
+                case EXPT_CAUSE_MEC:  // ecall from M-mode
                     // isa_raise_intr((0<<31|11<<0), mepc);
                     break;
 
-                default: break;
+                default:
+                    break;
             }
         }
 
@@ -187,7 +214,7 @@ int exec_vsimu(Decode* s)
         {
             if (top->rootp->TOP_S_CORE_INST_DONE[idx])
             {
-                // done、PC 和寄存器状态均为本次上升沿写回完成后的结果。
+                sync_simu_cpu(top.get(), &cpu, SYNC_COMMIT);
                 simu_continue = false;
                 break;
             }
@@ -200,9 +227,6 @@ int exec_vsimu(Decode* s)
             }
         }
     } while (simu_continue);
-
-    // 同步模拟处理器到cpu
-    sync_simu_cpu(top.get(), &cpu, SYNC_TO_CPU);
 
     // s->dynamic_next_pc = get_vsimu_dnpc();
 
@@ -336,8 +360,9 @@ void set_vsimu_csr(paddr_t addr, uint32_t data)
     // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
     cpu.csr[addr] = data;
 #endif
-    // printf("====== pc %x addr %x verilog %x data %x\n", cpu.pc, addr, top->rootp->TOP_S_CSR[get_csr_index(addr)], data);
-    // top->rootp->TOP_S_CSR[get_csr_index(addr)] = data;
+    // printf("====== pc %x addr %x verilog %x data %x\n", cpu.pc, addr,
+    // top->rootp->TOP_S_CSR[get_csr_index(addr)], data); top->rootp->TOP_S_CSR[get_csr_index(addr)]
+    // = data;
     write_csr_history[addr] = data;
 }
 uint32_t get_vsimu_csr(paddr_t addr)
