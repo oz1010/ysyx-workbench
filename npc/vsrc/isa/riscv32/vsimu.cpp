@@ -114,8 +114,9 @@ VerilatedContext* g_trace_contextp = nullptr;
 
 typedef enum
 {
-    SYNC_COLLECT,
-    SYNC_COMMIT
+    SYNC_START,    // 执行指令开始时
+    SYNC_COLLECT,  // 执行指令每个TICK完成时
+    SYNC_COMMIT    // 执行指令完成时
 } sync_type_t;
 
 static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t type)
@@ -128,34 +129,67 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
     } gpr_write_t;
     static std::deque<gpr_write_t> gpr_write_queue = {};
 
-    if (type == SYNC_COLLECT)
+    static VlUnpacked<IData /*31:0*/, 1>* gpr_inst_pc = &_simu->rootp->MUXDEF(
+        CONFIG_ISA_RISCV_SINGLE, TOP_SIGNAL(core_pc), TOP_SIGNAL(core_inst_pc));
+    static CData* gpr_wen = &_simu->rootp->TOP_SIGNAL(gpr_wen);
+    static CData* gpr_waddr = &_simu->rootp->TOP_SIGNAL(gpr_waddr);
+    static IData* gpr_wdata = &_simu->rootp->TOP_SIGNAL(gpr_wdata);
+    static VlUnpacked<IData /*31:0*/, 1>* inst_pc = &_simu->rootp->TOP_SIGNAL(core_inst_pc);
+    uint32_t* mcause = &cpu.csr[CSR_MCAUSE];
+    uint32_t* mepc = &cpu.csr[CSR_MEPC];
+    uint32_t* mtval = &cpu.csr[CSR_MTVAL];
+
+    switch (type)
     {
-        if (_simu->rootp->TOP_SIGNAL(gpr_wen) && _simu->rootp->TOP_SIGNAL(gpr_waddr) != 0)
+        case SYNC_START:
         {
-#ifndef CONFIG_ISA_RISCV_SINGLE
-            gpr_write_queue.push_back({_simu->rootp->TOP_SIGNAL(core_inst_pc)[0], _simu->rootp->TOP_SIGNAL(gpr_waddr),
-                                       _simu->rootp->TOP_SIGNAL(gpr_wdata)});
-#else
-            gpr_write_queue.push_back({_simu->rootp->TOP_SIGNAL(core_pc)[0], _simu->rootp->TOP_SIGNAL(gpr_waddr),
-                                       _simu->rootp->TOP_SIGNAL(gpr_wdata)});
-#endif
+            write_csr_history.clear();
+            break;
         }
-    }
-    else if (type == SYNC_COMMIT)
-    {
-        const paddr_t inst_pc = _simu->rootp->TOP_SIGNAL(core_inst_pc)[0];
-        auto item =
-            std::find_if(gpr_write_queue.begin(), gpr_write_queue.end(),
-                         [inst_pc](const gpr_write_t& write) { return write.inst_pc == inst_pc; });
-        if (item != gpr_write_queue.end())
+        case SYNC_COLLECT:
         {
-            _cpu->gpr[item->waddr] = item->wdata;
-            gpr_write_queue.erase(gpr_write_queue.begin(), std::next(item));
+            // 采集gpr
+            if (*gpr_wen && *gpr_waddr != 0)
+            {
+                gpr_write_queue.push_back({(*gpr_inst_pc)[0], *gpr_waddr, *gpr_wdata});
+            }
+
+            // 采集并处理csr
+            if (write_csr_history.find(CSR_MCAUSE) != write_csr_history.end())
+            {
+                switch (*mcause)
+                {
+                    case EXPT_CAUSE_ILL:  // Illegal instruction
+                        invalid_inst(*mepc, *mtval);
+                        break;
+                    case EXPT_CAUSE_BRK:  // EBREAK
+                        exit_simu(*mtval);
+                        break;
+                    case EXPT_CAUSE_MEC:  // ecall from M-mode
+                        // isa_raise_intr((0<<31|11<<0), mepc);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            break;
         }
-        _cpu->pc = _simu->rootp->TOP_SIGNAL(core_pc)[0];
-    }
-    else
-    {
+        case SYNC_COMMIT:
+        {
+            // 写入gpr提交
+            auto item = std::find_if(gpr_write_queue.begin(), gpr_write_queue.end(),
+                                     [](const gpr_write_t& write)
+                                     { return write.inst_pc == (*inst_pc)[0]; });
+            if (item != gpr_write_queue.end())
+            {
+                _cpu->gpr[item->waddr] = item->wdata;
+                gpr_write_queue.erase(gpr_write_queue.begin(), std::next(item));
+            }
+            _cpu->pc = _simu->rootp->TOP_SIGNAL(core_pc)[0];
+            break;
+        }
+        default:
+            break;
     }
 
     return 0;
@@ -164,47 +198,17 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
 int exec_vsimu(Decode* s)
 {
     bool simu_continue;
-    // s->dynamic_next_pc = s->snpc;
 
-    write_csr_history.clear();
+    sync_simu_cpu(top.get(), &cpu, SYNC_START);
 
     do
     {
         // 电路仿真
         IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
         TOP_RUN_TICK(top);
+
+        // 同步信息
         sync_simu_cpu(top.get(), &cpu, SYNC_COLLECT);
-
-        // if (top->contextp()->time() >= 1000000) {
-        //     LOG_ERROR("end simulator in debug time:%lu", top->contextp()->time());
-        //     exit(-1);
-        // }
-
-        // 先判断是否写入过mcause，再进行逻辑判断
-        // 这里不能直接读取cpu的信息，可能已经更新到下一地址了
-        if (write_csr_history.find(CSR_MCAUSE) != write_csr_history.end())
-        {
-            uint32_t mcause = get_vsimu_csr(CSR_MCAUSE);
-            uint32_t mepc = get_vsimu_csr(CSR_MEPC);
-            uint32_t mtval = get_vsimu_csr(CSR_MTVAL);
-            switch (mcause)
-            {
-                case EXPT_CAUSE_ILL:  // Illegal instruction
-                    invalid_inst(mepc, mtval);
-                    break;
-
-                case EXPT_CAUSE_BRK:  // EBREAK
-                    exit_simu(mtval);
-                    break;
-
-                case EXPT_CAUSE_MEC:  // ecall from M-mode
-                    // isa_raise_intr((0<<31|11<<0), mepc);
-                    break;
-
-                default:
-                    break;
-            }
-        }
 
         simu_continue =
             !top->contextp()->gotFinish() &&
@@ -326,17 +330,12 @@ paddr_t get_vsimu_pc(void)
 
 void set_vsimu_csr(paddr_t addr, uint32_t data)
 {
-#if CONFIG_DIFFTEST
-    // 开diff后，需要将数据同步写入cpu.csr，用于同步到ref中。
     cpu.csr[addr] = data;
-#endif
     write_csr_history[addr] = data;
 }
 uint32_t get_vsimu_csr(paddr_t addr)
 {
     uint32_t data = 0;
-#if CONFIG_DIFFTEST
     data = cpu.csr[addr];
-#endif
     return data;
 }
