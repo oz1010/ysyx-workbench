@@ -69,8 +69,6 @@ extern char g_image_file_path[1024];
 #define TEST_INIF_FLASH_BASEADDR 0x30f00000
 
 extern paddr_t get_vsimu_pc(void);
-extern void set_vsimu_csr(paddr_t addr, uint32_t data);
-extern uint32_t get_vsimu_csr(paddr_t addr);
 
 void init_hw_monitor_record();
 void deinit_hw_monitor_record();
@@ -346,30 +344,6 @@ int sext(int x, int len)
     }
 
     return ret;
-}
-
-void write_raw_csr(int idx, int data)
-{
-    // printf("write csr %d %d\n", ri, data);
-    // int ri = ri % CSR_COUNT;
-    set_vsimu_csr(idx & 0xfff, data);
-}
-
-int read_raw_csr(int idx)
-{
-    int ret = get_vsimu_csr(idx & 0xfff);
-    // printf("read csr %d %d\n", ri, ret);
-    return ret;
-}
-
-int dpi_raise_intr(int NO, int epc)
-{
-    return RAISE_INTR(NO, epc);
-}
-
-int dpi_query_intr()
-{
-    return QUERY_INTR();
 }
 
 void dpi_uart_write(int addr, int len, int data)

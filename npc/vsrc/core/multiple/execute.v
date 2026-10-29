@@ -217,10 +217,9 @@ module execute #(
                         `INST_AND:          r_result <= src1 & src2;
                         // `INST_FENCE:        func_invalid_inst(pc, inst);
                         // `INST_FENCE_I:      func_invalid_inst(pc, inst);
-                        `INST_ECALL:        func_raise_intr((0<<31|11<<0), pc); // abstract-machine/am/src/riscv/nemu/cte.c约定 GPR1 is event when mcause is Environment call from M-mode (0<<31 | 11<<0) , MTVEC 0x305
                         `INST_EBREAK:       func_exit_simu(a0);
-                        `INST_CSRRW:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, src1); end
-                        `INST_CSRRS:        r_result <= csr_rdata; // begin r_result <= func_read_raw_csr(imm); func_write_raw_csr(imm, (func_read_raw_csr(imm) | src1)); end
+                        `INST_CSRRW:        r_result <= csr_rdata;
+                        `INST_CSRRS:        r_result <= csr_rdata;
                         `INST_CSRRC:        func_invalid_inst(pc, inst);
                         `INST_CSRRWI:       func_invalid_inst(pc, inst);
                         `INST_CSRRSI:       func_invalid_inst(pc, inst);
@@ -233,7 +232,6 @@ module execute #(
                         // `INST_DIVU:         r_result <= src1 / src2;
                         // `INST_REM:          r_result <= s_src1 % s_src2;
                         // `INST_REMU:         r_result <= src1 % src2;
-                        `INST_MRET:         func_query_intr(); // MEPC 0x341
                         `INST_INVALID:      func_invalid_inst(pc, inst);
                         default: ;
                     endcase

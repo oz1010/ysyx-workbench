@@ -9,8 +9,6 @@ import "DPI-C" function void dpi_add_monitor_item(input int mid, input int pc, i
 import "DPI-C" function int fetch_inst(input int addr);
 import "DPI-C" function void write_raw_mem(input int addr, input int len, input int inst);
 import "DPI-C" function int read_raw_mem(input int addr, input int len);
-import "DPI-C" function void write_raw_csr(input int idx, input int data);
-import "DPI-C" function int read_raw_csr(input int idx);
 import "DPI-C" function void dpi_uart_write(input int addr, input int len, input int inst);
 import "DPI-C" function int dpi_rtc_read(input int addr, input int len);
 import "DPI-C" function void dpi_dev_skip(input int write, input int addr, input int req_info, input int data);
@@ -21,8 +19,6 @@ import "DPI-C" function int dpi_vdev_read(input int addr, input int len);
 import "DPI-C" function void dpi_vdev_write(input int addr, input int data, input int len);
 // 硬件行为模拟，让硬件和软件行为保持一致
 import "DPI-C" function int get_reset_pc();
-import "DPI-C" function int dpi_raise_intr(input int NO, input int epc);
-import "DPI-C" function int dpi_query_intr();
 // 辅助函数，让硬件和软件行为保持一致
 import "DPI-C" function int sext(input int x, input int len);
 import "DPI-C" function int dpi_check_dev_addr(input int addr, input int attr);
@@ -32,7 +28,7 @@ import "DPI-C" function int dpi_check_dev_addr(input int addr, input int attr);
 
 module ysyx_23060295 (
     input  wire         clock,
-    input  wire         reset,
+    input  wire         reset /* verilator public_flat_rd */,
 
     /* 外部中断 */
     input  wire         io_interrupt,
@@ -162,14 +158,14 @@ module ysyx_23060295 (
     wire                            gpr_wen /* verilator public_flat_rd */;
     wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr /* verilator public_flat_rd */;
     wire [DATA_WIDTH-1:0]           gpr_wdata /* verilator public_flat_rd */;
-    wire                            csr_wen;
-    wire [`CSR_ADDR_W-1:0]          csr_waddr;
-    wire [DATA_WIDTH-1:0]           csr_wdata;
-    wire                            trap_en;
-    wire [INST_WIDTH-1:0]           trap_epc;
-    wire [DATA_WIDTH-1:0]           trap_cause;
-    wire [DATA_WIDTH-1:0]           trap_tval;
-    wire [DATA_WIDTH-1:0]           trap_status;
+    wire                            csr_wen /* verilator public_flat_rd */;
+    wire [`CSR_ADDR_W-1:0]          csr_waddr /* verilator public_flat_rd */;
+    wire [DATA_WIDTH-1:0]           csr_wdata /* verilator public_flat_rd */;
+    wire                            trap_en /* verilator public_flat_rd */;
+    wire [INST_WIDTH-1:0]           trap_epc /* verilator public_flat_rd */;
+    wire [DATA_WIDTH-1:0]           trap_cause /* verilator public_flat_rd */;
+    wire [DATA_WIDTH-1:0]           trap_tval /* verilator public_flat_rd */;
+    wire [DATA_WIDTH-1:0]           trap_status /* verilator public_flat_rd */;
 
     `ifdef CONFIG_ISA_RISCV_SINGLE
     // 单周期版本的核心连接逻辑

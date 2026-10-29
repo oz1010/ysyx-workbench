@@ -21,7 +21,6 @@
 #include <deque>
 #include <iterator>
 #include <memory>
-#include <unordered_map>
 
 #include <cpu/decode.h>
 
@@ -53,11 +52,6 @@ void nvboard_bind_all_pins(TOP_ROOT_CLASS* _simu);
 extern std::string cfg_output;
 extern bool cfg_hw_trace;
 
-std::unordered_map<uint32_t, uint32_t> write_csr_history;  // 写csr记录
-
-void set_vsimu_csr(paddr_t addr, uint32_t data);
-uint32_t get_vsimu_csr(paddr_t addr);
-
 #if VM_TRACE_FST
 #define VERILATED_TRACE_C VerilatedFstC
 #define VERILATED_TRACE_FILE_EXT ".fst"
@@ -86,17 +80,20 @@ static void record_trace(VERILATED_TRACE_C* tfp, VerilatedContext* contextp)
 #define RECORD_TRACE()
 #endif
 
-#define TOP_RUN_TICK(T)            \
+#define TOP_RUN_HALF_TICK(T)       \
     do                             \
     {                              \
         T->clock = !T->clock;      \
         T->contextp()->timeInc(1); \
         T->eval();                 \
         RECORD_TRACE();            \
-        T->clock = !T->clock;      \
-        T->contextp()->timeInc(1); \
-        T->eval();                 \
-        RECORD_TRACE();            \
+    } while (0)
+
+#define TOP_RUN_TICK(T)            \
+    do                             \
+    {                              \
+        TOP_RUN_HALF_TICK(T);      \
+        TOP_RUN_HALF_TICK(T);      \
     } while (0)
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
@@ -114,8 +111,7 @@ VerilatedContext* g_trace_contextp = nullptr;
 
 typedef enum
 {
-    SYNC_START,    // 执行指令开始时
-    SYNC_COLLECT,  // 执行指令每个TICK完成时
+    SYNC_COLLECT,  // 采集核心写口
     SYNC_COMMIT    // 执行指令完成时
 } sync_type_t;
 
@@ -127,50 +123,60 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
         uint32_t waddr;
         uint32_t wdata;
     } gpr_write_t;
+    typedef struct
+    {
+        paddr_t inst_pc;
+        bool wen;
+        uint32_t waddr;
+        uint32_t wdata;
+        bool trap_en;
+        uint32_t epc;
+        uint32_t cause;
+        uint32_t tval;
+        uint32_t status;
+    } csr_write_t;
     static std::deque<gpr_write_t> gpr_write_queue = {};
+    static std::deque<csr_write_t> csr_write_queue = {};
 
-    static VlUnpacked<IData /*31:0*/, 1>* gpr_inst_pc = &_simu->rootp->MUXDEF(
+    static VlUnpacked<IData /*31:0*/, 1>* write_inst_pc = &_simu->rootp->MUXDEF(
         CONFIG_ISA_RISCV_SINGLE, TOP_SIGNAL(core_pc), TOP_SIGNAL(core_inst_pc));
     static CData* gpr_wen = &_simu->rootp->TOP_SIGNAL(gpr_wen);
     static CData* gpr_waddr = &_simu->rootp->TOP_SIGNAL(gpr_waddr);
     static IData* gpr_wdata = &_simu->rootp->TOP_SIGNAL(gpr_wdata);
+    static CData* csr_wen = &_simu->rootp->TOP_SIGNAL(csr_wen);
+    static SData* csr_waddr = &_simu->rootp->TOP_SIGNAL(csr_waddr);
+    static IData* csr_wdata = &_simu->rootp->TOP_SIGNAL(csr_wdata);
+    static CData* trap_en = &_simu->rootp->TOP_SIGNAL(trap_en);
+    static IData* trap_epc = &_simu->rootp->TOP_SIGNAL(trap_epc);
+    static IData* trap_cause = &_simu->rootp->TOP_SIGNAL(trap_cause);
+    static IData* trap_tval = &_simu->rootp->TOP_SIGNAL(trap_tval);
+    static IData* trap_status = &_simu->rootp->TOP_SIGNAL(trap_status);
     static VlUnpacked<IData /*31:0*/, 1>* inst_pc = &_simu->rootp->TOP_SIGNAL(core_inst_pc);
-    uint32_t* mcause = &cpu.csr[CSR_MCAUSE];
-    uint32_t* mepc = &cpu.csr[CSR_MEPC];
-    uint32_t* mtval = &cpu.csr[CSR_MTVAL];
+
+    // SoC内部复位链释放前的组合写口无效，不能进入提交队列
+    if (_simu->rootp->TOP_SIGNAL(reset))
+    {
+        gpr_write_queue.clear();
+        csr_write_queue.clear();
+        return 0;
+    }
 
     switch (type)
     {
-        case SYNC_START:
-        {
-            write_csr_history.clear();
-            break;
-        }
         case SYNC_COLLECT:
         {
             // 采集gpr
             if (*gpr_wen && *gpr_waddr != 0)
             {
-                gpr_write_queue.push_back({(*gpr_inst_pc)[0], *gpr_waddr, *gpr_wdata});
+                gpr_write_queue.push_back({(*write_inst_pc)[0], *gpr_waddr, *gpr_wdata});
             }
 
-            // 采集并处理csr
-            if (write_csr_history.find(CSR_MCAUSE) != write_csr_history.end())
+            // 普通csr写和trap按指令采集，提交时再同步软件状态
+            if (*csr_wen || *trap_en)
             {
-                switch (*mcause)
-                {
-                    case EXPT_CAUSE_ILL:  // Illegal instruction
-                        invalid_inst(*mepc, *mtval);
-                        break;
-                    case EXPT_CAUSE_BRK:  // EBREAK
-                        exit_simu(*mtval);
-                        break;
-                    case EXPT_CAUSE_MEC:  // ecall from M-mode
-                        // isa_raise_intr((0<<31|11<<0), mepc);
-                        break;
-                    default:
-                        break;
-                }
+                csr_write_queue.push_back({(*write_inst_pc)[0], bool(*csr_wen), *csr_waddr,
+                                           *csr_wdata, bool(*trap_en), *trap_epc, *trap_cause,
+                                           *trap_tval, *trap_status});
             }
             break;
         }
@@ -184,6 +190,47 @@ static int sync_simu_cpu(TOP_ROOT_CLASS* _simu, CPU_state* _cpu, sync_type_t typ
             {
                 _cpu->gpr[item->waddr] = item->wdata;
                 gpr_write_queue.erase(gpr_write_queue.begin(), std::next(item));
+            }
+            // 与csrs一致：只镜像可写寄存器，trap覆盖同拍普通写
+            auto csr_item = std::find_if(csr_write_queue.begin(), csr_write_queue.end(),
+                                         [](const csr_write_t& write)
+                                         { return write.inst_pc == (*inst_pc)[0]; });
+            if (csr_item != csr_write_queue.end())
+            {
+                if (csr_item->wen)
+                {
+                    switch (csr_item->waddr)
+                    {
+                        case CSR_MSTATUS:
+                        case CSR_MTVEC:
+                        case CSR_MEPC:
+                        case CSR_MCAUSE:
+                        case CSR_MTVAL:
+                            _cpu->csr[csr_item->waddr] = csr_item->wdata;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                if (csr_item->trap_en)
+                {
+                    _cpu->csr[CSR_MSTATUS] = csr_item->status;
+                    _cpu->csr[CSR_MEPC] = csr_item->epc;
+                    _cpu->csr[CSR_MCAUSE] = csr_item->cause;
+                    _cpu->csr[CSR_MTVAL] = csr_item->tval;
+                    switch (csr_item->cause)
+                    {
+                        case EXPT_CAUSE_ILL:
+                            invalid_inst(csr_item->epc, csr_item->tval);
+                            break;
+                        case EXPT_CAUSE_BRK:
+                            set_npc_state(NPC_END, csr_item->inst_pc, csr_item->tval);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                csr_write_queue.erase(csr_write_queue.begin(), std::next(csr_item));
             }
             _cpu->pc = _simu->rootp->TOP_SIGNAL(core_pc)[0];
             break;
@@ -199,16 +246,19 @@ int exec_vsimu(Decode* s)
 {
     bool simu_continue;
 
-    sync_simu_cpu(top.get(), &cpu, SYNC_START);
-
     do
     {
         // 电路仿真
         IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
-        TOP_RUN_TICK(top);
-
-        // 同步信息
+#if CONFIG_ISA_RISCV_SINGLE
+        // 单周期写口在上升沿后已属于下一条指令，必须在上升沿前采集
+        TOP_RUN_HALF_TICK(top);
         sync_simu_cpu(top.get(), &cpu, SYNC_COLLECT);
+        TOP_RUN_HALF_TICK(top);
+#else
+        TOP_RUN_TICK(top);
+        sync_simu_cpu(top.get(), &cpu, SYNC_COLLECT);
+#endif
 
         simu_continue =
             !top->contextp()->gotFinish() &&
@@ -326,16 +376,4 @@ uint32_t* get_vsimu_vga_ctrl_regs_addr()
 paddr_t get_vsimu_pc(void)
 {
     return top->rootp->TOP_SIGNAL(core_pc)[0];
-}
-
-void set_vsimu_csr(paddr_t addr, uint32_t data)
-{
-    cpu.csr[addr] = data;
-    write_csr_history[addr] = data;
-}
-uint32_t get_vsimu_csr(paddr_t addr)
-{
-    uint32_t data = 0;
-    data = cpu.csr[addr];
-    return data;
 }
