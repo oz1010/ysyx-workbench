@@ -36,19 +36,12 @@ module csrs #(
     /* 常量数据 */
     /**
     * https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
-    * DATA_WIDTH'('h79737978)
+    * mvendorid 0x79737978 "ysyx"
+    * marchid 0x15FDF47
     */
-    wire [DATA_WIDTH-1:0] csr_mvendorid_data = "ysyx";
-    /**
-    * DATA_WIDTH'('h15FDF47)
-    */
-    wire [DATA_WIDTH-1:0] csr_marchid_data = DATA_WIDTH'('h15FDF47);
-    wire [DATA_WIDTH-1:0] csr_mstatus_data;
-    `ifdef CONFIG_RV64
-    assign csr_mstatus_data = DATA_WIDTH'('ha00001800);
-    `else
-    assign csr_mstatus_data = DATA_WIDTH'('h000001800);
-    `endif
+    wire [DATA_WIDTH-1:0] csr_mvendorid_data = DATA_WIDTH'(`CONFIG_CSR_MVENDORID_INIT);
+    wire [DATA_WIDTH-1:0] csr_marchid_data = DATA_WIDTH'(`CONFIG_CSR_MARCHID_INIT);
+    wire [DATA_WIDTH-1:0] csr_mstatus_data = DATA_WIDTH'(`CONFIG_CSR_MSTATUS_INIT);
 
     /* 未实现的地址读零，只读寄存器忽略写入 */
     always @(*) begin

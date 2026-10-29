@@ -35,7 +35,8 @@ def convert_file(input_path, output_path):
             if match:
                 name, value = match.groups()
                 if re.match(r'0x[0-9a-fA-F]+', value):
-                    value = f"32'h{value[2:]}"
+                    width = max(32, (len(value) - 2) * 4)
+                    value = f"{width}'h{value[2:]}"
                 f_out.write(f"`define {name} {value}\n")
 
 def main():
