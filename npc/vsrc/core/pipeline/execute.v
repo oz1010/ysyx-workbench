@@ -284,7 +284,6 @@ module execute #(
                         // `INST_DIVU:         r_result <= src1 / src2;
                         // `INST_REM:          r_result <= s_src1 % s_src2;
                         // `INST_REMU:         r_result <= src1 % src2;
-                        `INST_MRET:         func_query_intr(); // MEPC 0x341
                         default: ;
                     endcase
                 end

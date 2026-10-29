@@ -7,10 +7,6 @@ import "DPI-C" function void write_raw_mem(input int addr, input int len, input 
 import "DPI-C" function int read_raw_mem(input int addr, input int len);
 import "DPI-C" function int get_reset_pc();
 import "DPI-C" function int sext(input int x, input int len);
-import "DPI-C" function void write_raw_csr(input int idx, input int data);
-import "DPI-C" function int read_raw_csr(input int idx);
-import "DPI-C" function int dpi_raise_intr(input int NO, input int epc);
-import "DPI-C" function int dpi_query_intr();
 import "DPI-C" function void dpi_uart_write(input int addr, input int len, input int inst);
 import "DPI-C" function int dpi_rtc_read(input int addr, input int len);
 import "DPI-C" function void dpi_dev_skip(input int write, input int addr, input int req_info, input int data);

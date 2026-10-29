@@ -83,18 +83,6 @@ module csrs #(
             csr_mepc    <= 0;
             csr_mcause  <= 0;
             csr_mtval   <= 0;
-
-            // TODO 后面需要改为一个通知接口，用于同步更新cpu中数据，包含gpr csr pc dnpc等等
-            // 开diff后，需要将初始数据写入cpu.csr
-            `ifdef CONFIG_DIFFTEST
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MSTATUS}, csr_mstatus_data);
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVEC}, 0);
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MEPC}, 0);
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MCAUSE}, 0);
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVAL}, 0);
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MVENDORID}, csr_mvendorid_data);
-            func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MARCHID}, csr_marchid_data);
-            `endif
         end else begin
             if (csr_wen) begin
                 case (waddr)
@@ -105,10 +93,6 @@ module csrs #(
                     `CSR_MTVAL:   csr_mtval   <= wdata;
                     default: ;
                 endcase
-
-                `ifdef CONFIG_DIFFTEST
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), waddr}, wdata);
-                `endif
             end
 
             // 普通写之后响应陷阱，同一拍写同一寄存器时陷阱值优先
@@ -117,13 +101,6 @@ module csrs #(
                 csr_mepc    <= trap_epc;
                 csr_mcause  <= trap_cause;
                 csr_mtval   <= trap_tval;
-
-                `ifdef CONFIG_DIFFTEST
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MSTATUS}, trap_status);
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MEPC}, trap_epc);
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MCAUSE}, trap_cause);
-                func_write_raw_csr({(32-`CSR_ADDR_W)'('h0), `CSR_MTVAL}, trap_tval);
-                `endif
             end
         end
     end

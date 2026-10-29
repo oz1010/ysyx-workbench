@@ -65,18 +65,7 @@ module ysyxSoCFull (
 );
 
 `ifdef IN_YOSYS_STA
-reg [31:0] global_csrs[0:7];
-reg [3:0] gloabl_csr_write_addr;
-reg [31:0] gloabl_csr_write_value;
-reg [31:0] global_ret_pc;
 reg [31:0] global_pc;
-
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
-    end else begin
-        global_csrs[gloabl_csr_write_addr] <= gloabl_csr_write_value;
-    end
-end
 
 wire         w_interrupt;
 wire         w_master_awready;

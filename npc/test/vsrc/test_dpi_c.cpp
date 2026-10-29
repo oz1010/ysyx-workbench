@@ -42,22 +42,6 @@ int sext(int x, int len)
 {
     return CALL_EMPTY_FUNC(-1);
 }
-void write_raw_csr(int idx, int data)
-{
-    CALL_EMPTY_FUNC(-1);
-}
-int read_raw_csr(int idx)
-{
-    return CALL_EMPTY_FUNC(-1);
-}
-int dpi_raise_intr(int NO, int epc)
-{
-    return CALL_EMPTY_FUNC(-1);
-}
-int dpi_query_intr()
-{
-    return CALL_EMPTY_FUNC(-1);
-}
 void dpi_uart_write(int addr, int len, int inst)
 {
     CALL_EMPTY_FUNC(-1);
