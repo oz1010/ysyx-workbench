@@ -19,13 +19,13 @@
 // void __fixunsdfsi() {
 //     panic("unimplement __fixunsdfsi");
 // }
-// void __muldf3() {
-//     panic("unimplement __muldf3");
-// }
-// void __fixdfdi() {
-//     panic("unimplement __fixdfdi");
-// }
-// void __ashldi3() {
-//     panic("unimplement __ashldi3");
-// }
+void __muldf3() {
+    panic("unimplement __muldf3");
+}
+void __fixdfdi() {
+    panic("unimplement __fixdfdi");
+}
+void __ashldi3() {
+    panic("unimplement __ashldi3");
+}
 #endif
