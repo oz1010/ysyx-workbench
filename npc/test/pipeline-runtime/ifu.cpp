@@ -23,9 +23,9 @@ static void tick()
     dut.eval();
 }
 
-static void reset()
+static void reset(unsigned pc = 0x30000000)
 {
-    dut.io_reset_pc = 0x30000000;
+    dut.io_reset_pc = pc;
     dut.io_cache_req_ready = 0;
     dut.io_cache_rsp_valid = 0;
     dut.io_cache_rsp_data = 0;
@@ -100,6 +100,10 @@ int main(int argc, char** argv)
     dut.io_exRedirect_valid = 0;
     dut.io_wbRedirect_valid = 0;
     request(0x30000300);
-    std::puts("PASS IFU: delayed/simultaneous redirect, WB priority, response backpressure");
+    reset(0x0f000000);
+    request(0x0f000000);
+    reset();
+    request(0x30000000);
+    std::puts("PASS IFU: redirect, WB priority, backpressure, repeated/configurable reset");
     dut.final();
 }

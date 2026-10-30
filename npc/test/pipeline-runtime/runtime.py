@@ -85,6 +85,8 @@ CASES = {
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("cases", nargs="*", help="case names (default: all)")
+    parser.add_argument("--npc-bin", type=Path, default=NPC / "build/riscv32-npc-interpreter")
+    parser.add_argument("--ref", type=Path, default=NPC / "tools/nemu-diff/build/riscv32-nemu-so")
     args = parser.parse_args()
     for name in args.cases:
         if name not in CASES:
@@ -93,6 +95,7 @@ def main():
     env = dict(os.environ, NPC_HOME=str(NPC))
     for name in args.cases or sorted(CASES):
         body, exit_code, instructions = CASES[name]
+        instructions += 1  # The reset-vector JAL is now executed as well.
         source = BUILD / f"{name}.S"
         elf = source.with_suffix(".elf")
         image = source.with_suffix(".bin")
@@ -100,7 +103,8 @@ def main():
             .section .text
             .option norvc
             .option norelax
-            .word 0x7f42494e, 0, _start
+            jal x0, _start
+            .word 0
             .rept 8
             .word 0
             .endr
@@ -117,9 +121,9 @@ def main():
             str(elf), str(image),
         ], check=True, cwd=NPC, env=env)
         result = subprocess.run([
-            str(NPC / "build/riscv32-npc-interpreter"), "-b",
+            str(args.npc_bin.resolve()), "-b",
             f"--output={BUILD}", f"--log={name}.log",
-            f"--diff={NPC}/tools/nemu-diff/build/riscv32-nemu-so", str(image),
+            f"--diff={args.ref.resolve()}", str(image),
         ], cwd=NPC, env=env, text=True, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, timeout=30)
         output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)

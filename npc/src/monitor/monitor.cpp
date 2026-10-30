@@ -128,7 +128,7 @@ static size_t load_img()
     {
         vdev = find_vdev_item(CONFIG_IMG_LOAD);
         assert(vdev);
-        pmem = vdev->raw_mem;
+        pmem = guest_to_host(CONFIG_IMG_LOAD);
 
         Log("No image is given. Use the default build-in image to %#x.", CONFIG_IMG_LOAD);
         /* Load built-in image. */
@@ -165,20 +165,29 @@ static size_t load_img()
     memcpy(g_image_file_path, file_path, path_len);
     Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
 
-    /* 加载bin文件头部信息 */
-    fseek(fd, 0, SEEK_SET);
-    ret = fread(&bin_header, sizeof(bin_header_t), 1, fd);
-    assert(ret == 1 && "read bin header failed");
-    /* 解析bin_header信息 */
-    if (bin_header.magic != BIN_HEADER_MAGIC)
+    if (readsize < BIN_HEADER_OFFSET + sizeof(bin_header_t))
     {
-        Log("The file is missing bin_header information, magic %u", bin_header.magic);
+        Log("The file is too small for bin_header, size %#x", (uint32_t)readsize);
         exit(-1);
     }
-    /* 根据entry找到程序需要加载的位置 */
-    vdev = find_vdev_item(bin_header.entry);
+    /* 校验复位向量并读取偏移0x04处的段元数据。 */
+    uint32_t reset_vector = 0;
+    fseek(fd, 0, SEEK_SET);
+    ret = fread(&reset_vector, sizeof(reset_vector), 1, fd);
+    assert(ret == 1 && "read reset vector failed");
+    if ((reset_vector & 0x7f) != 0x6f || ((reset_vector >> 7) & 0x1f) != 0)
+    {
+        Log("The file is missing the RISC-V reset vector, instruction %#x", reset_vector);
+        exit(-1);
+    }
+    fseek(fd, BIN_HEADER_OFFSET, SEEK_SET);
+    ret = fread(&bin_header, sizeof(bin_header_t), 1, fd);
+    assert(ret == 1 && "read bin header failed");
+    vdev = find_vdev_item(CONFIG_IMG_LOAD);
     assert(vdev);
-    pmem = vdev->raw_mem;
+    Assert(vdev->raw_mem && readsize <= vdev->endaddr - CONFIG_IMG_LOAD,
+           "Image does not fit in %s at %#x", vdev->name, CONFIG_IMG_LOAD);
+    pmem = guest_to_host(CONFIG_IMG_LOAD);
     fseek(fd, 0, SEEK_SET);
     ret = fread(&pmem[0], readsize, 1, fd);
     assert(ret == 1 && "read bin to memory failed");
@@ -212,10 +221,10 @@ static size_t load_img()
         Log("Fast load done");
     }
     Log("Load bin_header flag %#x", bin_header.flag);
-    /* 根据entry重置pc */
-    set_pc(bin_header.entry);
-    Log("Load code to %s %#x size %#x entry %#x", vdev->name, vdev->startaddr,
-        (uint32_t)readsize, bin_header.entry);
+    /* 复位后从镜像基址取指，首条指令负责跳转到_start。 */
+    set_pc(CONFIG_IMG_LOAD);
+    Log("Load code to %s %#x size %#x reset %#x", vdev->name, vdev->startaddr,
+        (uint32_t)readsize, CONFIG_IMG_LOAD);
     Log("Section text [%#x] => [%#x, %#x)-%s", bin_header.text_load, bin_header.text_start,
         bin_header.text_end, size_str(bin_header.text_end - bin_header.text_start));
     Log("Section data [%#x] => [%#x, %#x)-%s", bin_header.data_load, bin_header.data_start,

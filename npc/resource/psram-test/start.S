@@ -1,9 +1,11 @@
+#include "riscv32_macros.S"
+
+DECLARE_BIN_ENTRY _start, BIN_HEADER_FLAG_VALUE
+
+/* first stage bootloader */
 .section entry, "ax"
 .globl _start
 .type _start, @function
-
-.include "riscv32_macros.S"
-
 _start:
     mv s0, zero
     la sp, _stack_pointer

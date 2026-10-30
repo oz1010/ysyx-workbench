@@ -1,9 +1,6 @@
 #include <am.h>
 #include <nemu.h>
-#include "file/bin_header.h"
 #include "klib.h"
-
-DECLARE_BIN_HEADER(bin_header);
 
 extern char _heap_start;
 int main(const char *args);

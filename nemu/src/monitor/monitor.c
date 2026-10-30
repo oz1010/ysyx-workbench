@@ -77,7 +77,7 @@ bin_header_t bin_header;
 static long load_img() {
   mem_item_t *mem_item = find_mem_item(CONFIG_IMG_LOAD);
   assert(mem_item);
-  uint8_t * pmem = mem_item->raw_mem;
+  uint8_t * pmem = guest_to_host(CONFIG_IMG_LOAD);
 
   if (file_path == NULL) {
     Log("No image is given. Use the default build-in image.");
@@ -95,17 +95,26 @@ static long load_img() {
 
   Log("The image is %s, size %#x", file_path, (uint32_t)readsize);
 
+  if (readsize < BIN_HEADER_OFFSET + sizeof(bin_header_t))
+  {
+    Log("The file is too small for bin_header, size %#x", (uint32_t)readsize);
+    exit(-1);
+  }
+  Assert(readsize <= mem_item->endaddr - CONFIG_IMG_LOAD,
+         "Image does not fit in %s at %#x", mem_item->name, CONFIG_IMG_LOAD);
   /* 加载bin文件到flash */
   fseek(fd, 0, SEEK_SET);
   ret = fread(&pmem[0], readsize, 1, fd);
   assert(ret == 1 && "read bin to flash failed");
-  /* 解析bin_header信息 */
-  memcpy(&bin_header, &pmem[0], sizeof(bin_header_t));
-  if (bin_header.magic != BIN_HEADER_MAGIC)
+  /* 校验复位向量并读取偏移0x04处的段元数据。 */
+  uint32_t reset_vector = 0;
+  memcpy(&reset_vector, pmem, sizeof(reset_vector));
+  if ((reset_vector & 0x7f) != 0x6f || ((reset_vector >> 7) & 0x1f) != 0)
   {
-    Log("The file is missing bin_header information, magic %u", bin_header.magic);
+    Log("The file is missing the RISC-V reset vector, instruction %#x", reset_vector);
     exit(-1);
   }
+  memcpy(&bin_header, pmem + BIN_HEADER_OFFSET, sizeof(bin_header_t));
   /* 快速加载到ram */
   if (bin_header.flag & BIN_HEADER_FLAG_FAST_BOOT)
   {
@@ -131,10 +140,10 @@ static long load_img() {
     Log("Fast load done");
   }
   Log("Load bin_header flag %#x", bin_header.flag);
-  /* 根据entry重置pc */
-  set_pc(bin_header.entry);
-  Log("Load code to %s %#x size %#x entry %#x", mem_item->name, mem_item->startaddr,
-    (uint32_t)readsize, bin_header.entry);
+  /* 复位后从镜像基址取指，首条指令负责跳转到_start。 */
+  set_pc(CONFIG_IMG_LOAD);
+  Log("Load code to %s %#x size %#x reset %#x", mem_item->name, mem_item->startaddr,
+    (uint32_t)readsize, CONFIG_IMG_LOAD);
   Log("Section text [%#x] => [%#x, %#x)-%s", bin_header.text_load, bin_header.text_start,
     bin_header.text_end, size_str(bin_header.text_end - bin_header.text_start));
   Log("Section data [%#x] => [%#x, %#x)-%s", bin_header.data_load, bin_header.data_start,

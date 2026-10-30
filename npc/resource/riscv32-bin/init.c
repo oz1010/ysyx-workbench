@@ -1,7 +1,4 @@
 #include <stdint.h>
-#include "file/bin_header.h"
-
-DECLARE_BIN_HEADER(bin_header);
 
 static inline void outb(uintptr_t addr, uint8_t  data) { *(volatile uint8_t  *)addr = data; }
 static inline void outw(uintptr_t addr, uint16_t data) { *(volatile uint16_t *)addr = data; }

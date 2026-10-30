@@ -27,41 +27,14 @@
 #define MUXDEF(macro, X, Y)  MUX_MACRO_PROPERTY(__P_DEF_, macro, X, Y)
 #endif
 
-extern void _start(void);
-extern uint8_t _text_load;
-extern uint8_t _text_start;
-extern uint8_t _text_end;
-extern uint8_t _data_load;
-extern uint8_t _data_start;
-extern uint8_t _data_end;
-extern uint8_t _bss_start;
-extern uint8_t _bss_end;
-extern uint8_t _stack_pointer;
-
-// 固定标识，0x7F "BIN"
-#define BIN_HEADER_MAGIC 0x7F42494E
+// 镜像前导区：4字节复位跳转指令 + 36字节段元数据
+#define BIN_HEADER_OFFSET 4
+#define BIN_HEADER_SIZE 36
 #define BIN_HEADER_FLAG_FAST_BOOT               (1<<0)
 #define BIN_HEADER_FLAG_VALUE                   (MUXDEF(CONFIG_FAST_LOAD, BIN_HEADER_FLAG_FAST_BOOT, 0))
-#define DECLARE_BIN_HEADER(name)                \
-    __attribute__((section(".bin_header")))     \
-    bin_header_t name = {                       \
-        .magic      = BIN_HEADER_MAGIC,         \
-        .flag       = BIN_HEADER_FLAG_VALUE,    \
-        .entry      = (uint32_t)&_start,        \
-        .text_load = (uint32_t)&_text_load,     \
-        .text_start = (uint32_t)&_text_start,   \
-        .text_end   = (uint32_t)&_text_end,     \
-        .data_load  = (uint32_t)&_data_load,    \
-        .data_start = (uint32_t)&_data_start,   \
-        .data_end   = (uint32_t)&_data_end,     \
-        .bss_start = (uint32_t)&_bss_start,     \
-        .bss_end   = (uint32_t)&_bss_end,       \
-    }
 
 typedef struct _bin_header_s {
-    uint32_t magic;
     uint32_t flag;
-    uint32_t entry;
     uint32_t text_load;
     uint32_t text_start;
     uint32_t text_end;
@@ -71,5 +44,11 @@ typedef struct _bin_header_s {
     uint32_t bss_start;
     uint32_t bss_end;
 } bin_header_t;
+
+#if defined(__cplusplus)
+static_assert(sizeof(bin_header_t) == BIN_HEADER_SIZE, "invalid bin metadata size");
+#else
+_Static_assert(sizeof(bin_header_t) == BIN_HEADER_SIZE, "invalid bin metadata size");
+#endif
 
 #endif
