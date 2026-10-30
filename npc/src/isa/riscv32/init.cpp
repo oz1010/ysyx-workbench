@@ -29,9 +29,9 @@ static void restart() {
 
   /* Keep the software CSR reset values consistent with csrs. */
   memset(cpu.csr, 0, sizeof(cpu.csr));
-  cpu.csr[CSR_MSTATUS] = MUXDEF(CONFIG_RV64, 0xa00001800, 0x1800);
-  cpu.csr[CSR_MVENDORID] = 0x79737978;
-  cpu.csr[CSR_MARCHID] = 0x15FDF47;
+  cpu.csr[CSR_MSTATUS] = CONFIG_CSR_MSTATUS_INIT;
+  cpu.csr[CSR_MVENDORID] = CONFIG_CSR_MVENDORID_INIT;
+  cpu.csr[CSR_MARCHID] = CONFIG_CSR_MARCHID_INIT;
 }
 
 void init_isa(int argc, char *argv[]) {

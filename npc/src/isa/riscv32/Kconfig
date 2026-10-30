@@ -70,6 +70,23 @@ config ISA64
   bool
   default y
 
+menu "CSR Initial Values"
+
+config CSR_MSTATUS_INIT
+    hex "Initial value of mstatus"
+    default 0xa00001800 if RV64
+    default 0x1800
+
+config CSR_MVENDORID_INIT
+    hex "Value of mvendorid (read-only)"
+    default 0x79737978
+
+config CSR_MARCHID_INIT
+    hex "Value of marchid (read-only)"
+    default 0x15FDF47
+
+endmenu
+
 config CORE_FREQUENCY
     int "Frequency (Hz) of the core"
     default 97000000
