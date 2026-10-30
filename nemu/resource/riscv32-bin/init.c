@@ -28,7 +28,7 @@ static inline void ebreak(uint32_t arg0)
 
 void putch(char ch)
 {
-    outb(0xa00003f8, ch);
+    outb(0x10000000, ch);
 }
 
 void putstr(const char *str)
@@ -41,7 +41,7 @@ void putstr(const char *str)
 }
 
 volatile int cnt = 0x76543210;
-volatile uint64_t *rtc_addr = (volatile uint64_t *)0xa0000048;
+volatile uint64_t *rtc_addr = (volatile uint64_t *)0x02000048;
 
 #define UART16550_BASE      0x10000000
 #define UART16550_TX        0x0

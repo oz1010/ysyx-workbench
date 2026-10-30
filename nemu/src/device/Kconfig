@@ -24,6 +24,7 @@ config SERIAL_PORT
 
 config SERIAL_MMIO
   hex "MMIO address of the serial controller"
+  default 0x10000000 if MEM_TYPE_MULTI
   default 0xa00003f8
 
 config SERIAL_INPUT_FIFO
@@ -43,6 +44,7 @@ config RTC_PORT
 
 config RTC_MMIO
   hex "MMIO address of the timer"
+  default 0x02000048 if MEM_TYPE_MULTI
   default 0xa0000048
 endif # HAS_TIMER
 
@@ -58,6 +60,7 @@ config I8042_DATA_PORT
 
 config I8042_DATA_MMIO
   hex "MMIO address of the keyboard controller"
+  default 0x10011000 if MEM_TYPE_MULTI
   default 0xa0000060
 endif # HAS_KEYBOARD
 
@@ -68,6 +71,7 @@ menuconfig HAS_VGA
 if HAS_VGA
 config FB_ADDR
   hex "Physical address of the VGA frame buffer"
+  default 0x21000000 if MEM_TYPE_MULTI
   default 0xa1000000
 
 config VGA_CTL_PORT
@@ -77,6 +81,7 @@ config VGA_CTL_PORT
 
 config VGA_CTL_MMIO
   hex "MMIO address of the VGA controller"
+  default 0x22000000 if MEM_TYPE_MULTI
   default 0xa0000100
 
 config VGA_SHOW_SCREEN
@@ -101,6 +106,7 @@ menuconfig HAS_AUDIO
 if HAS_AUDIO
 config SB_ADDR
   hex "Physical address of the audio stream buffer"
+  default 0x10020000 if MEM_TYPE_MULTI
   default 0xa1200000
 
 config SB_SIZE
@@ -114,6 +120,7 @@ config AUDIO_CTL_PORT
 
 config AUDIO_CTL_MMIO
   hex "MMIO address of the audio controller"
+  default 0x10003000 if MEM_TYPE_MULTI
   default 0xa0000200
 endif # HAS_AUDIO
 
@@ -129,6 +136,7 @@ config DISK_CTL_PORT
 
 config DISK_CTL_MMIO
   hex "MMIO address of the disk controller"
+  default 0x10000300 if MEM_TYPE_MULTI
   default 0xa0000300
 
 config DISK_IMG_PATH
@@ -143,6 +151,7 @@ menuconfig HAS_SDCARD
 if HAS_SDCARD
 config SDCARD_CTL_MMIO
   hex "MMIO address of the sdcard controller"
+  default 0x10013000 if MEM_TYPE_MULTI
   default 0xa3000000
 
 config SDCARD_IMG_PATH
