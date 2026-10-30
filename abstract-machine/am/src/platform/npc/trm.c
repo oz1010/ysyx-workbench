@@ -1,10 +1,7 @@
 #include <am.h>
 #include <npc.h>
-#include "file/bin_header.h"
 #include "klib.h"
 #include "generated/autoconf.h"
-
-DECLARE_BIN_HEADER(bin_header);
 
 extern char _heap_start;
 int main(const char *args);

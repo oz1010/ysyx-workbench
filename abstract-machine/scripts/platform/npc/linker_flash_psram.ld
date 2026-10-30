@@ -16,17 +16,29 @@ _pmem_end = _pmem_start + _pmem_size;
 _STACK_SIZE = 0x1000;    /* 4KB栈 */
 _HEAP_SIZE = 0x1000;     /* 4KB堆 */
 
-ENTRY(_start)
+ENTRY(_bin_entry)
 /* PHDRS { text PT_LOAD; data PT_LOAD; } */
 
 SECTIONS {
     /* -------- 直接从FLASH启动 -------- */
-    .bootloader : {
-        _bin_start = ALIGN(4);
-        KEEP(*(.bin_header))
-        *(entry)
+    .bin_entry ORIGIN(FLASH) : {
+        _bin_start = .;
+        KEEP(*(.bin_entry))
     } >FLASH
-    _bin_flag = _bin_start + 4;
+    .bin_header : SUBALIGN(4) {
+        _bin_header_start = .;
+        KEEP(*(.bin_header))
+        _bin_header_end = .;
+    } >FLASH
+    _bin_flag = _bin_header_start;
+    .bootloader : ALIGN(4) {
+        KEEP(*(entry))
+    } >FLASH
+    ASSERT(SIZEOF(.bin_entry) == 4, "reset vector must be 4 bytes")
+    ASSERT(_bin_header_start == _bin_start + 4, "metadata must start at offset 0x04")
+    ASSERT(SIZEOF(.bin_header) == 36, "metadata must be 36 bytes")
+    ASSERT(ADDR(.bootloader) == _bin_start + 40, "startup must start at offset 0x28")
+    ASSERT((_start & 3) == 0, "startup must be 4-byte aligned")
 
     /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
     .text : {

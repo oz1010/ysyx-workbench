@@ -1,7 +1,4 @@
 #include <stdint.h>
-#include "file/bin_header.h"
-
-DECLARE_BIN_HEADER(bin_header);
 
 static inline void ebreak(uint32_t arg0)
 {

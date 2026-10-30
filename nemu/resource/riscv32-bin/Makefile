@@ -65,8 +65,16 @@ RISCV_MARCH	:= rv32em_zicsr
 endif
 
 ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e
+ifeq ($(CONFIG_FAST_LOAD), y)
+    # 汇编宏DECLARE_BIN_ENTRY生成镜像头部时同样依赖该定义
+    ASFLAGS	+= -DCONFIG_FAST_LOAD=1
+endif
 
 CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
+
+ifeq ($(CONFIG_FAST_LOAD), y)
+    CFLAGS += -DCONFIG_FAST_LOAD=1
+endif
 
 LDFLAGS		+= -z noexecstack -melf32lriscv -T $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0 --gc-sections
 
@@ -84,9 +92,14 @@ $(BUILD_DIR)/%.o: %.c
 # ${TAGET}: a.c
 # 	@mkdir -p $(dir $@)
 # 	${CC} -march=rv32i -mabi=ilp32 -ffreestanding -nostdlib -static -T $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld -Wl,-Ttext=${CONFIG_MBASE} -O0 -g -o $@ $<
-${TAGET}: $(OBJS)
+LINKER_SCRIPT := $(AM_HOME)/scripts/platform/nemu/linker_flash_sram.ld
+-include $(OBJS:.o=.d)
+$(OBJS): Makefile $(PRO_PATH)/include/config/auto.conf
+$(BUILD_DIR)/start.o: $(AM_HOME)/am/include/riscv32_macros.S
+
+${TAGET}: $(OBJS) $(LINKER_SCRIPT) $(PRO_PATH)/include/config/auto.conf
 	@mkdir -p $(dir $@) && echo + LD "->" $@
-	@$(LD) $(LDFLAGS) -o $@ $^
+	@$(LD) $(LDFLAGS) -o $@ $(OBJS)
 
 # ${OBJDUMP} -M no-aliases -d $<
 ${OBJ_TARGET}: ${TAGET}
@@ -102,5 +115,6 @@ ${MEM_TARGET}: ${BINARY}
 clean:
 	@-rm -rf $(BUILD_DIR)
 
-.PHONY: clean
+.DEFAULT_GOAL := all
+.PHONY: all clean
 
