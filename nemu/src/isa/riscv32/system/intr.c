@@ -16,6 +16,22 @@
 #include <isa.h>
 #include "trace.h"
 
+static inline word_t mstatus_normalize(word_t status) {
+  return (status & ~MSTATUS_MPP_MASK) | MSTATUS_MPP_M;
+}
+
+static inline word_t mstatus_trap(word_t status) {
+  status = (status & ~(MSTATUS_MIE | MSTATUS_MPIE)) |
+           ((status & MSTATUS_MIE) << 4);
+  return mstatus_normalize(status);
+}
+
+static inline word_t mstatus_mret(word_t status) {
+  status = (status & ~(MSTATUS_MIE | MSTATUS_MPIE)) |
+           ((status & MSTATUS_MPIE) >> 4) | MSTATUS_MPIE;
+  return mstatus_normalize(status);
+}
+
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* Trigger an interrupt/exception with ``NO''.
    * Then return the address of the interrupt/exception vector.
@@ -30,6 +46,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    * 从mtvec寄存器中取出异常入口地址
    * 跳转到异常入口地址
   */
+  cpu.csr[CSR_MSTATUS] = mstatus_trap(cpu.csr[CSR_MSTATUS]);
   cpu.csr[CSR_MEPC] = epc;
   /**
    * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
@@ -49,5 +66,6 @@ word_t isa_query_intr() {
   /**
    * 将 PC 设为 mepc，将 mstatus.MPIE 复制到 MIE 字段来恢复之前的中断使能状态，并将特权模式设为 mstatus.MPP 的值。
   */
+  cpu.csr[CSR_MSTATUS] = mstatus_mret(cpu.csr[CSR_MSTATUS]);
   return cpu.csr[CSR_MEPC];
 }
