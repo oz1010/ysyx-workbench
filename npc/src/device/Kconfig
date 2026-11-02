@@ -218,7 +218,7 @@ menuconfig HAS_GPIO
 
 menuconfig HAS_PS2
   bool "PS2"
-  default n
+  default y
 
   if HAS_PS2
     config PS2_BASE_ADDR
