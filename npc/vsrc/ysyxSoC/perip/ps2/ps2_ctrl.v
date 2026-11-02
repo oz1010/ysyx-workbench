@@ -29,6 +29,8 @@ reg [7:0] key_ridx;
 reg [7:0] key_widx;
 reg parity;
 wire [7:0] key_queue_cnt = key_widx - key_ridx;
+wire key_prefix_wait = (key_queue[key_ridx[KEY_QUEUE_SIZE_BITS-1:0]] == 8'he0 ||
+                        key_queue[key_ridx[KEY_QUEUE_SIZE_BITS-1:0]] == 8'hf0) && key_queue_cnt < 2;
 wire data_bit_en = ps2_clk_queue==16'h0ffe; // 正常clk应该都是拉低，重启后一直为高电平，需要避免第一个clk造成异常触发影响
 reg [7:0] key_value;
 reg key_ack;
@@ -138,7 +140,7 @@ always @(posedge clock or posedge reset) begin
         key_ack <= 0;
     end else begin
         if (!rd_n && !key_ack) begin
-            if (state != stop_t && key_queue_cnt > 0) begin
+            if (state != stop_t && key_queue_cnt > 0 && !key_prefix_wait) begin
                 key_value <= key_queue[key_ridx[KEY_QUEUE_SIZE_BITS-1:0]];
                 key_ridx <= key_ridx + 1;
             end else begin

@@ -699,6 +699,7 @@ void clear_monitor_log()
 
 void init_hw_monitor_record()
 {
+#if CONFIG_PERF_MONITOR
     memset(&hw_monitor_ctx, 0, sizeof(hw_monitor_ctx));
     for (int i = 0; i < ARRLEN(event_strs); ++i)
     {
@@ -774,10 +775,12 @@ void init_hw_monitor_record()
     }
     fputc('\n', perf_fp);
     fflush(perf_fp);
+#endif
 }
 
 void deinit_hw_monitor_record()
 {
+#if CONFIG_PERF_MONITOR
     hw_monitor_rc_raw_data_t *pos, *n;
     int count = 0;
     list_for_each_entry_safe(pos, n, &hw_monitor_ctx.record_head, node)
@@ -785,6 +788,7 @@ void deinit_hw_monitor_record()
         list_del(&pos->node);
         free(pos);
     }
+#endif
 }
 
 // ULEB128 变长写入
