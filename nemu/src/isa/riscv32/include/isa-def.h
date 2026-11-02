@@ -18,6 +18,11 @@
 
 #include <common.h>
 
+#define MSTATUS_MIE       (1u << 3)
+#define MSTATUS_MPIE      (1u << 7)
+#define MSTATUS_MPP_MASK  (3u << 11)
+#define MSTATUS_MPP_M     (3u << 11)
+
 /**
  * ref. riscv-privileged-20211203-The RISC-V Instruction Set Manual Volume II - Privileged Architecture.pdf
  *   CSR Address: [9:8]为权限等级，0--User-Level 1--Supervisor-Level 2--Hypervisor and VS 3--Machine-Level
