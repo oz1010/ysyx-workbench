@@ -18,3 +18,5 @@
 !init.sh
 fceux-am/
 am-kernels/
+rt-thread-am/
+

@@ -16,6 +16,7 @@
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
+#include <device/keyboard.h>
 #include <locale.h>
 #include "trace.h"
 #include "common/point_pool.h"
@@ -132,10 +133,16 @@ void cpu_exec(uint64_t n) {
     default: nemu_state.state = NEMU_RUNNING;
   }
 
+#if defined(CONFIG_HAS_KEYBOARD) && !defined(CONFIG_TARGET_AM) && !defined(CONFIG_HAS_VGA)
+  terminal_keyboard_set_active(true);
+#endif
   uint64_t timer_start = get_time();
 
   execute(n);
 
+#if defined(CONFIG_HAS_KEYBOARD) && !defined(CONFIG_TARGET_AM) && !defined(CONFIG_HAS_VGA)
+  terminal_keyboard_set_active(false);
+#endif
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
 

@@ -20,7 +20,7 @@ menuconfig SRAM
 
     config SRAM_SIZE
       hex "SRAM memory size"
-      default 0x00002000
+      default 0x00400000
   endif # SRAM
 
 menuconfig MROM
