@@ -19,6 +19,7 @@
 #include <locale.h>
 #include "trace.h"
 #include "common/point_pool.h"
+#include "device/ps2.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -202,10 +203,16 @@ void cpu_exec(uint64_t n)
             npc_ctx.state = NPC_RUNNING;
     }
 
+#if defined(CONFIG_HAS_PS2) && !defined(CONFIG_HAS_NVBOARD)
+    terminal_ps2_set_active(true);
+#endif
     uint64_t timer_start = get_time();
 
     execute(n);
 
+#if defined(CONFIG_HAS_PS2) && !defined(CONFIG_HAS_NVBOARD)
+    terminal_ps2_set_active(false);
+#endif
     uint64_t timer_end = get_time();
     npc_ctx.timer += timer_end - timer_start;
 

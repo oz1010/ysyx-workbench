@@ -36,6 +36,7 @@
 #include "verilated_vcd_c.h"
 #endif
 #include "top_define.h"
+#include "device/ps2.h"
 
 #if CONFIG_HAS_NVBOARD
 #include "nvboard.h"
@@ -250,6 +251,9 @@ int exec_vsimu(Decode* s)
     {
         // 电路仿真
         IFDEF(CONFIG_HAS_NVBOARD, nvboard_update());
+#if defined(CONFIG_HAS_PS2) && !defined(CONFIG_HAS_NVBOARD)
+        terminal_ps2_update();
+#endif
 #if CONFIG_ISA_RISCV_SINGLE
         // 单周期写口在上升沿后已属于下一条指令，必须在上升沿前采集
         TOP_RUN_HALF_TICK(top);
@@ -302,6 +306,9 @@ void init_vsimu(int argc, char* argv[])
     // contextp->commandArgs(argc, argv);  // Pass arguments so Verilated code can see them
 
     top = std::make_shared<TOP_ROOT_CLASS>(contextp.get(), TOP_STR);
+#if defined(CONFIG_HAS_PS2) && !defined(CONFIG_HAS_NVBOARD)
+    terminal_ps2_init(&top->externalPins_ps2_clk, &top->externalPins_ps2_data);
+#endif
 
     std::string trace_path = cfg_output + "/trace";
     std::string trace_file;
@@ -342,6 +349,9 @@ void init_vsimu(int argc, char* argv[])
 void exit_vsimu()
 {
     IFDEF(CONFIG_HAS_NVBOARD, nvboard_quit());
+#if defined(CONFIG_HAS_PS2) && !defined(CONFIG_HAS_NVBOARD)
+    terminal_ps2_shutdown();
+#endif
 
     // Final model cleanup
     top->final();
