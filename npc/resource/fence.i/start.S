@@ -1,12 +1,16 @@
 #include "riscv32_macros.S"
 
-DECLARE_BIN_ENTRY _start, 0
+DECLARE_BIN_ENTRY _start
 
 .section entry, "ax"
 .globl _start
 .type _start, @function
 _start:
     jal _init_ram
+#if !CONFIG_ICACHE
+    addi a0, zero, 0xa // 没定义icache，直接异常
+    ebreak
+#endif
     la a0, fencei_test
     fence.i
     jalr a0
@@ -24,7 +28,7 @@ fencei_test:
 
 .balign 4
 patch_site:
-    addi a0, zero, -1 // icache没有刷新则执行异常指令
+    addi a0, zero, 1 // icache没有刷新则执行异常指令
     ebreak
 
 new_instruction:

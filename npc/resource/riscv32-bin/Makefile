@@ -44,6 +44,7 @@ INC_FILES   += $(AM_HOME)/../common/include
 INC_FILES   += $(AM_HOME)/am/src
 INC_FILES   += $(AM_HOME)/am/include
 INC_FILES   += $(AM_HOME)/klib/include
+INC_FILES   += $(PRO_PATH)/include
 
 DEFINES		+=-D__GUEST_ISA__=riscv32e
 DEFINES		+=-D__ISA__="riscv32e"
