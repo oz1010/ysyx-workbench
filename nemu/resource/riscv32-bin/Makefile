@@ -65,10 +65,6 @@ RISCV_MARCH	:= rv32em_zicsr
 endif
 
 ASFLAGS		+= $(COMFLAGS) -MMD $(INCS) -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e
-ifeq ($(CONFIG_FAST_LOAD), y)
-    # 汇编宏DECLARE_BIN_ENTRY生成镜像头部时同样依赖该定义
-    ASFLAGS	+= -DCONFIG_FAST_LOAD=1
-endif
 
 CFLAGS		+= $(COMFLAGS) -MMD -Wall -Werror $(INCS) $(DEFINES) -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden -fno-pic -mcmodel=medany -mstrict-align -march=$(RISCV_MARCH) -mabi=ilp32e -static -fdata-sections -ffunction-sections -DMAINARGS="" -DISA_H="riscv/riscv.h"
 
