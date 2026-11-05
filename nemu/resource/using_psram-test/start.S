@@ -1,6 +1,6 @@
 #include "riscv32_macros.S"
 
-DECLARE_BIN_ENTRY _start, BIN_HEADER_FLAG_VALUE
+DECLARE_BIN_ENTRY _start
 
 /* first stage bootloader */
 .section entry, "ax"

@@ -3,18 +3,8 @@
 #ifndef __RISCV32_MACROS_S__
 #define __RISCV32_MACROS_S__
 
-/* 镜像头部flag常量，与common/include/file/bin_header.h保持一致；
- * 汇编侧无法包含C头文件，经预处理在此定义，未定义CONFIG_FAST_LOAD时flag为0 */
-#ifndef BIN_HEADER_FLAG_FAST_BOOT
-#define BIN_HEADER_FLAG_FAST_BOOT (1<<0)
-#endif
-#ifndef BIN_HEADER_FLAG_VALUE
-#ifdef CONFIG_FAST_LOAD
-#define BIN_HEADER_FLAG_VALUE BIN_HEADER_FLAG_FAST_BOOT
-#else
-#define BIN_HEADER_FLAG_VALUE 0
-#endif
-#endif
+#include "file/bin_header_types.h"
+#include "generated/autoconf.h"
 
 /*
  * 宏：加载代码或数据到RAM
@@ -106,11 +96,10 @@ _init_ram_skiped:
  * 段元数据的符号地址在链接期通过绝对地址重定位填入。
  * 参数：
  *   entry_sym -- 复位向量跳转目标符号，通常为_start；
- *   flag_value -- 元数据flag字段值，通常为BIN_HEADER_FLAG_VALUE；
  * 使用示例：
- *   DECLARE_BIN_ENTRY _start, BIN_HEADER_FLAG_VALUE
+ *   DECLARE_BIN_ENTRY _start
  */
-.macro DECLARE_BIN_ENTRY entry_sym, flag_value
+.macro DECLARE_BIN_ENTRY entry_sym
     .pushsection .bin_entry, "ax", @progbits
     .option push
     .option norvc
@@ -130,7 +119,7 @@ _bin_entry:
     .type _bin_flag, @object
 _bin_flag:
     /* flag：bit0为BIN_HEADER_FLAG_FAST_BOOT */
-    .word \flag_value
+    .word BIN_HEADER_FLAG_VALUE
     /* .text段元数据 */
     .word _text_load
     .word _text_start
