@@ -43,6 +43,7 @@ class BaseCache(
   val io = IO(new Bundle {
     val cpu    = Flipped(new CacheIO())
     val master = new Axi4IO()
+    val flush  = Input(Bool())
   })
 
   if (cacheEn) {
@@ -57,6 +58,13 @@ class BaseCache(
   val op                                                                   = RegInit(0.U(MemOp.width.W))
   val wdata                                                                = RegInit(0.U(CONFIG_DATA_WIDTH.W))
   val rspData                                                              = RegInit(0.U(CONFIG_DATA_WIDTH.W))
+  val flushPending                                                         = RegInit(false.B)
+
+  when(io.flush) {
+    flushPending := true.B
+  }.elsewhen(state === idle) {
+    flushPending := false.B
+  }
 
   val hit          = WireDefault(false.B)
   val hitData      = WireDefault(0.U(CONFIG_DATA_WIDTH.W))
@@ -68,7 +76,7 @@ class BaseCache(
   CacheIOSlaveDefaults(io.cpu)
   Axi4MasterDefaults(io.master)
 
-  io.cpu.req.ready := state === idle && !reset.asBool
+  io.cpu.req.ready := state === idle && !reset.asBool && !io.flush && !flushPending
   io.cpu.rsp.valid := state === response
   io.cpu.rsp.data  := rspData
 
@@ -100,8 +108,8 @@ class BaseCache(
         inRegion(CONFIG_SDRAM_BASE, CONFIG_SDRAM_SIZE)
 
     cache.io.clock      := clock
-    // CacheIO 没有错误响应字段；总线出错时至少不能留下有效的坏缓存行。
-    cache.io.reset      := reset.asBool ||
+    // 冲刷期间继续排空旧总线事务，但禁止其回填结果重新变为有效。
+    cache.io.reset      := reset.asBool || io.flush || flushPending ||
       (fillDone && (refillError || io.master.rresp =/= 0.U))
     // CPU 接收完整的对齐字，字节/半字提取由 LSU 完成。
     cache.io.addr       := Cat(addr(CONFIG_ADDR_WIDTH - 1, 2), 0.U(2.W))

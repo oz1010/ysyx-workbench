@@ -17,6 +17,7 @@ class riscv32e_core() extends RawModule {
   val reset_pc     = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))
   val io_interrupt = IO(Input(Bool()))
   val io_if        = IO(new CacheIO())
+  val io_if_flush  = IO(Output(Bool()))
   val io_mem       = IO(new CacheIO())
   val gpr          = IO(new RegWriteIO(GPR_ADDR_W, CONFIG_DATA_WIDTH))
   val csr          = IO(new RegWriteIO(CSR_ADDR_W, CONFIG_DATA_WIDTH))
@@ -91,14 +92,14 @@ class riscv32e_core() extends RawModule {
     exu.io.csrRead <> m_csrs.io.read
     // EXU->LSU
     regExLs.io.in <> exu.io.out
-    // EX 修正时保留跳转指令自身和更老指令；只有 WB 陷阱/MRET 冲刷后端。
+    // EX 修正时保留跳转指令自身和更老指令；只有 WB 陷阱/MRET/FENCE.I 冲刷后端。
     regExLs.io.flush := wbRedirect.valid
     regExLs.io.stall := false.B
     regExLs.io.out <> lsu.io.in
 
     // ---------------- LSU ----------------
     lsu.io.cache <> io_mem
-    lsu.io.kill      := wbRedirect.valid || wbu.io.blockMem // 陷阱接受当拍即阻止年轻访存
+    lsu.io.kill      := wbRedirect.valid || wbu.io.blockMem // 重定向接受当拍即阻止年轻访存
     // LSU->WBU
     regLsWb.io.in <> lsu.io.out
     regLsWb.io.flush := wbRedirect.valid
@@ -116,6 +117,7 @@ class riscv32e_core() extends RawModule {
     gpr              := wbu.io.gprWrite
     csr              := wbu.io.csrWrite
     trap             := wbu.io.csrTrap
+    io_if_flush      := wbu.io.fenceI
     wbu.io.out.ready := true.B
     wbu.io.csrMepc   := m_csrs.io.mepc
     wbu.io.csrMtvec  := m_csrs.io.mtvec

@@ -12,6 +12,7 @@ module riscv32e_core_sc #(
     input  wire                         io_interrupt,
 
     // 取指接口
+    output wire                         io_if_flush,
     output reg                          io_if_req_valid,
     input  wire                         io_if_req_ready,
     output reg  [ADDR_WIDTH-1:0]        io_if_req_addr,
@@ -53,6 +54,9 @@ module riscv32e_core_sc #(
     output wire [INST_WIDTH-1:0]        inst_pc,    // 指向执行完的指令对应的地址
     output wire                         inst_done   // 指示是否完成一条指令
 );
+    /* 非流水版本不需要刷新 */
+    assign io_if_flush = 0;
+
     /* gpr寄存器组 */
     wire [DATA_WIDTH-1:0] gpr_src1;
     wire [DATA_WIDTH-1:0] gpr_src2;
