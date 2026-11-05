@@ -444,6 +444,7 @@ class Ctrl extends Bundle {
   def isEcall: Bool   = isSysOp && sysOp === SysOp.ECALL
   def isEbreak: Bool  = isSysOp && sysOp === SysOp.EBREAK
   def isMret: Bool    = isSysOp && sysOp === SysOp.MRET
+  def isFenceI: Bool  = isSysOp && sysOp === SysOp.FENCE_I
   def isCsrImm: Bool  = false.B // 暂时没有实现 CSRRWI CSRRSI CSRRCI
 }
 

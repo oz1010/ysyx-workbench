@@ -8,6 +8,7 @@ module riscv32e_memsys #(
 
     // 复位
     output reg  [ADDR_WIDTH-1:0]        reset_pc,
+    input  wire                         io_if_flush,
 
     // 取指接口
     input wire                          io_if_req_valid,
@@ -195,6 +196,7 @@ module riscv32e_memsys #(
     CacheRouter cache_router(
         .clock(clock),
         .reset(reset),
+        .io_if_flush(io_if_flush),
         .io_if_req_valid(io_if_req_valid),
         .io_if_req_ready(io_if_req_ready),
         .io_if_req_addr(io_if_req_addr),

@@ -16,7 +16,8 @@ class Wbu() extends Module {
     val csrWrite  = new RegWriteIO(CSR_ADDR_W, CONFIG_ADDR_WIDTH)
     val csrTrap   = new TrapIO()
     val redirect  = Output(new Redirect())
-    val blockMem  = Output(Bool())                   // 接受陷阱/MRET 当拍即禁止年轻访存
+    val fenceI    = Output(Bool())                   // FENCE.I 提交后失效 ICache
+    val blockMem  = Output(Bool())                   // 接受陷阱/MRET/FENCE.I 当拍即禁止年轻访存
     val gprA0     = Input(UInt(CONFIG_DATA_WIDTH.W)) // EBREAK 隐式读取 a0
     val gprWrite  = new RegWriteIO(GPR_ADDR_W, CONFIG_ADDR_WIDTH)
     val interrupt = Input(Bool())
@@ -65,6 +66,7 @@ class Wbu() extends Module {
   val mret         = v && in.ctrl.isMret && !exptEn
   val intTake      = v && io.interrupt && status(3) && !exptEn && !mret
   val trap         = exptEn || intTake
+  val fenceI       = v && in.ctrl.isFenceI && !trap
   val trapBase     = Cat(mtvec(31, 2), 0.U(2.W))
   // MODE=1 时仅中断使用向量；不支持的 MODE 按 Direct 处理。
   val trapTarget   = trapBase + Mux(intTake && mtvec(1, 0) === 1.U, 44.U, 0.U)
@@ -76,14 +78,17 @@ class Wbu() extends Module {
     in.pc + 4.U,
     Mux(trap, trapTarget, Mux(mret, returnTarget, in.dnpc))
   )
-  val redirectFire = commit && (trap || mret)
+  val redirectFire = commit && (trap || mret || fenceI)
   val redirect     = RegInit(0.U.asTypeOf(new Redirect()))
   redirect.valid := redirectFire
   when(redirectFire) {
     redirect.target := nextPc
   }
-  io.redirect    := redirect
-  io.blockMem    := redirectFire
+  val fenceFlush = RegInit(false.B)
+  fenceFlush := redirectFire && fenceI
+  io.redirect  := redirect
+  io.fenceI    := fenceFlush
+  io.blockMem  := redirectFire
 
   io.csrTrap.en     := commit && trap
   io.csrTrap.cause  := Mux(

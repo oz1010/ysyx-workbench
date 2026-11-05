@@ -139,6 +139,7 @@ module ysyx_23060295 (
     `endif
 
     wire [ADDR_WIDTH-1:0]           reset_pc;
+    wire                            io_if_flush;
     wire                            io_if_req_valid;
     wire                            io_if_req_ready;
     wire [ADDR_WIDTH-1:0]           io_if_req_addr;
@@ -180,6 +181,7 @@ module ysyx_23060295 (
 
         .reset_pc(reset_pc),
         .io_interrupt(io_interrupt),
+        .io_if_flush(io_if_flush),
 
         .io_if_req_valid(io_if_req_valid),
         .io_if_req_ready(io_if_req_ready),
@@ -221,6 +223,7 @@ module ysyx_23060295 (
         .reset(reset),
 
         .reset_pc(reset_pc),
+        .io_if_flush(io_if_flush),
 
         .io_if_req_valid(io_if_req_valid),
         .io_if_req_ready(io_if_req_ready),
