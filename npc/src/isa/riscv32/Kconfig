@@ -1,5 +1,33 @@
 menu "RISC-V Processor Options"
 
+choice 
+    depends on ISA_riscv
+    prompt "RISC-V Processor Type"
+    default ISA_RISCV_PIPELINE
+
+    config ISA_RISCV_SINGLE
+        bool "single"
+    config ISA_RISCV_MULTIPLE
+        bool "multiple"
+    config ISA_RISCV_PIPELINE
+        bool "pipeline"
+    config ISA_RISCV_PIPELINE_CHISEL
+        bool "pipeline-chisel"
+endchoice
+
+menu "CSR Initial Values"
+  config CSR_MSTATUS_INIT
+      hex "Initial value of mstatus"
+      default 0xa00001800 if RV64
+      default 0x1800
+  config CSR_MVENDORID_INIT
+      hex "Value of mvendorid (read-only)"
+      default 0x78797379
+  config CSR_MARCHID_INIT
+      hex "Value of marchid (read-only)"
+      default 0x15FDF47
+endmenu
+
 menuconfig ICACHE
   bool "ICache enable"
   depends on !ISA_RISCV_SINGLE
@@ -36,21 +64,6 @@ menuconfig DCACHE
       default 4
   endif # DCACHE
 
-choice 
-    depends on ISA_riscv
-    prompt "RISC-V Processor Type"
-    default ISA_RISCV_PIPELINE
-
-    config ISA_RISCV_SINGLE
-        bool "single"
-    config ISA_RISCV_MULTIPLE
-        bool "multiple"
-    config ISA_RISCV_PIPELINE
-        bool "pipeline"
-    config ISA_RISCV_PIPELINE_CHISEL
-        bool "pipeline-chisel"
-endchoice
-
 config CHISEL_DIR_NAME
     string "Directory name for Chisel compilation"
     depends on ISA_RISCV_PIPELINE_CHISEL
@@ -69,23 +82,6 @@ config ISA64
   depends on ISA_riscv && RV64
   bool
   default y
-
-menu "CSR Initial Values"
-
-config CSR_MSTATUS_INIT
-    hex "Initial value of mstatus"
-    default 0xa00001800 if RV64
-    default 0x1800
-
-config CSR_MVENDORID_INIT
-    hex "Value of mvendorid (read-only)"
-    default 0x79737978
-
-config CSR_MARCHID_INIT
-    hex "Value of marchid (read-only)"
-    default 0x15FDF47
-
-endmenu
 
 config CORE_FREQUENCY
     int "Frequency (Hz) of the core"
