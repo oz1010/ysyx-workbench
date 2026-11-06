@@ -7,10 +7,12 @@ import config.AutoConfig._
 import config.ManuConfig._
 
 class CacheRouter() extends Module {
-  val io_if       = IO(Flipped(new CacheIO()))
-  val io_if_flush = IO(Input(Bool()))
-  val io_mem      = IO(Flipped(new CacheIO()))
-  val io_master   = IO(new Axi4IO())
+  val io_if                = IO(Flipped(new CacheIO()))
+  val io_if_flush          = IO(Input(Bool()))
+  val io_if_rsp_cacheStat  = IO(Output(UInt(2.W)))
+  val io_mem               = IO(Flipped(new CacheIO()))
+  val io_mem_rsp_cacheStat = IO(Output(UInt(2.W)))
+  val io_master            = IO(new Axi4IO())
 
   val arbiter = Module(new Axi4IOArbiter(2))
   val icache  = Module(if (CONFIG_ICACHE) {
@@ -38,8 +40,10 @@ class CacheRouter() extends Module {
 
   icache.io.cpu <> io_if
   icache.io.flush := io_if_flush
+  io_if_rsp_cacheStat := icache.io.cacheStat
   dcache.io.cpu <> io_mem
   dcache.io.flush := false.B
+  io_mem_rsp_cacheStat := dcache.io.cacheStat
 
   arbiter.io.master <> io_master
   arbiter.io.clients(0) <> icache.io.master

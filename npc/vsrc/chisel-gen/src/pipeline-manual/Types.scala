@@ -383,6 +383,12 @@ class CacheReqIO extends Bundle {
   def fire: Bool = valid && ready
 }
 
+object CacheStat {
+  val NONE = 0.U(2.W)
+  val HIT  = 1.U(2.W)
+  val MISS = 2.U(2.W)
+}
+
 /** Cache数据，master视角 */
 class CacheIO extends Bundle {
   val req = new CacheReqIO()

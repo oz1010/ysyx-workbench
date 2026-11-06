@@ -78,6 +78,12 @@ module riscv32e_memsys #(
 );
 
     wire core_ready = !reset;
+    wire [1:0] io_if_rsp_cacheStat;
+    wire [1:0] io_mem_rsp_cacheStat;
+    `ifndef CONFIG_ISA_RISCV_PIPELINE_CHISEL
+    assign io_if_rsp_cacheStat = `CACHE_STAT_NONE;
+    assign io_mem_rsp_cacheStat = `CACHE_STAT_NONE;
+    `endif
 
     // 复位逻辑
     generate
@@ -94,20 +100,23 @@ module riscv32e_memsys #(
     endgenerate
 
     // 硬件性能监控
+    wire hw_icache_en = io_if_rsp_valid && io_if_rsp_ready && (io_if_rsp_cacheStat!=`CACHE_STAT_NONE);
+    wire hw_iswrite = io_mem_req_op[3];
+    wire [DATA_WIDTH-1:0] hw_data = hw_iswrite ? io_mem_req_wdata : io_mem_rsp_data;
     hw_monitor #(
         .INST_WIDTH(INST_WIDTH)
     ) m_hw_monitor (
         .clock(clock),
         .reset(reset),
-        .hw_monitor_icache_en(0),
-        .hw_monitor_icache_hit(0),
-        .hw_monitor_dcache_en(0),
-        .hw_monitor_dcache_hit(0),
-        .hw_monitor_ls_en(0),
-        .hw_monitor_ls_iswrite(0),
-        .hw_monitor_ls_data(0),
+        .hw_monitor_icache_en(hw_icache_en),
+        .hw_monitor_icache_hit(io_if_rsp_cacheStat==`CACHE_STAT_HIT),
+        .hw_monitor_dcache_en(io_mem_rsp_valid && io_mem_rsp_ready && (io_mem_rsp_cacheStat!=`CACHE_STAT_NONE)),
+        .hw_monitor_dcache_hit(io_mem_rsp_cacheStat==`CACHE_STAT_HIT),
+        .hw_monitor_ls_en(io_mem_req_valid && io_mem_req_ready && hw_iswrite), // TODO 需要补充读内存指令
+        .hw_monitor_ls_iswrite(hw_iswrite),
+        .hw_monitor_ls_data(hw_data),
         .done()
-    );    
+    );
 
     `ifdef CONFIG_ISA_RISCV_SINGLE // 单周期特有逻辑
     // 单周期不需要通过axi4总线访问外部设备
@@ -205,6 +214,7 @@ module riscv32e_memsys #(
         .io_if_rsp_valid(io_if_rsp_valid),
         .io_if_rsp_ready(io_if_rsp_ready),
         .io_if_rsp_data(io_if_rsp_data),
+        .io_if_rsp_cacheStat(io_if_rsp_cacheStat),
         .io_mem_req_valid(io_mem_req_valid),
         .io_mem_req_ready(io_mem_req_ready),
         .io_mem_req_addr(io_mem_req_addr),
@@ -213,6 +223,7 @@ module riscv32e_memsys #(
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
         .io_mem_rsp_data(io_mem_rsp_data),
+        .io_mem_rsp_cacheStat(io_mem_rsp_cacheStat),
         .io_master_arvalid(io_master_arvalid),
         .io_master_arready(io_master_arready),
         .io_master_araddr(io_master_araddr),
@@ -268,81 +279,4 @@ module riscv32e_memsys #(
     end
     `endif
     `endif
-
-    // generate
-    //     // if (`CONFIG_ISA_RISCV_SINGLE) begin // 单周期特有逻辑
-    //     if (0) begin // 单周期特有逻辑
-    //     // 组合取指
-    //     always @(*) begin
-    //         if (reset) begin
-    //             io_if_req_ready = 0;
-    //             io_if_rsp_valid = 0;
-    //             io_if_rsp_data = 0;
-    //         end else begin
-    //             io_if_req_ready = 1;
-    //             io_if_rsp_valid = 0;
-    //             io_if_rsp_data = 0;
-    //             if (io_if_req_valid && io_if_req_ready) begin
-    //                 io_if_rsp_valid = 1;
-    //                 io_if_rsp_data = func_vdev_read(io_if_req_addr, 4);
-    //             end
-    //         end
-    //     end
-
-    //     // 访存
-    //     assign io_mem_req_ready = 1;
-    //     assign io_mem_rsp_valid = 
-    //         io_mem_req_op==`MEMOP_LB || 
-    //         io_mem_req_op==`MEMOP_LH || 
-    //         io_mem_req_op==`MEMOP_LW || 
-    //         io_mem_req_op==`MEMOP_LBU || 
-    //         io_mem_req_op==`MEMOP_LHU || 
-    //         0;
-    //     always @(negedge clock) begin
-    //         if (reset) begin
-    //         end else begin
-    //             io_mem_rsp_data <= 0;
-    //             if (io_mem_req_valid && io_mem_req_ready) begin
-    //                 case (io_mem_req_op)
-    //                     `MEMOP_LB:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 1), 8); end
-    //                     `MEMOP_LH:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 2), 16); end
-    //                     `MEMOP_LW:          begin io_mem_rsp_data <= sext(read_raw_mem(io_mem_req_addr, 4), 32); end
-    //                     `MEMOP_LBU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 1) & 32'hFF; end
-    //                     `MEMOP_LHU:         begin io_mem_rsp_data <= read_raw_mem(io_mem_req_addr, 2) & 32'hFFFF; end
-    //                     default: ;
-    //                 endcase
-    //             end
-    //         end
-    //     end
-    //     always @(posedge clock) begin
-    //         if (reset) begin
-    //         end else begin
-    //             if (io_mem_req_valid && io_mem_req_ready) begin
-    //                 case (io_mem_req_op)
-    //                     `MEMOP_SB:          begin write_raw_mem(io_mem_req_addr, 1, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h0, 4'h1}, io_mem_req_wdata); end
-    //                     `MEMOP_SH:          begin write_raw_mem(io_mem_req_addr, 2, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h1, 4'h3}, io_mem_req_wdata); end
-    //                     `MEMOP_SW:          begin write_raw_mem(io_mem_req_addr, 4, io_mem_req_wdata); func_dev_skip(1, io_mem_req_addr, {24'h0, 4'h2, 4'h7}, io_mem_req_wdata); end
-    //                     `MEMOP_LB:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
-    //                     `MEMOP_LH:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
-    //                     `MEMOP_LW:          begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h2, 4'h0}, io_mem_rsp_data); end
-    //                     `MEMOP_LBU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h0, 4'h0}, io_mem_rsp_data); end
-    //                     `MEMOP_LHU:         begin func_dev_skip(0, io_mem_req_addr, {24'h0, 4'h1, 4'h0}, io_mem_rsp_data); end
-    //                     default: ;
-    //                 endcase
-    //             end
-    //         end
-    //     end
-
-    //     end else begin
-    //     // TODO 非单周期取指，需要转换为axi4信号
-    //     assign io_if_req_ready = 0;
-    //     assign io_if_rsp_valid = 0;
-    //     assign io_if_rsp_data = 0;
-
-    //     // TODO 非单周期访存取指，需要转换为axi4信号
-    //     assign io_mem_req_ready = 0;
-    //     assign io_mem_rsp_valid = 0;
-    //     assign io_mem_rsp_data = 0;
-    //     end
-    // endgenerate
 endmodule

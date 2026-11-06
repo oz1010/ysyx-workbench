@@ -214,7 +214,7 @@ void dpi_cpu_stat_ctrl(int dtype, int delta)
     static uint64_t last_update_tick = 0;
     bool flush_file = false;
 
-    if (delta == 0)
+    if (dtype==HW_CPU_STAT_TICK && delta == 0)
     {
         last_update_tick = 0;
         memset(&hw_cpu_stat, 0, sizeof(hw_cpu_stat_t));
