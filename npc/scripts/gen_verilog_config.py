@@ -41,29 +41,24 @@ def convert_file(input_path, output_path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='批量转换C头文件到Verilog头文件',
+        description='C头文件到Verilog头文件转换工具',
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
-        'input_files', 
-        nargs='+',
-        help='输入的头文件(.h)，支持通配符如*.h')
+        'input_file', 
+        help='输入的头文件(.h)')
     parser.add_argument(
         '-o', '--output',
-        help='输出目录路径（默认同输入文件目录）')
+        help='输出的Verilog头文件路径')
     args = parser.parse_args()
-    if args.output and not os.path.exists(args.output):
-        os.makedirs(args.output, exist_ok=True)
-    for input_file in args.input_files:
-        # 生成输出路径
-        input_path = Path(input_file)
-        output_name = input_path.stem + '.vh'
-        if args.output:
-            output_path = Path(args.output) / output_name
-        else:
-            output_path = input_path.with_suffix('.vh')
-        # 执行转换
-        convert_file(input_file, str(output_path))
-        # print(f"Converted: {input_file} -> {output_path}")
+
+    input_path = Path(args.input_file)
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        output_path = input_path.with_suffix('.vh')
+    # 执行转换
+    convert_file(args.input_file, str(output_path))
 
 if __name__ == "__main__":
     main()

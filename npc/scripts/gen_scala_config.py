@@ -1105,7 +1105,7 @@ def main():
         help="Scala package name (default: config)",
     )
     parser.add_argument(
-        "--silent",
+        "--silent", "-s",
         action="store_true",
         help="Suppress non-error messages",
     )

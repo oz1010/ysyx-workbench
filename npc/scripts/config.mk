@@ -51,9 +51,7 @@ $(FIXDEP):
 
 menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 	$(Q)$(MCONF) $(Kconfig)
-	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
-	$(Q)$(GEN_VERILOG_CFG) $(NPC_HOME)/include/generated/autoconf.h
-	$(Q)$(GEN_SCALA_CFG) $(NPC_HOME)/Kconfig --silent --output vsrc/chisel-gen/src/common/AutoConfig.scala
+	$(Q)$(MAKE) $(silent) convert_headers
 
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/$(CFG_NAME) $(Kconfig)
@@ -61,9 +59,24 @@ savedefconfig: $(CONF)
 $(DEFCONFIG_TARGETS): $(CONF) $(FIXDEP)
 	$(Q)$< $(silent) --defconfig=$(CONFIG_PATH)/$@ $(Kconfig) && \
 		echo "# configuration written to .config"
-	$(Q)$< $(silent) --syncconfig $(Kconfig)
+	$(Q)$(MAKE) $(silent) convert_headers
 
-.PHONY: menuconfig savedefconfig $(DEFCONFIG_TARGETS)
+# 自动生成头文件，只依赖.config，避免menuconfig没有修改也被强行修改
+GEN_HEADER_FILES		+= $(NPC_HOME)/include/generated/autoconf.h
+GEN_HEADER_FILES		+= $(NPC_HOME)/include/generated/autoconf.vh
+GEN_HEADER_FILES		+= $(NPC_HOME)/vsrc/chisel-gen/src/common/AutoConfig.scala
+convert_headers: $(GEN_HEADER_FILES)
+$(NPC_HOME)/include/generated/autoconf.h: .config
+	@echo "*** Modified $< to generate $@"
+	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
+$(NPC_HOME)/include/generated/autoconf.vh: .config
+	@echo "*** Modified $< to generate $@"
+	$(Q)$(GEN_VERILOG_CFG) $(NPC_HOME)/include/generated/autoconf.h --output $@
+$(NPC_HOME)/vsrc/chisel-gen/src/common/AutoConfig.scala: .config
+	@echo "*** Modified $< to generate $@"
+	$(Q)$(GEN_SCALA_CFG) $(silent) $(Kconfig) --output $@
+
+.PHONY: menuconfig savedefconfig convert_headers $(DEFCONFIG_TARGETS)
 
 # Help text used by make help
 help:
