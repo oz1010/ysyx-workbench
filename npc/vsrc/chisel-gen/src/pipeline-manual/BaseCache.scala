@@ -41,9 +41,10 @@ class BaseCache(
   M: Int = 3  // offsetBits
 ) extends Module {
   val io = IO(new Bundle {
-    val cpu    = Flipped(new CacheIO())
-    val master = new Axi4IO()
-    val flush  = Input(Bool())
+    val cpu       = Flipped(new CacheIO())
+    val master    = new Axi4IO()
+    val flush     = Input(Bool())
+    val cacheStat = Output(UInt(2.W))
   })
 
   if (cacheEn) {
@@ -58,6 +59,7 @@ class BaseCache(
   val op                                                                   = RegInit(0.U(MemOp.width.W))
   val wdata                                                                = RegInit(0.U(CONFIG_DATA_WIDTH.W))
   val rspData                                                              = RegInit(0.U(CONFIG_DATA_WIDTH.W))
+  val rspCacheStat                                                         = RegInit(CacheStat.NONE)
   val flushPending                                                         = RegInit(false.B)
 
   when(io.flush) {
@@ -79,6 +81,7 @@ class BaseCache(
   io.cpu.req.ready := state === idle && !reset.asBool && !io.flush && !flushPending
   io.cpu.rsp.valid := state === response
   io.cpu.rsp.data  := rspData
+  io.cacheStat     := rspCacheStat
 
   io.master.arvalid := state === readAddr
   // 地址在整个事务期间保持，兼容按地址选择从设备的互连。
@@ -125,6 +128,9 @@ class BaseCache(
     refillLast   := fillOffset === lastOffset
     refillTarget := fillOffset === Cat(addr(M - 1, 2), 0.U(2.W))
 
+    when(state === lookup && !op(3)) {
+      rspCacheStat := Mux(hit, CacheStat.HIT, Mux(cacheable, CacheStat.MISS, CacheStat.NONE))
+    }
     when(state === lookup && !op(3) && cacheable && !hit) {
       filling     := true.B
       fillOffset  := 0.U
@@ -145,10 +151,11 @@ class BaseCache(
   }
 
   when(io.cpu.req.fire) {
-    addr    := io.cpu.req.addr
-    op      := io.cpu.req.op
-    wdata   := io.cpu.req.wdata
-    rspData := 0.U
+    addr         := io.cpu.req.addr
+    op           := io.cpu.req.op
+    wdata        := io.cpu.req.wdata
+    rspData      := 0.U
+    rspCacheStat := CacheStat.NONE
     if (writeEn) {
       state := lookup
     } else {
