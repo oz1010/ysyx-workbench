@@ -67,9 +67,12 @@ STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
 STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys
 GEN_STA_FILE							?= $(STA_OUTPUT_DIR)/$(VMOD_NAME).v
+GEN_STUDEN_FILE							?= $(STA_OUTPUT_DIR)/ysyx_23060295.v
 # 最终综合目标分析文件，也可以是一个列表
 # STA_TARGET_FILE							?= $(STA_SRC_FILES)
-STA_TARGET_FILE							?= $(GEN_STA_FILE)
+# STA_TARGET_FILE							?= $(GEN_STA_FILE)
+STA_TARGET_FILE							?= $(GEN_STUDEN_FILE)
+STA_TARGET_TOP							?= ysyx_23060295
 
 # VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS-y		+= $(foreach d, $(VDIRS-y), \
@@ -158,9 +161,9 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 #          +1800-2017ext+<ext>        Use SystemVerilog 2017 with file extension <ext>
 #          +1800-2023ext+<ext>        Use SystemVerilog 2023 with file extension <ext>
 # 但yosys前端目前最高为Verilog-2005，原版可以支持到sv-2023
-convert2v: $(GEN_STA_FILE)
+convert2v: $(STA_TARGET_FILE)
 $(GEN_STA_FILE): $(STA_SRC_FILES) compile_chisel
-	@echo start convert2v
+	@echo convert to $@
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
 		--no-public-params --no-timing --no-assert \
@@ -168,11 +171,15 @@ $(GEN_STA_FILE): $(STA_SRC_FILES) compile_chisel
 		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
 		+define+IN_YOSYS_STA \
 		$(STA_SRC_FILES) > $@
+$(STA_TARGET_FILE): $(GEN_STA_FILE)
+	@echo convert to $@
+	@mkdir -p $(dir $@)
+	@python3 $(WORK_DIR)/scripts/rename_ysyx_verilog.py
 
 sta: $(STA_TARGET_FILE) compile_chisel
 	@echo start yosys-sta
 	@make -C $(YOSYS_STA_HOME) sta \
-		DESIGN=$(VMOD_NAME) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
+		DESIGN=$(STA_TARGET_TOP) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
 		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(STA_OUTPUT_DIR) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
 		RTL_FILES="$(STA_TARGET_FILE)"
@@ -187,7 +194,7 @@ sta-area: $(STA_TARGET_FILE) | $(WORK_DIR)/scripts/yosys_area_hier.tcl compile_c
 	@echo start yosys-area-hier
 	@mkdir -p $(STA_OUTPUT_DIR)/area-hier
 	@yosys -l $(STA_OUTPUT_DIR)/area-hier/yosys.log -p \
-		"tcl $(WORK_DIR)/scripts/yosys_area_hier.tcl $(VMOD_NAME) $(YOSYS_STA_LIB) \
+		"tcl $(WORK_DIR)/scripts/yosys_area_hier.tcl $(STA_TARGET_TOP) $(YOSYS_STA_LIB) \
 			\"$(abspath $(STA_TARGET_FILE))\" $(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
 			\"$(abspath $(STA_INCLUDE_DIR))\""
 	@python3 $(WORK_DIR)/scripts/area_hier_report.py \
