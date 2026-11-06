@@ -1,4 +1,6 @@
-module gpio_led (
+module gpio_led #(
+    parameter LED_BITS = 16
+) (
     input                   clock,
     input                   reset,
     input                   ce_n,
@@ -8,8 +10,6 @@ module gpio_led (
     output                  ack_o,
     output [LED_BITS-1:0]   led_value_o
 );
-
-parameter LED_BITS = 16;
 
 reg [LED_BITS-1:0]  led_value;
 reg update_ack;

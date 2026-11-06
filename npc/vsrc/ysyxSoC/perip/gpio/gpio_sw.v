@@ -1,4 +1,6 @@
-module gpio_sw (
+module gpio_sw #(
+    parameter SW_BITS = 16
+) (
     input                   clock,
     input                   reset,
     input                   ce_n,
@@ -8,8 +10,6 @@ module gpio_sw (
     output                  ack_o,
     output [SW_BITS-1:0]    sw_value_o
 );
-
-parameter SW_BITS = 16;
 
 reg [SW_BITS-1:0] sw_value;
 reg update_ack;

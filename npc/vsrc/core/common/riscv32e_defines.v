@@ -480,7 +480,6 @@ function void func_exit_simu;
     begin
 `ifdef FORMAL_VERIFY
 `elsif IN_YOSYS_STA
-        global_pc = global_pc + exit_code;
 `else
         exit_simu(exit_code);
 `endif
@@ -493,7 +492,6 @@ function void func_invalid_inst;
     begin
 `ifdef FORMAL_VERIFY
 `elsif IN_YOSYS_STA
-        global_pc = global_pc + current_pc + current_inst;
 `else
         invalid_inst(current_pc, current_inst);
 `endif
@@ -507,7 +505,6 @@ function void func_cpu_stat_ctrl;
     begin
 `ifdef FORMAL_VERIFY
 `elsif IN_YOSYS_STA
-        global_pc = global_pc + delta;
 `else
         dpi_cpu_stat_ctrl(dtype, delta);
 `endif

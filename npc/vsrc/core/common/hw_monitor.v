@@ -20,6 +20,8 @@ module hw_monitor #(
     output wire                         done
 );
 
+`ifndef IN_YOSYS_STA
+
 // CORE TICK
 always @(posedge clock) begin
     if (reset) begin
@@ -58,5 +60,7 @@ always @(posedge clock) begin
         end
     end
 end
+
+`endif
 
 endmodule

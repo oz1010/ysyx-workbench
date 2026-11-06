@@ -1,4 +1,7 @@
-module gpio_seg (
+module gpio_seg # (
+    parameter SEG_BITS = 8,
+    parameter SEG_NUM = 8
+) (
     input                   clock,
     input                   reset,
     input                   ce_n,
@@ -8,9 +11,6 @@ module gpio_seg (
     output                  ack_o,
     output [SEG_BITS-1:0]   seg_o[0:SEG_NUM-1]
 );
-
-parameter SEG_BITS = 8;
-parameter SEG_NUM = 8;
 
 reg [31:0] seg_value;
 reg update_ack;

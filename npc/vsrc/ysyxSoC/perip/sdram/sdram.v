@@ -62,6 +62,7 @@ module sdram(
     wire [7:0] read_done_count = (cas_latency + 2 * (read_index_max - 1));
     wire read_done = (state==read_t) && (counter == read_done_count);
     wire [31:0] roffset = {30'h0, dqm};
+    integer new_rdata;
 
     initial begin
         state = idle_t;
@@ -170,7 +171,7 @@ module sdram(
             read_t: begin
                 if (counter == (cas_latency + 2 * read_index - 2)) begin
                     // read rdata
-                    integer new_rdata = dpi_vdev_read(addr, burst_length == 1 ? 2 : 4);
+                    new_rdata = dpi_vdev_read(addr, burst_length == 1 ? 2 : 4);
                     rdata <= new_rdata;
                     read_index <= read_index + 1;
                     addr <= addr + 4;

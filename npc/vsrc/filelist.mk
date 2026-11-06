@@ -62,11 +62,14 @@ REF_STA_FILES							+= $(foreach d, $(REF_STA_DIRS), \
 												$(wildcard $(d)/*.v) \
 												$(wildcard $(d)/*.sv) \
 											)
-STA_FILES								?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
+STA_SRC_FILES							?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
 STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
 STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys
 GEN_STA_FILE							?= $(STA_OUTPUT_DIR)/$(VMOD_NAME).v
+# 最终综合目标分析文件，也可以是一个列表
+# STA_TARGET_FILE							?= $(STA_SRC_FILES)
+STA_TARGET_FILE							?= $(GEN_STA_FILE)
 
 # VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS-y		+= $(foreach d, $(VDIRS-y), \
@@ -145,8 +148,18 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
 		$(ARCHIVES_DEPENDS)
 
+# verilator支持的版本：
+#          +1364-1995ext+<ext>        Use Verilog 1995 with file extension <ext>
+#          +1364-2001ext+<ext>        Use Verilog 2001 with file extension <ext>
+#          +1364-2005ext+<ext>        Use Verilog 2005 with file extension <ext>
+#          +1800-2005ext+<ext>        Use SystemVerilog 2005 with file extension <ext>
+#          +1800-2009ext+<ext>        Use SystemVerilog 2009 with file extension <ext>
+#          +1800-2012ext+<ext>        Use SystemVerilog 2012 with file extension <ext>
+#          +1800-2017ext+<ext>        Use SystemVerilog 2017 with file extension <ext>
+#          +1800-2023ext+<ext>        Use SystemVerilog 2023 with file extension <ext>
+# 但yosys前端目前最高为Verilog-2005，原版可以支持到sv-2023
 convert2v: $(GEN_STA_FILE)
-$(GEN_STA_FILE): $(STA_FILES)
+$(GEN_STA_FILE): $(STA_SRC_FILES) compile_chisel
 	@echo start convert2v
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
@@ -154,27 +167,28 @@ $(GEN_STA_FILE): $(STA_FILES)
 		+1800-2005ext+ \
 		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
 		+define+IN_YOSYS_STA \
-		$^ > $@
+		$(STA_SRC_FILES) > $@
 
-# sta: $(GEN_STA_FILE)
-sta: $(STA_FILES) compile_chisel
+sta: $(STA_TARGET_FILE) compile_chisel
 	@echo start yosys-sta
 	@make -C $(YOSYS_STA_HOME) sta \
 		DESIGN=$(VMOD_NAME) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
 		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clk OUTPUT_DIR=$(STA_OUTPUT_DIR) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
-		RTL_FILES="$(STA_FILES)"
+		RTL_FILES="$(STA_TARGET_FILE)"
 
 # 层级化面积统计: 不 flatten, stat 按模块分别报告面积, 用于定位流水线各模块占比
-YOSYS_PDK		?= nangate45
-YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/$(YOSYS_PDK)/lib/Nangate45_typ.lib
+# YOSYS_PDK		?= nangate45
+# YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/$(YOSYS_PDK)/lib/Nangate45_typ.lib
+YOSYS_PDK		?= icsprout55
+YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/liberty/ics55_LLSC_H7CL_typ_tt_1p2_25_nldm.lib
 
-sta-area: $(STA_FILES) | $(WORK_DIR)/scripts/yosys_area_hier.tcl compile_chisel
+sta-area: $(STA_TARGET_FILE) | $(WORK_DIR)/scripts/yosys_area_hier.tcl compile_chisel
 	@echo start yosys-area-hier
 	@mkdir -p $(STA_OUTPUT_DIR)/area-hier
 	@yosys -l $(STA_OUTPUT_DIR)/area-hier/yosys.log -p \
 		"tcl $(WORK_DIR)/scripts/yosys_area_hier.tcl $(VMOD_NAME) $(YOSYS_STA_LIB) \
-			\"$(abspath $(STA_FILES))\" $(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
+			\"$(abspath $(STA_TARGET_FILE))\" $(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
 			\"$(abspath $(STA_INCLUDE_DIR))\""
 	@python3 $(WORK_DIR)/scripts/area_hier_report.py \
 		$(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
