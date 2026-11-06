@@ -1,0 +1,81 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.134.1/containers/python-3
+{
+	"name": "${containerWorkspaceFolderBasename}",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".",
+		// Update 'VARIANT' to pick a Python version: 3, 3.6, 3.7, 3.8 
+		"args": {
+			"VARIANT": "3"
+		}
+	},
+	// Set docker run args
+	"runArgs": [
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",
+		"seccomp=unconfined",
+		"--hostname=${containerWorkspaceFolderBasename}",
+		"--privileged",
+		"-p",
+		"39011:22",
+		// "--device-cgroup-rule=\"c *:* rmw\"",
+	],
+	"mounts": [
+		"type=bind,consistency=cached,source=/root/project/container-home/${localWorkspaceFolder},target=/root",
+		"type=bind,consistency=cached,source=/root/project/container-home/share/tools,target=/root/tools",
+		"type=bind,consistency=cached,source=/root/project/container-home/share/oh-my-zsh,target=/root/.oh-my-zsh",
+		"type=bind,consistency=cached,source=/root/project,target=/root/project",
+		"type=bind,consistency=cached,source=/root/project/container-home,target=/root/project/container-home",
+		"type=bind,consistency=cached,source=/root/.nvm,target=/root/.nvm",
+		"type=bind,consistency=cached,source=/root/.npm,target=/root/.npm",
+		"type=bind,consistency=cached,source=/root/.npmrc,target=/root/.npmrc",
+		"type=bind,consistency=cached,source=/root/.kimi-code,target=/root/.kimi-code",
+		"type=bind,consistency=cached,source=/root/.claude,target=/root/.claude",
+		"type=bind,consistency=cached,source=/root/.codex,target=/root/.codex",
+		"type=bind,source=/dev,target=/dev",
+	],
+	"postCreateCommand": "/root/project/container-home/init_home.sh /root/project/container-home/root/project/ysyx-dev && service ssh start",
+	"workspaceFolder": "${localWorkspaceFolder}",
+	"customizations": {
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {
+				// "terminal.integrated.shell.linux": "/bin/zsh",
+				"terminal.integrated.defaultProfile.linux": "zsh"
+				// "python.pythonPath": "/usr/local/bin/python",
+				// "python.linting.enabled": true,
+				// "python.linting.pylintEnabled": true,
+				// "python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
+				// "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+				// "python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
+				// "python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
+				// "python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+				// "python.linting.mypyPath": "/usr/local/py-utils/bin/mypy",
+				// "python.linting.pycodestylePath": "/usr/local/py-utils/bin/pycodestyle",
+				// "python.linting.pydocstylePath": "/usr/local/py-utils/bin/pydocstyle",
+				// "python.linting.pylintPath": "/usr/local/py-utils/bin/pylint"
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				// "ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"wmaurer.change-case",
+				// "twxs.cmake",
+				// "ms-vscode.cmake-tools",
+				// "cschlosser.doxdocgen",
+				"donjayamanne.githistory",
+				"Gruntfuggly.todo-tree",
+				// "ms-vscode.cpptools-themes",
+				"mutantdino.resourcemonitor",
+				"albymor.increment-selection",
+			]
+		}
+	}
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
+	// "remoteUser": "vscode"
+}
