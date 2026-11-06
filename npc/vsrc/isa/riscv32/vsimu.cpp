@@ -90,11 +90,11 @@ static void record_trace(VERILATED_TRACE_C* tfp, VerilatedContext* contextp)
         RECORD_TRACE();            \
     } while (0)
 
-#define TOP_RUN_TICK(T)            \
-    do                             \
-    {                              \
-        TOP_RUN_HALF_TICK(T);      \
-        TOP_RUN_HALF_TICK(T);      \
+#define TOP_RUN_TICK(T)       \
+    do                        \
+    {                         \
+        TOP_RUN_HALF_TICK(T); \
+        TOP_RUN_HALF_TICK(T); \
     } while (0)
 
 extern void set_npc_state(npc_state_t state, vaddr_t pc, int halt_ret);
@@ -293,6 +293,14 @@ int exec_vsimu(Decode* s)
         printf(ANSI_FMT("Found finish in verilog\n", ANSI_BG_RED));
         set_npc_state(NPC_ABORT, get_vsimu_pc(), -5);
     }
+
+#if !CONFIG_ISA_RISCV_SINGLE
+    // 非单周期，需要额外的半周期来完成数据的采集
+    if (npc_ctx.state == NPC_END)
+    {
+        TOP_RUN_TICK(top);
+    }
+#endif
 
     return 0;
 }
