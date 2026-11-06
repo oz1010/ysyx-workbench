@@ -24,6 +24,8 @@ LD := $(CXX)
 INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
+LDFLAGS += -llz4
+# LDFLAGS += /usr/lib/x86_64-linux-gnu/liblz4.a
 
 OBJS =
 OBJS += $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(filter %.cpp,$(SRCS)))

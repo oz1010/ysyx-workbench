@@ -72,8 +72,6 @@ module sdram_axi_core
 parameter SDRAM_MHZ              = 50;
 parameter SDRAM_ADDR_W           = 24;
 parameter SDRAM_COL_W            = 9;
-// 支持31位，Burst Length改为 2 bytes，CAS改为1
-parameter SDRAM_READ_LATENCY     = SDRAM_DATA_COUNT==2?1:2;
 
 //-----------------------------------------------------------------
 // Defines / Local params
@@ -89,6 +87,8 @@ localparam SDRAM_REFRESH_CYCLES  = (64000*SDRAM_MHZ) / SDRAM_REFRESH_CNT-1;
 localparam SDRAM_DATA_COUNT      = `SDRAM_DATA_BITS / 16;
 localparam SDRAM_BLK_W           = `SDRAM_BLK_BITS;
 localparam SDRAM_BLKS            = `SDRAM_BLK_NUM;
+// 支持31位，Burst Length改为 2 bytes，CAS改为1
+parameter SDRAM_READ_LATENCY     = SDRAM_DATA_COUNT==2?1:2;
 
 localparam CMD_W             = 4;
 localparam CMD_NOP           = 4'b0111;

@@ -44,6 +44,8 @@ module perf_monitor (
     output wire         done
 );
 
+`ifndef IN_YOSYS_STA
+
 initial begin
     // $display("Enable perf monitor");
 end
@@ -136,5 +138,7 @@ always @(posedge clock) begin
         if (wb_out_done) func_cpu_stat_ctrl(`HW_CPU_STAT_INST, if_pc);
     end
 end
+
+`endif
 
 endmodule
