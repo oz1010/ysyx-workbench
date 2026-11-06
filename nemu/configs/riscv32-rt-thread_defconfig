@@ -1,0 +1,3 @@
+CONFIG_DEVICE=y
+# CONFIG_HAS_AUDIO is not set
+# CONFIG_HAS_DISK is not set
