@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 `include "riscv32e_defines.v"
 
-module tb_top;
+module iv_top;
     localparam ADDR_WIDTH = 32;
     localparam INST_WIDTH = 32;
     localparam DATA_WIDTH = 32;
@@ -123,8 +123,10 @@ module tb_top;
         #200 $finish;
     end
 
+    string output_path = ".";
     initial begin
-        $dumpfile("wave.vcd");
-        $dumpvars(0, tb_top);
+        $value$plusargs("OUTPUT=%s", output_path);
+        $dumpfile({output_path, "/wave.vcd"});
+        $dumpvars(0, iv_top);
     end
 endmodule

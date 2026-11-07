@@ -23,7 +23,11 @@ THREADS ?= $(shell nproc)
 CHISEL_GEN_DIR_NAME = $(patsubst "%",%,$(CONFIG_CHISEL_DIR_NAME))
 CHISEL_GEN_OUT = build
 CHISEL_GEN_MODE = normal
-ifneq ($(filter ivsim sta sta-area,$(MAKECMDGOALS)),)
+ifneq ($(filter sta sta-area,$(MAKECMDGOALS)),)
+	CHISEL_GEN_OUT = build-sta
+	CHISEL_GEN_MODE = synthesis
+endif
+ifeq ($(IVSIM),1)
 	CHISEL_GEN_OUT = build-sta
 	CHISEL_GEN_MODE = synthesis
 endif
@@ -76,17 +80,14 @@ STA_TARGET_TOP							?= ysyx_23060295
 
 # iverilog gen directory
 IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
-IV_TOP_NAME 							= tb_top
+IV_TOP_NAME 							= iv_top
+IV_TARGET								= $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
 IV_DIRS-y								+= ./vsrc/iverilog
-IV_DIRS-y								+= $(CHISEL_BUILD)
+IV_DIRS-y								+= $(VDIRS_CORE-y)
 IV_VSRCS-y 								+= $(foreach d, $(IV_DIRS-y), \
 												$(wildcard $(d)/*.v) \
 												$(wildcard $(d)/*.sv) \
 											)
-IV_VSRCS-y								+= ./vsrc/core/common/gprs.v
-IV_VSRCS-y								+= ./vsrc/core/common/csrs.v
-IV_VSRCS-y								+= ./vsrc/core/common/perf_monitor.v
-# IV_VSRCS-y								+= $(GEN_STA_FILE)
 IV_INC_PATH	+= $(WORK_DIR)/include
 IV_INC_PATH	+= $(VDIRS_CORE-y)
 
@@ -167,21 +168,9 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
 		$(ARCHIVES_DEPENDS)
 
-
-IV_SIM_ARGS ?=
-
-# 可以指定仿真镜像：make ivsim IV_SIM_ARGS=+IMG=<path_to_bin>
-ivsim: $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
-	@cd $(IV_GEN_DIR) && vvp $(IV_TOP_NAME).vvp $(IV_SIM_ARGS)
-
-$(IV_GEN_DIR)/$(IV_TOP_NAME).vvp : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v compile_chisel
+$(IV_TARGET) : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v compile_chisel
 	@mkdir -p $(dir $@)
-	iverilog -g2012 -DIN_YOSYS_STA -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
-
-.PHONY: ivsim
-# -I 目录	指定 include 文件搜索路径
-# -D宏名	定义宏
-# -Wall	显示所有警告
+	@iverilog -g2012 -DIN_YOSYS_STA -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
 
 # verilator支持的版本：
 #          +1364-1995ext+<ext>        Use Verilog 1995 with file extension <ext>
