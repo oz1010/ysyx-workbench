@@ -23,7 +23,7 @@ THREADS ?= $(shell nproc)
 CHISEL_GEN_DIR_NAME = $(patsubst "%",%,$(CONFIG_CHISEL_DIR_NAME))
 CHISEL_GEN_OUT = build
 CHISEL_GEN_MODE = normal
-ifneq ($(filter sta sta-area,$(MAKECMDGOALS)),)
+ifneq ($(filter ivsim sta sta-area,$(MAKECMDGOALS)),)
 	CHISEL_GEN_OUT = build-sta
 	CHISEL_GEN_MODE = synthesis
 endif
@@ -73,6 +73,19 @@ GEN_STUDEN_FILE							?= $(STA_OUTPUT_DIR)/ysyx_23060295.v
 # STA_TARGET_FILE							?= $(GEN_STA_FILE)
 STA_TARGET_FILE							?= $(GEN_STUDEN_FILE)
 STA_TARGET_TOP							?= ysyx_23060295
+
+# iverilog gen directory
+IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
+IV_TOP_NAME 							= tb_top
+IV_DIRS-y								+= ./vsrc/iverilog
+IV_DIRS-y								+= $(VDIRS_CORE-y)
+IV_VSRCS-y 								+= $(foreach d, $(IV_DIRS-y), \
+												$(wildcard $(d)/*.v) \
+												$(wildcard $(d)/*.sv) \
+											)
+# IV_VSRCS-y								+= $(GEN_STA_FILE)
+IV_INC_PATH	+= $(WORK_DIR)/include
+IV_INC_PATH	+= $(VDIRS_CORE-y)
 
 # VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
 VSRCS-y		+= $(foreach d, $(VDIRS-y), \
@@ -150,6 +163,17 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 		$(addprefix -CFLAGS , $(VCXXFLAGS)) \
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
 		$(ARCHIVES_DEPENDS)
+
+
+ivsim: $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
+	@cd $(IV_GEN_DIR) && vvp $(IV_TOP_NAME).vvp
+
+$(IV_GEN_DIR)/$(IV_TOP_NAME).vvp : $(IV_VSRCS-y)
+	@mkdir -p $(dir $@)
+	iverilog -g2012 -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $^
+# -I 目录	指定 include 文件搜索路径
+# -D宏名	定义宏
+# -Wall	显示所有警告
 
 # verilator支持的版本：
 #          +1364-1995ext+<ext>        Use Verilog 1995 with file extension <ext>
