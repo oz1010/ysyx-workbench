@@ -1,5 +1,4 @@
-module inner_con #(
-) (
+module inner_con (
     input   wire                        clock,
     input   wire                        reset,
 

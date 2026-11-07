@@ -2,6 +2,7 @@
  * 以下模块在axi4_master的基础上，增加burst模式的支持。
  * 并优化模块交互逻辑。
  */
+`include "riscv32e_defines.v"
 
 module axi4_salve_burst_reader #(
     `ifndef IN_YOSYS_STA
