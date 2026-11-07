@@ -136,7 +136,11 @@
 `define EXPT_CAUSE_LPF  13  // Load Page Fault                , mtval赋值：导致页缺失的虚拟地址
 `define EXPT_CAUSE_SPF  15  // Store/AMO Page Fault           , mtval赋值：导致页缺失的虚拟地址
 `define EXPT_RISE(STAGE, CAUSE, TVAL) begin r_expt[STAGE]<=1; r_expt_cause<=CAUSE; r_expt_tval<=TVAL; end
+`ifdef __ICARUS__
+`define EXPT_EXU_ILL `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+`else
 `define EXPT_EXU_ILL() `EXPT_RISE(`STAGE_INDEX_EXU, `EXPT_CAUSE_ILL, inst)
+`endif
 
 `define FLUSH_TYPE_W        2
 `define FLUSH_EX_BIT        0
@@ -328,6 +332,7 @@ function void check_dev_addr;
 
 endfunction
 
+`ifndef __ICARUS__
 function void get_unalign_parameter;
     input logic [`INST_CODE_W-1:0] inst_code;
     input logic [31:0] addr;
@@ -474,6 +479,7 @@ function void get_unalign_from_mask;
         endcase
     end
 endfunction
+`endif
 
 function void func_exit_simu;
     input [31:0]exit_code;
