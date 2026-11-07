@@ -78,11 +78,14 @@ STA_TARGET_TOP							?= ysyx_23060295
 IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
 IV_TOP_NAME 							= tb_top
 IV_DIRS-y								+= ./vsrc/iverilog
-IV_DIRS-y								+= $(VDIRS_CORE-y)
+IV_DIRS-y								+= $(CHISEL_BUILD)
 IV_VSRCS-y 								+= $(foreach d, $(IV_DIRS-y), \
 												$(wildcard $(d)/*.v) \
 												$(wildcard $(d)/*.sv) \
 											)
+IV_VSRCS-y								+= ./vsrc/core/common/gprs.v
+IV_VSRCS-y								+= ./vsrc/core/common/csrs.v
+IV_VSRCS-y								+= ./vsrc/core/common/perf_monitor.v
 # IV_VSRCS-y								+= $(GEN_STA_FILE)
 IV_INC_PATH	+= $(WORK_DIR)/include
 IV_INC_PATH	+= $(VDIRS_CORE-y)
@@ -165,12 +168,17 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 		$(ARCHIVES_DEPENDS)
 
 
-ivsim: $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
-	@cd $(IV_GEN_DIR) && vvp $(IV_TOP_NAME).vvp
+IV_SIM_ARGS ?=
 
-$(IV_GEN_DIR)/$(IV_TOP_NAME).vvp : $(IV_VSRCS-y)
+# 可以指定仿真镜像：make ivsim IV_SIM_ARGS=+IMG=<path_to_bin>
+ivsim: $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
+	@cd $(IV_GEN_DIR) && vvp $(IV_TOP_NAME).vvp $(IV_SIM_ARGS)
+
+$(IV_GEN_DIR)/$(IV_TOP_NAME).vvp : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v compile_chisel
 	@mkdir -p $(dir $@)
-	iverilog -g2012 -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $^
+	iverilog -g2012 -DIN_YOSYS_STA -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
+
+.PHONY: ivsim
 # -I 目录	指定 include 文件搜索路径
 # -D宏名	定义宏
 # -Wall	显示所有警告

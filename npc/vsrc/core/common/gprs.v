@@ -88,8 +88,11 @@ assign a0 = a[0];
  */
 wire [`RISCV_GPR_COUNT-1:0] wen_onehot;
 assign wen_onehot = wen ? (1 << waddr) : 0;
-// always @(posedge clock) x[0] <= 0;
+`ifdef __ICARUS__
+initial x[0] = 0;
+`else
 assign x[0] = 0;
+`endif
 genvar i;
 for (i=1 ; i<`RISCV_GPR_COUNT; ++i) begin
     always @(posedge clock) begin

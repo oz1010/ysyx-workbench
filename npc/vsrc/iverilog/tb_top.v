@@ -1,59 +1,61 @@
 `timescale 1ns/1ps
+`include "riscv32e_defines.v"
+
 module tb_top;
     localparam ADDR_WIDTH = 32;
+    localparam INST_WIDTH = 32;
     localparam DATA_WIDTH = 32;
+    localparam GPR_ADDR_WIDTH = 4;
+    localparam CSR_ADDR_WIDTH = 12;
 
     reg clk, rst;
 
-    wire [31:0] core_pc[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
-    wire [31:0] core_inst_pc[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指向执行完的指令对应的地址
-    wire core_inst_done[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指示是否完成一条指令
+    wire [31:0] core_pc[`CONFIG_CORE_NUM-1:0];
+    wire [31:0] core_inst_pc[`CONFIG_CORE_NUM-1:0];
+    wire core_inst_done[`CONFIG_CORE_NUM-1:0];
 
-    wire [ADDR_WIDTH-1:0]           reset_pc = `RISCV_RESET_PC;
-    wire                            io_if_flush;
-    wire                            io_if_req_valid;
-    wire                            io_if_req_ready;
-    wire [ADDR_WIDTH-1:0]           io_if_req_addr;
-    wire [`MEMOP_W-1:0]             io_if_req_op;
-    wire [DATA_WIDTH-1:0]           io_if_req_wdata;
-    wire                            io_if_rsp_valid;
-    wire                            io_if_rsp_ready;
-    wire  [DATA_WIDTH-1:0]          io_if_rsp_data;
-    wire                            io_mem_req_valid;
-    wire                            io_mem_req_ready;
-    wire [ADDR_WIDTH-1:0]           io_mem_req_addr;
-    wire [`MEMOP_W-1:0]             io_mem_req_op;
-    wire [DATA_WIDTH-1:0]           io_mem_req_wdata;
-    wire                            io_mem_rsp_valid;
-    wire                            io_mem_rsp_ready;
-    wire [DATA_WIDTH-1:0]           io_mem_rsp_data;
-    wire                            gpr_wen /* verilator public_flat_rd */;
-    wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr /* verilator public_flat_rd */;
-    wire [DATA_WIDTH-1:0]           gpr_wdata /* verilator public_flat_rd */;
-    wire                            csr_wen /* verilator public_flat_rd */;
-    wire [`CSR_ADDR_W-1:0]          csr_waddr /* verilator public_flat_rd */;
-    wire [DATA_WIDTH-1:0]           csr_wdata /* verilator public_flat_rd */;
-    wire                            trap_en /* verilator public_flat_rd */;
-    wire [INST_WIDTH-1:0]           trap_epc /* verilator public_flat_rd */;
-    wire [DATA_WIDTH-1:0]           trap_cause /* verilator public_flat_rd */;
-    wire [DATA_WIDTH-1:0]           trap_tval /* verilator public_flat_rd */;
-    wire [DATA_WIDTH-1:0]           trap_status /* verilator public_flat_rd */;
+    wire [ADDR_WIDTH-1:0]        reset_pc = `CONFIG_IMG_LOAD;
+    wire                         io_if_flush;
+    wire                         io_if_req_valid;
+    wire                         io_if_req_ready;
+    wire [ADDR_WIDTH-1:0]        io_if_req_addr;
+    wire [3:0]                   io_if_req_op;
+    wire [DATA_WIDTH-1:0]        io_if_req_wdata;
+    wire                         io_if_rsp_valid;
+    wire                         io_if_rsp_ready;
+    wire [DATA_WIDTH-1:0]        io_if_rsp_data;
+    wire                         io_mem_req_valid;
+    wire                         io_mem_req_ready;
+    wire [ADDR_WIDTH-1:0]        io_mem_req_addr;
+    wire [3:0]                   io_mem_req_op;
+    wire [DATA_WIDTH-1:0]        io_mem_req_wdata;
+    wire                         io_mem_rsp_valid;
+    wire                         io_mem_rsp_ready;
+    wire [DATA_WIDTH-1:0]        io_mem_rsp_data;
+    wire                         gpr_wen;
+    wire [GPR_ADDR_WIDTH-1:0]    gpr_waddr;
+    wire [DATA_WIDTH-1:0]        gpr_wdata;
+    wire                         csr_wen;
+    wire [CSR_ADDR_WIDTH-1:0]    csr_waddr;
+    wire [DATA_WIDTH-1:0]        csr_wdata;
+    wire                         trap_en;
+    wire [INST_WIDTH-1:0]        trap_epc;
+    wire [DATA_WIDTH-1:0]        trap_cause;
+    wire [DATA_WIDTH-1:0]        trap_tval;
+    wire [DATA_WIDTH-1:0]        trap_status;
 
-    `ifdef CONFIG_ISA_RISCV_SINGLE
-    // 单周期版本的核心连接逻辑
+`ifdef CONFIG_ISA_RISCV_SINGLE
     riscv32e_core_sc #(
-    `else
+`else
     riscv32e_core #(
-    `endif
-        .INST_WIDTH(32)
-    ) ysyx_23060295_CORE0(
+`endif
+        .INST_WIDTH(INST_WIDTH)
+    ) ysyx_23060295_CORE0 (
         .clock(clk),
         .reset(rst),
-
         .reset_pc(reset_pc),
-        .io_interrupt(),
+        .io_interrupt(1'b0),
         .io_if_flush(io_if_flush),
-
         .io_if_req_valid(io_if_req_valid),
         .io_if_req_ready(io_if_req_ready),
         .io_if_req_addr(io_if_req_addr),
@@ -81,19 +83,43 @@ module tb_top;
         .trap_cause(trap_cause),
         .trap_tval(trap_tval),
         .trap_status(trap_status),
-
         .pc(core_pc[0]),
         .inst_pc(core_inst_pc[0]),
         .inst_done(core_inst_done[0])
     );
 
+    iv_memsys #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH)
+    ) memsys (
+        .clock(clk),
+        .reset(rst),
+        .io_if_req_valid(io_if_req_valid),
+        .io_if_req_ready(io_if_req_ready),
+        .io_if_req_addr(io_if_req_addr),
+        .io_if_req_op(io_if_req_op),
+        .io_if_req_wdata(io_if_req_wdata),
+        .io_if_rsp_valid(io_if_rsp_valid),
+        .io_if_rsp_ready(io_if_rsp_ready),
+        .io_if_rsp_data(io_if_rsp_data),
+        .io_mem_req_valid(io_mem_req_valid),
+        .io_mem_req_ready(io_mem_req_ready),
+        .io_mem_req_addr(io_mem_req_addr),
+        .io_mem_req_op(io_mem_req_op),
+        .io_mem_req_wdata(io_mem_req_wdata),
+        .io_mem_rsp_valid(io_mem_rsp_valid),
+        .io_mem_rsp_ready(io_mem_rsp_ready),
+        .io_mem_rsp_data(io_mem_rsp_data)
+    );
+
     initial begin
         clk = 0;
-        forever #1 clk = ~clk;   // 100MHz
+        forever #1 clk = ~clk;
     end
 
     initial begin
-        rst = 1; #20 rst = 0;
+        rst = 1;
+        #20 rst = 0;
         #200 $finish;
     end
 
