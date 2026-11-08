@@ -130,9 +130,9 @@ module iv_top;
     always @(posedge clk) begin
         if (trap_en && trap_cause == `EXPT_CAUSE_BRK) begin
             if (trap_tval == 0)
-                $display("HIT GOOD TRAP");
+                $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
             else
-                $display("HIT BAD TRAP");
+                $display("\033[1;31mHIT BAD TRAP\033[0m at pc = 0x%x ret: 0x%x", core_inst_pc[0], trap_tval);
             $finish;
         end
     end
