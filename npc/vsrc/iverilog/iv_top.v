@@ -10,6 +10,7 @@ module iv_top;
 
     reg clk, rst;
 
+    // 检测core是否陷入循环，默认但指令执行周期比较短暂
     wire [31:0] core_pc[`CONFIG_CORE_NUM-1:0];
     wire [31:0] core_inst_pc[`CONFIG_CORE_NUM-1:0];
     wire core_inst_done[`CONFIG_CORE_NUM-1:0];
@@ -109,7 +110,10 @@ module iv_top;
         .io_mem_req_wdata(io_mem_req_wdata),
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
-        .io_mem_rsp_data(io_mem_rsp_data)
+        .io_mem_rsp_data(io_mem_rsp_data),
+        .core_pc(core_pc[0]),
+        .core_inst_pc(core_inst_pc[0]),
+        .core_inst_done(core_inst_done[0])
     );
 
     initial begin
@@ -120,13 +124,23 @@ module iv_top;
     initial begin
         rst = 1;
         #20 rst = 0;
-        #200 $finish;
+        // #20000 $finish;
+    end
+
+    always @(posedge clk) begin
+        if (trap_en && trap_cause == `EXPT_CAUSE_MEC) begin
+            if (trap_tval == 0)
+                $display("HIT GOOD TRAP");
+            else
+                $display("HIT BAD TRAP");
+            $finish;
+        end
     end
 
     string output_path = ".";
     initial begin
         $value$plusargs("OUTPUT=%s", output_path);
-        $dumpfile({output_path, "/wave.vcd"});
+        $dumpfile({output_path, "/iv_trace.vcd"});
         $dumpvars(0, iv_top);
     end
 endmodule

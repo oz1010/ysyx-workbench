@@ -29,7 +29,11 @@ module iv_memsys #(
     input  wire [DATA_WIDTH-1:0] io_mem_req_wdata,
     output reg                   io_mem_rsp_valid,
     input  wire                  io_mem_rsp_ready,
-    output reg  [DATA_WIDTH-1:0] io_mem_rsp_data
+    output reg  [DATA_WIDTH-1:0] io_mem_rsp_data,
+
+    input  wire [31:0]           core_pc,
+    input  wire [31:0]           core_inst_pc,
+    input  wire                  core_inst_done
 );
 
     localparam [2:0] REGION_NONE  = 0;
@@ -39,6 +43,24 @@ module iv_memsys #(
     localparam [2:0] REGION_PSRAM = 4;
     localparam [2:0] REGION_SDRAM = 5;
     localparam [7:0] MEM_INIT_VALUE = `CONFIG_MEM_INIT_VALUE;
+
+    reg [31:0] core_inst_stuck_tick;
+    reg core_error /*verilator public_flat_rw*/;
+    always @(posedge clock) begin
+        if (reset) begin
+            core_error <= 0;
+            core_inst_stuck_tick <= 0;
+        end else begin
+            core_inst_stuck_tick <= (core_inst_done && core_pc!=core_inst_pc ) ? 0 : core_inst_stuck_tick + 1;
+            if (core_inst_stuck_tick == 5000) begin
+                $display("Maybe core is in forever-loop, pc:0x%x ticks:%-d", core_pc, core_inst_stuck_tick);
+                core_error <= 1;
+                $finish;
+                // $display("Maybe core%-2d is in forever-loop, pc:0x%x ticks:%-d", i, core_pc[i], core_inst_stuck_tick[i]);
+                // $finish;
+            end
+        end
+    end
 
 `ifdef CONFIG_SRAM
     reg [7:0] sram_mem [0:`CONFIG_SRAM_SIZE-1];
@@ -128,7 +150,7 @@ module iv_memsys #(
 `ifdef CONFIG_SDRAM
                 REGION_SDRAM: data = sdram_mem[addr - `CONFIG_SDRAM_BASE];
 `endif
-                default: $error("iv_memsys: read from unmapped address 0x%08x", addr);
+                default: begin $error("iv_memsys: read from unmapped address 0x%08x", addr); $finish; end
             endcase
             if (^data === 1'bx)
                 data = MEM_INIT_VALUE;
