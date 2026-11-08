@@ -78,7 +78,7 @@ module axi_master_writer #(
     assign s_write_strbs[0] = s_write_strb[0 +: 4];
     assign s_write_strbs[1] = s_write_strb[4 +: 4];
 
-    `define WRITE_DATA() \
+    `define WRITE_DATA \
         r_wvalid <= 1; \
         s_write_idx <= s_write_idx + 1; \
         r_wstrb <= s_write_strbs[s_write_idx[0:0]]; \
@@ -137,7 +137,7 @@ module axi_master_writer #(
 
                     r_write_state <= `AXI4_STATE_DATA;
                     /* 写下第一个字 */
-                    `WRITE_DATA();
+                    `WRITE_DATA;
                 end
 
                 `AXI4_STATE_DATA: begin
@@ -147,7 +147,7 @@ module axi_master_writer #(
 
                     if (s_write_idx <= ((8'h1<<s_write_len)-1) && wvalid && wready) begin
                         /* 写下第二个字 */
-                        `WRITE_DATA();
+                        `WRITE_DATA;
                     end
 
                     if (wvalid && wready && wlast) begin

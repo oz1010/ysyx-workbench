@@ -39,10 +39,20 @@ endif
 endif
 override ARGS += --perf=$(PERF_NAME)
 
+
+IV_SIM_ARGS	?= +IMG=$(IMG) +OUTPUT=$(RESULT_DIR)
+ifeq ($(IVSIM),1)
+# Command to execute ivsim
+NPC_EXEC := @vvp $(IV_TARGET) $(IV_SIM_ARGS)
+PERF_MONITOR_SH=
+run-env: $(IV_TARGET) $(IMG)
+else
 # Command to execute NPC
 NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
-
 run-env: $(BINARY) $(IMG) $(DIFF_REF_SO) $(ANALYZER) $(RECORDER)
+endif
+
+ivsim-env: $(IMG)
 
 run: run-env
 	$(call git_commit, "run NPC")
@@ -78,4 +88,4 @@ $(clean-tools):
 clean-tools: $(clean-tools)
 clean-all: clean distclean clean-tools
 
-.PHONY: run gdb run-env clean-tools clean-all $(clean-tools) test analyzer branchsim cachesim recorder
+.PHONY: run gdb run-env ivsim ivsim-env clean-tools clean-all $(clean-tools) test analyzer branchsim cachesim recorder
