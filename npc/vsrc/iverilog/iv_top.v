@@ -128,7 +128,7 @@ module iv_top;
     end
 
     always @(posedge clk) begin
-        if (trap_en && trap_cause == `EXPT_CAUSE_MEC) begin
+        if (trap_en && trap_cause == `EXPT_CAUSE_BRK) begin
             if (trap_tval == 0)
                 $display("HIT GOOD TRAP");
             else
