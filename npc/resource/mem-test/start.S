@@ -13,12 +13,13 @@ _start:
     la t0, 0x1
     and t2, t1, t0        # t2 = t1 & 0x1 (提取最低位)
     beq t2, t0, _skip_to_fast_load # if (t2 == t0) 跳到_skip_to_fast_load
+    RAM_PROGRESS_UART_INIT
     /* .text段加载到RAM */
-    LOAD_TO_RAM   _text_load, _text_start, _text_end
+    LOAD_MEM    'T', _text_load, _text_start, _text_end
     /* .data段加载到RAM */
-    LOAD_TO_RAM   _data_load, _data_start, _data_end
+    LOAD_MEM    'D', _data_load, _data_start, _data_end
     /* .bss段直接清理 */
-    SET_MEM32     0, _bss_start, _bss_end
+    SET_MEM     'B', 0, _bss_start, _bss_end
 
 _skip_to_fast_load:
     // 通过寄存器进行单向跳转，直接jal xxx跳转会出错
