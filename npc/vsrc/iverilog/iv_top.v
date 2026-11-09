@@ -250,9 +250,17 @@ module iv_top;
     end
     // 记录仿真数据
     string output_path = ".";
+    integer trace_on = 0;
+    integer ret = 0;
     initial begin
-        $value$plusargs("OUTPUT=%s", output_path);
-        $dumpfile({output_path, "/iv_trace.vcd"});
-        $dumpvars(0, iv_top);
+        ret = $value$plusargs("TRACE=%d", trace_on);
+        ret = $value$plusargs("OUTPUT=%s", output_path);
+        if (trace_on) begin
+            $display("Trace: \033[1;32mOn\033[0m");
+            $dumpfile({output_path, "/iv_trace.vcd"});
+            $dumpvars(0, iv_top);
+        end else begin
+            $display("Trace: \033[1;31mOff\033[0m");
+        end
     end
 endmodule
