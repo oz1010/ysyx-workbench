@@ -40,7 +40,7 @@ endif
 override ARGS += --perf=$(PERF_NAME)
 
 
-IV_SIM_ARGS	?= +IMG=$(IMG) +OUTPUT=$(RESULT_DIR)
+IV_SIM_ARGS	?= +IMG=$(IMG) +OUTPUT=$(RESULT_DIR) +TRACE=$(TRACE)
 ifeq ($(IVSIM),1)
 # Command to execute ivsim
 NPC_EXEC := @vvp $(IV_TARGET) $(IV_SIM_ARGS)
