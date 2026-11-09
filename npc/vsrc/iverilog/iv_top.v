@@ -8,7 +8,7 @@ module iv_top;
     localparam GPR_ADDR_WIDTH = 4;
     localparam CSR_ADDR_WIDTH = 12;
 
-    reg clk, rst;
+    reg clock, reset;
 
     // 检测core是否陷入循环，默认但指令执行周期比较短暂
     wire [31:0] core_pc[`CONFIG_CORE_NUM-1:0];
@@ -82,8 +82,8 @@ module iv_top;
 `endif
         .INST_WIDTH(INST_WIDTH)
     ) ysyx_23060295_CORE0 (
-        .clock(clk),
-        .reset(rst),
+        .clock(clock),
+        .reset(reset),
         .reset_pc(reset_pc),
         .io_interrupt(1'b0),
         .io_if_flush(io_if_flush),
@@ -124,8 +124,8 @@ module iv_top;
         .INST_WIDTH(INST_WIDTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) ysyx_23060295_memsys0 (
-        .clock(clk),
-        .reset(rst),
+        .clock(clock),
+        .reset(reset),
         .reset_pc(reset_pc),
         .io_if_flush(io_if_flush),
         .io_if_req_valid(io_if_req_valid),
@@ -191,8 +191,8 @@ module iv_top;
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) memsys (
-        .clock(clk),
-        .reset(rst),
+        .clock(clock),
+        .reset(reset),
         .io_master_awready(io_master_awready),
         .io_master_awvalid(io_master_awvalid),
         .io_master_awaddr(io_master_awaddr),
@@ -229,17 +229,17 @@ module iv_top;
 
     // 驱动clk
     initial begin
-        clk = 0;
-        forever #1 clk = ~clk;
+        clock = 0;
+        forever #1 clock = ~clock;
     end
     // 驱动rst
     initial begin
-        rst = 1;
-        #20 rst = 0;
+        reset = 1;
+        #20 reset = 0;
         // #20000 $finish;
     end
     // 输出是否符合预期
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if (trap_en && trap_cause == `EXPT_CAUSE_BRK) begin
             if (trap_tval == 0)
                 $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
