@@ -54,6 +54,7 @@ module iv_memsys #(
     localparam [2:0] REGION_FLASH = 3;
     localparam [2:0] REGION_PSRAM = 4;
     localparam [2:0] REGION_SDRAM = 5;
+    localparam [2:0] REGION_UART  = 6;
     localparam [1:0] AXI_RESP_OKAY   = 2'b00;
     localparam [1:0] AXI_RESP_SLVERR = 2'b10;
     localparam [1:0] AXI_RESP_DECERR = 2'b11;
@@ -64,6 +65,106 @@ module iv_memsys #(
     localparam [1:0] WRITE_DATA = 1;
     localparam [1:0] WRITE_RESP = 2;
     localparam [7:0] MEM_INIT_VALUE = `CONFIG_MEM_INIT_VALUE;
+
+`ifdef CONFIG_HAS_UART
+    reg [7:0] uart_dll;
+    reg [7:0] uart_dlm;
+    reg [3:0] uart_ier;
+    reg [7:0] uart_lcr;
+    reg [4:0] uart_mcr;
+    reg [7:0] uart_scratch;
+    reg [7:0] uart_rx_data;
+    reg uart_rx_ready;
+    string uart_rx_path;
+    integer uart_rx_fd;
+    integer uart_rx_next;
+
+    task automatic uart_rx_load_next;
+        begin
+            uart_rx_ready = 1'b0;
+            if (uart_rx_fd != 0) begin
+                uart_rx_next = $fgetc(uart_rx_fd);
+                if (uart_rx_next < 0) begin
+                    $fclose(uart_rx_fd);
+                    uart_rx_fd = 0;
+                end else begin
+                    uart_rx_data = uart_rx_next[7:0];
+                    uart_rx_ready = 1'b1;
+                end
+            end
+        end
+    endtask
+
+    function automatic [7:0] uart_read_byte;
+        input [2:0] offset;
+        begin
+            case (offset)
+                0: uart_read_byte = uart_lcr[7] ? uart_dll : uart_rx_data;
+                1: uart_read_byte = uart_lcr[7] ? uart_dlm : {4'b0, uart_ier};
+                2: uart_read_byte = 8'hc1;
+                3: uart_read_byte = uart_lcr;
+                4: uart_read_byte = {3'b0, uart_mcr};
+                5: uart_read_byte = {1'b0, 2'b11, 4'b0, uart_rx_ready};
+                6: uart_read_byte = 0;
+                7: uart_read_byte = uart_scratch;
+            endcase
+        end
+    endfunction
+
+    task automatic uart_write_byte;
+        input [2:0] offset;
+        input [7:0] data;
+        begin
+            case (offset)
+                0: begin
+                    if (uart_lcr[7])
+                        uart_dll = data;
+                    else if (uart_mcr[4]) begin
+                        uart_rx_data = data;
+                        uart_rx_ready = 1'b1;
+                    end else begin
+                        $write("%c", data);
+                        $fflush();
+                    end
+                end
+                1: begin
+                    if (uart_lcr[7])
+                        uart_dlm = data;
+                    else
+                        uart_ier = data[3:0];
+                end
+                2: begin
+                    if (data[1])
+                        uart_rx_load_next();
+                end
+                3: uart_lcr = data;
+                4: uart_mcr = data[4:0];
+                7: uart_scratch = data;
+                default: begin end
+            endcase
+        end
+    endtask
+
+    task automatic uart_read_commit;
+        input [ADDR_WIDTH-1:0] addr;
+        begin
+            if (addr == `CONFIG_UART_BASE_ADDR && !uart_lcr[7])
+                uart_rx_load_next();
+        end
+    endtask
+
+    initial begin
+        uart_rx_data = 0;
+        uart_rx_ready = 1'b0;
+        uart_rx_fd = 0;
+        if ($value$plusargs("UART_RX=%s", uart_rx_path)) begin
+            uart_rx_fd = $fopen(uart_rx_path, "rb");
+            if (uart_rx_fd == 0)
+                $fatal(1, "iv_memsys: cannot open UART RX file %s", uart_rx_path);
+        end
+        uart_rx_load_next();
+    end
+`endif
 
     reg [31:0] core_inst_stuck_tick;
     reg core_error /*verilator public_flat_rw*/;
@@ -120,6 +221,10 @@ module iv_memsys #(
 `ifdef CONFIG_SDRAM
             if (addr >= `CONFIG_SDRAM_BASE && (addr - `CONFIG_SDRAM_BASE) < `CONFIG_SDRAM_SIZE)
                 address_region = REGION_SDRAM;
+`endif
+`ifdef CONFIG_HAS_UART
+            if (addr >= `CONFIG_UART_BASE_ADDR && (addr - `CONFIG_UART_BASE_ADDR) < 8)
+                address_region = REGION_UART;
 `endif
         end
     endfunction
@@ -204,6 +309,9 @@ module iv_memsys #(
 `ifdef CONFIG_SDRAM
                 REGION_SDRAM: data = sdram_mem[addr - `CONFIG_SDRAM_BASE];
 `endif
+`ifdef CONFIG_HAS_UART
+                REGION_UART: data = uart_read_byte(addr[2:0]);
+`endif
                 default: begin $error("iv_memsys: read from unmapped address 0x%08x", addr); $finish; end
             endcase
             if (^data === 1'bx)
@@ -275,6 +383,10 @@ module iv_memsys #(
                     $error("iv_memsys: write to read-only address 0x%08x", addr);
                 REGION_NONE:
                     $error("iv_memsys: write to unmapped address 0x%08x", addr);
+`ifdef CONFIG_HAS_UART
+                REGION_UART:
+                    uart_write_byte(addr[2:0], data);
+`endif
                 default: image_write_byte(addr, data);
             endcase
         end
@@ -366,6 +478,9 @@ module iv_memsys #(
                         io_master_rdata <= read_aligned_word(io_master_araddr);
                         io_master_rlast <= io_master_arlen == 0;
                         io_master_rid <= io_master_arid;
+`ifdef CONFIG_HAS_UART
+                        uart_read_commit(io_master_araddr);
+`endif
                     end
                 end
                 READ_WAIT: begin
@@ -391,6 +506,10 @@ module iv_memsys #(
                             io_master_rdata <= read_aligned_word(
                                 next_beat_addr(read_addr, read_size, read_burst, read_len));
                             io_master_rlast <= read_index + 1 == read_len;
+`ifdef CONFIG_HAS_UART
+                            uart_read_commit(
+                                next_beat_addr(read_addr, read_size, read_burst, read_len));
+`endif
                         end
                     end
                 end
@@ -424,6 +543,14 @@ module iv_memsys #(
             io_master_bvalid <= 1'b0;
             io_master_bresp <= AXI_RESP_OKAY;
             io_master_bid <= 0;
+`ifdef CONFIG_HAS_UART
+            uart_dll <= 0;
+            uart_dlm <= 0;
+            uart_ier <= 0;
+            uart_lcr <= 8'h03;
+            uart_mcr <= 0;
+            uart_scratch <= 0;
+`endif
         end else begin
             case (write_state)
                 WRITE_IDLE: begin
