@@ -257,45 +257,45 @@ module iv_top;
     always @(posedge clock) begin
         if (trap_en) begin
             case (trap_cause)
-                // `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
-                //     $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
-                //     $finish;
-                // end
+                `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
+                    $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
+                    $finish;
+                end
 
                 `EXPT_CAUSE_BRK: begin // Breakpoint 3
                     // 默认_trap_handle_def处理函数：a0-a2 mepc mcause mtval
                     if (mepc == 0) begin
                         $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
                     end else begin
-                        case (mcause)
-                            `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
-                                $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
-                                $finish;
-                            end
-                            `EXPT_CAUSE_LAF: begin // Load Access Fault 5
-                                $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
-                                $finish;
-                            end
-                            `EXPT_CAUSE_SAF: begin // Store Access Fault 7
-                                $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
-                                $finish;
-                            end
-                            default: begin end 
-                        endcase
+                        // case (mcause)
+                        //     `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
+                        //         $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
+                        //         $finish;
+                        //     end
+                        //     `EXPT_CAUSE_LAF: begin // Load Access Fault 5
+                        //         $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
+                        //         $finish;
+                        //     end
+                        //     `EXPT_CAUSE_SAF: begin // Store Access Fault 7
+                        //         $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
+                        //         $finish;
+                        //     end
+                        //     default: begin end
+                        // endcase
                         $display("\033[1;31mHIT BAD TRAP\033[0m at pc = 0x%x ret: 0x%x", core_inst_pc[0], trap_tval);
                     end
                     $finish;
                 end
 
-                // `EXPT_CAUSE_LAF: begin // Load Access Fault 5
-                //     $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
-                //     $finish;
-                // end
+                `EXPT_CAUSE_LAF: begin // Load Access Fault 5
+                    $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
+                    $finish;
+                end
 
-                // `EXPT_CAUSE_SAF: begin // Store Access Fault 7
-                //     $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
-                //     $finish;
-                // end
+                `EXPT_CAUSE_SAF: begin // Store Access Fault 7
+                    $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
+                    $finish;
+                end
 
                 default: begin
 
