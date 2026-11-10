@@ -43,7 +43,8 @@ SECTIONS {
     .bootloader.ssbl : {
         _ssbl_start = ALIGN(4);
         KEEP(*(entry.ssbl))
-        _ssbl_end = ALIGN(4);
+        . = ALIGN(4);
+        _ssbl_end = .;
     } >SRAM AT>FLASH
     _ssbl_load = LOADADDR(.bootloader.ssbl);
 
@@ -56,7 +57,8 @@ SECTIONS {
         *(.rodata*)
         *(.srodata)
         *(.srodata*)
-        _text_end = ALIGN(4);
+        . = ALIGN(4);
+        _text_end = .;
     } >SDRAM AT>FLASH
     etext = .;
     _etext = .;
@@ -74,6 +76,9 @@ SECTIONS {
     _data = .;
     _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
     _data_size = _data_end - _data_start;
+    ASSERT((_ssbl_load & 3) == 0, "ssbl load address must be 4-byte aligned")
+    ASSERT((_text_load & 3) == 0, "text load address must be 4-byte aligned")
+    ASSERT((_data_load & 3) == 0, "data load address must be 4-byte aligned")
 
     .bss : {
         _bss_start = ALIGN(4);

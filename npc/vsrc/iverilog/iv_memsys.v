@@ -381,9 +381,9 @@ module iv_memsys #(
         begin
             if (load_addr != start_addr) begin
                 src_addr = load_addr;
-                for (dst_addr = start_addr; dst_addr < end_addr; dst_addr = dst_addr + 4) begin
-                    image_write_word(dst_addr, read_aligned_word(src_addr));
-                    src_addr = src_addr + 4;
+                for (dst_addr = start_addr; dst_addr < end_addr; dst_addr = dst_addr + 1) begin
+                    image_write_byte(dst_addr, read_byte(src_addr));
+                    src_addr = src_addr + 1;
                 end
             end
         end
