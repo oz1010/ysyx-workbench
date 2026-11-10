@@ -21,7 +21,8 @@ module riscv32e_core_sc #(
     input  wire                         io_if_rsp_valid,
     output reg                          io_if_rsp_ready,
     input  wire [DATA_WIDTH-1:0]        io_if_rsp_data,
-    
+    input  wire                         io_if_rsp_error,
+
     // 访问存储接口
     output wire                         io_mem_req_valid,
     input  wire                         io_mem_req_ready,
@@ -31,6 +32,12 @@ module riscv32e_core_sc #(
     input  wire                         io_mem_rsp_valid,
     output wire                         io_mem_rsp_ready,
     input  wire [DATA_WIDTH-1:0]        io_mem_rsp_data,
+    input  wire                         io_mem_rsp_error,
+
+    // gpr寄存器值
+    output wire [DATA_WIDTH-1:0]        gpr_a0,
+    output wire [DATA_WIDTH-1:0]        gpr_a1,
+    output wire [DATA_WIDTH-1:0]        gpr_a2,
 
     // gpr写入
     output wire                         gpr_wen,
@@ -60,7 +67,6 @@ module riscv32e_core_sc #(
     /* gpr寄存器组 */
     wire [DATA_WIDTH-1:0] gpr_src1;
     wire [DATA_WIDTH-1:0] gpr_src2;
-    wire [DATA_WIDTH-1:0] gpr_a0;
     gprs #(
         .DATA_WIDTH(DATA_WIDTH),
         .REG_COUNT(`RISCV_GPR_COUNT)
@@ -72,6 +78,8 @@ module riscv32e_core_sc #(
         .rs2(rs2),
         .src2(gpr_src2),
         .a0(gpr_a0),
+        .a1(gpr_a1),
+        .a2(gpr_a2),
         .wen(gpr_wen),
         .waddr(gpr_waddr),
         .wdata(gpr_wdata)

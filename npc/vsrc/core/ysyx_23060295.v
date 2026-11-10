@@ -148,6 +148,7 @@ module ysyx_23060295 (
     wire                            io_if_rsp_valid;
     wire                            io_if_rsp_ready;
     wire  [DATA_WIDTH-1:0]          io_if_rsp_data;
+    wire                            io_if_rsp_error;
     wire                            io_mem_req_valid;
     wire                            io_mem_req_ready;
     wire [ADDR_WIDTH-1:0]           io_mem_req_addr;
@@ -156,6 +157,7 @@ module ysyx_23060295 (
     wire                            io_mem_rsp_valid;
     wire                            io_mem_rsp_ready;
     wire [DATA_WIDTH-1:0]           io_mem_rsp_data;
+    wire                            io_mem_rsp_error;
     wire                            gpr_wen /* verilator public_flat_rd */;
     wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr /* verilator public_flat_rd */;
     wire [DATA_WIDTH-1:0]           gpr_wdata /* verilator public_flat_rd */;
@@ -191,6 +193,7 @@ module ysyx_23060295 (
         .io_if_rsp_valid(io_if_rsp_valid),
         .io_if_rsp_ready(io_if_rsp_ready),
         .io_if_rsp_data(io_if_rsp_data),
+        .io_if_rsp_error(io_if_rsp_error),
         .io_mem_req_valid(io_mem_req_valid),
         .io_mem_req_ready(io_mem_req_ready),
         .io_mem_req_addr(io_mem_req_addr),
@@ -199,6 +202,7 @@ module ysyx_23060295 (
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
         .io_mem_rsp_data(io_mem_rsp_data),
+        .io_mem_rsp_error(io_mem_rsp_error),
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),
@@ -233,6 +237,7 @@ module ysyx_23060295 (
         .io_if_rsp_valid(io_if_rsp_valid),
         .io_if_rsp_ready(io_if_rsp_ready),
         .io_if_rsp_data(io_if_rsp_data),
+        .io_if_rsp_error(io_if_rsp_error),
         .io_mem_req_valid(io_mem_req_valid),
         .io_mem_req_ready(io_mem_req_ready),
         .io_mem_req_addr(io_mem_req_addr),
@@ -241,6 +246,7 @@ module ysyx_23060295 (
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
         .io_mem_rsp_data(io_mem_rsp_data),
+        .io_mem_rsp_error(io_mem_rsp_error),
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),

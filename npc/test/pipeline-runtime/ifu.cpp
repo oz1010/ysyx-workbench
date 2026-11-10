@@ -29,6 +29,7 @@ static void reset(unsigned pc = 0x30000000)
     dut.io_cache_req_ready = 0;
     dut.io_cache_rsp_valid = 0;
     dut.io_cache_rsp_data = 0;
+    dut.io_cache_rsp_error = 0;
     dut.io_out_ready = 1;
     dut.io_exRedirect_valid = 0;
     dut.io_wbRedirect_valid = 0;
@@ -104,6 +105,16 @@ int main(int argc, char** argv)
     request(0x0f000000);
     reset();
     request(0x30000000);
-    std::puts("PASS IFU: redirect, WB priority, backpressure, repeated/configurable reset");
+    dut.io_cache_rsp_valid = 1;
+    dut.io_cache_rsp_error = 1;
+    dut.io_cache_rsp_data = 0x00000013;
+    dut.eval();
+    check(dut.io_out_valid && dut.io_out_bits_expt_en &&
+          dut.io_out_bits_expt_cause == 1 &&
+          dut.io_out_bits_expt_tval == 0x30000000, "fetch access fault");
+    tick();
+    dut.io_cache_rsp_valid = 0;
+    dut.io_cache_rsp_error = 0;
+    std::puts("PASS IFU: redirect, WB priority, backpressure, reset, access fault");
     dut.final();
 }

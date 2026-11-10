@@ -59,6 +59,7 @@ class BaseCache(
   val op                                                                   = RegInit(0.U(MemOp.width.W))
   val wdata                                                                = RegInit(0.U(CONFIG_DATA_WIDTH.W))
   val rspData                                                              = RegInit(0.U(CONFIG_DATA_WIDTH.W))
+  val rspError                                                             = RegInit(false.B)
   val rspCacheStat                                                         = RegInit(CacheStat.NONE)
   val flushPending                                                         = RegInit(false.B)
 
@@ -81,6 +82,7 @@ class BaseCache(
   io.cpu.req.ready := state === idle && !reset.asBool && !io.flush && !flushPending
   io.cpu.rsp.valid := state === response
   io.cpu.rsp.data  := rspData
+  io.cpu.rsp.error := rspError
   io.cacheStat     := rspCacheStat
 
   io.master.arvalid := state === readAddr
@@ -155,6 +157,7 @@ class BaseCache(
     op           := io.cpu.req.op
     wdata        := io.cpu.req.wdata
     rspData      := 0.U
+    rspError     := false.B
     rspCacheStat := CacheStat.NONE
     if (writeEn) {
       state := lookup
@@ -185,6 +188,7 @@ class BaseCache(
     when(!refill || refillTarget) {
       rspData := io.master.rdata
     }
+    rspError := rspError || io.master.rresp =/= 0.U
     // 单拍顺序填行，兼容不支持 AXI burst 的 flash 等从设备。
     state := Mux(!refill || refillLast, response, readAddr)
   }
@@ -224,7 +228,8 @@ class BaseCache(
       state := writeResp
     }
     when(state === writeResp && io.master.bFire) {
-      state := response
+      rspError := io.master.bresp =/= 0.U
+      state    := response
     }
   }
 

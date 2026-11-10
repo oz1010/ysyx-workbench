@@ -34,8 +34,11 @@ class Ifu() extends Module {
   val reqPc    = Reg(UInt(CONFIG_ADDR_WIDTH.W)) // 请求接受时的 PC，不随重定向改变
   val bufValid = RegInit(false.B) // 响应已接收但下游未就绪，缓存在 buf 中
   val buf      = Reg(new IfBundle)
-  val expt     = Reg(new Expt)
-  ExptDefaults(expt);
+  val expt     = Wire(new Expt)
+  ExptDefaults(expt)
+  expt.en    := io.cache.rsp.error
+  expt.cause := ExptCode.FETCH_ACCESS
+  expt.tval  := reqPc
 
   // 复位重置pc值
   val pc = Reg(UInt(CONFIG_ADDR_WIDTH.W))

@@ -21,6 +21,8 @@ class GprsExt
   val rs2   = IO(Input(UInt(GPR_ADDR_W.W)))
   val src2  = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
   val a0    = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val a1    = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
+  val a2    = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
   val wen   = IO(Input(Bool()))
   val waddr = IO(Input(UInt(GPR_ADDR_W.W)))
   val wdata = IO(Input(UInt(CONFIG_ADDR_WIDTH.W)))

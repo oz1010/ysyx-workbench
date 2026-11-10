@@ -312,7 +312,10 @@ module iv_memsys #(
 `ifdef CONFIG_HAS_UART
                 REGION_UART: data = uart_read_byte(addr[2:0]);
 `endif
-                default: begin $error("iv_memsys: read from unmapped address 0x%08x", addr); $finish; end
+                default: begin
+                    $display("iv_memsys: read from unmapped address 0x%08x at 0x%08x, returning DECERR", addr, core_pc);
+                    data = MEM_INIT_VALUE;
+                end
             endcase
             if (^data === 1'bx)
                 data = MEM_INIT_VALUE;
@@ -426,9 +429,9 @@ module iv_memsys #(
             region = address_region(addr);
             case (region)
                 REGION_MROM, REGION_FLASH:
-                    $error("iv_memsys: write to read-only address 0x%08x", addr);
+                    $display("iv_memsys: write to read-only address 0x%08x, returning SLVERR", addr);
                 REGION_NONE:
-                    $error("iv_memsys: write to unmapped address 0x%08x", addr);
+                    $display("iv_memsys: write to unmapped address 0x%08x, returning DECERR", addr);
 `ifdef CONFIG_HAS_UART
                 REGION_UART:
                     uart_write_byte(addr[2:0], data);

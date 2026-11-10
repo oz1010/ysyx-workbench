@@ -150,13 +150,16 @@ object InstCode {
 
 // 异常码
 object ExptCode {
-  val width        = 32.W
-  val INST_ILLEGAL = 2.U(width)
-  val INST_ECALL   = 11.U(width)
-  val INST_EBREAK  = 3.U(width)
-  val FETCH_MISS   = 0.U(width)
-  val LOAD_MISS    = 4.U(width)
-  val STORE_MISS   = 6.U(width)
+  val width         = 32.W
+  val INST_ILLEGAL  = 2.U(width)
+  val INST_ECALL    = 11.U(width)
+  val INST_EBREAK   = 3.U(width)
+  val FETCH_MISS    = 0.U(width)
+  val FETCH_ACCESS  = 1.U(width)
+  val LOAD_MISS     = 4.U(width)
+  val LOAD_ACCESS   = 5.U(width)
+  val STORE_MISS    = 6.U(width)
+  val STORE_ACCESS  = 7.U(width)
 
   def apply(): UInt = UInt(width)
 }
@@ -396,6 +399,7 @@ class CacheIO extends Bundle {
     val valid = Input(Bool())
     val ready = Output(Bool())
     val data  = Input(UInt(CONFIG_DATA_WIDTH.W))
+    val error = Input(Bool())
 
     def fire: Bool = valid && ready
   }
@@ -414,6 +418,7 @@ object CacheIOSlaveDefaults {
     io.req.ready := false.B
     io.rsp.valid := false.B
     io.rsp.data  := 0.U
+    io.rsp.error := false.B
   }
 }
 
