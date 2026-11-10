@@ -12,6 +12,8 @@ module gprs #(
     input   wire [`RISCV_GPR_ADDR_W-1:0]    rs2,
     output  wire [DATA_WIDTH-1:0]           src2,
     output  wire [DATA_WIDTH-1:0]           a0,
+    output  wire [DATA_WIDTH-1:0]           a1,
+    output  wire [DATA_WIDTH-1:0]           a2,
     
     /* 写寄存器接口 */
     input   wire                            wen,
@@ -79,6 +81,8 @@ endgenerate
 assign src1 = x[rs1];
 assign src2 = x[rs2];
 assign a0 = a[0];
+assign a1 = a[1];
+assign a2 = a[2];
 
 /* 
  * 减低延时（提高频率）优化策略：

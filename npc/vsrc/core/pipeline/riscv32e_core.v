@@ -44,6 +44,9 @@ module riscv32e_core #(
     input  wire [3:0]       io_master_rid,
 
     /* 用于调试和综合避免忽略掉信息 */
+    output wire [DATA_WIDTH-1:0] gpr_a0,
+    output wire [DATA_WIDTH-1:0] gpr_a1,
+    output wire [DATA_WIDTH-1:0] gpr_a2,
     output wire [INST_WIDTH-1:0] pc,
     output wire             valid
 );
@@ -363,7 +366,6 @@ end
 /* gpr寄存器组 */
 wire [DATA_WIDTH-1:0] gpr_src1;
 wire [DATA_WIDTH-1:0] gpr_src2;
-wire [DATA_WIDTH-1:0] gpr_a0;
 gprs #(
     .DATA_WIDTH(DATA_WIDTH),
     .REG_COUNT(`RISCV_GPR_COUNT)
@@ -375,6 +377,8 @@ gprs #(
     .rs2(con_id_rs2[3:0]),
     .src2(gpr_src2),
     .a0(gpr_a0),
+    .a1(gpr_a1),
+    .a2(gpr_a2),
     .wen(wb_gpr_wen),
     .waddr(wb_gpr_windex[3:0]),
     .wdata(wb_gpr_wdata)

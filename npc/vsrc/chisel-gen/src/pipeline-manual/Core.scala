@@ -20,6 +20,9 @@ class riscv32e_core() extends RawModule {
   val io_if_flush  = IO(Output(Bool()))
   val io_mem       = IO(new CacheIO())
   val gpr          = IO(new RegWriteIO(GPR_ADDR_W, CONFIG_DATA_WIDTH))
+  val gpr_a0       = IO(Output(UInt(CONFIG_DATA_WIDTH.W)))
+  val gpr_a1       = IO(Output(UInt(CONFIG_DATA_WIDTH.W)))
+  val gpr_a2       = IO(Output(UInt(CONFIG_DATA_WIDTH.W)))
   val csr          = IO(new RegWriteIO(CSR_ADDR_W, CONFIG_DATA_WIDTH))
   val trap         = IO(new TrapIO())
   val pc           = IO(Output(UInt(CONFIG_ADDR_WIDTH.W)))
@@ -109,6 +112,9 @@ class riscv32e_core() extends RawModule {
     // ---------------- WBU ----------------
     wbu.io.interrupt := io_interrupt
     wbu.io.gprA0 <> m_gprs.io.a0
+    gpr_a0           := m_gprs.io.a0
+    gpr_a1           := m_gprs.io.a1
+    gpr_a2           := m_gprs.io.a2
     wbu.io.gprWrite <> m_gprs.io.write
     wbu.io.csrWrite <> m_csrs.io.write
     wbu.io.csrTrap <> m_csrs.io.trap

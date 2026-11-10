@@ -23,6 +23,7 @@ class Lsu() extends Module {
   val pending = RegInit(false.B)
   val discard = RegInit(false.B)
   val responseValid = RegInit(false.B)
+  val responseError = RegInit(false.B)
   val responseData = Reg(UInt(CONFIG_DATA_WIDTH.W))
   val beatIndex = RegInit(0.U(2.W))
   val firstData = Reg(UInt(CONFIG_DATA_WIDTH.W))
@@ -51,11 +52,16 @@ class Lsu() extends Module {
     pending := false.B
     discard := false.B
     when(!discard && !io.kill) {
-      when(beatIndex +& 1.U < totalBeats) {
+      when(io.cache.rsp.error) {
+        responseValid := true.B
+        responseError := true.B
+        responseData  := io.cache.rsp.data
+      }.elsewhen(beatIndex +& 1.U < totalBeats) {
         firstData := io.cache.rsp.data
         beatIndex := beatIndex + 1.U
       }.otherwise {
         responseValid := true.B
+        responseError := false.B
         responseData  := io.cache.rsp.data
       }
     }.otherwise {
@@ -64,10 +70,12 @@ class Lsu() extends Module {
   }
   when(io.out.fire) {
     responseValid := false.B
+    responseError := false.B
     beatIndex := 0.U
   }
   when(io.kill) {
     responseValid := false.B
+    responseError := false.B
     when(pending && !io.cache.rsp.fire) {
       discard := true.B
     }.otherwise {
@@ -90,7 +98,13 @@ class Lsu() extends Module {
     )
   )
 
-  // 带异常的访存不访问 Cache，直接把完整异常信息送往 WB。
+  val expt = Wire(new Expt)
+  ExptDefaults(expt)
+  expt.en    := responseValid && responseError
+  expt.cause := Mux(in.ctrl.isStore, ExptCode.STORE_ACCESS, ExptCode.LOAD_ACCESS)
+  expt.tval  := addr + beatIndex
+
+  // 上游异常不访问 Cache；AXI 错误在本级转换为 load/store access fault。
   val memWait = isMemInst && !responseValid
   io.in.ready           := io.out.ready && !memWait && !io.kill
   io.out.valid          := io.in.valid && !memWait && !io.kill
@@ -103,5 +117,5 @@ class Lsu() extends Module {
   io.out.bits.csrAddr   := in.csrAddr
   io.out.bits.csrWdata  := in.csrWdata
   io.out.bits.csrRdata  := in.csrRdata
-  io.out.bits.expt      := in.expt
+  io.out.bits.expt      := Mux(in.expt.en, in.expt, expt)
 }

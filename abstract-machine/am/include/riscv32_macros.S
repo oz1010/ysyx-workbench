@@ -112,6 +112,17 @@
     RAM_PROGRESS_PUTC 10
 .endm
 
+/* 默认异常入口：通过a0-a2保留原始异常信息，并以ebreak上报。 */
+.section entry, "ax"
+.global _trap_handle_def
+.type _trap_handle_def, @function
+_trap_handle_def:
+    csrr a0, mepc
+    csrr a1, mcause
+    csrr a2, mtval
+    ebreak
+.size _trap_handle_def, . - _trap_handle_def
+
 /*
  * 宏：初始化内存，主要用于辅助加载。当发现是快速加载模式，则会跳过初始化。
  * 需位于镜像前导区所在的FLASH等上电即可执行的区域，
@@ -124,6 +135,9 @@
 .global _init_ram
 .type _init_ram, @function
 _init_ram:
+    la t0, _trap_handle_def
+    csrw mtvec, t0
+
     /* 快速加载模式 */
     la t0, _bin_flag
     lw t1, 0(t0)

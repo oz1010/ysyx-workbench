@@ -64,10 +64,12 @@ module pipelinetest #(
     .io_if_req_addr(if_req_addr[S]), .io_if_req_op(if_req_op[S]), \
     .io_if_req_wdata(if_req_wdata[S]), .io_if_rsp_valid(if_rsp_valid[S]), \
     .io_if_rsp_ready(if_rsp_ready[S]), .io_if_rsp_data(if_rsp_data[S]), \
+    .io_if_rsp_error(1'b0), \
     .io_mem_req_valid(mem_req_valid[S]), .io_mem_req_ready(mem_req_ready[S]), \
     .io_mem_req_addr(mem_req_addr[S]), .io_mem_req_op(mem_req_op[S]), \
     .io_mem_req_wdata(mem_req_wdata[S]), .io_mem_rsp_valid(mem_rsp_valid[S]), \
     .io_mem_rsp_ready(mem_rsp_ready[S]), .io_mem_rsp_data(mem_rsp_data[S]), \
+    .io_mem_rsp_error(1'b0), \
     .gpr_wen(gpr_wen[S]), .gpr_waddr(gpr_waddr[S]), .gpr_wdata(gpr_wdata[S]), \
     .csr_wen(csr_wen[S]), .csr_waddr(csr_waddr[S]), .csr_wdata(csr_wdata[S]), \
     .trap_en(trap_en[S]), .trap_epc(trap_epc[S]), .trap_cause(trap_cause[S]), \

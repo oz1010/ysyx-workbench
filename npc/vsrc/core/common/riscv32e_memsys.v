@@ -19,6 +19,7 @@ module riscv32e_memsys #(
     output reg                          io_if_rsp_valid,
     input wire                          io_if_rsp_ready,
     output reg [DATA_WIDTH-1:0]         io_if_rsp_data,
+    output wire                         io_if_rsp_error,
     // 访问存储接口
     input wire                          io_mem_req_valid,
     output reg                          io_mem_req_ready,
@@ -28,6 +29,7 @@ module riscv32e_memsys #(
     output reg                          io_mem_rsp_valid,
     input wire                          io_mem_rsp_ready,
     output reg  [DATA_WIDTH-1:0]        io_mem_rsp_data,
+    output wire                         io_mem_rsp_error,
     // gpr写入
     input  wire                         gpr_wen,
     input  wire [`RISCV_GPR_ADDR_W-1:0] gpr_waddr,
@@ -138,6 +140,8 @@ module riscv32e_memsys #(
     assign io_master_arsize = 0;
     assign io_master_arburst = 0;
     assign io_master_rready = 0;
+    assign io_if_rsp_error = 0;
+    assign io_mem_rsp_error = 0;
 
     // 组合取指
     always @(*) begin
@@ -214,6 +218,7 @@ module riscv32e_memsys #(
         .io_if_rsp_valid(io_if_rsp_valid),
         .io_if_rsp_ready(io_if_rsp_ready),
         .io_if_rsp_data(io_if_rsp_data),
+        .io_if_rsp_error(io_if_rsp_error),
         .io_if_rsp_cacheStat(io_if_rsp_cacheStat),
         .io_mem_req_valid(io_mem_req_valid),
         .io_mem_req_ready(io_mem_req_ready),
@@ -223,6 +228,7 @@ module riscv32e_memsys #(
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
         .io_mem_rsp_data(io_mem_rsp_data),
+        .io_mem_rsp_error(io_mem_rsp_error),
         .io_mem_rsp_cacheStat(io_mem_rsp_cacheStat),
         .io_master_arvalid(io_master_arvalid),
         .io_master_arready(io_master_arready),
@@ -260,11 +266,13 @@ module riscv32e_memsys #(
     assign io_if_req_ready = 0;
     assign io_if_rsp_valid = 0;
     assign io_if_rsp_data = 0;
+    assign io_if_rsp_error = 0;
 
     // TODO 非单周期访存取指，需要转换为axi4信号
     assign io_mem_req_ready = 0;
     assign io_mem_rsp_valid = 0;
     assign io_mem_rsp_data = 0;
+    assign io_mem_rsp_error = 0;
 
     `endif
 

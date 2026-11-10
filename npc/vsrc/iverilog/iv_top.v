@@ -25,6 +25,7 @@ module iv_top;
     wire                         io_if_rsp_valid;
     wire                         io_if_rsp_ready;
     wire [DATA_WIDTH-1:0]        io_if_rsp_data;
+    wire                         io_if_rsp_error;
     wire                         io_mem_req_valid;
     wire                         io_mem_req_ready;
     wire [ADDR_WIDTH-1:0]        io_mem_req_addr;
@@ -33,9 +34,16 @@ module iv_top;
     wire                         io_mem_rsp_valid;
     wire                         io_mem_rsp_ready;
     wire [DATA_WIDTH-1:0]        io_mem_rsp_data;
+    wire                         io_mem_rsp_error;
     wire                         gpr_wen;
     wire [GPR_ADDR_WIDTH-1:0]    gpr_waddr;
     wire [DATA_WIDTH-1:0]        gpr_wdata;
+    wire [DATA_WIDTH-1:0]        gpr_a0;
+    wire [DATA_WIDTH-1:0]        gpr_a1;
+    wire [DATA_WIDTH-1:0]        gpr_a2;
+    wire [DATA_WIDTH-1:0]        mepc = gpr_a0;
+    wire [DATA_WIDTH-1:0]        mcause = gpr_a1;
+    wire [DATA_WIDTH-1:0]        mtval = gpr_a2;
     wire                         csr_wen;
     wire [CSR_ADDR_WIDTH-1:0]    csr_waddr;
     wire [DATA_WIDTH-1:0]        csr_wdata;
@@ -95,6 +103,7 @@ module iv_top;
         .io_if_rsp_valid(io_if_rsp_valid),
         .io_if_rsp_ready(io_if_rsp_ready),
         .io_if_rsp_data(io_if_rsp_data),
+        .io_if_rsp_error(io_if_rsp_error),
         .io_mem_req_valid(io_mem_req_valid),
         .io_mem_req_ready(io_mem_req_ready),
         .io_mem_req_addr(io_mem_req_addr),
@@ -103,9 +112,13 @@ module iv_top;
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
         .io_mem_rsp_data(io_mem_rsp_data),
+        .io_mem_rsp_error(io_mem_rsp_error),
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),
+        .gpr_a0(gpr_a0),
+        .gpr_a1(gpr_a1),
+        .gpr_a2(gpr_a2),
         .csr_wen(csr_wen),
         .csr_waddr(csr_waddr),
         .csr_wdata(csr_wdata),
@@ -136,6 +149,7 @@ module iv_top;
         .io_if_rsp_valid(io_if_rsp_valid),
         .io_if_rsp_ready(io_if_rsp_ready),
         .io_if_rsp_data(io_if_rsp_data),
+        .io_if_rsp_error(io_if_rsp_error),
         .io_mem_req_valid(io_mem_req_valid),
         .io_mem_req_ready(io_mem_req_ready),
         .io_mem_req_addr(io_mem_req_addr),
@@ -144,6 +158,7 @@ module iv_top;
         .io_mem_rsp_valid(io_mem_rsp_valid),
         .io_mem_rsp_ready(io_mem_rsp_ready),
         .io_mem_rsp_data(io_mem_rsp_data),
+        .io_mem_rsp_error(io_mem_rsp_error),
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),
@@ -240,12 +255,52 @@ module iv_top;
     end
     // 输出是否符合预期
     always @(posedge clock) begin
-        if (trap_en && trap_cause == `EXPT_CAUSE_BRK) begin
-            if (trap_tval == 0)
-                $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
-            else
-                $display("\033[1;31mHIT BAD TRAP\033[0m at pc = 0x%x ret: 0x%x", core_inst_pc[0], trap_tval);
-            $finish;
+        if (trap_en) begin
+            case (trap_cause)
+                // `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
+                //     $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
+                //     $finish;
+                // end
+
+                `EXPT_CAUSE_BRK: begin // Breakpoint 3
+                    // 默认_trap_handle_def处理函数：a0-a2 mepc mcause mtval
+                    if (mepc == 0) begin
+                        $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
+                    end else begin
+                        case (mcause)
+                            `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
+                                $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
+                                $finish;
+                            end
+                            `EXPT_CAUSE_LAF: begin // Load Access Fault 5
+                                $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
+                                $finish;
+                            end
+                            `EXPT_CAUSE_SAF: begin // Store Access Fault 7
+                                $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
+                                $finish;
+                            end
+                            default: begin end 
+                        endcase
+                        $display("\033[1;31mHIT BAD TRAP\033[0m at pc = 0x%x ret: 0x%x", core_inst_pc[0], trap_tval);
+                    end
+                    $finish;
+                end
+
+                // `EXPT_CAUSE_LAF: begin // Load Access Fault 5
+                //     $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
+                //     $finish;
+                // end
+
+                // `EXPT_CAUSE_SAF: begin // Store Access Fault 7
+                //     $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
+                //     $finish;
+                // end
+
+                default: begin
+
+                end
+            endcase
         end
     end
     // 记录仿真数据
