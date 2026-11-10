@@ -372,6 +372,52 @@ module iv_memsys #(
         end
     endtask
 
+    task automatic image_copy;
+        input [31:0] load_addr;
+        input [31:0] start_addr;
+        input [31:0] end_addr;
+        reg [31:0] src_addr;
+        reg [31:0] dst_addr;
+        begin
+            if (load_addr != start_addr) begin
+                src_addr = load_addr;
+                for (dst_addr = start_addr; dst_addr < end_addr; dst_addr = dst_addr + 4) begin
+                    image_write_word(dst_addr, read_aligned_word(src_addr));
+                    src_addr = src_addr + 4;
+                end
+            end
+        end
+    endtask
+
+    task automatic fast_load_image;
+        reg [31:0] text_load;
+        reg [31:0] text_start;
+        reg [31:0] text_end;
+        reg [31:0] data_load;
+        reg [31:0] data_start;
+        reg [31:0] data_end;
+        reg [31:0] bss_start;
+        reg [31:0] bss_end;
+        reg [31:0] bss_addr;
+        begin
+            text_load = read_aligned_word(`CONFIG_IMG_LOAD + 8);
+            text_start = read_aligned_word(`CONFIG_IMG_LOAD + 12);
+            text_end = read_aligned_word(`CONFIG_IMG_LOAD + 16);
+            data_load = read_aligned_word(`CONFIG_IMG_LOAD + 20);
+            data_start = read_aligned_word(`CONFIG_IMG_LOAD + 24);
+            data_end = read_aligned_word(`CONFIG_IMG_LOAD + 28);
+            bss_start = read_aligned_word(`CONFIG_IMG_LOAD + 32);
+            bss_end = read_aligned_word(`CONFIG_IMG_LOAD + 36);
+            $display("iv_memsys: Section text [0x%x] => [0x%x, 0x%x)", text_load, text_start, text_end);
+            image_copy(text_load, text_start, text_end);
+            $display("iv_memsys: Section data [0x%x] => [0x%x, 0x%x)", data_load, data_start, data_end);
+            image_copy(data_load, data_start, data_end);
+            $display("iv_memsys: Section bss 0 => [0x%x, 0x%x)", bss_start, bss_end);
+            for (bss_addr = bss_start; bss_addr < bss_end; bss_addr = bss_addr + 4)
+                image_write_word(bss_addr, 0);
+        end
+    endtask
+
     task automatic write_byte;
         input [ADDR_WIDTH-1:0] addr;
         input [7:0] data;
@@ -408,6 +454,7 @@ module iv_memsys #(
     string image_path;
     integer image_fd;
     integer image_size;
+    reg [31:0] _bin_flag;
     initial begin
         if ($value$plusargs("IMG=%s", image_path)) begin
             image_fd = $fopen(image_path, "rb");
@@ -432,10 +479,16 @@ module iv_memsys #(
                 default: $fatal(1, "iv_memsys: image base 0x%08x is unmapped", `CONFIG_IMG_LOAD);
             endcase
             $fclose(image_fd);
-            $display("iv_memsys: loaded %0d bytes from %s at 0x%08x", image_size, image_path,
+            $display("iv_memsys: Loaded %0d bytes from %s at 0x%08x", image_size, image_path,
                      `CONFIG_IMG_LOAD);
+            _bin_flag = read_aligned_word(`CONFIG_IMG_LOAD + 4);
+            $display("iv_memsys: _bin_flag = 0x%08x", _bin_flag);
+            if (_bin_flag[0]) begin
+                fast_load_image();
+                $display("iv_memsys: fast load done");
+            end
         end else begin
-            image_write_word(`CONFIG_IMG_LOAD, 32'h0000006f);
+            $fatal(1, "iv_memsys: Need to set '+IMG=<path_to_bin>'");
         end
     end
 
