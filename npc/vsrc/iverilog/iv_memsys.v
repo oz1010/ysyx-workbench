@@ -48,14 +48,15 @@ module iv_memsys #(
     input  wire                     core_inst_done
 );
 
-    localparam [2:0] REGION_NONE  = 0;
-    localparam [2:0] REGION_SRAM  = 1;
-    localparam [2:0] REGION_MROM  = 2;
-    localparam [2:0] REGION_FLASH = 3;
-    localparam [2:0] REGION_PSRAM = 4;
-    localparam [2:0] REGION_SDRAM = 5;
-    localparam [2:0] REGION_UART  = 6;
-    localparam [2:0] REGION_PS2   = 7;
+    localparam [3:0] REGION_NONE  = 0;
+    localparam [3:0] REGION_SRAM  = 1;
+    localparam [3:0] REGION_MROM  = 2;
+    localparam [3:0] REGION_FLASH = 3;
+    localparam [3:0] REGION_PSRAM = 4;
+    localparam [3:0] REGION_SDRAM = 5;
+    localparam [3:0] REGION_UART  = 6;
+    localparam [3:0] REGION_PS2   = 7;
+    localparam [3:0] REGION_CLINT = 8;
     localparam [1:0] AXI_RESP_OKAY   = 2'b00;
     localparam [1:0] AXI_RESP_SLVERR = 2'b10;
     localparam [1:0] AXI_RESP_DECERR = 2'b11;
@@ -237,6 +238,18 @@ module iv_memsys #(
         end
     end
 
+    // 硬件滴答值
+    reg [63:0] hw_ticks;
+    always @(posedge clock) begin
+        if (reset)
+            hw_ticks <= 0;
+        else
+            hw_ticks <= hw_ticks + 1;
+    end
+`ifdef CONFIG_CORE_FREQUENCY
+    wire [63:0] local_rtc_us = hw_ticks / (`CONFIG_CORE_FREQUENCY / 1000000);  // us
+`endif
+
 `ifdef CONFIG_SRAM
     reg [7:0] sram_mem [0:`CONFIG_SRAM_SIZE-1];
 `endif
@@ -253,7 +266,7 @@ module iv_memsys #(
     reg [7:0] sdram_mem [0:`CONFIG_SDRAM_SIZE-1];
 `endif
 
-    function automatic [2:0] address_region;
+    function automatic [3:0] address_region;
         input [ADDR_WIDTH-1:0] addr;
         begin
             address_region = REGION_NONE;
@@ -285,11 +298,15 @@ module iv_memsys #(
             if (addr >= `CONFIG_PS2_BASE_ADDR && (addr - `CONFIG_PS2_BASE_ADDR) < 8)
                 address_region = REGION_PS2;
 `endif
+`ifdef CONFIG_HAS_CLINT
+            if (addr >= `CONFIG_CLINT_BASE_ADDR && (addr - `CONFIG_CLINT_BASE_ADDR) < 32'h00010000)
+                address_region = REGION_CLINT;
+`endif
         end
     endfunction
 
     function automatic integer access_latency;
-        input [2:0] region;
+        input [3:0] region;
         begin
             case (region)
                 REGION_SRAM:  access_latency = SRAM_LATENCY;
@@ -347,7 +364,7 @@ module iv_memsys #(
 
     function automatic [7:0] read_byte;
         input [ADDR_WIDTH-1:0] addr;
-        reg [2:0] region;
+        reg [3:0] region;
         reg [7:0] data;
         begin
             region = address_region(addr);
@@ -385,24 +402,85 @@ module iv_memsys #(
         end
     endfunction
 
+`ifdef CONFIG_HAS_CLINT
+    function automatic [63:0] rtc_info_from_us;
+        input [63:0] us;
+        reg [63:0] seconds;
+        reg [63:0] days;
+        reg [63:0] z;
+        reg [63:0] era;
+        reg [63:0] doe;
+        reg [63:0] yoe;
+        reg [63:0] year;
+        reg [63:0] doy;
+        reg [63:0] mp;
+        reg [63:0] month;
+        reg [63:0] day;
+        begin
+            seconds = us / 1000000;
+            days = seconds / 86400;
+            z = days + 719468;
+            era = z / 146097;
+            doe = z - era * 146097;
+            yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+            year = yoe + era * 400;
+            doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+            mp = (5 * doy + 2) / 153;
+            day = doy - (153 * mp + 2) / 5 + 1;
+            month = mp < 10 ? mp + 3 : mp - 9;
+            year = year + (month <= 2);
+
+            rtc_info_from_us = 0;
+            rtc_info_from_us[11:0] = year[11:0];
+            rtc_info_from_us[15:12] = month[3:0];
+            rtc_info_from_us[20:16] = day[4:0];
+            rtc_info_from_us[25:21] = (seconds / 3600) % 24;
+            rtc_info_from_us[31:26] = (seconds / 60) % 60;
+            rtc_info_from_us[37:32] = seconds % 60;
+        end
+    endfunction
+
+    function automatic [DATA_WIDTH-1:0] clint_read_word;
+        input [ADDR_WIDTH-1:0] addr;
+        reg [63:0] rtc_info;
+        begin
+            rtc_info = rtc_info_from_us(local_rtc_us);
+            case (addr)
+                // Get up time
+                `CONFIG_CLINT_BASE_ADDR + 32'h48: clint_read_word = local_rtc_us[31:0];
+                `CONFIG_CLINT_BASE_ADDR + 32'h4c: clint_read_word = local_rtc_us[63:32];
+                // Get linux date
+                `CONFIG_CLINT_BASE_ADDR + 32'h50: clint_read_word = rtc_info[31:0];
+                `CONFIG_CLINT_BASE_ADDR + 32'h54: clint_read_word = rtc_info[63:32];
+                default:                         clint_read_word = 0;
+            endcase
+        end
+    endfunction
+`endif
+
     function automatic [DATA_WIDTH-1:0] read_aligned_word;
         input [ADDR_WIDTH-1:0] addr;
         reg [ADDR_WIDTH-1:0] aligned_addr;
         begin
             aligned_addr = {addr[ADDR_WIDTH-1:2], 2'b00};
-            read_aligned_word = {
-                read_byte(aligned_addr + 3),
-                read_byte(aligned_addr + 2),
-                read_byte(aligned_addr + 1),
-                read_byte(aligned_addr)
-            };
+`ifdef CONFIG_HAS_CLINT
+            if (address_region(aligned_addr) == REGION_CLINT)
+                read_aligned_word = clint_read_word(aligned_addr);
+            else
+`endif
+                read_aligned_word = {
+                    read_byte(aligned_addr + 3),
+                    read_byte(aligned_addr + 2),
+                    read_byte(aligned_addr + 1),
+                    read_byte(aligned_addr)
+                };
         end
     endfunction
 
     task automatic image_write_byte;
         input [ADDR_WIDTH-1:0] addr;
         input [7:0] data;
-        reg [2:0] region;
+        reg [3:0] region;
         begin
             region = address_region(addr);
             case (region)
@@ -486,7 +564,7 @@ module iv_memsys #(
     task automatic write_byte;
         input [ADDR_WIDTH-1:0] addr;
         input [7:0] data;
-        reg [2:0] region;
+        reg [3:0] region;
         begin
             region = address_region(addr);
             case (region)
