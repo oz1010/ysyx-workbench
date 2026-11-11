@@ -20,6 +20,13 @@
 // NOTE: this is compatible to 16550
 
 #define CH_OFFSET 0
+#define DL1_OFFSET 1
+#define LCR_OFFSET 3
+#define LSR_OFFSET 5
+
+#define LCR_DLAB 0x80
+#define LSR_THRE 0x20
+#define LSR_TEMT 0x40
 
 static uint8_t *serial_base = NULL;
 
@@ -33,15 +40,25 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   switch (offset) {
     /* We bind the serial port with the host stderr in NEMU. */
     case CH_OFFSET:
-      if (is_write) serial_putc(serial_base[0]);
-      else panic("do not support read");
+      if (is_write) {
+        if ((serial_base[LCR_OFFSET] & LCR_DLAB) == 0) serial_putc(serial_base[0]);
+      } else panic("do not support read");
       break;
-    default: panic("do not support offset = %d", offset);
+    case DL1_OFFSET:
+    case LCR_OFFSET:
+      break;
+    case LSR_OFFSET:
+      if (is_write) panic("do not support write");
+      serial_base[LSR_OFFSET] = LSR_THRE | LSR_TEMT;
+      break;
+    default: panic("do not support is_write = %d offset = %d", is_write, offset);
   }
 }
 
 void init_serial() {
   serial_base = new_space(8);
+  memset(serial_base, 0, 8);
+  serial_base[LSR_OFFSET] = LSR_THRE | LSR_TEMT;
 #ifdef CONFIG_HAS_PORT_IO
   add_pio_map ("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
 #else
