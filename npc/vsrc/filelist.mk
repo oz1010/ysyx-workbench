@@ -82,6 +82,8 @@ STA_TARGET_TOP							?= ysyx_23060295
 IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
 IV_TOP_NAME 							= iv_top
 IV_TARGET								= $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
+IV_PS2_INPUT							= $(IV_GEN_DIR)/iv_ps2_input.vpi
+IV_PS2_INPUT_SRC						= $(WORK_DIR)/vsrc/iverilog/iv_ps2_input.c
 IV_DIRS-y								+= ./vsrc/iverilog
 IV_DIRS-y								+= $(VDIRS_CORE-y)
 IV_VSRCS-y 								+= $(foreach d, $(IV_DIRS-y), \
@@ -171,6 +173,10 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 $(IV_TARGET) : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v compile_chisel
 	@mkdir -p $(dir $@)
 	@iverilog -g2012 -DIN_YOSYS_STA -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
+
+$(IV_PS2_INPUT): $(IV_PS2_INPUT_SRC)
+	@mkdir -p $(dir $@)
+	@cd $(IV_GEN_DIR) && iverilog-vpi --name=iv_ps2_input $(IV_PS2_INPUT_SRC)
 
 # verilator支持的版本：
 #          +1364-1995ext+<ext>        Use Verilog 1995 with file extension <ext>

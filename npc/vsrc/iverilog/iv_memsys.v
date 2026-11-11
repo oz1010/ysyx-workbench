@@ -55,6 +55,7 @@ module iv_memsys #(
     localparam [2:0] REGION_PSRAM = 4;
     localparam [2:0] REGION_SDRAM = 5;
     localparam [2:0] REGION_UART  = 6;
+    localparam [2:0] REGION_PS2   = 7;
     localparam [1:0] AXI_RESP_OKAY   = 2'b00;
     localparam [1:0] AXI_RESP_SLVERR = 2'b10;
     localparam [1:0] AXI_RESP_DECERR = 2'b11;
@@ -166,6 +167,60 @@ module iv_memsys #(
     end
 `endif
 
+`ifdef CONFIG_HAS_PS2
+    reg [7:0] ps2_rx_data;
+    string ps2_rx_path;
+    integer ps2_rx_fd;
+    integer ps2_rx_next;
+    integer ps2_use_host;
+
+    task automatic ps2_rx_load_next;
+        begin
+            ps2_rx_data = 0;
+            if (ps2_rx_fd != 0) begin
+                ps2_rx_next = $fgetc(ps2_rx_fd);
+                if (ps2_rx_next < 0) begin
+                    $fclose(ps2_rx_fd);
+                    ps2_rx_fd = 0;
+                end else begin
+                    ps2_rx_data = ps2_rx_next[7:0];
+                end
+            end else if (ps2_use_host != 0) begin
+                ps2_rx_next = $iv_ps2_input();
+                ps2_rx_data = ps2_rx_next[7:0];
+            end
+        end
+    endtask
+
+    function automatic [7:0] ps2_read_byte;
+        input [2:0] offset;
+        begin
+            ps2_read_byte = offset == 0 ? ps2_rx_data : 0;
+        end
+    endfunction
+
+    task automatic ps2_read_commit;
+        input [ADDR_WIDTH-1:0] addr;
+        begin
+            if (addr == `CONFIG_PS2_BASE_ADDR)
+                ps2_rx_load_next();
+        end
+    endtask
+
+    initial begin
+        ps2_rx_data = 0;
+        ps2_rx_fd = 0;
+        ps2_use_host = 1;
+        if ($value$plusargs("PS2_RX=%s", ps2_rx_path)) begin
+            ps2_use_host = 0;
+            ps2_rx_fd = $fopen(ps2_rx_path, "rb");
+            if (ps2_rx_fd == 0)
+                $fatal(1, "iv_memsys: cannot open PS2 RX file %s", ps2_rx_path);
+        end
+        ps2_rx_load_next();
+    end
+`endif
+
     reg [31:0] core_inst_stuck_tick;
     reg core_error /*verilator public_flat_rw*/;
     always @(posedge clock) begin
@@ -225,6 +280,10 @@ module iv_memsys #(
 `ifdef CONFIG_HAS_UART
             if (addr >= `CONFIG_UART_BASE_ADDR && (addr - `CONFIG_UART_BASE_ADDR) < 8)
                 address_region = REGION_UART;
+`endif
+`ifdef CONFIG_HAS_PS2
+            if (addr >= `CONFIG_PS2_BASE_ADDR && (addr - `CONFIG_PS2_BASE_ADDR) < 8)
+                address_region = REGION_PS2;
 `endif
         end
     endfunction
@@ -311,6 +370,9 @@ module iv_memsys #(
 `endif
 `ifdef CONFIG_HAS_UART
                 REGION_UART: data = uart_read_byte(addr[2:0]);
+`endif
+`ifdef CONFIG_HAS_PS2
+                REGION_PS2: data = ps2_read_byte(addr[2:0]);
 `endif
                 default: begin
                     $display("iv_memsys: read from unmapped address 0x%08x at 0x%08x, returning DECERR", addr, core_pc);
@@ -436,6 +498,9 @@ module iv_memsys #(
                 REGION_UART:
                     uart_write_byte(addr[2:0], data);
 `endif
+`ifdef CONFIG_HAS_PS2
+                REGION_PS2: begin end
+`endif
                 default: image_write_byte(addr, data);
             endcase
         end
@@ -537,6 +602,9 @@ module iv_memsys #(
 `ifdef CONFIG_HAS_UART
                         uart_read_commit(io_master_araddr);
 `endif
+`ifdef CONFIG_HAS_PS2
+                        ps2_read_commit(io_master_araddr);
+`endif
                     end
                 end
                 READ_WAIT: begin
@@ -564,6 +632,10 @@ module iv_memsys #(
                             io_master_rlast <= read_index + 1 == read_len;
 `ifdef CONFIG_HAS_UART
                             uart_read_commit(
+                                next_beat_addr(read_addr, read_size, read_burst, read_len));
+`endif
+`ifdef CONFIG_HAS_PS2
+                            ps2_read_commit(
                                 next_beat_addr(read_addr, read_size, read_burst, read_len));
 `endif
                         end

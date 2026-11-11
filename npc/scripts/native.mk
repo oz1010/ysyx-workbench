@@ -43,9 +43,9 @@ override ARGS += --perf=$(PERF_NAME)
 IV_SIM_ARGS	?= +IMG=$(IMG) +OUTPUT=$(RESULT_DIR) +TRACE=$(TRACE)
 ifeq ($(IVSIM),1)
 # Command to execute ivsim
-NPC_EXEC := @vvp $(IV_TARGET) $(IV_SIM_ARGS)
+NPC_EXEC := @vvp -M$(IV_GEN_DIR) -miv_ps2_input $(IV_TARGET) $(IV_SIM_ARGS)
 PERF_MONITOR_SH=
-run-env: $(IV_TARGET) $(IMG)
+run-env: $(IV_TARGET) $(IV_PS2_INPUT) $(IMG)
 else
 # Command to execute NPC
 NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
