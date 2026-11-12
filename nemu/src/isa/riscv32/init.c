@@ -33,7 +33,7 @@ static void restart() {
   /** https://ysyx.oscc.cc/docs/2306/basic/1.8.html#%E4%BB%8Eflash%E4%B8%AD%E5%8F%96%E6%8C%87 添加学号CSR并输出学号
    * 
    */
-  cpu.csr[CSR_MVENDORID] = 0x79737978;
+  cpu.csr[CSR_MVENDORID] = *(uint32_t *)"ysyx";
   cpu.csr[CSR_MARCHID] = 0x15FDF47;
 }
 
