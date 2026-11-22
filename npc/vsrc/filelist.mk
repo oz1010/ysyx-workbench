@@ -23,7 +23,7 @@ THREADS ?= $(shell nproc)
 CHISEL_GEN_DIR_NAME = $(patsubst "%",%,$(CONFIG_CHISEL_DIR_NAME))
 CHISEL_GEN_OUT = build
 CHISEL_GEN_MODE = normal
-ifneq ($(filter sta sta-area,$(MAKECMDGOALS)),)
+ifneq ($(filter syn sta sta-area,$(MAKECMDGOALS)),)
 	CHISEL_GEN_OUT = build-sta
 	CHISEL_GEN_MODE = synthesis
 endif
@@ -77,6 +77,12 @@ GEN_STUDEN_FILE							?= $(STA_OUTPUT_DIR)/ysyx_23060295.v
 # STA_TARGET_FILE							?= $(GEN_STA_FILE)
 STA_TARGET_FILE							?= $(GEN_STUDEN_FILE)
 STA_TARGET_TOP							?= ysyx_23060295
+STA_FREQ_MHZ							?= 6000
+STA_RESULT_DIR							?= $(STA_OUTPUT_DIR)/$(STA_TARGET_TOP)-$(STA_FREQ_MHZ)MHz
+NETLIST_FILE							?= $(STA_RESULT_DIR)/$(STA_TARGET_TOP).netlist.v.sim
+STA_REPORT_FILE							?= $(STA_RESULT_DIR)/$(STA_TARGET_TOP).rpt
+STA_AREA_REPORT_FILE					?= $(STA_OUTPUT_DIR)/area-hier/area_hier.csv
+STA_SDC_FILE							?= $(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc
 
 # iverilog gen directory
 IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
@@ -149,9 +155,11 @@ VERILATOR_CFLAGS += -Wno-PINMISSING # 忽略未连接的引脚
 VERILATOR_CFLAGS += $(INCLUDES)
 
 ifeq ($(CONFIG_ISA_RISCV_PIPELINE_CHISEL), y)
-compile_chisel:
+CHISEL_DEPENDS = $(CHISEL_BUILD)
+compile_chisel: $(CHISEL_BUILD)
+$(CHISEL_BUILD): FORCE
 	@echo "\033[42m--- Compile Chisel in $(CHISEL_GEN_DIR_NAME) ---\033[0m"
-	@make verilog \
+	@$(MAKE) verilog \
 		GEN_DIR_NAME=$(CHISEL_GEN_DIR_NAME) \
 		GEN_OUT=$(CHISEL_GEN_OUT) \
 		GEN_MODE=$(CHISEL_GEN_MODE) \
@@ -160,9 +168,10 @@ else
 compile_chisel:
 	@echo "\033[42m--- Skip Compile Chisel ---\033[0m"
 endif
+FORCE:
 
 ARCHIVES_DEPENDS = $(VSRCS) $(WORK_DIR)/include/generated/autoconf.vh
-$(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
+$(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) $(CHISEL_DEPENDS)
 	@echo "\033[42m--- Generate $@ ---\033[0m"
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) $(VERILATOR_CFLAGS) \
@@ -170,7 +179,7 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) compile_chisel
 		$(addprefix -LDFLAGS , $(VLDFLAGS)) \
 		$(ARCHIVES_DEPENDS)
 
-$(IV_TARGET) : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v compile_chisel
+$(IV_TARGET) : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v $(CHISEL_DEPENDS)
 	@mkdir -p $(dir $@)
 	@iverilog -g2012 -DIN_YOSYS_STA -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
 
@@ -189,7 +198,7 @@ $(IV_PS2_INPUT): $(IV_PS2_INPUT_SRC)
 #          +1800-2023ext+<ext>        Use SystemVerilog 2023 with file extension <ext>
 # 但yosys前端目前最高为Verilog-2005，原版可以支持到sv-2023
 convert2v: $(STA_TARGET_FILE)
-$(GEN_STA_FILE): $(STA_SRC_FILES) compile_chisel
+$(GEN_STA_FILE): $(STA_SRC_FILES) $(WORK_DIR)/include/generated/autoconf.vh $(CHISEL_DEPENDS)
 	@echo convert to $@
 	@mkdir -p $(dir $@)
 	@$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
@@ -198,16 +207,27 @@ $(GEN_STA_FILE): $(STA_SRC_FILES) compile_chisel
 		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
 		+define+IN_YOSYS_STA \
 		$(STA_SRC_FILES) > $@
-$(STA_TARGET_FILE): $(GEN_STA_FILE)
+$(STA_TARGET_FILE): $(GEN_STA_FILE) $(WORK_DIR)/scripts/rename_ysyx_verilog.py
 	@echo convert to $@
 	@mkdir -p $(dir $@)
 	@python3 $(WORK_DIR)/scripts/rename_ysyx_verilog.py
 
-sta: $(STA_TARGET_FILE) compile_chisel
+syn: $(NETLIST_FILE)
+$(NETLIST_FILE): $(STA_TARGET_FILE) $(YOSYS_STA_HOME)/scripts/yosys.tcl $(CHISEL_DEPENDS)
+	@echo start yosys-sync
+	@$(MAKE) -C $(YOSYS_STA_HOME) syn \
+		DESIGN=$(STA_TARGET_TOP) SDC_FILE=$(STA_SDC_FILE) \
+		CLK_FREQ_MHZ=$(STA_FREQ_MHZ) CLK_PORT_NAME=clock O=$(STA_OUTPUT_DIR) \
+		OUTPUT_DIR=$(STA_OUTPUT_DIR) \
+		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
+		RTL_FILES="$(STA_TARGET_FILE)"
+
+sta: $(STA_REPORT_FILE)
+$(STA_REPORT_FILE): $(NETLIST_FILE) $(STA_SDC_FILE) $(YOSYS_STA_HOME)/scripts/sta.tcl $(CHISEL_DEPENDS)
 	@echo start yosys-sta
-	@make -C $(YOSYS_STA_HOME) sta \
-		DESIGN=$(STA_TARGET_TOP) SDC_FILE=$(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc \
-		CLK_FREQ_MHZ=6000 CLK_PORT_NAME=clock O=$(STA_OUTPUT_DIR) \
+	@$(MAKE) -C $(YOSYS_STA_HOME) sta \
+		DESIGN=$(STA_TARGET_TOP) SDC_FILE=$(STA_SDC_FILE) \
+		CLK_FREQ_MHZ=$(STA_FREQ_MHZ) CLK_PORT_NAME=clock O=$(STA_OUTPUT_DIR) \
 		OUTPUT_DIR=$(STA_OUTPUT_DIR) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
 		RTL_FILES="$(STA_TARGET_FILE)"
@@ -218,15 +238,16 @@ sta: $(STA_TARGET_FILE) compile_chisel
 YOSYS_PDK		?= icsprout55
 YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/liberty/ics55_LLSC_H7CL_typ_tt_1p2_25_nldm.lib
 
-sta-area: $(STA_TARGET_FILE) | $(WORK_DIR)/scripts/yosys_area_hier.tcl compile_chisel
+sta-area: $(STA_AREA_REPORT_FILE)
+$(STA_AREA_REPORT_FILE): $(STA_TARGET_FILE) $(WORK_DIR)/scripts/yosys_area_hier.tcl $(WORK_DIR)/scripts/area_hier_report.py $(YOSYS_STA_LIB) $(CHISEL_DEPENDS)
 	@echo start yosys-area-hier
-	@mkdir -p $(STA_OUTPUT_DIR)/area-hier
+	@mkdir -p $(dir $@)
 	@yosys -l $(STA_OUTPUT_DIR)/area-hier/yosys.log -p \
 		"tcl $(WORK_DIR)/scripts/yosys_area_hier.tcl $(STA_TARGET_TOP) $(YOSYS_STA_LIB) \
 			\"$(abspath $(STA_TARGET_FILE))\" $(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
 			\"$(abspath $(STA_INCLUDE_DIR))\""
 	@python3 $(WORK_DIR)/scripts/area_hier_report.py \
 		$(STA_OUTPUT_DIR)/area-hier/stat_hier.txt \
-		--csv $(STA_OUTPUT_DIR)/area-hier/area_hier.csv
+		--csv $@
 
-.PHONY: sta sta-area convert2v
+.PHONY: sta sta-area convert2v syn compile_chisel FORCE
