@@ -92,6 +92,26 @@ module ysyx_23060295 (
     output wire [31:0]  io_slave_rdata,
     output wire         io_slave_rlast,
     output wire [3:0]   io_slave_rid
+`ifdef NETLIST
+    ,
+    output wire [31:0]  iv_core_pc,
+    output wire [31:0]  iv_core_inst_pc,
+    output wire         iv_core_inst_done,
+    output wire         iv_gpr_wen,
+    output wire [3:0]   iv_gpr_waddr,
+    output wire [31:0]  iv_gpr_wdata,
+    output wire [31:0]  iv_gpr_a0,
+    output wire [31:0]  iv_gpr_a1,
+    output wire [31:0]  iv_gpr_a2,
+    output wire         iv_csr_wen,
+    output wire [11:0]  iv_csr_waddr,
+    output wire [31:0]  iv_csr_wdata,
+    output wire         iv_trap_en,
+    output wire [31:0]  iv_trap_epc,
+    output wire [31:0]  iv_trap_cause,
+    output wire [31:0]  iv_trap_tval,
+    output wire [31:0]  iv_trap_status
+`endif
 );
 
     localparam ADDR_WIDTH = 32;
@@ -161,6 +181,9 @@ module ysyx_23060295 (
     wire                            gpr_wen /* verilator public_flat_rd */;
     wire [`RISCV_GPR_ADDR_W-1:0]    gpr_waddr /* verilator public_flat_rd */;
     wire [DATA_WIDTH-1:0]           gpr_wdata /* verilator public_flat_rd */;
+    wire [DATA_WIDTH-1:0]           gpr_a0;
+    wire [DATA_WIDTH-1:0]           gpr_a1;
+    wire [DATA_WIDTH-1:0]           gpr_a2;
     wire                            csr_wen /* verilator public_flat_rd */;
     wire [`CSR_ADDR_W-1:0]          csr_waddr /* verilator public_flat_rd */;
     wire [DATA_WIDTH-1:0]           csr_wdata /* verilator public_flat_rd */;
@@ -206,6 +229,9 @@ module ysyx_23060295 (
         .gpr_wen(gpr_wen),
         .gpr_waddr(gpr_waddr),
         .gpr_wdata(gpr_wdata),
+        .gpr_a0(gpr_a0),
+        .gpr_a1(gpr_a1),
+        .gpr_a2(gpr_a2),
         .csr_wen(csr_wen),
         .csr_waddr(csr_waddr),
         .csr_wdata(csr_wdata),
@@ -291,5 +317,25 @@ module ysyx_23060295 (
 
         .done()
     );
+
+`ifdef NETLIST
+    assign iv_core_pc = core_pc[0];
+    assign iv_core_inst_pc = core_inst_pc[0];
+    assign iv_core_inst_done = core_inst_done[0];
+    assign iv_gpr_wen = gpr_wen;
+    assign iv_gpr_waddr = gpr_waddr;
+    assign iv_gpr_wdata = gpr_wdata;
+    assign iv_gpr_a0 = gpr_a0;
+    assign iv_gpr_a1 = gpr_a1;
+    assign iv_gpr_a2 = gpr_a2;
+    assign iv_csr_wen = csr_wen;
+    assign iv_csr_waddr = csr_waddr;
+    assign iv_csr_wdata = csr_wdata;
+    assign iv_trap_en = trap_en;
+    assign iv_trap_epc = trap_epc;
+    assign iv_trap_cause = trap_cause;
+    assign iv_trap_tval = trap_tval;
+    assign iv_trap_status = trap_status;
+`endif
 
 endmodule

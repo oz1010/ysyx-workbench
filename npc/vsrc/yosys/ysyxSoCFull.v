@@ -62,6 +62,26 @@ module ysyxSoCFull (
     output wire [31:0]  io_slave_rdata,
     output wire         io_slave_rlast,
     output wire [3:0]   io_slave_rid
+`ifdef NETLIST
+    ,
+    output wire [31:0]  iv_core_pc,
+    output wire [31:0]  iv_core_inst_pc,
+    output wire         iv_core_inst_done,
+    output wire         iv_gpr_wen,
+    output wire [3:0]   iv_gpr_waddr,
+    output wire [31:0]  iv_gpr_wdata,
+    output wire [31:0]  iv_gpr_a0,
+    output wire [31:0]  iv_gpr_a1,
+    output wire [31:0]  iv_gpr_a2,
+    output wire         iv_csr_wen,
+    output wire [11:0]  iv_csr_waddr,
+    output wire [31:0]  iv_csr_wdata,
+    output wire         iv_trap_en,
+    output wire [31:0]  iv_trap_epc,
+    output wire [31:0]  iv_trap_cause,
+    output wire [31:0]  iv_trap_tval,
+    output wire [31:0]  iv_trap_status
+`endif
 );
 
 `ifdef IN_YOSYS_STA
@@ -129,6 +149,26 @@ ysyx_23060295 m_core0(
     .io_slave_rdata(io_slave_rdata),
     .io_slave_rlast(io_slave_rlast),
     .io_slave_rid(io_slave_rid)
+`ifdef NETLIST
+    ,
+    .iv_core_pc(iv_core_pc),
+    .iv_core_inst_pc(iv_core_inst_pc),
+    .iv_core_inst_done(iv_core_inst_done),
+    .iv_gpr_wen(iv_gpr_wen),
+    .iv_gpr_waddr(iv_gpr_waddr),
+    .iv_gpr_wdata(iv_gpr_wdata),
+    .iv_gpr_a0(iv_gpr_a0),
+    .iv_gpr_a1(iv_gpr_a1),
+    .iv_gpr_a2(iv_gpr_a2),
+    .iv_csr_wen(iv_csr_wen),
+    .iv_csr_waddr(iv_csr_waddr),
+    .iv_csr_wdata(iv_csr_wdata),
+    .iv_trap_en(iv_trap_en),
+    .iv_trap_epc(iv_trap_epc),
+    .iv_trap_cause(iv_trap_cause),
+    .iv_trap_tval(iv_trap_tval),
+    .iv_trap_status(iv_trap_status)
+`endif
 );
 
 endmodule
