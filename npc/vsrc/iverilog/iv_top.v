@@ -83,6 +83,77 @@ module iv_top;
     wire                         io_master_rlast;
     wire [3:0]                   io_master_rid;
 
+`ifdef NETLIST
+    ysyx_23060295 core (
+        .clock(clock),
+        .reset(reset),
+        .io_interrupt(1'b0),
+        .io_master_awready(io_master_awready),
+        .io_master_awvalid(io_master_awvalid),
+        .io_master_awaddr(io_master_awaddr),
+        .io_master_awid(io_master_awid),
+        .io_master_awlen(io_master_awlen),
+        .io_master_awsize(io_master_awsize),
+        .io_master_awburst(io_master_awburst),
+        .io_master_wready(io_master_wready),
+        .io_master_wvalid(io_master_wvalid),
+        .io_master_wdata(io_master_wdata),
+        .io_master_wstrb(io_master_wstrb),
+        .io_master_wlast(io_master_wlast),
+        .io_master_bready(io_master_bready),
+        .io_master_bvalid(io_master_bvalid),
+        .io_master_bresp(io_master_bresp),
+        .io_master_bid(io_master_bid),
+        .io_master_arready(io_master_arready),
+        .io_master_arvalid(io_master_arvalid),
+        .io_master_araddr(io_master_araddr),
+        .io_master_arid(io_master_arid),
+        .io_master_arlen(io_master_arlen),
+        .io_master_arsize(io_master_arsize),
+        .io_master_arburst(io_master_arburst),
+        .io_master_rready(io_master_rready),
+        .io_master_rvalid(io_master_rvalid),
+        .io_master_rresp(io_master_rresp),
+        .io_master_rdata(io_master_rdata),
+        .io_master_rlast(io_master_rlast),
+        .io_master_rid(io_master_rid),
+        .io_slave_awvalid(1'b0),
+        .io_slave_awaddr(32'b0),
+        .io_slave_awid(4'b0),
+        .io_slave_awlen(8'b0),
+        .io_slave_awsize(3'b0),
+        .io_slave_awburst(2'b0),
+        .io_slave_wvalid(1'b0),
+        .io_slave_wdata(32'b0),
+        .io_slave_wstrb(4'b0),
+        .io_slave_wlast(1'b0),
+        .io_slave_bready(1'b0),
+        .io_slave_arvalid(1'b0),
+        .io_slave_araddr(32'b0),
+        .io_slave_arid(4'b0),
+        .io_slave_arlen(8'b0),
+        .io_slave_arsize(3'b0),
+        .io_slave_arburst(2'b0),
+        .io_slave_rready(1'b0),
+        .iv_core_pc(core_pc[0]),
+        .iv_core_inst_pc(core_inst_pc[0]),
+        .iv_core_inst_done(core_inst_done[0]),
+        .iv_gpr_wen(gpr_wen),
+        .iv_gpr_waddr(gpr_waddr),
+        .iv_gpr_wdata(gpr_wdata),
+        .iv_gpr_a0(gpr_a0),
+        .iv_gpr_a1(gpr_a1),
+        .iv_gpr_a2(gpr_a2),
+        .iv_csr_wen(csr_wen),
+        .iv_csr_waddr(csr_waddr),
+        .iv_csr_wdata(csr_wdata),
+        .iv_trap_en(trap_en),
+        .iv_trap_epc(trap_epc),
+        .iv_trap_cause(trap_cause),
+        .iv_trap_tval(trap_tval),
+        .iv_trap_status(trap_status)
+    );
+`else
 `ifdef CONFIG_ISA_RISCV_SINGLE
     riscv32e_core_sc #(
 `else
@@ -201,6 +272,7 @@ module iv_top;
         .io_master_rid(io_master_rid),
         .done()
     );
+`endif
 
     iv_memsys #(
         .ADDR_WIDTH(ADDR_WIDTH),

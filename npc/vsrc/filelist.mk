@@ -69,7 +69,7 @@ REF_STA_FILES							+= $(foreach d, $(REF_STA_DIRS), \
 STA_SRC_FILES							?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
 STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
-STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys
+STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys$(if $(filter 1,$(NETLIST)),-sim,)
 GEN_STA_FILE							?= $(STA_OUTPUT_DIR)/$(VMOD_NAME).v
 GEN_STUDEN_FILE							?= $(STA_OUTPUT_DIR)/ysyx_23060295.v
 # 最终综合目标分析文件，也可以是一个列表
@@ -84,18 +84,28 @@ STA_REPORT_FILE							?= $(STA_RESULT_DIR)/$(STA_TARGET_TOP).rpt
 STA_AREA_REPORT_FILE					?= $(STA_OUTPUT_DIR)/area-hier/area_hier.csv
 STA_SDC_FILE							?= $(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc
 
+YOSYS_PDK								?= icsprout55
+YOSYS_STA_LIB							?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/liberty/ics55_LLSC_H7CL_typ_tt_1p2_25_nldm.lib
+YOSYS_STDCELL_VERILOG					?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/verilog/ics55_LLSC_H7CL.v
+
 # iverilog gen directory
 IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
 IV_TOP_NAME 							= iv_top
-IV_TARGET								= $(IV_GEN_DIR)/$(IV_TOP_NAME).vvp
+IV_TARGET								= $(IV_GEN_DIR)/$(IV_TOP_NAME)$(if $(filter 1,$(NETLIST)),_netlist,).vvp
 IV_PS2_INPUT							= $(IV_GEN_DIR)/iv_ps2_input.vpi
 IV_PS2_INPUT_SRC						= $(WORK_DIR)/vsrc/iverilog/iv_ps2_input.c
 IV_DIRS-y								+= ./vsrc/iverilog
+ifneq ($(NETLIST),1)
 IV_DIRS-y								+= $(VDIRS_CORE-y)
+endif
 IV_VSRCS-y 								+= $(foreach d, $(IV_DIRS-y), \
 												$(wildcard $(d)/*.v) \
 												$(wildcard $(d)/*.sv) \
 											)
+ifeq ($(NETLIST),1)
+IV_VSRCS-y								+= $(NETLIST_FILE) $(YOSYS_STDCELL_VERILOG)
+IV_DEFINES								+= NETLIST functional
+endif
 IV_INC_PATH	+= $(WORK_DIR)/include
 IV_INC_PATH	+= $(VDIRS_CORE-y)
 
@@ -181,7 +191,7 @@ $(VGEN_DIR)/libV$(VMOD_NAME).a: $(ARCHIVES_DEPENDS) $(CHISEL_DEPENDS)
 
 $(IV_TARGET) : $(IV_VSRCS-y) $(WORK_DIR)/include/generated/autoconf.vh $(WORK_DIR)/vsrc/core/common/riscv32e_defines.v $(CHISEL_DEPENDS)
 	@mkdir -p $(dir $@)
-	@iverilog -g2012 -DIN_YOSYS_STA -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
+	@iverilog -g2012 -DIN_YOSYS_STA $(addprefix -D,$(IV_DEFINES)) -s $(IV_TOP_NAME) $(addprefix -I,$(IV_INC_PATH)) -o $@ $(IV_VSRCS-y)
 
 $(IV_PS2_INPUT): $(IV_PS2_INPUT_SRC)
 	@mkdir -p $(dir $@)
@@ -206,11 +216,12 @@ $(GEN_STA_FILE): $(STA_SRC_FILES) $(WORK_DIR)/include/generated/autoconf.vh $(CH
 		+1800-2005ext+ \
 		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
 		+define+IN_YOSYS_STA \
+		$(if $(filter 1,$(NETLIST)),+define+NETLIST,) \
 		$(STA_SRC_FILES) > $@
 $(STA_TARGET_FILE): $(GEN_STA_FILE) $(WORK_DIR)/scripts/rename_ysyx_verilog.py
 	@echo convert to $@
 	@mkdir -p $(dir $@)
-	@python3 $(WORK_DIR)/scripts/rename_ysyx_verilog.py
+	@python3 $(WORK_DIR)/scripts/rename_ysyx_verilog.py $(GEN_STA_FILE) -o $(STA_TARGET_FILE) --top $(VMOD_NAME)
 
 syn: $(NETLIST_FILE)
 $(NETLIST_FILE): $(STA_TARGET_FILE) $(YOSYS_STA_HOME)/scripts/yosys.tcl $(CHISEL_DEPENDS)
@@ -235,9 +246,6 @@ $(STA_REPORT_FILE): $(NETLIST_FILE) $(STA_SDC_FILE) $(YOSYS_STA_HOME)/scripts/st
 # 层级化面积统计: 不 flatten, stat 按模块分别报告面积, 用于定位流水线各模块占比
 # YOSYS_PDK		?= nangate45
 # YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/$(YOSYS_PDK)/lib/Nangate45_typ.lib
-YOSYS_PDK		?= icsprout55
-YOSYS_STA_LIB	?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/liberty/ics55_LLSC_H7CL_typ_tt_1p2_25_nldm.lib
-
 sta-area: $(STA_AREA_REPORT_FILE)
 $(STA_AREA_REPORT_FILE): $(STA_TARGET_FILE) $(WORK_DIR)/scripts/yosys_area_hier.tcl $(WORK_DIR)/scripts/area_hier_report.py $(YOSYS_STA_LIB) $(CHISEL_DEPENDS)
 	@echo start yosys-area-hier

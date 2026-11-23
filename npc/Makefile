@@ -33,6 +33,10 @@ GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
 NAME	= $(GUEST_ISA)-npc-$(ENGINE)
 
+ifeq ($(NETLIST),1)
+override IVSIM := 1
+endif
+
 # Include all filelist.mk to merge file lists
 FILELIST_MK = $(shell find -L ./src -name "filelist.mk")
 FILELIST_MK += $(shell find -L ./vsrc -name "filelist.mk")
