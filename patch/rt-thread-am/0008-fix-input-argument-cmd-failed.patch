@@ -1,0 +1,48 @@
+From 4aa82a65cf1fdd90dfbc0292c8d473391eb0c0f0 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Fri, 7 Feb 2025 18:54:42 +0800
+Subject: [PATCH 08/21] fix: input argument cmd failed
+
+---
+ bsp/abstract-machine/src/uart.c | 2 +-
+ components/finsh/msh.c          | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index 9372800..06e74a6 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -147,7 +147,7 @@ static int _uart_getc(struct rt_serial_device *serial)
+ {
+     static uint32_t last_key = 0;
+     static bool shift_down = false;
+-    static const char *greeting = "input from VGA";
++    static const char *greeting = "am_hello RT-Thread\n";
+ 
+     uint32_t last_code = last_key & 0xFF;
+ #if HAS_GUI
+diff --git a/components/finsh/msh.c b/components/finsh/msh.c
+index a63e34d..12aed67 100644
+--- a/components/finsh/msh.c
++++ b/components/finsh/msh.c
+@@ -179,7 +179,7 @@ static cmd_function_t msh_get_cmd(char *cmd, int size)
+             index < _syscall_table_end;
+             FINSH_NEXT_SYSCALL(index))
+     {
+-        if (strncmp(index->name, cmd, size) == 0 &&
++        if (rt_strncmp(index->name, cmd, size) == 0 &&
+                 index->name[size] == '\0')
+         {
+             cmd_func = (cmd_function_t)index->func;
+@@ -280,7 +280,7 @@ static int _msh_exec_cmd(char *cmd, rt_size_t length, int *retp)
+         return -RT_ERROR;
+ 
+     cmd_func = msh_get_cmd(cmd, cmd0_size);
+-    if (cmd_func == RT_NULL)
++        if (cmd_func == RT_NULL)
+         return -RT_ERROR;
+ 
+     /* split arguments */
+-- 
+2.34.1
+

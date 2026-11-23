@@ -128,9 +128,9 @@ wire [3:0]                  s_rids[0:SLAVE_COUNT-1];
 wire [31:0] s_slave_start_addrs[0:SLAVE_COUNT-1];
 wire [31:0] s_slave_end_addrs[0:SLAVE_COUNT-1];
 generate
-    for (genvar i = 0; i<SLAVE_COUNT; ++i) begin
+    for (genvar i = 0; i<SLAVE_COUNT; ++i) begin : slave_connections
         // DEFAULT
-        if (i==0) begin
+        if (i==0) begin : default_slave
             assign s_slave_start_addrs[i] = 32'h0000_0000;
             assign s_slave_end_addrs[i] = 32'h0000_0000;
             assign s_awreadys[i] = 0;
@@ -144,7 +144,7 @@ generate
             assign s_rdatas[i] = 0;
             assign s_rlasts[i] = 0;
             assign s_rids[i] = 0;
-        end else begin
+        end else begin : user_slave
             integer slave_idx = (USER_S_COUNT-i);
             assign s_slave_start_addrs[i] = u_slave_addrs[64*slave_idx+32 +: 32];
             assign s_slave_end_addrs[i] = u_slave_addrs[64*slave_idx+0 +: 32];

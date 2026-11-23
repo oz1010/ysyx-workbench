@@ -1,0 +1,104 @@
+From 845328741e23375ea120c90eed4d6222f567cba4 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Mon, 2 Nov 2026 14:11:04 +0800
+Subject: [PATCH 20/21] =?UTF-8?q?feat:=20=E6=96=B0=E5=A2=9E=E7=BB=88?=
+ =?UTF-8?q?=E7=AB=AF=E9=94=AE=E7=9B=98=E4=BE=BF=E4=BA=8ENPC=E8=B0=83?=
+ =?UTF-8?q?=E8=AF=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .gitignore                       |  1 +
+ bsp/abstract-machine/src/hello.c |  4 +++-
+ bsp/abstract-machine/src/uart.c  | 15 +++++++++++----
+ include/rtdbg.h                  | 10 ++++++----
+ 4 files changed, 21 insertions(+), 9 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index 558b09f..883a896 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -51,3 +51,4 @@ tags
+ CMakeLists.txt
+ cmake-build-debug
+ *.mk
++*.patch
+diff --git a/bsp/abstract-machine/src/hello.c b/bsp/abstract-machine/src/hello.c
+index 61f8560..0ca61e0 100644
+--- a/bsp/abstract-machine/src/hello.c
++++ b/bsp/abstract-machine/src/hello.c
+@@ -7,10 +7,12 @@ static int hello() {
+ 
+ #if NVBOARD_SERIAL
+   LOG_W("Input from NVBoard serial.");
+-  #elif NVBOARD_KEYBOARD
++#elif NVBOARD_KEYBOARD
+   LOG_W("Input from NVBoard keyboard.");
+ #elif HAS_GUI
+   LOG_W("Input from GUI.");
++#elif TERMINAL_KEYBOARD
++  LOG_W("Input from terminal keyboard.");
+ #else
+   LOG_W("Not set GUI or NVBoard, connot input from keyboard.");
+ #endif
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index ac82c02..29377a3 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -143,11 +143,8 @@ static int _uart_putc(struct rt_serial_device *serial, char c)
+     return 1;
+ }
+ 
+-static int _uart_getc(struct rt_serial_device *serial)
++static int _uart_keyboard_handle(struct rt_serial_device *serial)
+ {
+-#if NVBOARD_SERIAL
+-    return getch();
+-#elif NVBOARD_KEYBOARD
+     static uint32_t last_key = 0;
+     static bool shift_down = false;
+     // static const char *greeting = "am_hello RT-Thread\n";
+@@ -192,6 +189,16 @@ static int _uart_getc(struct rt_serial_device *serial)
+         ret = last_code;
+     }
+     return ret;
++}
++
++static int _uart_getc(struct rt_serial_device *serial)
++{
++#if NVBOARD_SERIAL
++    return getch();
++#elif NVBOARD_KEYBOARD
++    return _uart_keyboard_handle(serial);
++#elif TERMINAL_KEYBOARD
++    return _uart_keyboard_handle(serial);
+ #elif HAS_GUI
+     static uint32_t last_key = 0;
+     static bool shift_down = false;
+diff --git a/include/rtdbg.h b/include/rtdbg.h
+index 5c26cb8..da1c28b 100644
+--- a/include/rtdbg.h
++++ b/include/rtdbg.h
+@@ -32,12 +32,14 @@
+ 
+ #include <rtconfig.h>
+ 
+-// VGA显示开关
++// VGA显示开关，配置需要打开NVBoard + VGA设备
+ #define HAS_GUI             0
+-// NVBoard串口开关
++// NVBoard串口开关，配置需要打开NVBoard + 串口设备
+ #define NVBOARD_SERIAL      0
+-// NVBoard键盘开关
+-#define NVBOARD_KEYBOARD    1
++// NVBoard键盘开关，配置需要打开NVBoard + PS2设备
++#define NVBOARD_KEYBOARD    0
++// 终端键盘开关，配置需要关闭NVBoard，并打开PS2设备
++#define TERMINAL_KEYBOARD   1
+ 
+ #ifdef __cplusplus
+ extern "C" {
+-- 
+2.34.1
+

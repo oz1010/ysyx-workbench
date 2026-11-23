@@ -1,0 +1,26 @@
+From 84579abcca78001437dbe6b91fa412736ec3fb9e Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Thu, 29 May 2025 13:31:55 +0800
+Subject: [PATCH 10/21] =?UTF-8?q?feat:=20=E6=96=B0=E5=A2=9ERT-Thread?=
+ =?UTF-8?q?=E5=9F=BA=E6=9C=AC=E4=BD=BF=E7=94=A8=E6=96=B9=E6=B3=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ Readme.md | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Readme.md b/Readme.md
+index fe490b4..8eb4690 100644
+--- a/Readme.md
++++ b/Readme.md
+@@ -36,3 +36,5 @@ Assertion fail at rt-thread-am/bsp/abstract-machine/src/context.c:29
+ ```
+ 
+ 运行后触发了assertion, 这是因为代码中有部分功能需要大家实现.
++
++需要增加device + VGA（用于捕获输入）
+-- 
+2.34.1
+

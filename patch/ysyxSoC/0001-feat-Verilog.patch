@@ -1,0 +1,36 @@
+From 18a9fbff31bb4a65f33377c9b63d77b7642de366 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Mon, 23 Nov 2026 20:29:33 +0800
+Subject: [PATCH 1/2] =?UTF-8?q?feat:=20=E7=94=9F=E6=88=90Verilog=E6=97=B6?=
+ =?UTF-8?q?=E6=9B=BF=E6=8D=A2=E5=AD=A6=E5=8F=B7?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ Makefile | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index c30262e..ee909f9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,7 @@
+ V_FILE_GEN   = build/ysyxSoCTop.sv
+ V_FILE_FINAL = build/ysyxSoCFull.v
+ SCALA_FILES = $(shell find src/ -name "*.scala")
++STUID ?= ysyx_23060295
+ 
+ # Firtool version
+ FIRTOOL_VERSION = 1.105.0
+@@ -13,6 +14,7 @@ $(V_FILE_FINAL): $(SCALA_FILES)
+ 	CHISEL_FIRTOOL_PATH=$(FIRTOOL_PATCH_DIR)/firtool-$(FIRTOOL_VERSION)/bin \
+ 	mill -i ysyxsoc.runMain ysyx.Elaborate --target-dir $(@D)
+ 	mv $(V_FILE_GEN) $@
++	sed -i -e 's/ysyx_00000000/$(STUID)/g' $@
+ 	sed -i -e 's/_\(aw\|ar\|w\|r\|b\)_\(\|bits_\)/_\1/g' $@
+ 	sed -i '/firrtl_black_box_resource_files.f/, $$d' $@
+ 
+-- 
+2.34.1
+

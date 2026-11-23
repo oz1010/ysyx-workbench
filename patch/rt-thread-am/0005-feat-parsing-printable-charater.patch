@@ -1,0 +1,190 @@
+From d295ac06ebb9af1f5a6003b72cd105b7697a1b4b Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Mon, 27 Jan 2025 10:11:10 +0800
+Subject: [PATCH 05/21] feat: parsing printable charater
+
+---
+ bsp/abstract-machine/src/uart.c | 151 ++++++++++++++++++++++++++------
+ 1 file changed, 124 insertions(+), 27 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index 13af72e..17df357 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -29,12 +29,96 @@ static struct device_uart uart0;
+ #define KEY_ITEM_MAP(key) [AM_KEY_##key] = {AM_KEY_##key, #key},
+ typedef struct key_item
+ {
+-    int code;    // 键盘扫描码
+-    char *ascii; // ASCII字符串
++    uint32_t code;     // 键盘扫描码
++    char *name;        // 按键名称
++    uint32_t ascii[2]; // ASCII码，未按下shift为索引0，按下shift为索引1
+ } key_item_t;
+ 
+ static key_item_t key_items[] = {
+-    AM_KEYS(KEY_ITEM_MAP)};
++    // AM_KEYS(KEY_ITEM_MAP)
++    [AM_KEY_ESCAPE] = {AM_KEY_ESCAPE, "ESCAPE", {'\x1B', '\x1B'}},
++    [AM_KEY_F1] = {AM_KEY_F1, "F1", {'\x70', '\x70'}},
++    [AM_KEY_F2] = {AM_KEY_F2, "F2", {'\x71', '\x71'}},
++    [AM_KEY_F3] = {AM_KEY_F3, "F3", {'\x72', '\x72'}},
++    [AM_KEY_F4] = {AM_KEY_F4, "F4", {'\x73', '\x73'}},
++    [AM_KEY_F5] = {AM_KEY_F5, "F5", {'\x74', '\x74'}},
++    [AM_KEY_F6] = {AM_KEY_F6, "F6", {'\x75', '\x75'}},
++    [AM_KEY_F7] = {AM_KEY_F7, "F7", {'\x76', '\x76'}},
++    [AM_KEY_F8] = {AM_KEY_F8, "F8", {'\x77', '\x77'}},
++    [AM_KEY_F9] = {AM_KEY_F9, "F9", {'\x78', '\x78'}},
++    [AM_KEY_F10] = {AM_KEY_F10, "F10", {'\x79', '\x79'}},
++    [AM_KEY_F11] = {AM_KEY_F11, "F11", {'\x7A', '\x7A'}},
++    [AM_KEY_F12] = {AM_KEY_F12, "F12", {'\x7B', '\x7B'}},
++    [AM_KEY_GRAVE] = {AM_KEY_GRAVE, "GRAVE", {'`', '~'}},
++    [AM_KEY_1] = {AM_KEY_1, "1", {'1', '!'}},
++    [AM_KEY_2] = {AM_KEY_2, "2", {'2', '@'}},
++    [AM_KEY_3] = {AM_KEY_3, "3", {'3', '#'}},
++    [AM_KEY_4] = {AM_KEY_4, "4", {'4', '$'}},
++    [AM_KEY_5] = {AM_KEY_5, "5", {'5', '%'}},
++    [AM_KEY_6] = {AM_KEY_6, "6", {'6', '^'}},
++    [AM_KEY_7] = {AM_KEY_7, "7", {'7', '&'}},
++    [AM_KEY_8] = {AM_KEY_8, "8", {'8', '*'}},
++    [AM_KEY_9] = {AM_KEY_9, "9", {'9', '('}},
++    [AM_KEY_0] = {AM_KEY_0, "0", {'0', ')'}},
++    [AM_KEY_MINUS] = {AM_KEY_MINUS, "MINUS", {'-', '_'}},
++    [AM_KEY_EQUALS] = {AM_KEY_EQUALS, "EQUALS", {'=', '+'}},
++    [AM_KEY_BACKSPACE] = {AM_KEY_BACKSPACE, "BACKSPACE", {'\x08', '\x08'}},
++    [AM_KEY_TAB] = {AM_KEY_TAB, "TAB", {'\x09', '\x09'}},
++    [AM_KEY_Q] = {AM_KEY_Q, "Q", {'q', 'Q'}},
++    [AM_KEY_W] = {AM_KEY_W, "W", {'w', 'W'}},
++    [AM_KEY_E] = {AM_KEY_E, "E", {'e', 'E'}},
++    [AM_KEY_R] = {AM_KEY_R, "R", {'r', 'R'}},
++    [AM_KEY_T] = {AM_KEY_T, "T", {'t', 'T'}},
++    [AM_KEY_Y] = {AM_KEY_Y, "Y", {'y', 'Y'}},
++    [AM_KEY_U] = {AM_KEY_U, "U", {'u', 'U'}},
++    [AM_KEY_I] = {AM_KEY_I, "I", {'i', 'I'}},
++    [AM_KEY_O] = {AM_KEY_O, "O", {'o', 'O'}},
++    [AM_KEY_P] = {AM_KEY_P, "P", {'p', 'P'}},
++    [AM_KEY_LEFTBRACKET] = {AM_KEY_LEFTBRACKET, "LEFTBRACKET", {'[', '{'}},
++    [AM_KEY_RIGHTBRACKET] = {AM_KEY_RIGHTBRACKET, "RIGHTBRACKET", {']', '}'}},
++    [AM_KEY_BACKSLASH] = {AM_KEY_BACKSLASH, "BACKSLASH", {'\\', '|'}},
++    [AM_KEY_CAPSLOCK] = {AM_KEY_CAPSLOCK, "CAPSLOCK", {'\x00', '\x00'}},
++    [AM_KEY_A] = {AM_KEY_A, "A", {'a', 'A'}},
++    [AM_KEY_S] = {AM_KEY_S, "S", {'s', 'S'}},
++    [AM_KEY_D] = {AM_KEY_D, "D", {'d', 'D'}},
++    [AM_KEY_F] = {AM_KEY_F, "F", {'f', 'F'}},
++    [AM_KEY_G] = {AM_KEY_G, "G", {'g', 'G'}},
++    [AM_KEY_H] = {AM_KEY_H, "H", {'h', 'H'}},
++    [AM_KEY_J] = {AM_KEY_J, "J", {'j', 'J'}},
++    [AM_KEY_K] = {AM_KEY_K, "K", {'k', 'K'}},
++    [AM_KEY_L] = {AM_KEY_L, "L", {'l', 'L'}},
++    [AM_KEY_SEMICOLON] = {AM_KEY_SEMICOLON, "SEMICOLON", {';', ':'}},
++    [AM_KEY_APOSTROPHE] = {AM_KEY_APOSTROPHE, "APOSTROPHE", {'\'', '"'}},
++    [AM_KEY_RETURN] = {AM_KEY_RETURN, "RETURN", {'\n', '\n'}},
++    [AM_KEY_LSHIFT] = {AM_KEY_LSHIFT, "LSHIFT", {'\x00', '\x00'}},
++    [AM_KEY_Z] = {AM_KEY_Z, "Z", {'z', 'Z'}},
++    [AM_KEY_X] = {AM_KEY_X, "X", {'x', 'X'}},
++    [AM_KEY_C] = {AM_KEY_C, "C", {'c', 'C'}},
++    [AM_KEY_V] = {AM_KEY_V, "V", {'v', 'V'}},
++    [AM_KEY_B] = {AM_KEY_B, "B", {'b', 'B'}},
++    [AM_KEY_N] = {AM_KEY_N, "N", {'n', 'N'}},
++    [AM_KEY_M] = {AM_KEY_M, "M", {'m', 'M'}},
++    [AM_KEY_COMMA] = {AM_KEY_COMMA, "COMMA", {',', '<'}},
++    [AM_KEY_PERIOD] = {AM_KEY_PERIOD, "PERIOD", {'.', '>'}},
++    [AM_KEY_SLASH] = {AM_KEY_SLASH, "SLASH", {'/', '?'}},
++    [AM_KEY_RSHIFT] = {AM_KEY_RSHIFT, "RSHIFT", {'\x00', '\x00'}},
++    [AM_KEY_LCTRL] = {AM_KEY_LCTRL, "LCTRL", {'\x00', '\x00'}},
++    [AM_KEY_APPLICATION] = {AM_KEY_APPLICATION, "APPLICATION", {'\x00', '\x00'}},
++    [AM_KEY_LALT] = {AM_KEY_LALT, "LALT", {'\x00', '\x00'}},
++    [AM_KEY_SPACE] = {AM_KEY_SPACE, "SPACE", {' ', ' '}},
++    [AM_KEY_RALT] = {AM_KEY_RALT, "RALT", {'\x00', '\x00'}},
++    [AM_KEY_RCTRL] = {AM_KEY_RCTRL, "RCTRL", {'\x00', '\x00'}},
++    [AM_KEY_UP] = {AM_KEY_UP, "UP", {0x415B1B, 0x415B1B}},
++    [AM_KEY_DOWN] = {AM_KEY_DOWN, "DOWN", {0x425B1B, 0x425B1B}},
++    [AM_KEY_LEFT] = {AM_KEY_LEFT, "LEFT", {0x445B1B, 0x445B1B}},
++    [AM_KEY_RIGHT] = {AM_KEY_RIGHT, "RIGHT", {0x435B1B, 0x435B1B}},
++    [AM_KEY_INSERT] = {AM_KEY_INSERT, "INSERT", {'\x00', '\x00'}},
++    [AM_KEY_DELETE] = {AM_KEY_DELETE, "DELETE", {'\x7F', '\x7F'}},
++    [AM_KEY_HOME] = {AM_KEY_HOME, "HOME", {'\x00', '\x00'}},
++    [AM_KEY_END] = {AM_KEY_END, "END", {'\x00', '\x00'}},
++    [AM_KEY_PAGEUP] = {AM_KEY_PAGEUP, "PAGEUP", {'\x00', '\x00'}},
++    [AM_KEY_PAGEDOWN] = {AM_KEY_PAGEDOWN, "PAGEDOWN", {'\x00', '\x00'}},
++};
+ 
+ static inline key_item_t *_uart_parsing_key(AM_INPUT_KEYBRD_T ev)
+ {
+@@ -61,36 +145,49 @@ static int _uart_putc(struct rt_serial_device *serial, char c)
+ 
+ static int _uart_getc(struct rt_serial_device *serial)
+ {
++    static uint32_t last_key = 0;
++    static bool shift_down = false;
++    static const char *greeting = "input from VGA";
++
++    uint32_t last_code = last_key & 0xFF;
+ #if HAS_GUI
+-    AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
+-    if (ev.keycode)
++    if (last_code == 0)
+     {
+-        int ret = -1;
+-        key_item_t *item = _uart_parsing_key(ev);
+-        if (ev.keydown)
++        AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
++        if (ev.keycode)
+         {
+-            if (ev.keycode>=AM_KEY_Q && ev.keycode<=AM_KEY_P) {
+-                ret = (item->ascii[0] - 'A' + 'a');
+-            } else if (ev.keycode>=AM_KEY_A && ev.keycode<=AM_KEY_L) {
+-                ret = (item->ascii[0] - 'A' + 'a');
+-            } else if (ev.keycode>=AM_KEY_Z && ev.keycode<=AM_KEY_M) {
+-                ret = (item->ascii[0] - 'A' + 'a');
+-            } else if (ev.keycode==AM_KEY_SPACE) {
+-                ret = ' ';
+-            } else if (ev.keycode==AM_KEY_RETURN) {
+-                ret = '\n';
+-            } else {
+-                printf("down %#02x %s\n", ev.keycode, item->ascii);
++            if (ev.keycode == AM_KEY_LSHIFT || ev.keycode == AM_KEY_RSHIFT)
++            {
++                shift_down = ev.keydown;
++            }
++
++            uint32_t ret = 0;
++            key_item_t *item = _uart_parsing_key(ev);
++            if (ev.keydown)
++            {
++                ret = item->ascii[shift_down];
++                if (!ret)
++                    printf("down key %#02x %s [%x %x]\n", ev.keycode, item->name, item->ascii[0], item->ascii[1]);
++            }
++
++            if (ret < 0xFF)
++            {
++                return ret == 0 ? -1 : ret;
++            }
++            else
++            {
++                /* 注意字节序 */
++                last_key = ret;
+             }
+         }
+-        else
+-        {
+-            // printf("up %#02x %s\n", ev.keycode, item->ascii);
+-        }
+-        return ret;
+     }
+-    static const char *p = "input from VGA";
+-    return (*p != '\0' ? *(p++) : -1);
++    int ret = *greeting != '\0' ? *(greeting++) : -1;
++    if (ret == -1 && last_code)
++    {
++        last_key = last_key >> 8;
++        ret = last_code;
++    }
++    return ret;
+ #else
+     static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
+     return (*p != '\0' ? *(p++) : -1);
+-- 
+2.34.1
+

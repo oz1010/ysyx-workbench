@@ -1,0 +1,37 @@
+From 8bfafa38a10415dff72c25ce91e2659f46dd6bca Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Thu, 29 May 2025 21:47:59 +0800
+Subject: [PATCH 12/21] =?UTF-8?q?feat:=20=E5=B0=86=E6=95=B0=E6=8D=AE?=
+ =?UTF-8?q?=E5=AD=98=E5=82=A8=E5=88=B0psram?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/extra.ld | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/bsp/abstract-machine/extra.ld b/bsp/abstract-machine/extra.ld
+index 5cdc656..4ffdc5f 100644
+--- a/bsp/abstract-machine/extra.ld
++++ b/bsp/abstract-machine/extra.ld
+@@ -27,7 +27,7 @@ SECTIONS {
+     *(__am_apps.sdata*)
+     __am_apps_data_end = .;
+     . = ALIGN(8);
+-  }
++  } >PSRAM AT>FLASH
+ }
+ INSERT BEFORE .data;
+ 
+@@ -40,6 +40,6 @@ SECTIONS {
+     *(__am_apps.scommon*)
+     __am_apps_bss_end = .;
+     . = ALIGN(8);
+-  }
++  } >PSRAM AT>FLASH
+ }
+ INSERT BEFORE .bss;
+-- 
+2.34.1
+

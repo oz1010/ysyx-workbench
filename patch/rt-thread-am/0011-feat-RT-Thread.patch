@@ -1,0 +1,310 @@
+From 3a2c67be24621d612cb2734cc5b30d1ab463d4af Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Thu, 29 May 2025 14:00:38 +0800
+Subject: [PATCH 11/21] =?UTF-8?q?feat:=20=E6=96=B0=E5=A2=9ERT-Thread?=
+ =?UTF-8?q?=E5=9F=BA=E6=9C=AC=E4=BD=BF=E7=94=A8=E6=96=B9=E6=B3=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ Readme.md | 265 ++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 260 insertions(+), 5 deletions(-)
+
+diff --git a/Readme.md b/Readme.md
+index 8eb4690..0e5736a 100644
+--- a/Readme.md
++++ b/Readme.md
+@@ -2,6 +2,8 @@
+ 
+ [参考链接](https://ysyx.oscc.cc/docs/ics-pa/4.1.html#rt-thread-%E9%80%89%E5%81%9A)
+ 
++若使用其他版本切换过来，最好删除nemu/npc下面的.config，`rm -rf am/build klib/build`清理abstract-machine的构建。再增加device + VGA（可选，用于捕获键盘输入）。
++
+ 1. 以通过以下命令获取移植之后的RT-Thread:
+ 
+ ```sh
+@@ -19,22 +21,275 @@ apt-get install scons
+ 
+ 3. 在`rt-thread-am/bsp/abstract-machine/`目录下执行`make init`, 进行一些编译前的准备工作, 此命令只需执行一次即可, 后续编译运行前无需再次执行
+ 
++```sh
++# make init
++make ARCH=riscv32e-npc init
++```
++
+ 4. 在相同目录下通过`make ARCH=native`等方式编译或运行RT-Thread, 默认的运行输出如下:
+ 
+ ```sh
+ # make ARCH=riscv32e-nemu run
+ # make ARCH=riscv32e-npc run
++make ARCH=riscv32e-nemu run
+ 
+-am-apps.data.size = 0, am-apps.bss.size = 0
+-heap: [0x01000000 - 0x09000000]
++am-apps.data.size = 4f90, am-apps.bss.size = c6049
++heap: [0x8019a000 - 0x88000000]
+ 
+  \ | /
+ - RT -     Thread Operating System
+- / | \     5.0.1 build Oct  2 2023 20:51:10
++ / | \     5.0.1 build May 29 2025 12:31:02
+  2006 - 2022 Copyright by RT-Thread team
+-Assertion fail at rt-thread-am/bsp/abstract-machine/src/context.c:29
++AM context add rt_parent:0x8219f008 (user_sp)proc:0x8219f4c4
++AM context add rt_parent:0x80174e3c (user_sp)proc:0x80178ae4
++AM context add rt_parent:0x80170b50 (user_sp)proc:0x801747fc
++AM context add rt_parent:0x8219f950 (user_sp)proc:0x821a160c
++[I/utest] utest is initialize success.
++[I/utest] total utest testcase num: (0)
++Hello RISC-V!
++[W/DBG] Input from GUI.
++AM context add rt_parent:0x821a1de8 (user_sp)proc:0x821a2aa4
++msh />am_hello RT-Thread
++AM context add rt_parent:0x821a2eb8 (user_sp)proc:0x821a6b74
++Hello, AbstractMachine!
++mainargs = 'RT-Thread'.
++This from printf RT-Thread
++OK?
++msh />
+ ```
+ 
+ 运行后触发了assertion, 这是因为代码中有部分功能需要大家实现.
+ 
+-需要增加device + VGA（用于捕获输入）
++###  NEMU上运行RT-Thread
++
++需要增加device + VGA（可选，用于捕获键盘输入）。
++
++分支：C.6.x
++
++`.config`配置如下：
++
++```
++#
++# Automatically generated file; DO NOT EDIT.
++# NEMU Configuration Menu
++#
++# CONFIG_ISA_x86 is not set
++# CONFIG_ISA_mips32 is not set
++CONFIG_ISA_riscv=y
++# CONFIG_ISA_loongarch32r is not set
++CONFIG_ISA="riscv32"
++
++#
++# ISA-dependent Options for riscv
++#
++# CONFIG_RV64 is not set
++# CONFIG_RVE is not set
++# end of ISA-dependent Options for riscv
++
++CONFIG_ENGINE_INTERPRETER=y
++CONFIG_ENGINE="interpreter"
++CONFIG_MODE_SYSTEM=y
++CONFIG_TARGET_NATIVE_ELF=y
++# CONFIG_TARGET_SHARE is not set
++# CONFIG_TARGET_AM is not set
++
++#
++# Build Options
++#
++CONFIG_CC_GCC=y
++# CONFIG_CC_GPP is not set
++# CONFIG_CC_CLANG is not set
++CONFIG_CC="gcc"
++# CONFIG_CC_O0 is not set
++# CONFIG_CC_O1 is not set
++CONFIG_CC_O2=y
++# CONFIG_CC_O3 is not set
++CONFIG_CC_OPT="-O2"
++# CONFIG_CC_LTO is not set
++# CONFIG_CC_DEBUG is not set
++# CONFIG_CC_ASAN is not set
++# end of Build Options
++
++# CONFIG_DEBUG_MODULE_SYSTEM is not set
++# CONFIG_DEBUG_SYSTEM is not set
++CONFIG_DIFFTEST_REF_PATH="none"
++CONFIG_DIFFTEST_REF_NAME="none"
++
++#
++# Memory Configuration
++#
++CONFIG_MBASE=0x80000000
++CONFIG_MSIZE=0x8000000
++CONFIG_PC_RESET_OFFSET=0
++# CONFIG_PMEM_MALLOC is not set
++CONFIG_PMEM_GARRAY=y
++CONFIG_MEM_RANDOM=y
++# end of Memory Configuration
++
++CONFIG_DEVICE=y
++CONFIG_HAS_SERIAL=y
++CONFIG_SERIAL_MMIO=0xa00003f8
++# CONFIG_SERIAL_INPUT_FIFO is not set
++CONFIG_HAS_TIMER=y
++CONFIG_RTC_MMIO=0xa0000048
++CONFIG_HAS_KEYBOARD=y
++CONFIG_I8042_DATA_MMIO=0xa0000060
++# CONFIG_HAS_VGA is not set
++CONFIG_HAS_AUDIO=y
++CONFIG_SB_ADDR=0xa1200000
++CONFIG_SB_SIZE=0x10000
++CONFIG_AUDIO_CTL_MMIO=0xa0000200
++CONFIG_HAS_DISK=y
++CONFIG_DISK_CTL_MMIO=0xa0000300
++CONFIG_DISK_IMG_PATH=""
++# CONFIG_HAS_SDCARD is not set
++
++#
++# Miscellaneous
++#
++CONFIG_TIMER_GETTIMEOFDAY=y
++# CONFIG_TIMER_CLOCK_GETTIME is not set
++CONFIG_RT_CHECK=y
++# end of Miscellaneous
++
++```
++
++```sh
++make ARCH=riscv32e-nemu run
++
++am-apps.data.size = 4f90, am-apps.bss.size = c6049
++heap: [0x8019a000 - 0x88000000]
++
++ \ | /
++- RT -     Thread Operating System
++ / | \     5.0.1 build May 29 2025 12:31:02
++ 2006 - 2022 Copyright by RT-Thread team
++AM context add rt_parent:0x8219f008 (user_sp)proc:0x8219f4c4
++AM context add rt_parent:0x80174e3c (user_sp)proc:0x80178ae4
++AM context add rt_parent:0x80170b50 (user_sp)proc:0x801747fc
++AM context add rt_parent:0x8219f950 (user_sp)proc:0x821a160c
++[I/utest] utest is initialize success.
++[I/utest] total utest testcase num: (0)
++Hello RISC-V!
++[W/DBG] Input from GUI.
++AM context add rt_parent:0x821a1de8 (user_sp)proc:0x821a2aa4
++msh />am_hello RT-Thread
++AM context add rt_parent:0x821a2eb8 (user_sp)proc:0x821a6b74
++Hello, AbstractMachine!
++mainargs = 'RT-Thread'.
++This from printf RT-Thread
++OK?
++msh />
++```
++
++### NPC上运行RT-Thread
++
++需要增加device + VGA（可选，用于捕获键盘输入）。
++
++分支：C.6.x
++
++`.config`配置如下：
++
++```
++#
++# Automatically generated file; DO NOT EDIT.
++# NPC Configuration Menu
++#
++# CONFIG_ISA_x86 is not set
++# CONFIG_ISA_mips32 is not set
++CONFIG_ISA_riscv=y
++# CONFIG_ISA_loongarch32r is not set
++CONFIG_ISA="riscv32"
++CONFIG_ENGINE_INTERPRETER=y
++CONFIG_ENGINE="interpreter"
++CONFIG_MODE_SYSTEM=y
++CONFIG_TARGET_NATIVE_ELF=y
++# CONFIG_TARGET_SHARE is not set
++# CONFIG_TARGET_AM is not set
++
++#
++# Build Options
++#
++CONFIG_CC_GCC=y
++# CONFIG_CC_GPP is not set
++# CONFIG_CC_CLANG is not set
++CONFIG_CC="gcc"
++# CONFIG_CC_O0 is not set
++# CONFIG_CC_O1 is not set
++CONFIG_CC_O2=y
++# CONFIG_CC_O3 is not set
++CONFIG_CC_OPT="-O2"
++# CONFIG_CC_LTO is not set
++# CONFIG_CC_DEBUG is not set
++# CONFIG_CC_ASAN is not set
++# end of Build Options
++
++# CONFIG_DEBUG_MODULE_SYSTEM is not set
++# CONFIG_DEBUG_SYSTEM is not set
++CONFIG_DIFFTEST_REF_PATH="none"
++CONFIG_DIFFTEST_REF_NAME="none"
++
++#
++# Memory Configuration
++#
++CONFIG_MBASE=0x80000000
++CONFIG_MSIZE=0x8000000
++CONFIG_PC_RESET_OFFSET=0
++# CONFIG_PMEM_MALLOC is not set
++CONFIG_PMEM_GARRAY=y
++CONFIG_MEM_RANDOM=y
++# end of Memory Configuration
++
++CONFIG_DEVICE=y
++CONFIG_HAS_SERIAL=y
++CONFIG_SERIAL_MMIO=0xa00003f8
++# CONFIG_SERIAL_INPUT_FIFO is not set
++CONFIG_HAS_TIMER=y
++CONFIG_RTC_MMIO=0xa0000048
++CONFIG_HAS_KEYBOARD=y
++CONFIG_I8042_DATA_MMIO=0xa0000060
++# CONFIG_HAS_VGA is not set
++CONFIG_HAS_AUDIO=y
++CONFIG_SB_ADDR=0xa1200000
++CONFIG_SB_SIZE=0x10000
++CONFIG_AUDIO_CTL_MMIO=0xa0000200
++CONFIG_HAS_DISK=y
++CONFIG_DISK_CTL_MMIO=0xa0000300
++CONFIG_DISK_IMG_PATH=""
++# CONFIG_HAS_SDCARD is not set
++
++#
++# Miscellaneous
++#
++CONFIG_TIMER_GETTIMEOFDAY=y
++# CONFIG_TIMER_CLOCK_GETTIME is not set
++CONFIG_RT_CHECK=y
++# end of Miscellaneous
++
++```
++
++```sh
++am-apps.data.size = 4f78, am-apps.bss.size = 86795
++heap: [0x8015b000 - 0x88000000]
++
++ \ | /
++- RT -     Thread Operating System
++ / | \     5.0.1 build Mar 11 2025 11:10:45
++ 2006 - 2022 Copyright by RT-Thread team
++AM context add rt_parent:0x8215fff0 (user_sp)proc:0x821604ac
++AM context add rt_parent:0x80135a8c (user_sp)proc:0x80139734
++AM context add rt_parent:0x80131790 (user_sp)proc:0x8013543c
++AM context add rt_parent:0x82160938 (user_sp)proc:0x821625f4
++[I/utest] utest is initialize success.
++[I/utest] total utest testcase num: (0)
++Hello RISC-V!
++[W/DBG] Input from GUI.
++AM context add rt_parent:0x82162dd0 (user_sp)proc:0x82163a8c
++msh />am_hello RT-Thread
++AM context add rt_parent:0x82163ea0 (user_sp)proc:0x82167b5c
++Hello, AbstractMachine!
++mainargs = 'RT-Thread'.
++This from printf RT-Thread
++OK?
++msh />
++```
+-- 
+2.34.1
+

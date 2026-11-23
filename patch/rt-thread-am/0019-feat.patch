@@ -1,0 +1,24 @@
+From baf681706876003bda85d4ef66bf4f39adee6a05 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Fri, 30 Oct 2026 18:25:41 +0800
+Subject: [PATCH 19/21] =?UTF-8?q?feat:=20=E6=9B=B4=E6=96=B0=E5=BF=BD?=
+ =?UTF-8?q?=E7=95=A5=E6=96=87=E4=BB=B6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/.gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/bsp/abstract-machine/.gitignore b/bsp/abstract-machine/.gitignore
+index 27ab723..ca1cdc7 100644
+--- a/bsp/abstract-machine/.gitignore
++++ b/bsp/abstract-machine/.gitignore
+@@ -1,2 +1,3 @@
+ rtconfig.h
+ files.mk
++*.patch
+-- 
+2.34.1
+

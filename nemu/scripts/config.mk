@@ -47,6 +47,9 @@ $(MCONF):
 $(FIXDEP):
 	$(Q)$(MAKE) $(silent) -C $(FIXDEP_PATH)
 
+$(NEMU_HOME)/include/config/auto.conf: .config $(CONF)
+	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
+
 menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 	$(Q)$(MCONF) $(Kconfig)
 	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)

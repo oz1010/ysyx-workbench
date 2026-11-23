@@ -1,0 +1,24 @@
+From b571ec0859693eba2b206f5285e4ecb9c0ead1f4 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Mon, 27 Jan 2025 10:13:07 +0800
+Subject: [PATCH 06/21] fix: print keycode when press shift
+
+---
+ bsp/abstract-machine/src/uart.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index 17df357..9372800 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -159,6 +159,7 @@ static int _uart_getc(struct rt_serial_device *serial)
+             if (ev.keycode == AM_KEY_LSHIFT || ev.keycode == AM_KEY_RSHIFT)
+             {
+                 shift_down = ev.keydown;
++                return -1;
+             }
+ 
+             uint32_t ret = 0;
+-- 
+2.34.1
+

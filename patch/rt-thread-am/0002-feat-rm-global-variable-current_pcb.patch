@@ -1,0 +1,69 @@
+From 72090b16b15603a02ec94f9bca22c3e7005a8f52 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Sun, 26 Jan 2025 17:36:45 +0800
+Subject: [PATCH 02/21] feat: rm global variable 'current_pcb'
+
+---
+ bsp/abstract-machine/src/context.c | 22 ++++++++++++++++------
+ 1 file changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/context.c b/bsp/abstract-machine/src/context.c
+index f7b2b37..859e0bc 100644
+--- a/bsp/abstract-machine/src/context.c
++++ b/bsp/abstract-machine/src/context.c
+@@ -19,8 +19,6 @@ typedef union _PCB {
+   };
+ } PCB;
+ 
+-static PCB *current_pcb=0;
+-
+ void proc_entry(PCB *pcb) {
+   void (*user_entry)(void *) = pcb->rt_entry;
+   void (*user_exit)(void *) = pcb->rt_exit;
+@@ -28,8 +26,16 @@ void proc_entry(PCB *pcb) {
+   user_exit(pcb->rt_parameter);
+ }
+ 
++static inline PCB *get_current_pcb()
++{
++  rt_thread_t thread = rt_thread_self();
++  PCB *current_pcb = (PCB *)thread->sp;
++  return current_pcb;
++}
++
+ Context* sys_yield(Event e, Context *c)
+ {
++  PCB *current_pcb = get_current_pcb();
+   // printf("Context %p yield to %p\n", c, current_pcb->cp);
+   return current_pcb->cp;
+ }
+@@ -47,18 +53,22 @@ void __am_cte_init() {
+ }
+ 
+ void rt_hw_context_switch_to(rt_ubase_t to) {
+-  PCB *proc_to = (*(PCB **)to);
++  /* current rt thread 已经切换成功，yield直接切换Context即可 */
++  // PCB *proc_to = (*(PCB **)to);
+   // printf("rt_hw_context_switch_to %p context %p (%s)\n", current_pcb, current_pcb->cp, proc_to->rt_parent->parent.name);
+-  current_pcb = proc_to;
++  // PCB *current_pcb = get_current_pcb();
++  // current_pcb->to = proc_to->cp;
+   yield();
+   assert(0);
+ }
+ 
+ void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to) {
+-  PCB *proc_to = (*(PCB **)to);
++  /* current rt thread 已经切换成功，yield直接切换Context即可 */
++  // PCB *proc_to = (*(PCB **)to);
+   // PCB *proc_from = (*(PCB **)from);
+   // printf("rt_hw_context_switch from %p context %p to %p context %p (%s => %s)\n", proc_from, proc_from->cp, proc_to, proc_to->cp, proc_from->rt_parent->parent.name, proc_to->rt_parent->parent.name);
+-  current_pcb = proc_to;
++  // PCB *current_pcb = get_current_pcb();
++  // current_pcb->to = proc_to->cp;
+   yield();
+ }
+ 
+-- 
+2.34.1
+

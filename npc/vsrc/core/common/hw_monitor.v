@@ -20,6 +20,8 @@ module hw_monitor #(
     output wire                         done
 );
 
+assign done = 1'b0;
+
 `ifndef IN_YOSYS_STA
 
 // CORE TICK

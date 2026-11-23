@@ -7,7 +7,8 @@ AM_SRCS := platform/npc/trm.c \
            platform/npc/ioe/disk.c \
            platform/npc/mpe.c
 
-LINKER_FILE ?= ${AM_HOME}/scripts/platform/npc/linker_flash_sram_sdram_ssbl.ld
+LINKER_FILE ?= ${AM_HOME}/scripts/platform/npc/linker_psram.ld
+NPC_RUN_TARGET ?= sim-iverilog
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)
@@ -37,7 +38,7 @@ image: $(IMAGE).elf
 	@$(OBJCOPY) $(BINARY_FLG) $(IMAGE).elf $(IMAGE).bin
 
 run: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) RESULT_DIR=$(RESULT_DIR) run IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) RESULT_DIR=$(RESULT_DIR) $(NPC_RUN_TARGET) IMG=$(IMAGE).bin
 
 gdb: image
 	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) RESULT_DIR=$(RESULT_DIR) gdb IMG=$(IMAGE).bin

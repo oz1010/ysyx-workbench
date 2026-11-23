@@ -1,4 +1,4 @@
-MILL ?= /root/tools/mill/bin/mill
+MILL ?= mill
 export COURSIER_REPOSITORIES ?= https://repo1.maven.org/maven2
 # chisel 7.15.0 发布对应的 firtool 版本（环境里的 1.105.0 太旧，无法解析新版 FIRRTL）
 # export CHISEL_FIRTOOL_PATH = /root/tools/firtool-1.158.0/bin

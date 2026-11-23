@@ -1,0 +1,170 @@
+From e5e4b627f519cfe99d10c5143e44a12dc1861c12 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Wed, 11 Jun 2025 13:23:06 +0800
+Subject: [PATCH 15/21] =?UTF-8?q?feat:=20=E6=94=AF=E6=8C=81=E9=BB=98?=
+ =?UTF-8?q?=E8=AE=A4=E4=BB=8Esdram=E4=BA=8C=E6=AE=B5=E5=90=AF=E5=8A=A8?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/Makefile                 |   2 +-
+ .../linker_flash_sram_sdram.ld                | 133 ++++++++++++++++++
+ 2 files changed, 134 insertions(+), 1 deletion(-)
+ create mode 100644 bsp/abstract-machine/linker_flash_sram_sdram.ld
+
+diff --git a/bsp/abstract-machine/Makefile b/bsp/abstract-machine/Makefile
+index 52913cf..d0f62c1 100644
+--- a/bsp/abstract-machine/Makefile
++++ b/bsp/abstract-machine/Makefile
+@@ -4,7 +4,7 @@ FILE_MK = files.mk
+ FILE_TMP = .tmp.$(FILE_MK)
+ RTCONFIG_H = rtconfig.h
+ CONFIG_FAST_LOAD = y
+-LINKER_FILE		= linker_flash_psram.ld
++LINKER_FILE		= linker_flash_sram_sdram.ld
+ 
+ NAME = rtthread
+ SRCS = $(shell find src -name "*.c")
+diff --git a/bsp/abstract-machine/linker_flash_sram_sdram.ld b/bsp/abstract-machine/linker_flash_sram_sdram.ld
+new file mode 100644
+index 0000000..d52021c
+--- /dev/null
++++ b/bsp/abstract-machine/linker_flash_sram_sdram.ld
+@@ -0,0 +1,133 @@
++MEMORY {
++    FLASH   (rx)  : ORIGIN = 0x30000000, LENGTH = 16M
++    MROM    (rx)  : ORIGIN = 0x20000000, LENGTH = 4096
++    SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 8K
++    PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
++    SDRAM   (xrw) : ORIGIN = 0xa0000000, LENGTH = 32M
++}
++
++/* 定义主内存区域，便于RT-Thread等操作系统初始化堆 */
++_pmem_start = ORIGIN(SDRAM);
++_pmem_size = LENGTH(SDRAM);
++_pmem_end = _pmem_start + _pmem_size;
++
++#define DEF_LOC >SDRAM AT>FLASH
++
++/* 定义堆栈大小 */
++_STACK_SIZE = 0x1000;    /* 4KB栈 */
++_HEAP_SIZE = 0x1000;     /* 4KB堆 */
++
++ENTRY(_start)
++/* PHDRS { text PT_LOAD; data PT_LOAD; } */
++
++SECTIONS {
++    /* -------- 直接从FLASH启动 -------- */
++    .bootloader : {
++        _bin_start = ALIGN(4);
++        KEEP(*(.bin_header))
++        *(entry)
++    } >FLASH
++    _bin_flag = _bin_start + 4;
++
++    /* -------- 直接从SRAM启动 -------- */
++    .bootloader.ssbl : {
++        _ssbl_start = ALIGN(4);
++        KEEP(*(entry.ssbl))
++        _ssbl_end = ALIGN(4);
++    } >SRAM AT>FLASH
++    _ssbl_load = LOADADDR(.bootloader.ssbl);
++
++    /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
++    .text : {
++        _text_start = ALIGN(4);
++        *(.text)
++        *(.text*)
++        *(.rodata)
++        *(.rodata*)
++        *(.srodata)
++        *(.srodata*)
++        _text_end = ALIGN(4);
++    } >SDRAM AT>FLASH
++    etext = .;
++    _etext = .;
++    _text_load = LOADADDR(.text);
++
++    /* .data : {
++        *(.data)
++    } >SDRAM AT>FLASH */
++    /* .data 的加载地址紧跟 .text，VMA 在 SDRAM */
++    /* .data : AT(_text_end) { */
++    .data : {
++        _data_start = ALIGN(4);
++
++        /* RT-Thread扩展部分 */
++        /* section information for finsh shell */
++        __fsymtab_start = .;
++        KEEP(*(FSymTab))
++        __fsymtab_end = .;
++        . = ALIGN(8);
++        __vsymtab_start = .;
++        KEEP(*(VSymTab))
++        __vsymtab_end = .;
++        . = ALIGN(8);
++
++        /* section information for initial. */
++        . = ALIGN(8);
++        __rt_init_start = .;
++        KEEP(*(SORT(.rti_fn*)))
++        __rt_init_end = .;
++        . = ALIGN(8);
++
++        __rt_utest_tc_tab_start = .;
++        KEEP(*(UtestTcTab))
++        __rt_utest_tc_tab_end = .;
++
++        . = ALIGN(8);
++        __am_apps_data_start = .;
++        *(__am_apps.data*)
++        *(__am_apps.sdata*)
++        __am_apps_data_end = .;
++        . = ALIGN(8);
++
++        *(.data)
++        *(.data*)
++        *(.sdata)
++        *(.sdata*)
++        _data_end = ALIGN(4);
++    } >SDRAM AT>FLASH
++    edata = .;
++    _data = .;
++    _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
++    _data_size = _data_end - _data_start;
++
++    .bss : {
++        _bss_start = ALIGN(4);
++
++        /* RT-Thread扩展部分 */
++        . = ALIGN(8);
++        __am_apps_bss_start = .;
++        *(__am_apps.bss*)
++        *(__am_apps.sbss*)
++        *(__am_apps.scommon*)
++        __am_apps_bss_end = .;
++        . = ALIGN(8);
++
++        *(.bss*)
++        *(.sbss*)
++        *(.scommon)        
++        _bss_end = ALIGN(4);
++    } >SDRAM
++    _bss_size = _bss_end - _bss_start;
++
++    /* 用户栈段 */
++    ._user_stack : {
++        _stack_top = ALIGN(16);
++        . = _stack_top + _STACK_SIZE;
++        _stack_pointer = .;
++    } >SRAM
++
++    /* 用户堆段 */
++    ._user_heap : {
++        _heap_start = ALIGN(16);
++    } >SDRAM
++}
+-- 
+2.34.1
+

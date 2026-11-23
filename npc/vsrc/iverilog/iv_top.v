@@ -1,5 +1,9 @@
 `timescale 1ns/1ps
+`ifdef CI_STANDALONE
+`include "generated/autoconf.vh"
+`else
 `include "riscv32e_defines.v"
+`endif
 
 module iv_top;
     localparam ADDR_WIDTH = 32;
@@ -7,6 +11,15 @@ module iv_top;
     localparam DATA_WIDTH = 32;
     localparam GPR_ADDR_WIDTH = 4;
     localparam CSR_ADDR_WIDTH = 12;
+    localparam [31:0] IV_EXPT_CAUSE_IAF = 1;
+    localparam [31:0] IV_EXPT_CAUSE_BRK = 3;
+    localparam [31:0] IV_EXPT_CAUSE_LAF = 5;
+    localparam [31:0] IV_EXPT_CAUSE_SAF = 7;
+`ifdef CI_STANDALONE
+    localparam [ADDR_WIDTH-1:0] IMAGE_BASE = 32'h80000000;
+`else
+    localparam [ADDR_WIDTH-1:0] IMAGE_BASE = `CONFIG_IMG_LOAD;
+`endif
 
     reg clock, reset;
 
@@ -276,7 +289,8 @@ module iv_top;
 
     iv_memsys #(
         .ADDR_WIDTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH)
+        .DATA_WIDTH(DATA_WIDTH),
+        .IMAGE_BASE(IMAGE_BASE)
     ) memsys (
         .clock(clock),
         .reset(reset),
@@ -329,26 +343,26 @@ module iv_top;
     always @(posedge clock) begin
         if (trap_en) begin
             case (trap_cause)
-                `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
+                IV_EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
                     $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
                     $finish;
                 end
 
-                `EXPT_CAUSE_BRK: begin // Breakpoint 3
+                IV_EXPT_CAUSE_BRK: begin // Breakpoint 3
                     // 默认_trap_handle_def处理函数：a0-a2 mepc mcause mtval
                     if (mepc == 0) begin
                         $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
                     end else begin
                         // case (mcause)
-                        //     `EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
+                        //     IV_EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
                         //         $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
                         //         $finish;
                         //     end
-                        //     `EXPT_CAUSE_LAF: begin // Load Access Fault 5
+                        //     IV_EXPT_CAUSE_LAF: begin // Load Access Fault 5
                         //         $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
                         //         $finish;
                         //     end
-                        //     `EXPT_CAUSE_SAF: begin // Store Access Fault 7
+                        //     IV_EXPT_CAUSE_SAF: begin // Store Access Fault 7
                         //         $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", mepc, mtval);
                         //         $finish;
                         //     end
@@ -359,12 +373,12 @@ module iv_top;
                     $finish;
                 end
 
-                `EXPT_CAUSE_LAF: begin // Load Access Fault 5
+                IV_EXPT_CAUSE_LAF: begin // Load Access Fault 5
                     $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
                     $finish;
                 end
 
-                `EXPT_CAUSE_SAF: begin // Store Access Fault 7
+                IV_EXPT_CAUSE_SAF: begin // Store Access Fault 7
                     $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
                     $finish;
                 end

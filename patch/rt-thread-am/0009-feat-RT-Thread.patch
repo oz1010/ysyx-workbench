@@ -1,0 +1,61 @@
+From 0e54f1115778b06f2c706460ee2bcb8f156c2318 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Thu, 29 May 2025 13:28:27 +0800
+Subject: [PATCH 09/21] =?UTF-8?q?feat:=20=E6=96=B0=E5=A2=9ERT-Thread?=
+ =?UTF-8?q?=E5=9F=BA=E6=9C=AC=E4=BD=BF=E7=94=A8=E6=96=B9=E6=B3=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ Readme.md | 38 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 38 insertions(+)
+ create mode 100644 Readme.md
+
+diff --git a/Readme.md b/Readme.md
+new file mode 100644
+index 0000000..fe490b4
+--- /dev/null
++++ b/Readme.md
+@@ -0,0 +1,38 @@
++## RT-Thread使用简介
++
++[参考链接](https://ysyx.oscc.cc/docs/ics-pa/4.1.html#rt-thread-%E9%80%89%E5%81%9A)
++
++1. 以通过以下命令获取移植之后的RT-Thread:
++
++```sh
++cd ~/Templates  # 在另一个目录下克隆代码, 因为RT-Thread的代码无需打包提交
++# git clone git@github.com:NJU-ProjectN/rt-thread-am.git
++# 分支：C.6.x
++git clone git@gitee.com:uu90909/rt-thread-am.git
++```
++
++2. 为了编译代码, 你还需要安装项目构建工具scons:
++
++```sh
++apt-get install scons
++```
++
++3. 在`rt-thread-am/bsp/abstract-machine/`目录下执行`make init`, 进行一些编译前的准备工作, 此命令只需执行一次即可, 后续编译运行前无需再次执行
++
++4. 在相同目录下通过`make ARCH=native`等方式编译或运行RT-Thread, 默认的运行输出如下:
++
++```sh
++# make ARCH=riscv32e-nemu run
++# make ARCH=riscv32e-npc run
++
++am-apps.data.size = 0, am-apps.bss.size = 0
++heap: [0x01000000 - 0x09000000]
++
++ \ | /
++- RT -     Thread Operating System
++ / | \     5.0.1 build Oct  2 2023 20:51:10
++ 2006 - 2022 Copyright by RT-Thread team
++Assertion fail at rt-thread-am/bsp/abstract-machine/src/context.c:29
++```
++
++运行后触发了assertion, 这是因为代码中有部分功能需要大家实现.
+-- 
+2.34.1
+

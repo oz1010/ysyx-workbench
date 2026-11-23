@@ -1,0 +1,183 @@
+From 707a6d7afa532199501fda1e8a14d4419fc60b5e Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Sun, 26 Jan 2025 22:34:33 +0800
+Subject: [PATCH 04/21] feat: parsing base input
+
+---
+ bsp/abstract-machine/src/uart.c | 138 +++++++++++++++++++++-----------
+ 1 file changed, 90 insertions(+), 48 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index d798d22..13af72e 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -16,76 +16,118 @@
+ 
+ #define UART_DEFAULT_BAUDRATE 115200
+ 
+-struct device_uart {
+-  rt_ubase_t hw_base;
+-  rt_uint32_t irqno;
++struct device_uart
++{
++    rt_ubase_t hw_base;
++    rt_uint32_t irqno;
+ };
+ 
+-static void *uart0_base = (void*)0x10000000;
++static void *uart0_base = (void *)0x10000000;
+ static struct rt_serial_device serial0;
+ static struct device_uart uart0;
+ 
+-static rt_err_t _uart_configure(struct rt_serial_device *serial, struct serial_configure *cfg) {
+-  return (RT_EOK);
++#define KEY_ITEM_MAP(key) [AM_KEY_##key] = {AM_KEY_##key, #key},
++typedef struct key_item
++{
++    int code;    // 键盘扫描码
++    char *ascii; // ASCII字符串
++} key_item_t;
++
++static key_item_t key_items[] = {
++    AM_KEYS(KEY_ITEM_MAP)};
++
++static inline key_item_t *_uart_parsing_key(AM_INPUT_KEYBRD_T ev)
++{
++    if (ev.keycode)
++        return &key_items[ev.keycode];
++    return &key_items[AM_KEY_NONE];
++}
++
++static rt_err_t _uart_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
++{
++    return (RT_EOK);
+ }
+ 
+-static rt_err_t _uart_control(struct rt_serial_device *serial, int cmd, void *arg) {
+-  return (RT_EOK);
++static rt_err_t _uart_control(struct rt_serial_device *serial, int cmd, void *arg)
++{
++    return (RT_EOK);
+ }
+ 
+-static int _uart_putc(struct rt_serial_device *serial, char c) {
+-  putch(c);
+-  return 1;
++static int _uart_putc(struct rt_serial_device *serial, char c)
++{
++    putch(c);
++    return 1;
+ }
+ 
+-static int _uart_getc(struct rt_serial_device *serial) {
++static int _uart_getc(struct rt_serial_device *serial)
++{
+ #if HAS_GUI
+-  AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
+-  if (ev.keycode) {
+-    if (ev.keydown) {
+-      printf("down %#02x\n", ev.keycode);
+-    } else {
+-      printf("up %#02x\n", ev.keycode);
++    AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
++    if (ev.keycode)
++    {
++        int ret = -1;
++        key_item_t *item = _uart_parsing_key(ev);
++        if (ev.keydown)
++        {
++            if (ev.keycode>=AM_KEY_Q && ev.keycode<=AM_KEY_P) {
++                ret = (item->ascii[0] - 'A' + 'a');
++            } else if (ev.keycode>=AM_KEY_A && ev.keycode<=AM_KEY_L) {
++                ret = (item->ascii[0] - 'A' + 'a');
++            } else if (ev.keycode>=AM_KEY_Z && ev.keycode<=AM_KEY_M) {
++                ret = (item->ascii[0] - 'A' + 'a');
++            } else if (ev.keycode==AM_KEY_SPACE) {
++                ret = ' ';
++            } else if (ev.keycode==AM_KEY_RETURN) {
++                ret = '\n';
++            } else {
++                printf("down %#02x %s\n", ev.keycode, item->ascii);
++            }
++        }
++        else
++        {
++            // printf("up %#02x %s\n", ev.keycode, item->ascii);
++        }
++        return ret;
+     }
+-  }
+-  static const char *p = "input from VGA";
+-  return (*p != '\0' ? *(p ++) : -1);
++    static const char *p = "input from VGA";
++    return (*p != '\0' ? *(p++) : -1);
+ #else
+-  static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
+-  return (*p != '\0' ? *(p ++) : -1);
++    static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
++    return (*p != '\0' ? *(p++) : -1);
+ #endif
+ }
+ 
+ const struct rt_uart_ops _uart_ops = {
+-  _uart_configure,
+-  _uart_control,
+-  _uart_putc,
+-  _uart_getc,
+-  // TODO: add DMA support
+-  RT_NULL};
++    _uart_configure,
++    _uart_control,
++    _uart_putc,
++    _uart_getc,
++    // TODO: add DMA support
++    RT_NULL};
+ 
+ /*
+  * UART Initiation
+  */
+-int rt_hw_uart_init(void) {
+-  struct rt_serial_device *serial;
+-  struct device_uart *uart;
+-  struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+-  // register device
+-  serial = &serial0;
+-  uart = &uart0;
+-
+-  serial->ops = &_uart_ops;
+-  serial->config = config;
+-  serial->config.baud_rate = UART_DEFAULT_BAUDRATE;
+-  uart->hw_base = (rt_ubase_t)uart0_base;
+-  uart->irqno = 0x0a;
+-
+-  rt_hw_serial_register(serial,
+-      RT_CONSOLE_DEVICE_NAME,
+-      RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
+-      uart);
+-  return 0;
++int rt_hw_uart_init(void)
++{
++    struct rt_serial_device *serial;
++    struct device_uart *uart;
++    struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
++    // register device
++    serial = &serial0;
++    uart = &uart0;
++
++    serial->ops = &_uart_ops;
++    serial->config = config;
++    serial->config.baud_rate = UART_DEFAULT_BAUDRATE;
++    uart->hw_base = (rt_ubase_t)uart0_base;
++    uart->irqno = 0x0a;
++
++    rt_hw_serial_register(serial,
++                          RT_CONSOLE_DEVICE_NAME,
++                          RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
++                          uart);
++    return 0;
+ }
+ 
+ /* WEAK for SDK 0.5.6 */
+-- 
+2.34.1
+

@@ -17,15 +17,15 @@ generate
             in_last <= in;
         end
 
-        if (TRIGGER_TYPE==`TRIGGER_EDGE_POS) begin
+        if (TRIGGER_TYPE==`TRIGGER_EDGE_POS) begin : pos_edge
             assign out = in_edge==2'b01;
-        end else begin
+        end else begin : neg_edge
             assign out = in_edge==2'b10;
         end
     end else begin : level_mode
-        if (TRIGGER_TYPE==`TRIGGER_LEVEL_HIGH) begin
+        if (TRIGGER_TYPE==`TRIGGER_LEVEL_HIGH) begin : high_level
             assign out = in==1;
-        end else begin
+        end else begin : low_level
             assign out = in==0;
         end
     end

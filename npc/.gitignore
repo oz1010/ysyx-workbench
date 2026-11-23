@@ -33,7 +33,7 @@ verify_basic/
 include/config/
 include/generated/
 tools/nemu-diff/include/
-.config
+!.config
 .config.old
 !docs/
 vsrc/core/pipeline-chisel

@@ -1,0 +1,138 @@
+From 9102fc1b81e830b27cf4f141b48834b69a66750f Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Sun, 26 Jan 2025 17:07:26 +0800
+Subject: [PATCH 01/21] feat: implement rt switch
+
+---
+ bsp/abstract-machine/src/context.c | 73 ++++++++++++++++++++++++++++--
+ src/thread.c                       |  5 ++
+ 2 files changed, 75 insertions(+), 3 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/context.c b/bsp/abstract-machine/src/context.c
+index ee38829..f7b2b37 100644
+--- a/bsp/abstract-machine/src/context.c
++++ b/bsp/abstract-machine/src/context.c
+@@ -2,8 +2,41 @@
+ #include <klib.h>
+ #include <rtthread.h>
+ 
++#define RT_STACK_SIZE (1024)
++typedef union _PCB {
++  rt_uint8_t stack[RT_STACK_SIZE];
++  struct {
++    // am使用的上下文区域
++    struct rt_thread *rt_parent; /* !!! 调试使用的数据，需要放置在结构体开始处 */
++    void (*am_wrap)(union _PCB *pcb);
++    // Context *from;
++    Context *cp;
++    void *rt_exit;
++    
++    // rt可以使用的上下文区域
++    void *rt_entry;
++    void *rt_parameter;
++  };
++} PCB;
++
++static PCB *current_pcb=0;
++
++void proc_entry(PCB *pcb) {
++  void (*user_entry)(void *) = pcb->rt_entry;
++  void (*user_exit)(void *) = pcb->rt_exit;
++  user_entry(pcb->rt_parameter);
++  user_exit(pcb->rt_parameter);
++}
++
++Context* sys_yield(Event e, Context *c)
++{
++  // printf("Context %p yield to %p\n", c, current_pcb->cp);
++  return current_pcb->cp;
++}
++
+ static Context* ev_handler(Event e, Context *c) {
+   switch (e.event) {
++    case EVENT_YIELD: c = sys_yield(e, c); break;
+     default: printf("Unhandled event ID = %d\n", e.event); assert(0);
+   }
+   return c;
+@@ -14,11 +47,19 @@ void __am_cte_init() {
+ }
+ 
+ void rt_hw_context_switch_to(rt_ubase_t to) {
++  PCB *proc_to = (*(PCB **)to);
++  // printf("rt_hw_context_switch_to %p context %p (%s)\n", current_pcb, current_pcb->cp, proc_to->rt_parent->parent.name);
++  current_pcb = proc_to;
++  yield();
+   assert(0);
+ }
+ 
+ void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to) {
+-  assert(0);
++  PCB *proc_to = (*(PCB **)to);
++  // PCB *proc_from = (*(PCB **)from);
++  // printf("rt_hw_context_switch from %p context %p to %p context %p (%s => %s)\n", proc_from, proc_from->cp, proc_to, proc_to->cp, proc_from->rt_parent->parent.name, proc_to->rt_parent->parent.name);
++  current_pcb = proc_to;
++  yield();
+ }
+ 
+ void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t to, struct rt_thread *to_thread) {
+@@ -26,6 +67,32 @@ void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t t
+ }
+ 
+ rt_uint8_t *rt_hw_stack_init(void *tentry, void *parameter, rt_uint8_t *stack_addr, void *texit) {
+-  assert(0);
+-  return NULL;
++  /**
++   * ref. https://ysyx.oscc.cc/docs/ics-pa/4.1.html#rt-thread-%E9%80%89%E5%81%9A
++   * 它的功能是以stack_addr为栈底创建一个入口为tentry, 参数为parameter的上下文, 并返回这个上下文结构的指针. 此外, 若上下文对应的内核线程从tentry返回, 则调用texit, RT-Thread会保证代码不会从texit中返回. 需要注意:
++   * 传入的stack_addr可能没有任何对齐限制, 最好将它对齐到sizeof(uintptr_t)再使用.
++   * CTE的kcontext()要求不能从入口返回, 因此需要一种新的方式来支持texit的功能. 一种方式是构造一个包裹函数, 让包裹函数来调用tentry, 并在tentry返回后调用texit, 然后将这个包裹函
++   * rt栈结构，默认是thread->stack_addr + thread->stack_size - sizeof(rt_ubase_t))
++   * !!! 高位地址
++   * ------ stack_addr
++   * ...
++   * ------ align_addr (p)
++   * PCB
++   * ------ user_sp (new_proc)
++   * ...
++   * '#'
++   * ------ thread->stack_addr
++   * !!! 低位地址
++  */
++  rt_uint8_t *p = (rt_uint8_t *)RT_ALIGN_DOWN((rt_uint32_t)stack_addr, sizeof(uintptr_t)); // 对齐sizeof(uintptr_t)地址
++  PCB* new_proc = (PCB*)(p - sizeof(PCB));
++
++  new_proc->cp = kcontext((Area){&new_proc[0].stack[0],&new_proc[1]}, (void (*)(void *))proc_entry, new_proc);
++  new_proc->rt_entry = tentry;
++  new_proc->rt_parameter = parameter;
++  new_proc->rt_exit = texit;
++  rt_uint8_t *user_sp = (rt_uint8_t *)new_proc;
++  // printf("create stack_addr:%p proc:%p context:%p user_sp:%p PCB size:%d rt_parent:%p sp_offset:%#x\n", stack_addr, new_proc, new_proc->cp, user_sp, (int32_t)(stack_addr-user_sp));
++
++  return user_sp;
+ }
+diff --git a/src/thread.c b/src/thread.c
+index 64e77df..4e41c1f 100644
+--- a/src/thread.c
++++ b/src/thread.c
+@@ -37,6 +37,7 @@
+ #include <rthw.h>
+ #include <rtthread.h>
+ #include <stddef.h>
++#include <stdio.h>
+ 
+ #ifndef __on_rt_thread_inited_hook
+     #define __on_rt_thread_inited_hook(thread)      __ON_HOOK_ARGS(rt_thread_inited_hook, (thread))
+@@ -189,6 +190,10 @@ static rt_err_t _thread_init(struct rt_thread *thread,
+                                           (rt_uint8_t *)((char *)thread->stack_addr + thread->stack_size - sizeof(rt_ubase_t)),
+                                           (void *)_thread_exit);
+ #endif /* ARCH_CPU_STACK_GROWS_UPWARD */
++    // 增加am内核线程的父线程
++    struct rt_thread **rt_parent = thread->sp;
++    *rt_parent = thread;
++    printf("AM context add rt_parent:%p (user_sp)proc:%p\n", thread, thread->sp);
+ 
+     /* priority init */
+     RT_ASSERT(priority < RT_THREAD_PRIORITY_MAX);
+-- 
+2.34.1
+

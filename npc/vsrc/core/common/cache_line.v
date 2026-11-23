@@ -40,24 +40,24 @@ wire [tag_width-1:0] tag = addr[index_width+offset_width +: tag_width];
 wire [offset_width-1:0] offset = addr[0 +: offset_width];
 
 reg  valid;
-reg  [line_width-1:0] line;
+reg  [line_width-1:0] line_data;
 reg  [tag_width-1:0] line_tag;
 reg  [write_offset_width:0] write_offset;
 
 assign read_en = valid && tag==line_tag;
-assign read_data = read_en ? line[8*offset +: DATA_WIDTH] : 0;
+assign read_data = read_en ? line_data[8*offset +: DATA_WIDTH] : 0;
 
 always @(posedge clock) begin
     if (reset) begin
         valid <= 0;
-        line <= 0;
+        line_data <= 0;
         line_tag <= 0;
         write_offset <= 0;
     end else begin
         if (update_en) begin
             // 单次write信号应该只存在一个周期，直到写入预期次数的数据
             if (write_en) begin
-                line[write_offset*DATA_WIDTH +: DATA_WIDTH] <= write_data;
+                line_data[write_offset*DATA_WIDTH +: DATA_WIDTH] <= write_data;
                 write_offset <= write_offset + 1;
                 if (write_offset == write_offset_max) begin
                     valid <= 1;

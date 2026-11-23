@@ -29,7 +29,7 @@ reg r_pslverr;
 wire read_enable = in_psel && in_penable && !in_pwrite;
 wire write_enable = in_psel && in_penable && in_pwrite;
 reg [VGA_RGB_BIT_WIDTH-1:0] fram_buffer[0:VGA_CTRL_HIGH-1][0:VGA_CTRL_WIDTH-1];
-reg [31:0] ctrl_regs[1:0];
+reg [31:0] ctrl_regs[1:0] /* verilator public_flat_rd */;
 wire vga_ctrl_sync = ctrl_regs[1][0];
 wire [9:0] x_cnt = h_addr;
 wire [9:0] y_cnt = v_addr;
