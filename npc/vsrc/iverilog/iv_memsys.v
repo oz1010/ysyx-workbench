@@ -8,7 +8,8 @@ module iv_memsys #(
     parameter MROM_LATENCY = 1,
     parameter FLASH_LATENCY = 4,
     parameter PSRAM_LATENCY = 2,
-    parameter SDRAM_LATENCY = 4
+    parameter SDRAM_LATENCY = 4,
+    parameter [ADDR_WIDTH-1:0] IMAGE_BASE = `CONFIG_IMG_LOAD
 ) (
     input  wire                     clock,
     input  wire                     reset,
@@ -543,14 +544,14 @@ module iv_memsys #(
         reg [31:0] bss_end;
         reg [31:0] bss_addr;
         begin
-            text_load = read_aligned_word(`CONFIG_IMG_LOAD + 8);
-            text_start = read_aligned_word(`CONFIG_IMG_LOAD + 12);
-            text_end = read_aligned_word(`CONFIG_IMG_LOAD + 16);
-            data_load = read_aligned_word(`CONFIG_IMG_LOAD + 20);
-            data_start = read_aligned_word(`CONFIG_IMG_LOAD + 24);
-            data_end = read_aligned_word(`CONFIG_IMG_LOAD + 28);
-            bss_start = read_aligned_word(`CONFIG_IMG_LOAD + 32);
-            bss_end = read_aligned_word(`CONFIG_IMG_LOAD + 36);
+            text_load = read_aligned_word(IMAGE_BASE + 8);
+            text_start = read_aligned_word(IMAGE_BASE + 12);
+            text_end = read_aligned_word(IMAGE_BASE + 16);
+            data_load = read_aligned_word(IMAGE_BASE + 20);
+            data_start = read_aligned_word(IMAGE_BASE + 24);
+            data_end = read_aligned_word(IMAGE_BASE + 28);
+            bss_start = read_aligned_word(IMAGE_BASE + 32);
+            bss_end = read_aligned_word(IMAGE_BASE + 36);
             $display("iv_memsys: Section text [0x%x] => [0x%x, 0x%x)", text_load, text_start, text_end);
             image_copy(text_load, text_start, text_end);
             $display("iv_memsys: Section data [0x%x] => [0x%x, 0x%x)", data_load, data_start, data_end);
@@ -606,7 +607,7 @@ module iv_memsys #(
             image_fd = $fopen(image_path, "rb");
             if (image_fd == 0)
                 $fatal(1, "iv_memsys: cannot open image %s", image_path);
-            case (address_region(`CONFIG_IMG_LOAD))
+            case (address_region(IMAGE_BASE))
 `ifdef CONFIG_SRAM
                 REGION_SRAM: image_size = $fread(sram_mem, image_fd);
 `endif
@@ -622,12 +623,12 @@ module iv_memsys #(
 `ifdef CONFIG_SDRAM
                 REGION_SDRAM: image_size = $fread(sdram_mem, image_fd);
 `endif
-                default: $fatal(1, "iv_memsys: image base 0x%08x is unmapped", `CONFIG_IMG_LOAD);
+                default: $fatal(1, "iv_memsys: image base 0x%08x is unmapped", IMAGE_BASE);
             endcase
             $fclose(image_fd);
             $display("iv_memsys: Loaded %0d bytes from %s at 0x%08x", image_size, image_path,
-                     `CONFIG_IMG_LOAD);
-            _bin_flag = read_aligned_word(`CONFIG_IMG_LOAD + 4);
+                     IMAGE_BASE);
+            _bin_flag = read_aligned_word(IMAGE_BASE + 4);
             $display("iv_memsys: _bin_flag = 0x%08x", _bin_flag);
             if (_bin_flag[0]) begin
                 fast_load_image();
@@ -636,6 +637,10 @@ module iv_memsys #(
         end else begin
             $fatal(1, "iv_memsys: Need to set '+IMG=<path_to_bin>'");
         end
+`ifdef CI_STANDALONE
+        image_write_word(`CONFIG_FLASH_BASE, 32'h800002b7);
+        image_write_word(`CONFIG_FLASH_BASE + 4, 32'h00028067);
+`endif
     end
 
     reg [1:0] read_state;

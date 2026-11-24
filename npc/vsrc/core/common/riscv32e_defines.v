@@ -332,8 +332,7 @@ function void check_dev_addr;
 
 endfunction
 
-`ifndef __ICARUS__
-function void get_unalign_parameter;
+task get_unalign_parameter;
     input logic [`INST_CODE_W-1:0] inst_code;
     input logic [31:0] addr;
     output logic [7:0] len;
@@ -369,9 +368,9 @@ function void get_unalign_parameter;
             strb[0 +: 4] = strb[0 +: 4] << shift_val;
         end
     end
-endfunction
+endtask
 
-function void get_unalign_addr_parameter;
+task get_unalign_addr_parameter;
     input logic [2:0] size;
     input logic [31:0] addr;
     output logic [7:0] len;
@@ -399,9 +398,9 @@ function void get_unalign_addr_parameter;
             strb[0 +: 4] = strb[0 +: 4] << shift_val;
         end
     end
-endfunction
+endtask
 
-function void read_unalign_data;
+task read_unalign_data;
     input logic [7:0] idx;
     input logic [`INST_CODE_W-1:0] inst_code;
     input logic [31:0] data;
@@ -428,11 +427,11 @@ function void read_unalign_data;
             default: ;
         endcase
     end
-endfunction
+endtask
 
 
 // 直接处理64位数据（拼接的两个数据）
-function void get_unalign_addr_data;
+task get_unalign_addr_data;
     input   logic               is_sign;
     input   logic [2:0]         size;
     input   logic [63:0]        in_data;
@@ -456,10 +455,10 @@ function void get_unalign_addr_data;
         // 处理符号位
         result = is_sign ? get_sext(data0, size0) : data0;
     end
-endfunction
+endtask
 
 // 由掩码（1为有效位）计算偏移和数据大小
-function void get_unalign_from_mask;
+task get_unalign_from_mask;
     input logic[3:0] mask;
     output logic[1:0] offset;
     output logic[2:0] size;
@@ -478,8 +477,7 @@ function void get_unalign_from_mask;
             default: begin offset=0; size=0; end
         endcase
     end
-endfunction
-`endif
+endtask
 
 function void func_exit_simu;
     input [31:0]exit_code;

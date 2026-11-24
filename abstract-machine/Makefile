@@ -37,7 +37,7 @@ PLATFORM   = $(word 2,$(ARCH_SPLIT))
 GUEST_ISA  ?= $(ISA)
 
 ### Include platform config
-ifeq ($(PLATFORM), npc)
+ifneq ($(filter npc ysyxsoc,$(PLATFORM)),)
 	include 		$(NPC_HOME)/include/config/auto.conf
 	INC_PATH		+= ${NPC_HOME}/include
 endif

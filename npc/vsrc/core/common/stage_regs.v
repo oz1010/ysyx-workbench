@@ -25,7 +25,7 @@ module stage_regs #(
                     if (stage_done) r_bits <= bits;
                 end
             end
-        end else begin
+        end else begin : direct_mode
             assign stage_bits = bits;
         end
     endgenerate

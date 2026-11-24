@@ -72,3 +72,5 @@ else
 # Include rules to build NPC
 include $(NPC_HOME)/scripts/native.mk
 endif
+
+include $(NPC_HOME)/scripts/ci.mk

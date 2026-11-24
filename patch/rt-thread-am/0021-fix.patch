@@ -1,0 +1,64 @@
+From 290b9d0e03cce4631e81b4cee2eae7d185d652f1 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Mon, 23 Nov 2026 20:29:33 +0800
+Subject: [PATCH 21/21] =?UTF-8?q?fix:=20=E5=AF=B9=E9=BD=90=E6=AE=B5?=
+ =?UTF-8?q?=E5=9C=B0=E5=9D=80=E5=B9=B6=E6=A3=80=E6=9F=A5=E5=8A=A0=E8=BD=BD?=
+ =?UTF-8?q?=E5=9C=B0=E5=9D=80?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/linker_flash_psram.ld      | 5 ++++-
+ bsp/abstract-machine/linker_flash_sram_sdram.ld | 5 ++++-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/bsp/abstract-machine/linker_flash_psram.ld b/bsp/abstract-machine/linker_flash_psram.ld
+index 86e377b..979ca1b 100644
+--- a/bsp/abstract-machine/linker_flash_psram.ld
++++ b/bsp/abstract-machine/linker_flash_psram.ld
+@@ -37,7 +37,8 @@ SECTIONS {
+         *(.rodata*)
+         *(.srodata)
+         *(.srodata*)
+-        _text_end = ALIGN(4);
++        . = ALIGN(4);
++        _text_end = .;
+     } >PSRAM AT>FLASH
+     etext = .;
+     _etext = .;
+@@ -90,6 +91,8 @@ SECTIONS {
+     _data = .;
+     _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
+     _data_size = _data_end - _data_start;
++    ASSERT((_text_load & 3) == 0, "text load address must be 4-byte aligned")
++    ASSERT((_data_load & 3) == 0, "data load address must be 4-byte aligned")
+ 
+     .bss : {
+         _bss_start = ALIGN(4);
+diff --git a/bsp/abstract-machine/linker_flash_sram_sdram.ld b/bsp/abstract-machine/linker_flash_sram_sdram.ld
+index 8922943..59f3498 100644
+--- a/bsp/abstract-machine/linker_flash_sram_sdram.ld
++++ b/bsp/abstract-machine/linker_flash_sram_sdram.ld
+@@ -50,7 +50,8 @@ SECTIONS {
+         *(.rodata*)
+         *(.srodata)
+         *(.srodata*)
+-        _text_end = ALIGN(4);
++        . = ALIGN(4);
++        _text_end = .;
+     } >SDRAM AT>FLASH
+     etext = .;
+     _etext = .;
+@@ -103,6 +104,8 @@ SECTIONS {
+     _data = .;
+     _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
+     _data_size = _data_end - _data_start;
++    ASSERT((_text_load & 3) == 0, "text load address must be 4-byte aligned")
++    ASSERT((_data_load & 3) == 0, "data load address must be 4-byte aligned")
+ 
+     .bss : {
+         _bss_start = ALIGN(4);
+-- 
+2.34.1
+

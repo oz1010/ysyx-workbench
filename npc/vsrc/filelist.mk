@@ -32,6 +32,9 @@ ifeq ($(IVSIM),1)
 	CHISEL_GEN_MODE = synthesis
 endif
 CHISEL_BUILD = ./vsrc/chisel-gen/$(CHISEL_GEN_OUT)/$(CHISEL_GEN_DIR_NAME)
+CHISEL_VERILOG_FILES-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL) = $(addprefix $(CHISEL_BUILD)/, \
+	Axi4IOArbiter.v BaseCache.v CacheRouter.v CsrFile.v Exu.v GprFile.v \
+	HazardUnit.v Idu.v Ifu.v Lsu.v PerfMonitor.v riscv32e_core.v Wbu.v)
 
 # VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull.v
 VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull_axi.v
@@ -41,7 +44,6 @@ VDIRS_CORE-y							+= ./vsrc/device
 VDIRS_CORE-$(CONFIG_ISA_RISCV_SINGLE)	+= ./vsrc/core/single
 VDIRS_CORE-$(CONFIG_ISA_RISCV_MULTIPLE)	+= ./vsrc/core/multiple
 VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE)	+= ./vsrc/core/pipeline
-VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL)	+= $(CHISEL_BUILD)
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/amba
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/bitrev
 VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/flash
@@ -60,6 +62,7 @@ VDIRS-y 								+= $(VDIRS_YSYXSOC-y)
 
 REF_STA_FILES							+= ./vsrc/yosys/$(VMOD_NAME).v
 REF_STA_FILES							+= ./vsrc/core/ysyx_23060295.v
+REF_STA_FILES							+= $(CHISEL_VERILOG_FILES-y)
 REF_STA_DIRS							+= $(VDIRS_CORE-y)
 # REF_STA_FILES							+= $(shell find -L $(REF_STA_DIRS) -maxdepth 1 -name *.v)
 REF_STA_FILES							+= $(foreach d, $(REF_STA_DIRS), \
@@ -97,6 +100,7 @@ IV_PS2_INPUT_SRC						= $(WORK_DIR)/vsrc/iverilog/iv_ps2_input.c
 IV_DIRS-y								+= ./vsrc/iverilog
 ifneq ($(NETLIST),1)
 IV_DIRS-y								+= $(VDIRS_CORE-y)
+IV_VSRCS-y								+= $(CHISEL_VERILOG_FILES-y)
 endif
 IV_VSRCS-y 								+= $(foreach d, $(IV_DIRS-y), \
 												$(wildcard $(d)/*.v) \
@@ -108,8 +112,10 @@ IV_DEFINES								+= NETLIST functional
 endif
 IV_INC_PATH	+= $(WORK_DIR)/include
 IV_INC_PATH	+= $(VDIRS_CORE-y)
+IV_INC_PATH	+= $(CHISEL_BUILD)
 
 # VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
+VSRCS-y     += $(CHISEL_VERILOG_FILES-y)
 VSRCS-y		+= $(foreach d, $(VDIRS-y), \
 					$(wildcard $(d)/*.v) \
 					$(wildcard $(d)/*.sv) \
@@ -118,6 +124,7 @@ VSRCS-y     += $(shell find -L ./vsrc -name *.cpp)
 VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
 INC_PATH    += $(VDIRS-y)
+INC_PATH    += $(CHISEL_BUILD)
 INC_PATH    += $(WORK_DIR)/./vsrc/ysyxSoC/perip/uart16550/rtl
 INC_PATH    += $(WORK_DIR)/./vsrc/ysyxSoC/perip/spi/rtl
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic
@@ -125,14 +132,9 @@ LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -l
 # TRACE=1 make run -j, enable Verilator waveform tracing (FST preferred)
 ifeq ($(TRACE),1)
 NPC_ARGS += --trace_hw=true
-endif
-
-VERILATOR_CFLAGS += --trace
-# 自动开启VM_TRACE_FST
-VERILATOR_CFLAGS += --trace-fst
-# FST tracing uses zlib for compression and gzip-backed sections.
-# Keep this in LIBS so -lz is placed after static Verilator archives.
+VERILATOR_CFLAGS += --trace --trace-fst
 LIBS += -lz
+endif
 
 # 多个目标会触发多次构建规则，这里选择其中一个即可
 # VOBJS += $(VGEN_DIR)/libV$(VMOD_NAME).a
@@ -167,13 +169,15 @@ VERILATOR_CFLAGS += $(INCLUDES)
 ifeq ($(CONFIG_ISA_RISCV_PIPELINE_CHISEL), y)
 CHISEL_DEPENDS = $(CHISEL_BUILD)
 compile_chisel: $(CHISEL_BUILD)
-$(CHISEL_BUILD): FORCE
+$(CHISEL_BUILD): $(NPC_HOME)/vsrc/chisel-gen/src/common/AutoConfig.scala FORCE
 	@echo "\033[42m--- Compile Chisel in $(CHISEL_GEN_DIR_NAME) ---\033[0m"
 	@$(MAKE) verilog \
 		GEN_DIR_NAME=$(CHISEL_GEN_DIR_NAME) \
 		GEN_OUT=$(CHISEL_GEN_OUT) \
 		GEN_MODE=$(CHISEL_GEN_MODE) \
 		-C vsrc/chisel-gen
+$(CHISEL_VERILOG_FILES-y) $(addprefix $(WORK_DIR)/,$(CHISEL_VERILOG_FILES-y)): $(CHISEL_BUILD)
+	@:
 else
 compile_chisel:
 	@echo "\033[42m--- Skip Compile Chisel ---\033[0m"

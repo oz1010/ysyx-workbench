@@ -20,4 +20,8 @@ fceux-am/
 am-kernels/
 rt-thread-am/
 yosys-sta/
+/ysyxSoC/
+/.ci-upstream/
+!/patch/
+!/patch/**
 

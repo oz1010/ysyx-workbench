@@ -1,0 +1,36 @@
+From 9572f5db8169cd2c491f35951d2566599cd43992 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Fri, 6 Jun 2025 14:33:49 +0800
+Subject: [PATCH 14/21] =?UTF-8?q?feat:=20=E5=88=A0=E9=99=A4=E5=A4=9A?=
+ =?UTF-8?q?=E4=BD=99=E6=B3=A8=E9=87=8A?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/linker_flash_psram.ld | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/bsp/abstract-machine/linker_flash_psram.ld b/bsp/abstract-machine/linker_flash_psram.ld
+index 8843822..86e377b 100644
+--- a/bsp/abstract-machine/linker_flash_psram.ld
++++ b/bsp/abstract-machine/linker_flash_psram.ld
+@@ -112,7 +112,6 @@ SECTIONS {
+ 
+     /* 用户栈段 */
+     ._user_stack : {
+-        /* _stack_top = ALIGN(0x1000); */
+         _stack_top = ALIGN(16);
+         . = _stack_top + _STACK_SIZE;
+         _stack_pointer = .;
+@@ -120,7 +119,6 @@ SECTIONS {
+ 
+     /* 用户堆段 */
+     ._user_heap : {
+-        /* _heap_start = ALIGN(0x1000); */
+         _heap_start = ALIGN(16);
+     } >PSRAM
+ }
+-- 
+2.34.1
+

@@ -1,0 +1,254 @@
+From 183fe57b7dc1afa96c95f549b42592fa16a3edeb Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Fri, 6 Jun 2025 14:30:46 +0800
+Subject: [PATCH 13/21] =?UTF-8?q?feat:=20=E6=96=B0=E5=A2=9E=E7=BC=96?=
+ =?UTF-8?q?=E8=AF=91=E8=84=9A=E6=9C=AC=E5=92=8C=E6=89=93=E5=8D=B0=E5=A0=86?=
+ =?UTF-8?q?=E4=BF=A1=E6=81=AF?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/Makefile              |   4 +-
+ bsp/abstract-machine/linker_flash_psram.ld | 126 +++++++++++++++++++++
+ bsp/abstract-machine/src/init.c            |  10 +-
+ bsp/abstract-machine/src/uart.c            |   5 +-
+ include/rtdbg.h                            |   2 +-
+ 5 files changed, 140 insertions(+), 7 deletions(-)
+ create mode 100644 bsp/abstract-machine/linker_flash_psram.ld
+
+diff --git a/bsp/abstract-machine/Makefile b/bsp/abstract-machine/Makefile
+index 8d70f31..52913cf 100644
+--- a/bsp/abstract-machine/Makefile
++++ b/bsp/abstract-machine/Makefile
+@@ -3,12 +3,14 @@ AM_APPS_MK = build/${ARCH}/am-apps.mk
+ FILE_MK = files.mk
+ FILE_TMP = .tmp.$(FILE_MK)
+ RTCONFIG_H = rtconfig.h
++CONFIG_FAST_LOAD = y
++LINKER_FILE		= linker_flash_psram.ld
+ 
+ NAME = rtthread
+ SRCS = $(shell find src -name "*.c")
+ CFLAGS += -DHAVE_CCONFIG_H -D__RTTHREAD__
+ CFLAGS += -Wno-nonnull-compare
+-LDFLAGS += -T extra.ld
++# LDFLAGS += -T extra.ld
+ -include $(FILE_MK)
+ -include $(AM_APPS_MK)
+ include $(AM_HOME)/Makefile
+diff --git a/bsp/abstract-machine/linker_flash_psram.ld b/bsp/abstract-machine/linker_flash_psram.ld
+new file mode 100644
+index 0000000..8843822
+--- /dev/null
++++ b/bsp/abstract-machine/linker_flash_psram.ld
+@@ -0,0 +1,126 @@
++MEMORY {
++    FLASH   (rx)  : ORIGIN = 0x30000000, LENGTH = 16M
++    MROM    (rx)  : ORIGIN = 0x20000000, LENGTH = 4096
++    SRAM    (xrw) : ORIGIN = 0x0f000000, LENGTH = 8K
++    PSRAM   (xrw) : ORIGIN = 0x80000000, LENGTH = 4M
++}
++
++/* 定义主内存区域，便于RT-Thread等操作系统初始化堆 */
++_pmem_start = ORIGIN(PSRAM);
++_pmem_size = LENGTH(PSRAM);
++_pmem_end = _pmem_start + _pmem_size;
++
++#define DEF_LOC >PSRAM AT>FLASH
++
++/* 定义堆栈大小 */
++_STACK_SIZE = 0x1000;    /* 4KB栈 */
++_HEAP_SIZE = 0x1000;     /* 4KB堆 */
++
++ENTRY(_start)
++/* PHDRS { text PT_LOAD; data PT_LOAD; } */
++
++SECTIONS {
++    /* -------- 直接从FLASH启动 -------- */
++    .bootloader : {
++        _bin_start = ALIGN(4);
++        KEEP(*(.bin_header))
++        *(entry)
++    } >FLASH
++    _bin_flag = _bin_start + 4;
++
++    /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
++    .text : {
++        _text_start = ALIGN(4);
++        *(.text)
++        *(.text*)
++        *(.rodata)
++        *(.rodata*)
++        *(.srodata)
++        *(.srodata*)
++        _text_end = ALIGN(4);
++    } >PSRAM AT>FLASH
++    etext = .;
++    _etext = .;
++    _text_load = LOADADDR(.text);
++
++    /* .data : {
++        *(.data)
++    } >PSRAM AT>FLASH */
++    /* .data 的加载地址紧跟 .text，VMA 在 PSRAM */
++    /* .data : AT(_text_end) { */
++    .data : {
++        _data_start = ALIGN(4);
++
++        /* RT-Thread扩展部分 */
++        /* section information for finsh shell */
++        __fsymtab_start = .;
++        KEEP(*(FSymTab))
++        __fsymtab_end = .;
++        . = ALIGN(8);
++        __vsymtab_start = .;
++        KEEP(*(VSymTab))
++        __vsymtab_end = .;
++        . = ALIGN(8);
++
++        /* section information for initial. */
++        . = ALIGN(8);
++        __rt_init_start = .;
++        KEEP(*(SORT(.rti_fn*)))
++        __rt_init_end = .;
++        . = ALIGN(8);
++
++        __rt_utest_tc_tab_start = .;
++        KEEP(*(UtestTcTab))
++        __rt_utest_tc_tab_end = .;
++
++        . = ALIGN(8);
++        __am_apps_data_start = .;
++        *(__am_apps.data*)
++        *(__am_apps.sdata*)
++        __am_apps_data_end = .;
++        . = ALIGN(8);
++
++        *(.data)
++        *(.data*)
++        *(.sdata)
++        *(.sdata*)
++        _data_end = ALIGN(4);
++    } >PSRAM AT>FLASH
++    edata = .;
++    _data = .;
++    _data_load = LOADADDR(.data);  /* 在存储器中的地址 */
++    _data_size = _data_end - _data_start;
++
++    .bss : {
++        _bss_start = ALIGN(4);
++
++        /* RT-Thread扩展部分 */
++        . = ALIGN(8);
++        __am_apps_bss_start = .;
++        *(__am_apps.bss*)
++        *(__am_apps.sbss*)
++        *(__am_apps.scommon*)
++        __am_apps_bss_end = .;
++        . = ALIGN(8);
++
++        *(.bss*)
++        *(.sbss*)
++        *(.scommon)        
++        _bss_end = ALIGN(4);
++    } >PSRAM
++    _bss_size = _bss_end - _bss_start;
++
++    /* 用户栈段 */
++    ._user_stack : {
++        /* _stack_top = ALIGN(0x1000); */
++        _stack_top = ALIGN(16);
++        . = _stack_top + _STACK_SIZE;
++        _stack_pointer = .;
++    } >SRAM
++
++    /* 用户堆段 */
++    ._user_heap : {
++        /* _heap_start = ALIGN(0x1000); */
++        _heap_start = ALIGN(16);
++    } >PSRAM
++}
+diff --git a/bsp/abstract-machine/src/init.c b/bsp/abstract-machine/src/init.c
+index 93e2711..25265ab 100644
+--- a/bsp/abstract-machine/src/init.c
++++ b/bsp/abstract-machine/src/init.c
+@@ -16,17 +16,21 @@ void rt_hw_board_init() {
+ 
+ #ifdef RT_USING_HEAP
+   /* initialize memory system */
++  printf("rt system heap: [%#x - %#x)\n", RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+   rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+ #endif
+ 
+   uint32_t size = AM_APPS_HEAP_SIZE;
+   void *p = NULL;
+   for (; p == NULL && size != 0; size /= 2) { p = rt_malloc(size); }
++  printf("rt apps heap: [%#x - %#x)\n", p, p + size);
+   am_apps_heap = RANGE(p, p + size);
+ 
+   extern char __am_apps_data_start, __am_apps_data_end;
+   extern char __am_apps_bss_start, __am_apps_bss_end;
++  printf("rt apps data: [%#x - %#x)\n", &__am_apps_data_start, &__am_apps_data_end);
+   am_apps_data = RANGE(&__am_apps_data_start, &__am_apps_data_end);
++  printf("rt apps bss: [%#x - %#x)\n", &__am_apps_bss_start, &__am_apps_bss_end);
+   am_apps_bss  = RANGE(&__am_apps_bss_start,  &__am_apps_bss_end);
+   printf("am-apps.data.size = %ld, am-apps.bss.size = %ld\n",
+       am_apps_data.end - am_apps_data.start, am_apps_bss.end - am_apps_bss.start);
+@@ -47,9 +51,9 @@ void rt_hw_board_init() {
+   rt_components_board_init();
+ #endif
+ 
+-#ifdef RT_USING_HEAP
+-  rt_kprintf("heap: [0x%08x - 0x%08x]\n", (rt_ubase_t) RT_HW_HEAP_BEGIN, (rt_ubase_t) RT_HW_HEAP_END);
+-#endif
++// #ifdef RT_USING_HEAP
++//   rt_kprintf("heap: [0x%08x - 0x%08x]\n", (rt_ubase_t) RT_HW_HEAP_BEGIN, (rt_ubase_t) RT_HW_HEAP_END);
++// #endif
+ }
+ 
+ int main() {
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index 06e74a6..8250f44 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -145,12 +145,12 @@ static int _uart_putc(struct rt_serial_device *serial, char c)
+ 
+ static int _uart_getc(struct rt_serial_device *serial)
+ {
++#if HAS_GUI
+     static uint32_t last_key = 0;
+     static bool shift_down = false;
+     static const char *greeting = "am_hello RT-Thread\n";
+ 
+     uint32_t last_code = last_key & 0xFF;
+-#if HAS_GUI
+     if (last_code == 0)
+     {
+         AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
+@@ -190,7 +190,8 @@ static int _uart_getc(struct rt_serial_device *serial)
+     }
+     return ret;
+ #else
+-    static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
++    // static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
++    static const char *p = "memtrace\n";
+     return (*p != '\0' ? *(p++) : -1);
+ #endif
+ }
+diff --git a/include/rtdbg.h b/include/rtdbg.h
+index 5cb73fe..38eff65 100644
+--- a/include/rtdbg.h
++++ b/include/rtdbg.h
+@@ -32,7 +32,7 @@
+ 
+ #include <rtconfig.h>
+ 
+-#define HAS_GUI 1
++#define HAS_GUI 0
+ 
+ #ifdef __cplusplus
+ extern "C" {
+-- 
+2.34.1
+

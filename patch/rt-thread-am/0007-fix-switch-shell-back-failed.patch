@@ -1,0 +1,71 @@
+From d97b56f4d6544b7430be969e661c3c0d9148e175 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Fri, 7 Feb 2025 18:53:44 +0800
+Subject: [PATCH 07/21] fix: switch shell back failed
+
+---
+ bsp/abstract-machine/src/context.c | 23 +++++++++++++++++------
+ 1 file changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/context.c b/bsp/abstract-machine/src/context.c
+index 859e0bc..a573612 100644
+--- a/bsp/abstract-machine/src/context.c
++++ b/bsp/abstract-machine/src/context.c
+@@ -9,7 +9,8 @@ typedef union _PCB {
+     // am使用的上下文区域
+     struct rt_thread *rt_parent; /* !!! 调试使用的数据，需要放置在结构体开始处 */
+     void (*am_wrap)(union _PCB *pcb);
+-    // Context *from;
++    union _PCB *from; /* !!! 需要记录上一进程，需要再切换进程时更新它的cp */
++    union _PCB *to; /* rt已经将rt_thread_self()->sp切换目标堆栈 */
+     Context *cp;
+     void *rt_exit;
+     
+@@ -33,10 +34,14 @@ static inline PCB *get_current_pcb()
+   return current_pcb;
+ }
+ 
+-Context* sys_yield(Event e, Context *c)
++Context* sys_yield(Event e, Context *prev)
+ {
+   PCB *current_pcb = get_current_pcb();
+   // printf("Context %p yield to %p\n", c, current_pcb->cp);
++
++  /* !!! 切换到下一进程前需要保存当前上下文，否则切换回来时cp对应的内核进程上下文已经被“释放”，mepc一般为非法值 */
++  if (current_pcb->from) current_pcb->from->cp = prev;
++
+   return current_pcb->cp;
+ }
+ 
+@@ -54,9 +59,12 @@ void __am_cte_init() {
+ 
+ void rt_hw_context_switch_to(rt_ubase_t to) {
+   /* current rt thread 已经切换成功，yield直接切换Context即可 */
+-  // PCB *proc_to = (*(PCB **)to);
++  PCB *current_pcb = get_current_pcb();
++  PCB *proc_from = ((PCB *)0);
++  PCB *proc_to = (*(PCB **)to);
++  current_pcb->from = proc_from;
++  current_pcb->to = proc_to;
+   // printf("rt_hw_context_switch_to %p context %p (%s)\n", current_pcb, current_pcb->cp, proc_to->rt_parent->parent.name);
+-  // PCB *current_pcb = get_current_pcb();
+   // current_pcb->to = proc_to->cp;
+   yield();
+   assert(0);
+@@ -64,8 +72,11 @@ void rt_hw_context_switch_to(rt_ubase_t to) {
+ 
+ void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to) {
+   /* current rt thread 已经切换成功，yield直接切换Context即可 */
+-  // PCB *proc_to = (*(PCB **)to);
+-  // PCB *proc_from = (*(PCB **)from);
++  PCB *current_pcb = get_current_pcb();
++  PCB *proc_from = (*(PCB **)from);
++  PCB *proc_to = (*(PCB **)to);
++  current_pcb->from = proc_from;
++  current_pcb->to = proc_to;
+   // printf("rt_hw_context_switch from %p context %p to %p context %p (%s => %s)\n", proc_from, proc_from->cp, proc_to, proc_to->cp, proc_from->rt_parent->parent.name, proc_to->rt_parent->parent.name);
+   // PCB *current_pcb = get_current_pcb();
+   // current_pcb->to = proc_to->cp;
+-- 
+2.34.1
+

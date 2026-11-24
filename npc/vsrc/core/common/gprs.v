@@ -57,7 +57,7 @@ generate
     //     assign a[i] = x[i+10];
     // end
     // a0-5 = xs10-15
-    for (genvar i = 0; i<6; ++i) begin
+    for (genvar i = 0; i<6; ++i) begin : argument_registers
         assign a[i] = x[i+10];
     end
 endgenerate
@@ -92,11 +92,9 @@ assign a2 = a[2];
  */
 wire [`RISCV_GPR_COUNT-1:0] wen_onehot;
 assign wen_onehot = wen ? (1 << waddr) : 0;
-`ifdef __ICARUS__
-initial x[0] = 0;
-`else
-assign x[0] = 0;
-`endif
+always @(posedge clock) begin
+    x[0] <= 0;
+end
 genvar i;
 for (i=1 ; i<`RISCV_GPR_COUNT; ++i) begin
     always @(posedge clock) begin

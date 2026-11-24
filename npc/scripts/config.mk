@@ -66,10 +66,12 @@ GEN_HEADER_FILES		+= $(NPC_HOME)/include/generated/autoconf.h
 GEN_HEADER_FILES		+= $(NPC_HOME)/include/generated/autoconf.vh
 GEN_HEADER_FILES		+= $(NPC_HOME)/vsrc/chisel-gen/src/common/AutoConfig.scala
 convert_headers: $(GEN_HEADER_FILES)
-$(NPC_HOME)/include/generated/autoconf.h: .config
-	@echo "*** Modified $< to generate $@"
+$(NPC_HOME)/include/config/auto.conf: .config $(CONF)
 	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
-$(NPC_HOME)/include/generated/autoconf.vh: .config
+$(NPC_HOME)/include/generated/autoconf.h: $(NPC_HOME)/include/config/auto.conf
+	@echo "*** Modified .config to generate $@"
+	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
+$(NPC_HOME)/include/generated/autoconf.vh: $(NPC_HOME)/include/generated/autoconf.h
 	@echo "*** Modified $< to generate $@"
 	$(Q)$(GEN_VERILOG_CFG) $(NPC_HOME)/include/generated/autoconf.h --output $@
 $(NPC_HOME)/vsrc/chisel-gen/src/common/AutoConfig.scala: .config

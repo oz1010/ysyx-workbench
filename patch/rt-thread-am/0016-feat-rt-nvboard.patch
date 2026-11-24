@@ -1,0 +1,68 @@
+From bbc422aa999591585aa07e20704415d598f50e02 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Sat, 14 Jun 2025 21:45:28 +0800
+Subject: [PATCH 16/21] =?UTF-8?q?feat:=20rt=E6=96=B0=E5=A2=9E=E5=AF=B9nvbo?=
+ =?UTF-8?q?ard=E4=B8=B2=E5=8F=A3=E7=9A=84=E6=94=AF=E6=8C=81?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/src/hello.c | 6 ++++--
+ bsp/abstract-machine/src/uart.c  | 4 +++-
+ include/rtdbg.h                  | 5 ++++-
+ 3 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/bsp/abstract-machine/src/hello.c b/bsp/abstract-machine/src/hello.c
+index 5c86cb6..08be35c 100644
+--- a/bsp/abstract-machine/src/hello.c
++++ b/bsp/abstract-machine/src/hello.c
+@@ -5,10 +5,12 @@
+ static int hello() {
+   printf("Hello RISC-V!\n");
+ 
+-#if HAS_GUI
++#if NVBOARD_SERIAL
++  LOG_W("Input from NVBoard serial.");
++#elif HAS_GUI
+   LOG_W("Input from GUI.");
+ #else
+-  LOG_W("No GUI, connot input from keyboard.");
++  LOG_W("Not set GUI or NVBoard, connot input from keyboard.");
+ #endif
+ 
+   return 0;
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index 8250f44..dc8c045 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -145,7 +145,9 @@ static int _uart_putc(struct rt_serial_device *serial, char c)
+ 
+ static int _uart_getc(struct rt_serial_device *serial)
+ {
+-#if HAS_GUI
++#if NVBOARD_SERIAL
++    return getch();
++#elif HAS_GUI
+     static uint32_t last_key = 0;
+     static bool shift_down = false;
+     static const char *greeting = "am_hello RT-Thread\n";
+diff --git a/include/rtdbg.h b/include/rtdbg.h
+index 38eff65..99e748b 100644
+--- a/include/rtdbg.h
++++ b/include/rtdbg.h
+@@ -32,7 +32,10 @@
+ 
+ #include <rtconfig.h>
+ 
+-#define HAS_GUI 0
++// VGA显示开关
++#define HAS_GUI             0
++// NVBoard串口开关
++#define NVBOARD_SERIAL      1
+ 
+ #ifdef __cplusplus
+ extern "C" {
+-- 
+2.34.1
+

@@ -1,0 +1,83 @@
+From f3686bfbc292d58c6cb9207a8ecb162b76fb88cd Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Sun, 26 Jan 2025 22:07:06 +0800
+Subject: [PATCH 03/21] feat: print no GUI tips
+
+---
+ bsp/abstract-machine/src/hello.c |  8 ++++++++
+ bsp/abstract-machine/src/uart.c  | 15 +++++++++++++++
+ include/rtdbg.h                  |  2 ++
+ 3 files changed, 25 insertions(+)
+
+diff --git a/bsp/abstract-machine/src/hello.c b/bsp/abstract-machine/src/hello.c
+index cda4015..5c86cb6 100644
+--- a/bsp/abstract-machine/src/hello.c
++++ b/bsp/abstract-machine/src/hello.c
+@@ -1,8 +1,16 @@
+ #include <klib.h>
+ #include <rtthread.h>
++#include <rtdbg.h>
+ 
+ static int hello() {
+   printf("Hello RISC-V!\n");
++
++#if HAS_GUI
++  LOG_W("Input from GUI.");
++#else
++  LOG_W("No GUI, connot input from keyboard.");
++#endif
++
+   return 0;
+ }
+ INIT_ENV_EXPORT(hello);
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index e4eb866..d798d22 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -11,6 +11,8 @@
+ #include <rtthread.h>
+ #include <am.h>
+ #include <klib.h>
++#include <klib-macros.h>
++#include <rtdbg.h>
+ 
+ #define UART_DEFAULT_BAUDRATE 115200
+ 
+@@ -37,8 +39,21 @@ static int _uart_putc(struct rt_serial_device *serial, char c) {
+ }
+ 
+ static int _uart_getc(struct rt_serial_device *serial) {
++#if HAS_GUI
++  AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
++  if (ev.keycode) {
++    if (ev.keydown) {
++      printf("down %#02x\n", ev.keycode);
++    } else {
++      printf("up %#02x\n", ev.keycode);
++    }
++  }
++  static const char *p = "input from VGA";
++  return (*p != '\0' ? *(p ++) : -1);
++#else
+   static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
+   return (*p != '\0' ? *(p ++) : -1);
++#endif
+ }
+ 
+ const struct rt_uart_ops _uart_ops = {
+diff --git a/include/rtdbg.h b/include/rtdbg.h
+index 4eb544a..5cb73fe 100644
+--- a/include/rtdbg.h
++++ b/include/rtdbg.h
+@@ -32,6 +32,8 @@
+ 
+ #include <rtconfig.h>
+ 
++#define HAS_GUI 1
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+-- 
+2.34.1
+

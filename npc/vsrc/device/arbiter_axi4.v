@@ -117,9 +117,9 @@ wire [3:0]                  m_rids[0:MASTER_COUNT-1];
 
 /* master数组与user数组互联，idx==0为默认值 */
 generate
-    for (genvar i=0; i<MASTER_COUNT; ++i) begin
+    for (genvar i=0; i<MASTER_COUNT; ++i) begin : master_connections
         // DEFAULT
-        if (i==0) begin
+        if (i==0) begin : default_master
             assign m_awvalids[i] = 0;
             assign m_awaddrs[i] = 0;
             assign m_awids[i] = 0;
@@ -138,7 +138,7 @@ generate
             assign m_arsizes[i] = 0;
             assign m_arbursts[i] = 0;
             assign m_rreadys[i] = 0;
-        end else begin
+        end else begin : user_master
             integer master_idx = (USER_M_COUNT-i);
 
             assign m_awvalids[i] = u_awvalids[1*master_idx +: 1];

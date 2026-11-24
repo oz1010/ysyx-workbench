@@ -1,0 +1,63 @@
+From a9270897779c2f8f85efc4be6dfc51ccab5035db Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Fri, 30 Oct 2026 18:23:41 +0800
+Subject: [PATCH 18/21] =?UTF-8?q?feat:=20=E4=BF=AE=E6=94=B9=E9=93=BE?=
+ =?UTF-8?q?=E6=8E=A5=E8=84=9A=E6=9C=AC?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../linker_flash_sram_sdram.ld                | 30 +++++++++++--------
+ 1 file changed, 17 insertions(+), 13 deletions(-)
+
+diff --git a/bsp/abstract-machine/linker_flash_sram_sdram.ld b/bsp/abstract-machine/linker_flash_sram_sdram.ld
+index d52021c..8922943 100644
+--- a/bsp/abstract-machine/linker_flash_sram_sdram.ld
++++ b/bsp/abstract-machine/linker_flash_sram_sdram.ld
+@@ -17,25 +17,29 @@ _pmem_end = _pmem_start + _pmem_size;
+ _STACK_SIZE = 0x1000;    /* 4KB栈 */
+ _HEAP_SIZE = 0x1000;     /* 4KB堆 */
+ 
+-ENTRY(_start)
++ENTRY(_bin_entry)
+ /* PHDRS { text PT_LOAD; data PT_LOAD; } */
+ 
+ SECTIONS {
+     /* -------- 直接从FLASH启动 -------- */
+-    .bootloader : {
+-        _bin_start = ALIGN(4);
++    .bin_entry ORIGIN(FLASH) : {
++        _bin_start = .;
++        KEEP(*(.bin_entry))
++    } >FLASH
++    .bin_header : SUBALIGN(4) {
++        _bin_header_start = .;
+         KEEP(*(.bin_header))
+-        *(entry)
++        _bin_header_end = .;
++    } >FLASH
++    _bin_flag = _bin_header_start;
++    .bootloader : ALIGN(4) {
++        KEEP(*(entry))
+     } >FLASH
+-    _bin_flag = _bin_start + 4;
+-
+-    /* -------- 直接从SRAM启动 -------- */
+-    .bootloader.ssbl : {
+-        _ssbl_start = ALIGN(4);
+-        KEEP(*(entry.ssbl))
+-        _ssbl_end = ALIGN(4);
+-    } >SRAM AT>FLASH
+-    _ssbl_load = LOADADDR(.bootloader.ssbl);
++    ASSERT(SIZEOF(.bin_entry) == 4, "reset vector must be 4 bytes")
++    ASSERT(_bin_header_start == _bin_start + 4, "metadata must start at offset 0x04")
++    ASSERT(SIZEOF(.bin_header) == 36, "metadata must be 36 bytes")
++    ASSERT(ADDR(.bootloader) == _bin_start + 40, "startup must start at offset 0x28")
++    ASSERT((_start & 3) == 0, "startup must be 4-byte aligned")
+ 
+     /* -------- 程序和数据存放在FLASH，需要加载到RAM后跳转执行 -------- */
+     .text : {
+-- 
+2.34.1
+

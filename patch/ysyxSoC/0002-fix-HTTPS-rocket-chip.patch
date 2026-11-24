@@ -1,0 +1,25 @@
+From eff187cb26ba9c1235e2da5b3eb3e71e12729667 Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Mon, 23 Nov 2026 20:39:31 +0800
+Subject: [PATCH 2/2] =?UTF-8?q?fix:=20=E4=BD=BF=E7=94=A8HTTPS=E5=85=8B?=
+ =?UTF-8?q?=E9=9A=86rocket-chip?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .gitmodules | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/.gitmodules b/.gitmodules
+index d4be386..136fa13 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,3 +1,3 @@
+ [submodule "rocket-chip"]
+ 	path = rocket-chip
+-	url = git@github.com:chipsalliance/rocket-chip.git
++	url = https://github.com/chipsalliance/rocket-chip.git
+-- 
+2.34.1
+

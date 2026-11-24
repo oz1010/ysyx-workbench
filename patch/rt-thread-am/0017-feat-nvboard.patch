@@ -1,0 +1,102 @@
+From 5596d2c52cbad77e90f19a99055efd9f1b6bfd9f Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Sun, 15 Jun 2025 20:04:29 +0800
+Subject: [PATCH 17/21] =?UTF-8?q?feat:=20=E6=96=B0=E5=A2=9E=E6=94=AF?=
+ =?UTF-8?q?=E6=8C=81nvboard=E9=94=AE=E7=9B=98=E8=BE=93=E5=85=A5?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/src/hello.c |  2 ++
+ bsp/abstract-machine/src/uart.c  | 45 ++++++++++++++++++++++++++++++++
+ include/rtdbg.h                  |  4 ++-
+ 3 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/bsp/abstract-machine/src/hello.c b/bsp/abstract-machine/src/hello.c
+index 08be35c..61f8560 100644
+--- a/bsp/abstract-machine/src/hello.c
++++ b/bsp/abstract-machine/src/hello.c
+@@ -7,6 +7,8 @@ static int hello() {
+ 
+ #if NVBOARD_SERIAL
+   LOG_W("Input from NVBoard serial.");
++  #elif NVBOARD_KEYBOARD
++  LOG_W("Input from NVBoard keyboard.");
+ #elif HAS_GUI
+   LOG_W("Input from GUI.");
+ #else
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index dc8c045..ac82c02 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -147,6 +147,51 @@ static int _uart_getc(struct rt_serial_device *serial)
+ {
+ #if NVBOARD_SERIAL
+     return getch();
++#elif NVBOARD_KEYBOARD
++    static uint32_t last_key = 0;
++    static bool shift_down = false;
++    // static const char *greeting = "am_hello RT-Thread\n";
++    static const char *greeting = "";
++
++    uint32_t last_code = last_key & 0xFF;
++    if (last_code == 0)
++    {
++        AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
++        if (ev.keycode)
++        {
++            if (ev.keycode == AM_KEY_LSHIFT || ev.keycode == AM_KEY_RSHIFT)
++            {
++                shift_down = ev.keydown;
++                return -1;
++            }
++
++            uint32_t ret = 0;
++            key_item_t *item = _uart_parsing_key(ev);
++            if (ev.keydown)
++            {
++                ret = item->ascii[shift_down];
++                if (!ret)
++                    printf("down key %#02x %s [%x %x]\n", ev.keycode, item->name, item->ascii[0], item->ascii[1]);
++            }
++
++            if (ret < 0xFF)
++            {
++                return ret == 0 ? -1 : ret;
++            }
++            else
++            {
++                /* 注意字节序 */
++                last_key = ret;
++            }
++        }
++    }
++    int ret = *greeting != '\0' ? *(greeting++) : -1;
++    if (ret == -1 && last_code)
++    {
++        last_key = last_key >> 8;
++        ret = last_code;
++    }
++    return ret;
+ #elif HAS_GUI
+     static uint32_t last_key = 0;
+     static bool shift_down = false;
+diff --git a/include/rtdbg.h b/include/rtdbg.h
+index 99e748b..5c26cb8 100644
+--- a/include/rtdbg.h
++++ b/include/rtdbg.h
+@@ -35,7 +35,9 @@
+ // VGA显示开关
+ #define HAS_GUI             0
+ // NVBoard串口开关
+-#define NVBOARD_SERIAL      1
++#define NVBOARD_SERIAL      0
++// NVBoard键盘开关
++#define NVBOARD_KEYBOARD    1
+ 
+ #ifdef __cplusplus
+ extern "C" {
+-- 
+2.34.1
+

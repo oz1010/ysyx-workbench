@@ -318,6 +318,7 @@ void init_vsimu(int argc, char* argv[])
     terminal_ps2_init(&top->externalPins_ps2_clk, &top->externalPins_ps2_data);
 #endif
 
+#if VM_TRACE
     std::string trace_path = cfg_output + "/trace";
     std::string trace_file;
     if (cfg_hw_trace)
@@ -334,6 +335,7 @@ void init_vsimu(int argc, char* argv[])
         tfp->open(trace_file.c_str());
         LOG_INFO("Trace is written to %s\n", trace_file.c_str());
     }
+#endif
 
     // 初始化NVBoard
     IFDEF(CONFIG_HAS_NVBOARD, nvboard_bind_all_pins(top.get()));
@@ -364,10 +366,12 @@ void exit_vsimu()
     // Final model cleanup
     top->final();
 
+#if VM_TRACE
     if (cfg_hw_trace)
     {
         tfp.reset();
     }
+#endif
     top.reset();
     contextp.reset();
 

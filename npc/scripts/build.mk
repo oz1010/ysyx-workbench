@@ -37,19 +37,19 @@ OBJS += $(patsubst %.c,$(OBJ_DIR)/%.o,$(filter %.c,$(SRCS)))
 
 # Compilation patterns
 # @$(CC) $(CFLAGS) -E -MF /dev/null $< | clang-format > $@.i
-$(OBJ_DIR)/%.o: %.c
+$(OBJ_DIR)/%.o: %.c $(FIXDEP)
 	@echo + CC $<
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $<
 	@$(call call_fixdep, $(@:.o=.d), $@)
 
-$(OBJ_DIR)/%.o: %.cc
+$(OBJ_DIR)/%.o: %.cc $(FIXDEP)
 	@echo + CX $<
 	@mkdir -p $(dir $@)
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 	@$(call call_fixdep, $(@:.o=.d), $@)
 
-$(OBJ_DIR)/%.o: %.cpp
+$(OBJ_DIR)/%.o: %.cpp $(FIXDEP)
 	@echo + CXX $<
 	@mkdir -p $(dir $@)
 	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
