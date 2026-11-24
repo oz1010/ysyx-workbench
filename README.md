@@ -107,11 +107,8 @@ mill --version
 make dev-init
 ```
 
-生成verilog文件，位于`ysyxSoC/build/ysyxSoCFull.v`
-
-并可以拷贝到NPC中
+生成verilog文件，位于`ysyxSoC/build/ysyxSoCFull.v`，NPC构建时直接引用该文件及`ysyxSoC/perip`中的外设实现。
 
 ```bash
-# make verilog
-make copy_to_npc
+make verilog
 ```

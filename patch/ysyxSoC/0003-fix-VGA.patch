@@ -1,0 +1,29 @@
+From 7ac13d5aa19f69f52b940987bba1ab2ad8a2403e Mon Sep 17 00:00:00 2001
+From: oz1010 <uu90909@gmail.com>
+Date: Tue, 24 Nov 2026 19:21:43 +0800
+Subject: [PATCH 3/4] =?UTF-8?q?fix:=20=E8=A1=A5=E5=85=A8=20VGA=20=E6=8E=A7?=
+ =?UTF-8?q?=E5=88=B6=E5=8C=BA=E5=9C=B0=E5=9D=80=E6=98=A0=E5=B0=84?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ src/SoC.scala | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/SoC.scala b/src/SoC.scala
+index 1c65cd8..1eae2f3 100644
+--- a/src/SoC.scala
++++ b/src/SoC.scala
+@@ -34,7 +34,7 @@ class ysyxSoCASIC(implicit p: Parameters) extends LazyModule {
+   val luart = LazyModule(new APBUart16550(AddressSet.misaligned(0x10000000, 0x1000)))
+   val lgpio = LazyModule(new APBGPIO(AddressSet.misaligned(0x10002000, 0x10)))
+   val lkeyboard = LazyModule(new APBKeyboard(AddressSet.misaligned(0x10011000, 0x8)))
+-  val lvga = LazyModule(new APBVGA(AddressSet.misaligned(0x21000000, 0x200000)))
++  val lvga = LazyModule(new APBVGA(AddressSet.misaligned(0x21000000, 0x2000000)))
+   val lspi  = LazyModule(new APBSPI(
+     AddressSet.misaligned(0x10001000, 0x1000) ++    // SPI controller
+     AddressSet.misaligned(0x30000000, 0x10000000)   // XIP flash
+-- 
+2.34.1
+
