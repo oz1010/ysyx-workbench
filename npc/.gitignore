@@ -29,7 +29,6 @@ verify/
 verify_basic/
 
 # 特定目录或文件规则
-!vsrc/ysyxSoC/build/
 include/config/
 include/generated/
 tools/nemu-diff/include/

@@ -3,7 +3,7 @@
 #include "utils.h"
 
 /**
- * ref. vsrc/ysyxSoC/perip/uart16550/doc/UART_spec.pdf
+ * ref. ../ysyxSoC/perip/uart16550/doc/UART_spec.pdf
  */
 
 static uint8_t *uart_base = NULL;

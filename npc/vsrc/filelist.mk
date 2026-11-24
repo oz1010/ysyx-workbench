@@ -36,29 +36,29 @@ CHISEL_VERILOG_FILES-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL) = $(addprefix $(CHISEL_
 	Axi4IOArbiter.v BaseCache.v CacheRouter.v CsrFile.v Exu.v GprFile.v \
 	HazardUnit.v Idu.v Ifu.v Lsu.v PerfMonitor.v riscv32e_core.v Wbu.v)
 
-# VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull.v
-VSRCS-y += ./vsrc/ysyxSoC/build/ysyxSoCFull_axi.v
+YSYXSOC_HOME ?= $(NPC_HOME)/../ysyxSoC
+VSRCS-y += $(YSYXSOC_HOME)/build/ysyxSoCFull.v
 VSRCS-y += ./vsrc/core/ysyx_23060295.v
 VDIRS_CORE-y							+= ./vsrc/core/common
 VDIRS_CORE-y							+= ./vsrc/device
 VDIRS_CORE-$(CONFIG_ISA_RISCV_SINGLE)	+= ./vsrc/core/single
 VDIRS_CORE-$(CONFIG_ISA_RISCV_MULTIPLE)	+= ./vsrc/core/multiple
 VDIRS_CORE-$(CONFIG_ISA_RISCV_PIPELINE)	+= ./vsrc/core/pipeline
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/amba
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/bitrev
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/flash
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/gpio
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/ps2
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/psram
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/psram/efabless
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/sdram
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/sdram/core_sdram_axi4
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/spi
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/uart16550
-VDIRS_YSYXSOC-y							+= ./vsrc/ysyxSoC/perip/vga
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/amba
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/bitrev
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/flash
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/gpio
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/ps2
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/psram
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/psram/efabless
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/sdram
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/sdram/core_sdram_axi4
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/spi
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/uart16550
+VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/vga
 VDIRS-y 								+= $(VDIRS_CORE-y)
 VDIRS-y 								+= $(VDIRS_YSYXSOC-y)
-# VSRCS-y		+= $(shell find -L ./vsrc/ysyxSoC/perip -name *.v)
+# VSRCS-y		+= $(shell find -L $(YSYXSOC_HOME)/perip -name *.v)
 
 REF_STA_FILES							+= ./vsrc/yosys/$(VMOD_NAME).v
 REF_STA_FILES							+= ./vsrc/core/ysyx_23060295.v
@@ -121,12 +121,12 @@ VSRCS-y		+= $(foreach d, $(VDIRS-y), \
 					$(wildcard $(d)/*.sv) \
 				)
 VSRCS-y     += $(shell find -L ./vsrc -name *.cpp)
-VSRCS       += $(addprefix $(WORK_DIR)/,$(VSRCS-y))
+VSRCS       := $(abspath $(VSRCS-y))
 INC_PATH    += $(VGEN_DIR)
 INC_PATH    += $(VDIRS-y)
 INC_PATH    += $(CHISEL_BUILD)
-INC_PATH    += $(WORK_DIR)/./vsrc/ysyxSoC/perip/uart16550/rtl
-INC_PATH    += $(WORK_DIR)/./vsrc/ysyxSoC/perip/spi/rtl
+INC_PATH    += $(YSYXSOC_HOME)/perip/uart16550/rtl
+INC_PATH    += $(YSYXSOC_HOME)/perip/spi/rtl
 LDFLAGS     += -L$(VGEN_DIR) -lV$(VMOD_NAME) -lverilated -lreadline  -pthread -lpthread -latomic
 
 # TRACE=1 make run -j, enable Verilator waveform tracing (FST preferred)
