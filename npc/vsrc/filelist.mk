@@ -15,30 +15,25 @@
 WORK_DIR    = $(shell pwd)
 VGEN_DIR    = $(WORK_DIR)/build/vgen
 VMOD_NAME	= ysyxSoCFull
-# VMOD_NAME	= top
+CPU_VMOD_NAME = $(STUID)
+CPU_VERILOG = $(WORK_DIR)/build/$(CPU_VMOD_NAME).v
 VERILATOR   = verilator
 THREADS ?= $(shell nproc)
 
 # Chisel gen directory
 CHISEL_GEN_DIR_NAME = $(patsubst "%",%,$(CONFIG_CHISEL_DIR_NAME))
-CHISEL_GEN_OUT = build
-CHISEL_GEN_MODE = normal
-ifneq ($(filter syn sta sta-area,$(MAKECMDGOALS)),)
-	CHISEL_GEN_OUT = build-sta
-	CHISEL_GEN_MODE = synthesis
-endif
-ifeq ($(IVSIM),1)
-	CHISEL_GEN_OUT = build-sta
-	CHISEL_GEN_MODE = synthesis
-endif
+CHISEL_GEN_OUT = build-sta
+CHISEL_GEN_MODE = synthesis
 CHISEL_BUILD = ./vsrc/chisel-gen/$(CHISEL_GEN_OUT)/$(CHISEL_GEN_DIR_NAME)
 CHISEL_VERILOG_FILES-$(CONFIG_ISA_RISCV_PIPELINE_CHISEL) = $(addprefix $(CHISEL_BUILD)/, \
 	Axi4IOArbiter.v BaseCache.v CacheRouter.v CsrFile.v Exu.v GprFile.v \
 	HazardUnit.v Idu.v Ifu.v Lsu.v PerfMonitor.v riscv32e_core.v Wbu.v)
 
 YSYXSOC_HOME ?= $(NPC_HOME)/../ysyxSoC
-VSRCS-y += $(YSYXSOC_HOME)/build/ysyxSoCFull.v
-VSRCS-y += ./vsrc/core/ysyx_23060295.v
+YSYXSOC_VERILOG = $(YSYXSOC_HOME)/build/ysyxSoCFull.v
+VSRCS-y += ./vsrc/soc_defines.v
+VSRCS-y += $(YSYXSOC_VERILOG)
+VSRCS-y += $(CPU_VERILOG)
 VDIRS_CORE-y							+= ./vsrc/core/common
 VDIRS_CORE-y							+= ./vsrc/device
 VDIRS_CORE-$(CONFIG_ISA_RISCV_SINGLE)	+= ./vsrc/core/single
@@ -56,7 +51,6 @@ VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/sdram/core_sdram_axi4
 VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/spi
 VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/uart16550
 VDIRS_YSYXSOC-y							+= $(YSYXSOC_HOME)/perip/vga
-VDIRS-y 								+= $(VDIRS_CORE-y)
 VDIRS-y 								+= $(VDIRS_YSYXSOC-y)
 # VSRCS-y		+= $(shell find -L $(YSYXSOC_HOME)/perip -name *.v)
 
@@ -69,17 +63,12 @@ REF_STA_FILES							+= $(foreach d, $(REF_STA_DIRS), \
 												$(wildcard $(d)/*.v) \
 												$(wildcard $(d)/*.sv) \
 											)
-STA_SRC_FILES							?= $(addprefix $(WORK_DIR)/,$(REF_STA_FILES))
+CPU_RTL_FILES = $(filter-out ./vsrc/yosys/%,$(REF_STA_FILES))
 STA_INCLUDE_DIR							+= $(NPC_HOME)/include
 STA_INCLUDE_DIR							+= $(NPC_HOME)/vsrc/core/common
 STA_OUTPUT_DIR							?= $(WORK_DIR)/build/yosys$(if $(filter 1,$(NETLIST)),-sim,)
-GEN_STA_FILE							?= $(STA_OUTPUT_DIR)/$(VMOD_NAME).v
-GEN_STUDEN_FILE							?= $(STA_OUTPUT_DIR)/ysyx_23060295.v
-# 最终综合目标分析文件，也可以是一个列表
-# STA_TARGET_FILE							?= $(STA_SRC_FILES)
-# STA_TARGET_FILE							?= $(GEN_STA_FILE)
-STA_TARGET_FILE							?= $(GEN_STUDEN_FILE)
-STA_TARGET_TOP							?= ysyx_23060295
+STA_TARGET_FILE							?= $(CPU_VERILOG)
+STA_TARGET_TOP							?= $(STUID)
 STA_FREQ_MHZ							?= 6000
 STA_RESULT_DIR							?= $(STA_OUTPUT_DIR)/$(STA_TARGET_TOP)-$(STA_FREQ_MHZ)MHz
 NETLIST_FILE							?= $(STA_RESULT_DIR)/$(STA_TARGET_TOP).netlist.v.sim
@@ -87,9 +76,10 @@ STA_REPORT_FILE							?= $(STA_RESULT_DIR)/$(STA_TARGET_TOP).rpt
 STA_AREA_REPORT_FILE					?= $(STA_OUTPUT_DIR)/area-hier/area_hier.csv
 STA_SDC_FILE							?= $(NPC_HOME)/vsrc/yosys/$(VMOD_NAME).sdc
 
-YOSYS_PDK								?= icsprout55
-YOSYS_STA_LIB							?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/liberty/ics55_LLSC_H7CL_typ_tt_1p2_25_nldm.lib
-YOSYS_STDCELL_VERILOG					?= $(YOSYS_STA_HOME)/pdk/icsprout55/IP/STD_cell/ics55_LLSC_H7C_V1p10C100/ics55_LLSC_H7CL/verilog/ics55_LLSC_H7CL.v
+YOSYS_STA_HOME							?= $(NPC_HOME)/../yosys-sta
+YOSYS_PDK								?= nangate45
+YOSYS_STA_LIB							?= $(YOSYS_STA_HOME)/pdk/nangate45/lib/Nangate45_typ.lib
+YOSYS_STDCELL_VERILOG					?= $(YOSYS_STA_HOME)/pdk/nangate45/sim/cells.v
 
 # iverilog gen directory
 IV_GEN_DIR								= $(WORK_DIR)/build/iverilog
@@ -115,7 +105,6 @@ IV_INC_PATH	+= $(VDIRS_CORE-y)
 IV_INC_PATH	+= $(CHISEL_BUILD)
 
 # VSRCS-y		+= $(shell find -L $(VDIRS-y) -maxdepth 1 -name *.v)
-VSRCS-y     += $(CHISEL_VERILOG_FILES-y)
 VSRCS-y		+= $(foreach d, $(VDIRS-y), \
 					$(wildcard $(d)/*.v) \
 					$(wildcard $(d)/*.sv) \
@@ -154,6 +143,7 @@ VCXXFLAGS += $(addprefix -I,$(INC_PATH))
 VCXXFLAGS += -DTOP_NAME="\"$(VMOD_NAME)\""
 VCXXFLAGS += -DTOP_FILE=V$(VMOD_NAME).h
 VCXXFLAGS += -D__GUEST_ISA__=$(GUEST_ISA)
+VERILATOR_CFLAGS += +define+YSYX_SOC
 VERILATOR_CFLAGS += -MMD -O3 --x-assign fast --x-initial fast --noassert
 VERILATOR_CFLAGS += -cc --build -j --top-module $(VMOD_NAME) --Mdir $(VGEN_DIR)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
@@ -211,21 +201,7 @@ $(IV_PS2_INPUT): $(IV_PS2_INPUT_SRC)
 #          +1800-2017ext+<ext>        Use SystemVerilog 2017 with file extension <ext>
 #          +1800-2023ext+<ext>        Use SystemVerilog 2023 with file extension <ext>
 # 但yosys前端目前最高为Verilog-2005，原版可以支持到sv-2023
-convert2v: $(STA_TARGET_FILE)
-$(GEN_STA_FILE): $(STA_SRC_FILES) $(WORK_DIR)/include/generated/autoconf.vh $(CHISEL_DEPENDS)
-	@echo convert to $@
-	@mkdir -p $(dir $@)
-	@$(VERILATOR) -Wall --Wno-fatal -sv --bbox-unsup --bbox-sys -E \
-		--no-public-params --no-timing --no-assert \
-		+1800-2005ext+ \
-		$(addprefix +incdir+, $(STA_INCLUDE_DIR)) \
-		+define+IN_YOSYS_STA \
-		$(if $(filter 1,$(NETLIST)),+define+NETLIST,) \
-		$(STA_SRC_FILES) > $@
-$(STA_TARGET_FILE): $(GEN_STA_FILE) $(WORK_DIR)/scripts/rename_ysyx_verilog.py
-	@echo convert to $@
-	@mkdir -p $(dir $@)
-	@python3 $(WORK_DIR)/scripts/rename_ysyx_verilog.py $(GEN_STA_FILE) -o $(STA_TARGET_FILE) --top $(VMOD_NAME)
+convert2v: $(CPU_VERILOG)
 
 syn: $(NETLIST_FILE)
 $(NETLIST_FILE): $(STA_TARGET_FILE) $(YOSYS_STA_HOME)/scripts/yosys.tcl $(CHISEL_DEPENDS)
@@ -233,7 +209,7 @@ $(NETLIST_FILE): $(STA_TARGET_FILE) $(YOSYS_STA_HOME)/scripts/yosys.tcl $(CHISEL
 	@$(MAKE) -C $(YOSYS_STA_HOME) syn \
 		DESIGN=$(STA_TARGET_TOP) SDC_FILE=$(STA_SDC_FILE) \
 		CLK_FREQ_MHZ=$(STA_FREQ_MHZ) CLK_PORT_NAME=clock O=$(STA_OUTPUT_DIR) \
-		OUTPUT_DIR=$(STA_OUTPUT_DIR) \
+		OUTPUT_DIR=$(STA_OUTPUT_DIR) PDK=$(YOSYS_PDK) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
 		RTL_FILES="$(STA_TARGET_FILE)"
 
@@ -243,7 +219,7 @@ $(STA_REPORT_FILE): $(NETLIST_FILE) $(STA_SDC_FILE) $(YOSYS_STA_HOME)/scripts/st
 	@$(MAKE) -C $(YOSYS_STA_HOME) sta \
 		DESIGN=$(STA_TARGET_TOP) SDC_FILE=$(STA_SDC_FILE) \
 		CLK_FREQ_MHZ=$(STA_FREQ_MHZ) CLK_PORT_NAME=clock O=$(STA_OUTPUT_DIR) \
-		OUTPUT_DIR=$(STA_OUTPUT_DIR) \
+		OUTPUT_DIR=$(STA_OUTPUT_DIR) PDK=$(YOSYS_PDK) \
 		VERILOG_INCLUDE_DIRS="$(STA_INCLUDE_DIR)" \
 		RTL_FILES="$(STA_TARGET_FILE)"
 

@@ -188,7 +188,11 @@ module iv_memsys #(
                     ps2_rx_data = ps2_rx_next[7:0];
                 end
             end else if (ps2_use_host != 0) begin
+`ifdef IV_NO_HOST_PS2
+                ps2_rx_next = -1;
+`else
                 ps2_rx_next = $iv_ps2_input();
+`endif
                 ps2_rx_data = ps2_rx_next[7:0];
             end
         end
