@@ -23,9 +23,6 @@ localparam      VGA_CTRL_WIDTH = 640;
 localparam      VGA_CTRL_HIGH = 480;
 localparam      VGA_RGB_BIT_WIDTH = 32; // 模拟效率更高
 
-reg r_pready;
-reg [31:0] r_prdata;
-reg r_pslverr;
 wire read_enable = in_psel && in_penable && !in_pwrite;
 wire write_enable = in_psel && in_penable && in_pwrite;
 reg [VGA_RGB_BIT_WIDTH-1:0] fram_buffer[0:VGA_CTRL_HIGH-1][0:VGA_CTRL_WIDTH-1];
@@ -34,9 +31,18 @@ wire vga_ctrl_sync = ctrl_regs[1][0];
 wire [9:0] x_cnt = h_addr;
 wire [9:0] y_cnt = v_addr;
 
-assign in_pready = r_pready;
-assign in_prdata = r_prdata;
-assign in_pslverr = r_pslverr;
+`ifndef IN_YOSYS_STA
+import "DPI-C" function int dpi_vdev_read(input int addr, input int len);
+import "DPI-C" function void dpi_vdev_write(input int addr, input int data, input int len);
+`endif
+
+assign in_pready = in_psel && in_penable;
+`ifndef IN_YOSYS_STA
+assign in_prdata = read_enable ? dpi_vdev_read(in_paddr, 4) : 32'h0;
+`else
+assign in_prdata = 32'h0;
+`endif
+assign in_pslverr = 1'b0;
 assign vga_rgb = (x_cnt<VGA_CTRL_WIDTH && y_cnt<VGA_CTRL_HIGH) ? fram_buffer[y_cnt%VGA_CTRL_HIGH][x_cnt%VGA_CTRL_WIDTH][23:0] : 0;
 assign fb_sync_valid_o = vga_ctrl_sync;
 
@@ -60,19 +66,11 @@ initial begin
     ctrl_regs[1] = 0;
 end
 
-always @(posedge clock or posedge reset) begin
-    if (reset) begin
-        r_pready <= 0;
-        r_prdata <= 0;
-        r_pslverr <= 0;
-    end else begin
-        if (write_enable) begin
-            $error("vga regs only support DMA write %x", in_paddr);
-        end else begin
-            r_prdata <= 0;
-            r_pready <= 0;
-            r_pslverr <= 0;
-        end
+always @(posedge clock) begin
+    if (write_enable) begin
+        `ifndef IN_YOSYS_STA
+        dpi_vdev_write(in_paddr, in_pwdata, 4);
+        `endif
     end
 end
 

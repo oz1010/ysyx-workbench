@@ -1567,21 +1567,29 @@ module AXI4Xbar_1(	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/s
   wire        _awIn_0_io_deq_valid;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:74:47
   wire [2:0]  _awIn_0_io_deq_bits;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:74:47
   wire [5:0]  _GEN = auto_anon_in_araddr[29:24] ^ 6'h21;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:31
+  wire [5:0]  _GEN_0 = auto_anon_in_araddr[29:24] ^ 6'h22;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:31
   wire        requestARIO_0_0 =
-    {auto_anon_in_araddr[29], auto_anon_in_araddr[24]} == 2'h0
-    | {_GEN[5:4], _GEN[0]} == 3'h0 | (&(auto_anon_in_araddr[29:28]));	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :71:97, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
+    {auto_anon_in_araddr[29], auto_anon_in_araddr[25:24]} == 3'h0
+    | {_GEN[5:4], _GEN[1:0]} == 4'h0 | {_GEN_0[5:4], _GEN_0[1:0]} == 4'h0
+    | (&(auto_anon_in_araddr[29:28]));	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :71:97, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
   wire        requestARIO_0_1 =
-    {auto_anon_in_araddr[29:28] ^ 2'h2, auto_anon_in_araddr[24]} == 3'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
+    {auto_anon_in_araddr[29:28] ^ 2'h2,
+     auto_anon_in_araddr[25:24],
+     auto_anon_in_araddr[12]} == 5'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
   wire        requestARIO_0_2 =
-    {auto_anon_in_araddr[29:28], ~(auto_anon_in_araddr[24])} == 3'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
-  wire [5:0]  _GEN_0 = auto_anon_in_awaddr[29:24] ^ 6'h21;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:31
+    {auto_anon_in_araddr[29:28], ~(auto_anon_in_araddr[25:24])} == 4'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
+  wire [5:0]  _GEN_AW_0 = auto_anon_in_awaddr[29:24] ^ 6'h21;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:31
+  wire [5:0]  _GEN_AW_1 = auto_anon_in_awaddr[29:24] ^ 6'h22;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:31
   wire        requestAWIO_0_0 =
-    {auto_anon_in_awaddr[29], auto_anon_in_awaddr[24]} == 2'h0
-    | {_GEN_0[5:4], _GEN_0[0]} == 3'h0 | (&(auto_anon_in_awaddr[29:28]));	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :71:97, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
+    {auto_anon_in_awaddr[29], auto_anon_in_awaddr[25:24]} == 3'h0
+    | {_GEN_AW_0[5:4], _GEN_AW_0[1:0]} == 4'h0 | {_GEN_AW_1[5:4], _GEN_AW_1[1:0]} == 4'h0
+    | (&(auto_anon_in_awaddr[29:28]));	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/dependencies/diplomacy/diplomacy/src/diplomacy/lazymodule/LazyModuleImp.scala:100:25, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, :71:97, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
   wire        requestAWIO_0_1 =
-    {auto_anon_in_awaddr[29:28] ^ 2'h2, auto_anon_in_awaddr[24]} == 3'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
+    {auto_anon_in_awaddr[29:28] ^ 2'h2,
+     auto_anon_in_awaddr[25:24],
+     auto_anon_in_awaddr[12]} == 5'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
   wire        requestAWIO_0_2 =
-    {auto_anon_in_awaddr[29:28], ~(auto_anon_in_awaddr[24])} == 3'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
+    {auto_anon_in_awaddr[29:28], ~(auto_anon_in_awaddr[25:24])} == 4'h0;	// root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/amba/axi4/Xbar.scala:60:9, root/project/ysyx-dev/ysyx-workbench/ysyxSoC/rocket-chip/src/main/scala/diplomacy/Parameters.scala:137:{31,41,46,59}
   wire [15:0] arSel = 16'h1 << auto_anon_in_arid;	// src/main/scala/chisel3/util/OneHot.scala:65:12
   wire [15:0] awSel = 16'h1 << auto_anon_in_awid;	// src/main/scala/chisel3/util/OneHot.scala:65:12
   wire [15:0] rSel = 16'h1 << _in_0_rT_20;	// src/main/scala/chisel3/util/Mux.scala:30:73, src/main/scala/chisel3/util/OneHot.scala:65:12
