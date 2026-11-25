@@ -132,7 +132,7 @@ def main():
         count = re.search(r"total guest instructions = ([\d,]+)", output)
         trap_return = re.search(r"ret: (0x[0-9a-f]+|0)\b", output)
         valid = (
-            (result.returncode == 0) == (exit_code == 0)
+            result.returncode == exit_code
             and expected in output
             and trap_return is not None
             and int(trap_return.group(1), 0) == exit_code
