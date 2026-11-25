@@ -8,12 +8,11 @@
 !/build_container/*
 !/build_container/**/
 !/build_container/**/*
-!/npc/*
+!/npc/
 !/patch/
 !/patch/**
 !/common/**
-!/nemu/*
-
+!/nemu/
 !/nexus-am/*
 !/nanos-lite/*
 !/navy-apps/*

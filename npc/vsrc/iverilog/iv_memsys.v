@@ -171,6 +171,9 @@ module iv_memsys #(
 `endif
 
 `ifdef CONFIG_HAS_PS2
+`ifdef VERILATOR
+    import "DPI-C" function int iv_ps2_input();
+`endif
     reg [7:0] ps2_rx_data;
     string ps2_rx_path;
     integer ps2_rx_fd;
@@ -191,6 +194,8 @@ module iv_memsys #(
             end else if (ps2_use_host != 0) begin
 `ifdef IV_NO_HOST_PS2
                 ps2_rx_next = -1;
+`elsif VERILATOR
+                ps2_rx_next = iv_ps2_input();
 `else
                 ps2_rx_next = $iv_ps2_input();
 `endif
