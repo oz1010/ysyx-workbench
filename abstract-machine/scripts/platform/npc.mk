@@ -8,7 +8,7 @@ AM_SRCS := platform/npc/trm.c \
            platform/npc/mpe.c
 
 LINKER_FILE ?= ${AM_HOME}/scripts/platform/npc/linker_psram.ld
-NPC_RUN_TARGET ?= sim-iverilog
+NPC_RUN_TARGET ?= sim-verilator
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(LINKER_FILE)

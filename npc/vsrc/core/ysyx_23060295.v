@@ -134,7 +134,14 @@ module ysyx_23060295 (
     wire [31:0] core_pc[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指向下一周期待执行的指令地址，在命令执行完成前为当前指令地址
     wire [31:0] core_inst_pc[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指向执行完的指令对应的地址
     wire core_inst_done[`RISCV_CORE_NUM-1:0] /* verilator public_flat_rd */; // 指示是否完成一条指令
-    `ifndef IN_YOSYS_STA
+    `ifdef IN_YOSYS_STA
+    wire core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rd*/;
+    generate
+        for (genvar i=0; i<`RISCV_CORE_NUM; ++i) begin : m_core_loop_check
+            assign core_error[i] = 1'b0;
+        end
+    endgenerate
+    `else
     reg [31:0] core_inst_stuck_tick[`RISCV_CORE_NUM-1:0];
     reg core_error[`RISCV_CORE_NUM-1:0] /*verilator public_flat_rw*/;
     generate

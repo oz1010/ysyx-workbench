@@ -3,6 +3,7 @@
 
 默认用法: python3 scripts/rename_ysyx_verilog.py
 指定文件: python3 scripts/rename_ysyx_verilog.py INPUT [-o OUTPUT] [--top TOP]
+独立/SoC复位地址: 附加 --conditional-reset-pc
 """
 
 import argparse
@@ -125,6 +126,26 @@ def rename_verilog(text, student_id, top_module):
     }
 
 
+def configure_reset_pc(text, student_id):
+    macro = f"YSYX_{student_id}_RESET_PC"
+    patterns = (
+        rf"(\bfunc_get_reset_pc\s*=\s*)32'h[0-9a-fA-F_]+(\s*;)",
+        rf"(\bassign\s+reset_pc\s*=\s*)32'h[0-9a-fA-F_]+(\s*;)",
+    )
+    for pattern in patterns:
+        text, count = re.subn(pattern, rf"\1`{macro}\2", text)
+        if count != 1:
+            raise ValueError(f"复位地址赋值匹配数量应为 1，实际为 {count}")
+    definitions = (
+        "`ifdef YSYX_SOC\n"
+        f"`define {macro} 32'h30000000\n"
+        "`else\n"
+        f"`define {macro} 32'h80000000\n"
+        "`endif\n\n"
+    )
+    return definitions + text
+
+
 def main():
     default_input = Path(__file__).resolve().parent.parent / "build/yosys/ysyxSoCFull.v"
     parser = argparse.ArgumentParser(
@@ -133,6 +154,11 @@ def main():
     parser.add_argument("input", nargs="?", type=Path, default=default_input)
     parser.add_argument("-o", "--output", type=Path, help="默认输出到输入文件所在目录")
     parser.add_argument("--top", default="ysyxSoCFull", help="原始顶层模块名")
+    parser.add_argument(
+        "--conditional-reset-pc",
+        action="store_true",
+        help="保留 YSYX_SOC=0x30000000、独立仿真=0x80000000 的复位地址选择",
+    )
     args = parser.parse_args()
 
     try:
@@ -149,6 +175,8 @@ def main():
         with input_path.open("r", encoding="utf-8", newline="") as source:
             content = source.read()
         converted, stats = rename_verilog(content, student_id, args.top)
+        if args.conditional_reset_pc:
+            converted = configure_reset_pc(converted, student_id)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8", newline="") as target:
             target.write(converted)

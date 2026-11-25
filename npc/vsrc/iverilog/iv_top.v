@@ -336,7 +336,7 @@ module iv_top;
     // 驱动rst
     initial begin
         reset = 1;
-        #20 reset = 0;
+        #19.5 reset = 0;
         // #20000 $finish;
     end
     // 输出是否符合预期

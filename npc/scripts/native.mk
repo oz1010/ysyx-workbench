@@ -49,6 +49,7 @@ run-env: $(IV_TARGET) $(IV_PS2_INPUT) $(IMG)
 else
 # Command to execute NPC
 NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
+NPC_RUN_ENV = $(if $(strip $(DISPLAY)$(WAYLAND_DISPLAY)),,env SDL_VIDEODRIVER=$${SDL_VIDEODRIVER:-dummy} SDL_RENDER_DRIVER=$${SDL_RENDER_DRIVER:-software} XDG_RUNTIME_DIR=$${XDG_RUNTIME_DIR:-/tmp})
 run-env: $(BINARY) $(IMG) $(DIFF_REF_SO) $(ANALYZER) $(RECORDER)
 endif
 
@@ -56,7 +57,7 @@ ivsim-env: $(IMG)
 
 run: run-env
 	$(call git_commit, "run NPC")
-	$(NPC_EXEC)
+	$(NPC_RUN_ENV) $(NPC_EXEC)
 	$(PERF_MONITOR_SH)
 
 gdb: run-env
