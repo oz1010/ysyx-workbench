@@ -1,4 +1,6 @@
+#ifndef VERILATOR
 #include <vpi_user.h>
+#endif
 
 #include <fcntl.h>
 #include <signal.h>
@@ -329,6 +331,15 @@ static int poll_input(void)
     return queue_pop();
 }
 
+#ifdef VERILATOR
+#ifdef __cplusplus
+extern "C"
+#endif
+int iv_ps2_input(void)
+{
+    return poll_input();
+}
+#else
 static PLI_INT32 iv_ps2_input_calltf(PLI_BYTE8 *user_data)
 {
     vpiHandle call = vpi_handle(vpiSysTfCall, NULL);
@@ -355,3 +366,4 @@ void (*vlog_startup_routines[])(void) = {
     iv_ps2_input_register,
     NULL,
 };
+#endif

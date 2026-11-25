@@ -10,7 +10,7 @@ CI_VERILATOR_DIR = $(NPC_HOME)/build/verilator-standalone
 CI_VERILATOR_BINARY = $(CI_VERILATOR_DIR)/Viv_top
 CI_VERILATOR_FLAGS = --binary --timing -sv -Wno-fatal --top-module iv_top \
                      --Mdir $(CI_VERILATOR_DIR) -Wno-UNOPTFLAT -Wno-PINMISSING \
-                     $(addprefix -D,IN_YOSYS_STA NETLIST CI_STANDALONE IV_NO_HOST_PS2) \
+                     $(addprefix -D,IN_YOSYS_STA NETLIST CI_STANDALONE) \
                      $(addprefix -I,$(NPC_HOME)/include $(NPC_HOME)/vsrc/core/common)
 CI_SIM_ARGS = +IMG=$(abspath $(IMG)) +OUTPUT=$(abspath $(RESULT_DIR)) \
               +TRACE=$(if $(filter 1,$(TRACE)),1,0)
@@ -41,7 +41,7 @@ $(YSYXSOC_VERILOG):
 sim-verilator: $(CI_CPU_FILE)
 	@test -f "$(IMG)" || { echo "IMG=$(IMG) does not exist"; exit 1; }
 	@mkdir -p $(CI_VERILATOR_DIR) $(RESULT_DIR)
-	@$(VERILATOR) $(CI_VERILATOR_FLAGS) -o $(CI_VERILATOR_BINARY) $(CI_CPU_FILE) $(CI_TB_SRCS)
+	@$(VERILATOR) $(CI_VERILATOR_FLAGS) -o $(CI_VERILATOR_BINARY) $(CI_CPU_FILE) $(CI_TB_SRCS) $(IV_PS2_INPUT_SRC)
 	$(CI_VERILATOR_BINARY) $(CI_SIM_ARGS)
 
 amtest-image:
