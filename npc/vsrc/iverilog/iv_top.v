@@ -6,6 +6,9 @@
 `endif
 
 module iv_top;
+`ifdef VERILATOR
+    import "DPI-C" function void iv_exit(input int code);
+`endif
     localparam ADDR_WIDTH = 32;
     localparam INST_WIDTH = 32;
     localparam DATA_WIDTH = 32;
@@ -339,19 +342,31 @@ module iv_top;
         #19.5 reset = 0;
         // #20000 $finish;
     end
+    task automatic finish_with_code;
+        input [31:0] code;
+        begin
+`ifdef VERILATOR
+            iv_exit(code);
+`else
+            $finish_and_return(code);
+`endif
+        end
+    endtask
+
     // 输出是否符合预期
     always @(posedge clock) begin
         if (trap_en) begin
             case (trap_cause)
                 IV_EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
                     $display("\033[1;31mInstruction Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
-                    $finish;
+                    finish_with_code(trap_tval);
                 end
 
                 IV_EXPT_CAUSE_BRK: begin // Breakpoint 3
                     // 默认_trap_handle_def处理函数：a0-a2 mepc mcause mtval
                     if (mepc == 0) begin
                         $display("\033[1;32mHIT GOOD TRAP\033[0m at pc = 0x%x", core_inst_pc[0]);
+                        finish_with_code(0);
                     end else begin
                         // case (mcause)
                         //     IV_EXPT_CAUSE_IAF: begin // Instruction Access Fault 1
@@ -369,18 +384,18 @@ module iv_top;
                         //     default: begin end
                         // endcase
                         $display("\033[1;31mHIT BAD TRAP\033[0m at pc = 0x%x ret: 0x%x", core_inst_pc[0], trap_tval);
+                        finish_with_code(trap_tval);
                     end
-                    $finish;
                 end
 
                 IV_EXPT_CAUSE_LAF: begin // Load Access Fault 5
                     $display("\033[1;31mLoad Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
-                    $finish;
+                    finish_with_code(trap_tval);
                 end
 
                 IV_EXPT_CAUSE_SAF: begin // Store Access Fault 7
                     $display("\033[1;31mStore Access Fault\033[0m at pc = 0x%x addr: 0x%x", trap_epc, trap_tval);
-                    $finish;
+                    finish_with_code(trap_tval);
                 end
 
                 default: begin

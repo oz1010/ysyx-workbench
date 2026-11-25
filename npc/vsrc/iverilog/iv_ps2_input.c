@@ -339,6 +339,14 @@ int iv_ps2_input(void)
 {
     return poll_input();
 }
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void iv_exit(int code)
+{
+    exit(code);
+}
 #else
 static PLI_INT32 iv_ps2_input_calltf(PLI_BYTE8 *user_data)
 {
