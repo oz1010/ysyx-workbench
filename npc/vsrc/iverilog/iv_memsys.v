@@ -55,9 +55,10 @@ module iv_memsys #(
     localparam [3:0] REGION_FLASH = 3;
     localparam [3:0] REGION_PSRAM = 4;
     localparam [3:0] REGION_SDRAM = 5;
-    localparam [3:0] REGION_UART  = 6;
-    localparam [3:0] REGION_PS2   = 7;
-    localparam [3:0] REGION_CLINT = 8;
+    localparam [3:0] REGION_UART     = 6;
+    localparam [3:0] REGION_PS2      = 7;
+    localparam [3:0] REGION_CLINT    = 8;
+    localparam [3:0] REGION_VGA_CTRL = 9;
     localparam [1:0] AXI_RESP_OKAY   = 2'b00;
     localparam [1:0] AXI_RESP_SLVERR = 2'b10;
     localparam [1:0] AXI_RESP_DECERR = 2'b11;
@@ -270,6 +271,15 @@ module iv_memsys #(
 `ifdef CONFIG_SDRAM
     reg [7:0] sdram_mem [0:`CONFIG_SDRAM_SIZE-1];
 `endif
+`ifdef CONFIG_HAS_NVBOARD_VGA
+    reg [31:0] vga_ctrl_mem [0:1023];
+    integer vga_ctrl_index;
+    initial begin
+        for (vga_ctrl_index = 0; vga_ctrl_index < 1024; vga_ctrl_index = vga_ctrl_index + 1)
+            vga_ctrl_mem[vga_ctrl_index] = 0;
+        vga_ctrl_mem[0] = {16'd640, 16'd480};
+    end
+`endif
 
     function automatic [3:0] address_region;
         input [ADDR_WIDTH-1:0] addr;
@@ -306,6 +316,11 @@ module iv_memsys #(
 `ifdef CONFIG_HAS_CLINT
             if (addr >= `CONFIG_CLINT_BASE_ADDR && (addr - `CONFIG_CLINT_BASE_ADDR) < 32'h00010000)
                 address_region = REGION_CLINT;
+`endif
+`ifdef CONFIG_HAS_NVBOARD_VGA
+            if (addr >= `CONFIG_NVBOARD_VGA_CTRL_BASE_ADDR &&
+                (addr - `CONFIG_NVBOARD_VGA_CTRL_BASE_ADDR) < 32'h00001000)
+                address_region = REGION_VGA_CTRL;
 `endif
         end
     endfunction
@@ -395,6 +410,10 @@ module iv_memsys #(
 `endif
 `ifdef CONFIG_HAS_PS2
                 REGION_PS2: data = ps2_read_byte(addr[2:0]);
+`endif
+`ifdef CONFIG_HAS_NVBOARD_VGA
+                REGION_VGA_CTRL:
+                    data = vga_ctrl_mem[(addr - `CONFIG_NVBOARD_VGA_CTRL_BASE_ADDR) >> 2][addr[1:0]*8 +: 8];
 `endif
                 default: begin
                     $display("iv_memsys: read from unmapped address 0x%08x at 0x%08x, returning DECERR", addr, core_pc);
@@ -583,6 +602,10 @@ module iv_memsys #(
 `endif
 `ifdef CONFIG_HAS_PS2
                 REGION_PS2: begin end
+`endif
+`ifdef CONFIG_HAS_NVBOARD_VGA
+                REGION_VGA_CTRL:
+                    vga_ctrl_mem[(addr - `CONFIG_NVBOARD_VGA_CTRL_BASE_ADDR) >> 2][addr[1:0]*8 +: 8] = data;
 `endif
                 default: image_write_byte(addr, data);
             endcase

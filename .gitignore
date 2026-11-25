@@ -1,17 +1,22 @@
 
 *.*
 *
-!*/
-!/common/**
-!/nemu/*
-!/nexus-am/*
-!/nanos-lite/*
-!/navy-apps/*
-!/npc/*
-!/nvboard/*
+
+!/abstract-machine/*
+!/abstract-machine/**/
+!/abstract-machine/**/*
 !/build_container/*
 !/build_container/**/
 !/build_container/**/*
+!/npc/*
+!/patch/
+!/patch/**
+!/common/**
+!/nemu/*
+
+!/nexus-am/*
+!/nanos-lite/*
+!/navy-apps/*
 !Makefile
 !README.md
 !.gitignore
@@ -20,8 +25,5 @@ fceux-am/
 am-kernels/
 rt-thread-am/
 yosys-sta/
-/ysyxSoC/
 /.ci-upstream/
-!/patch/
-!/patch/**
 
