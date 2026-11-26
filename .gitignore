@@ -2,9 +2,7 @@
 *.*
 *
 
-!/abstract-machine/*
-!/abstract-machine/**/
-!/abstract-machine/**/*
+!/abstract-machine/
 !/build_container/*
 !/build_container/**/
 !/build_container/**/*

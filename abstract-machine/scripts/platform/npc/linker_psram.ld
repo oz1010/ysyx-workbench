@@ -6,7 +6,7 @@ _pmem_start = ORIGIN(PSRAM);
 _pmem_size = LENGTH(PSRAM);
 _pmem_end = _pmem_start + _pmem_size;
 
-_STACK_SIZE = 0x1000;
+_STACK_SIZE = 0x10000;
 _HEAP_SIZE = 0x1000;
 
 ENTRY(_bin_entry)
