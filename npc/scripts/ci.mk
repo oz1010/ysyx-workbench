@@ -57,6 +57,7 @@ sim-iverilog: $(CI_CPU_FILE) $(IV_PS2_INPUT)
 	@test -f "$(IMG)" || { echo "IMG=$(IMG) does not exist"; exit 1; }
 	@mkdir -p $(IV_GEN_DIR) $(RESULT_DIR)
 	@iverilog $(CI_IVERILOG_FLAGS) -o $(CI_RTL_VVP) $(CI_CPU_FILE) $(CI_TB_SRCS)
+	$(call git_commit, "sim RTL")
 	$(CI_VVP) $(CI_RTL_VVP) $(CI_SIM_ARGS)
 
 sim-iverilog-netlist: $(IV_PS2_INPUT)
@@ -65,6 +66,7 @@ sim-iverilog-netlist: $(IV_PS2_INPUT)
 	@test -f "$(CELLS)" || { echo "CELLS=$(CELLS) does not exist"; exit 1; }
 	@mkdir -p $(IV_GEN_DIR) $(RESULT_DIR)
 	@iverilog $(CI_IVERILOG_FLAGS) -Dfunctional -o $(CI_NETLIST_VVP) $(NETLIST) $(CELLS) $(CI_TB_SRCS)
+	$(call git_commit, "sim RTL")
 	$(CI_VVP) $(CI_NETLIST_VVP) $(CI_SIM_ARGS)
 
 .PHONY: verilog amtest-image sim-verilator sim-iverilog sim-iverilog-netlist
