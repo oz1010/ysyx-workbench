@@ -26,9 +26,14 @@ BINARY_FLG	+= -S
 # # 只复制特定段到bin中
 # BINARY_FLG     += -j .data.extra -j .bss.extra -j .bootloader -j .bin_header -j .text -j .data -j .rodata -j .init -j .fini -j .vectors -j .isr_vector
 
-CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/platform/nemu/include
-.PHONY: $(AM_HOME)/am/src/platform/nemu/trm.c
+
+MAINARGS_MAX_LEN = 64
+MAINARGS_PLACEHOLDER = The insert-arg rule in Makefile will insert mainargs here.
+CFLAGS += -DMAINARGS_MAX_LEN=$(MAINARGS_MAX_LEN) -DMAINARGS_PLACEHOLDER=\""$(MAINARGS_PLACEHOLDER)"\"
+
+insert-arg: image
+	@python3 $(AM_HOME)/tools/insert-arg.py $(IMAGE).bin $(MAINARGS_MAX_LEN) "$(MAINARGS_PLACEHOLDER)" "$(mainargs)"
 
 $(IMAGE).elf: $(LINKER_FILE)
 
@@ -37,8 +42,10 @@ image: $(IMAGE).elf
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) $(BINARY_FLG) $(IMAGE).elf $(IMAGE).bin
 
-run: image
+run: insert-arg
 	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) run ARGS="$(NEMUFLAGS)" IMG=$(IMAGE).bin
 
-gdb: image
+gdb: insert-arg
 	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) gdb ARGS="$(NEMUFLAGS)" IMG=$(IMAGE).bin
+
+.PHONY: insert-arg
